@@ -1,0 +1,12 @@
+ProcessConfig = uSimCTD
+{
+  AppTick   = 5
+  CommsTick = 5
+
+// MB06
+// No ctdsim2 data available
+
+// NJ07
+  Mods_Bin_File = ../../../data/may07_ctdsim2.bin
+
+}
