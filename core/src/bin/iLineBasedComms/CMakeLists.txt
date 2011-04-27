@@ -4,7 +4,7 @@
 #--------------------------------------------------------
 
 file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTOS})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 FILE(GLOB SRC *.cpp)
