@@ -8,10 +8,6 @@ FILE(GLOB SRC *.cpp)
 ADD_EXECUTABLE(pViewMessage ${SRC})
    
 TARGET_LINK_LIBRARIES(pViewMessage
-   MOOS
-   MOOSGen
-   MOOSUtility
-   mbutil
-   m
-   pthread)
+  ${MOOS_LIBRARIES}
+   ${IVP_MBUTIL_LIBRARY})
 

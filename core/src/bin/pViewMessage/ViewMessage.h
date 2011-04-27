@@ -23,11 +23,11 @@
 #ifndef VIEWMESSAGE_HEADER
 #define VIEWMESSAGE_HEADER
 
-#include "MOOSLib.h"
-#include "MOOSGenLib.h"
-#include "MBUtils.h"
-#include "MOOSGeodesy.h"
-#include "XYPoint.h"
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
+#include "lib_mbutil/MBUtils.h"
+#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "lib_geometry/XYPoint.h"
 #include <string>
 
 
