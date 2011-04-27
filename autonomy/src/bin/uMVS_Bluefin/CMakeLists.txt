@@ -8,11 +8,7 @@ FILE(GLOB SRC *.cpp)
 ADD_EXECUTABLE(uMVS_Bluefin ${SRC})
 
 TARGET_LINK_LIBRARIES(uMVS_Bluefin
-   MOOS
-   MOOSGen
-   MOOSUtility
-   newmat10D
-   m
-   pthread)
+  ${MOOS_LIBRARIES}
+   newmat10D)
 
 

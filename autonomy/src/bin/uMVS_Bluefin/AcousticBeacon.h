@@ -40,7 +40,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <newmatap.h>
+#include "lamss/lib_newmat10D/newmatap.h"
 //using namespace NEWMAT;
 
 #include "SimEntity.h"

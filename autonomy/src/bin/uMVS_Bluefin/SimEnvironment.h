@@ -42,7 +42,7 @@
 
 #include <MOOSGenLib/MOOSGenLib.h>
 #include <MOOSLIB/MOOSLib.h>
-#include <MOOSTerrain.h>
+#include <MOOSUtilityLib/MOOSTerrain.h>
 
 #include "AcousticSignal.h"
 typedef std::list<CAcousticSignal>	ACOUSTIC_SIGNAL_LIST;

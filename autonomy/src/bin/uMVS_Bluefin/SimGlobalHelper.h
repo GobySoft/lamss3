@@ -29,7 +29,7 @@
 //////////////////////////    END_GPL    //////////////////////////////////
 #ifndef SimGlobalHelperh
 #define SimGlobalHelperh
-#include <newmatap.h>
+#include "lamss/lib_newmat10D/newmatap.h"
 //using namespace NEWMAT;
 
 void MOOSTraceMatrix(Matrix & Mat,const char * Str);

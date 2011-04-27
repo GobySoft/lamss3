@@ -23,9 +23,9 @@
 #ifndef GATEWAY_HEADER
 #define GATEWAY_HEADER
 
-#include "MOOSLib.h"
-#include "MOOSGenLib.h"
-#include "MOOSGeodesy.h"
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOSUtilityLib/MOOSGeodesy.h"
 #include <string>
 
 

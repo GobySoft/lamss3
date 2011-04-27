@@ -42,7 +42,6 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <newmatap.h>
 //using namespace NEWMAT;
 
 #include <MOOSGenLib/MOOSGenLib.h>

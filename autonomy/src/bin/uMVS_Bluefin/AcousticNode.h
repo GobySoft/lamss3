@@ -44,7 +44,7 @@
 #include <set>
 using namespace std;
 
-#include <newmatap.h>
+#include "lamss/lib_newmat10D/newmatap.h"
 //using namespace NEWMAT;
 
 #include "SimLoggable.h"
