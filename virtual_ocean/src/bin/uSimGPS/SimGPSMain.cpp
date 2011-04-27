@@ -1,5 +1,5 @@
-#include "MOOSLib.h"
-#include "MOOSGenLib.h"
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
 #include "SimGPS.h"
 
 int main(int argc , char * argv[])

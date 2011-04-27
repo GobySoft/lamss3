@@ -7,8 +7,8 @@
 
 #define STRLEN         200
 
-#include "MOOSLib.h"
-#include "MOOSGenLib.h"
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
 
 #include <string>
 #include <iostream>

@@ -8,7 +8,4 @@ FILE(GLOB SRC *.cpp)
 ADD_EXECUTABLE(uSimCTD ${SRC})
 
 TARGET_LINK_LIBRARIES(uSimCTD
-   MOOS
-   MOOSGen
-   m
-   pthread)
+${MOOS_LIBRARIES})
