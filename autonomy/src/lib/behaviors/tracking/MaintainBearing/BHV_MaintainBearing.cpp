@@ -30,7 +30,7 @@ BHV_MaintainBearing::BHV_MaintainBearing(IvPDomain gdomain) :
   bearing_variable = "BEARING_STAT";
 
   bearing_type = "relative";
-
+  bearing_mode = "dual";
   
   over_shoot = 0.0;
   desired_angle = 90.0;
@@ -81,6 +81,14 @@ bool BHV_MaintainBearing::setParam(string param, string val)
      bearing_type = val;
      absolute_bearing = (bearing_type == "absolute");
    }
+ else if (param == "bearing_mode")
+   {
+     string buf = tolower(val);
+     if (buf  == "single" || buf == "quad")
+       bearing_mode = buf;
+     else
+       bearing_mode = "dual";
+   }
  else
    return(false);
 
@@ -127,16 +135,20 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   // overshoot desired angle
   double auv_desired_angle = desired_angle + over_shoot*(desired_angle-current_angle);
   //postMessage("DESIRED_AUV_ANGLE",auv_desired_angle);
-  //pick left side desired direction
+  //pick starboard as positive bearing
   double leftabs = (true_bearing - auv_desired_angle);
-  if (leftabs < 0.0)
+  while (leftabs < 0.0)
     leftabs += 360.0;
+  while (leftabs >= 360.0)
+    leftabs -= 360.0;
 
   
   //pick right side desired direction
   double rightabs = (true_bearing + auv_desired_angle);
-  if(rightabs > 360.0)
+  while (rightabs >= 360.0)
     rightabs -= 360.0;
+  while (rightabs < 0.0)
+    rightabs += 360.0;
 
   //postMessage("LEFTABS",leftabs);
   //postMessage("RIGHTABS",rightabs);
@@ -149,17 +161,48 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   crs_zaic.setSummitDelta(50.0);
   crs_zaic.setMinMaxUtil(0,100);
 
-  int new_index = crs_zaic.addComponent();  
-  crs_zaic.setSummit(rightabs, new_index);
-  crs_zaic.setPeakWidth(width, new_index);
-  crs_zaic.setBaseWidth(90.0 - width,new_index);
-  crs_zaic.setSummitDelta(50.0, new_index);
-  crs_zaic.setMinMaxUtil(0,100,new_index);
+  if (bearing_mode == "dual" || bearing_mode == "quad")
+    {
+      int new_index = crs_zaic.addComponent();  
+      crs_zaic.setSummit(rightabs, new_index);
+      crs_zaic.setPeakWidth(width, new_index);
+      crs_zaic.setBaseWidth(90.0 - width,new_index);
+      crs_zaic.setSummitDelta(50.0, new_index);
+      crs_zaic.setMinMaxUtil(0,100,new_index);
+      if (bearing_mode == "quad" && desired_angle != 90.0 && desired_angle != 270.0)
+	{
+	  
+	  double leftrear = (true_bearing - (180.0-auv_desired_angle));
+	  while (leftrear < 0.0)
+	    leftrear += 360.0;
+	  while (leftrear >= 360.0)
+	    leftrear -= 360.0;
+	  new_index = crs_zaic.addComponent();  
+	  crs_zaic.setSummit(leftrear, new_index);
+	  crs_zaic.setPeakWidth(width, new_index);
+	  crs_zaic.setBaseWidth(90.0 - width,new_index);
+	  crs_zaic.setSummitDelta(50.0, new_index);
+	  crs_zaic.setMinMaxUtil(0,100,new_index);
 
+	  double rightrear = (true_bearing + (180.0-auv_desired_angle));
+	  while (rightrear < 0.0)
+	    rightrear += 360.0;
+	  while (rightrear >= 360.0)
+	    rightrear -= 360.0;
+	  new_index = crs_zaic.addComponent();  
+	  crs_zaic.setSummit(rightrear, new_index);
+	  crs_zaic.setPeakWidth(width, new_index);
+	  crs_zaic.setBaseWidth(90.0 - width,new_index);
+	  crs_zaic.setSummitDelta(50.0, new_index);
+	  crs_zaic.setMinMaxUtil(0,100,new_index);
+	}
+    }
+
+  
   IvPFunction *of = crs_zaic.extractOF();
-
+  
   of->setPWT(m_priority_wt);
- 
+  
   return(of);
 }
 

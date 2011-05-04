@@ -35,7 +35,7 @@ protected:
   std::string bearing_variable;
   std::string bearing_type;
   bool absolute_bearing;
-
+  std::string bearing_mode;
 };
 
 extern "C" {
