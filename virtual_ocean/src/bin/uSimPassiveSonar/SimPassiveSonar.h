@@ -24,6 +24,7 @@
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
 #include "lamss/lib_henrik_util/CBessel.h"
+#include "lamss/lib_henrik_util/CCovMat.h"
 
 class ComputeCovariance
 {
@@ -61,38 +62,6 @@ class ComputeCovariance
   std::vector<double> k_z;
   std::vector<double> k_r;
   std::vector<double> S;
-};
-
-class CovMat
-{
- public:
-
-  bool putCovMat(int nrcv, double frq, std::vector<std::complex<double> > newcov);
-  bool getCovMat(int nrcv, double& frq, std::vector<std::complex<double> >& cov);
-  bool getCovLow(int nrcv, double& frq, std::vector<std::complex<double> >& cov);
-  bool getCholLow(int nrcv, double& frq, std::vector<std::complex<double> >& c);
-  void realization(std::vector<std::complex<double> >& out);
-  bool scaleCovMat(double fac);
- protected:
-  int indx( int i, int j);
-  int indx_tri(int i, int j);
-  std::complex<double> conjg(std::complex<double>);
-  bool cholesky();
-  void addWhiteNoise(double wn);
-  double gasdev();
-
-  CRandom ran;
-
-  int num_rcv;
-  double freq;
-  int iset;
-  double gset;
-
-  bool c_done;
-  // cov is the lower triangular of the covariance matrix
-  std::vector<complex<double> > cov;
-  // c is the cholesky factorized lower triangular
-  std::vector<complex<double> > c;
 };
 
 class CAcousticContact
