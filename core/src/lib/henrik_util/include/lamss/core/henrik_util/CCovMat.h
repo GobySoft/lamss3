@@ -52,6 +52,8 @@ class CovMat
   bool putCholLow(int nrcv, double frq, std::vector<std::complex<double> > c);
   void realization(std::vector<std::complex<double> >& out);
   bool scaleCovMat(double fac);
+  bool wnChol();
+
  protected:
   int indx( int i, int j);
   int indx_tri(int i, int j);

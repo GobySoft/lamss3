@@ -107,7 +107,17 @@ bool CovMat::getCholLow(int nrcv, double& frq,  vector<complex<double> >& cholou
     }
 }
 
-bool CovMat::putCholLow(int nrcv, double frq,  vector<complex<double> > cholin)
+bool CovMat::wnChol()
+{
+  for (unsigned int i=1; i <= num_rcv; i++)
+    {
+      double rr = cov[indx_tri(i,i)].real();
+      c[indx_tri(i,i)] = sqrt(rr);
+    }
+  c_done = true;
+}
+
+  bool CovMat::putCholLow(int nrcv, double frq,  vector<complex<double> > cholin)
 {
   num_rcv = nrcv;
   freq = frq;
