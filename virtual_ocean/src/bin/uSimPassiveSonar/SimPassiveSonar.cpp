@@ -125,9 +125,9 @@ CSimPassiveSonar::CSimPassiveSonar()
 
   // prepare Bessel functions for noise covariances
 
-   compCov.besgen.initBessel(2,40*M_PI);
+  //   compCov.besgen.initBessel(2,40*M_PI);
 
-   compCov.spherical_besgen.initSphBes(2,40*M_PI);
+  //   compCov.spherical_besgen.initSphBes(2,40*M_PI);
 
   // testing
    /*
@@ -416,6 +416,7 @@ bool CSimPassiveSonar::OnConnectToServer()
   m_Comms.Register( "TARGET_SIM_LIST",0);
   m_Comms.Register( "AMBIENT_NL_DEPTH",0);
   m_Comms.Register( "NOISE_VERT_DIR",0);
+  m_Comms.Register( "COVARIANCE_FILE",0);
 
 
 
@@ -734,6 +735,19 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
   	else
     	    MOOSTrace("noise_direct=false\n");
 
+      }
+    else if(Msg.m_sKey == "COVARIANCE_FILE")
+      {
+	if (noise_profile && noise_direct && noise_cov_built)
+	  {
+	    string covmat_file = Msg.m_sVal;
+	    double t_req;
+	    MOOSTrace("Reading Covariance\n");
+	    read_covmat_file(covmat_file, nl_prev, t_req);
+	    MOOSTrace("Got Covariance, delay = %f secs\n",MOOSTime()-t_req);
+	  }
+	else
+	  MOOSTrace("Noise covariance received, but not used\n"); 
       }
     else if(Msg.m_sKey == "TARGET_SIM_LIST" )
       {
@@ -1855,6 +1869,8 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 		}
 	      
 	      dummycov.putCovMat(ndim,freq,wncov);
+	      // create diagonal cholesky
+	      dummycov.wnChol();
 	      noise_covar.push_back(dummycov);
 	    }
 	  theta.clear();
@@ -1884,8 +1900,10 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
       if (fabs(array_avg_pitch-array_prev_pitch) 
 	  >= 5.0*M_PI/180.0 )
 	{    
-	  MOOSTrace("Building correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
+	  m_Comms.Notify("COVARIANCE_REQUEST","now");
 
+	  MOOSTrace("Requesting correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
+	  /*
 	  vector<double> delta_r;
 	  vector<double> delta_z;
 
@@ -2013,6 +2031,7 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	    }
 	  MOOSTrace("Built covariance matrices, pitch=%f degrees\n",
 		    array_avg_pitch*180.0/M_PI);
+	  */
 	  array_prev_pitch = array_avg_pitch;
 	}
     }
@@ -2126,6 +2145,74 @@ bool CSimPassiveSonar::parseNoiseDirectionality( string noise_in,
     { return false; }
   return(true);
 }    
+
+bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double& t_req)
+{
+  char covmat_filename_buff[1000]; 
+  // Sure hope nobody wants a filename longer than 1000 chars
+  sprintf(covmat_filename_buff,"%s",covmat_file.c_str());
+  
+  FILE * cov_data_file;
+  if ( (cov_data_file = fopen(covmat_filename_buff, "rb")) == NULL)
+    {
+      MOOSTrace("\nUnable to open a file:  %s \nFAIL\n", covmat_filename_buff);
+      MOOSTrace("Does the directory exist?\nDoes base_dir_name begin and end with a forward slash?\nDo you have permission to write to that directory?\n\n");
+      exit(EXIT_FAILURE);
+    }
+  else
+    {
+      MOOSTrace("Start reading file\n");
+      fread(&t_req, sizeof(double), 1 , cov_data_file);
+
+      double nl_req;
+      fread(&nl_req, sizeof(double), 1 , cov_data_file);
+      double facamp = pow(10.0,(nl_now-nl_req)/20.0);
+      double faccov = facamp*facamp;
+      double f_min, f_max, df;
+      fread(&f_min, sizeof(double), 1 , cov_data_file);
+      fread(&f_max, sizeof(double), 1 , cov_data_file);
+      fread(&df, sizeof(double), 1 , cov_data_file);
+      int i_first, i_last;
+      fread(&i_first, sizeof(int), 1 , cov_data_file);
+      fread(&i_last, sizeof(int), 1 , cov_data_file);
+
+      int num_sensors;
+
+      fread(&num_sensors, sizeof(int), 1 , cov_data_file);
+      MOOSTrace("Done reading header, i_first=%d, i_last=%d, num-sensors=%d\n",i_first,i_last,num_sensors);
+      for (int f_iter=i_first; f_iter < i_last; f_iter++)
+	{
+	  
+	  vector<complex<double> > covmat;
+	  vector<complex<double> > chollow;
+	  double f;
+
+	  fread(&f, sizeof(double), 1 , cov_data_file);
+
+	  int num = num_sensors*(num_sensors+1)/2;
+	  for (int i=0; i<num; i++)
+	    {
+	      float rr,ri;
+	      fread(&rr, sizeof(float), 1 , cov_data_file);
+	      fread(&ri, sizeof(float), 1 , cov_data_file);
+	      covmat.push_back(faccov*complex<double>(double(rr),double(ri)));
+	    }
+	  noise_covar[f_iter].putCovLow(num_sensors, f, covmat);
+	  for (int i=0; i<num; i++)
+	    {
+	      float rr,ri;
+	      fread(&rr, sizeof(float), 1 , cov_data_file);
+	      fread(&ri, sizeof(float), 1 , cov_data_file);
+	      chollow.push_back(facamp*complex<double>(double(rr),double(ri)));
+	    }
+	  noise_covar[f_iter].putCholLow(num_sensors, f, chollow);
+	}
+
+      fclose (cov_data_file);
+      MOOSTrace("Read Covariance file: %s \n", covmat_filename_buff);
+    }
+  return(true);  
+}
 
 // 
 // ComputeCovariance class

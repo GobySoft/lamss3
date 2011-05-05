@@ -9,11 +9,6 @@ ProcessConfig = uSimNoiseCovariance
   AppTick =   25           // should be > 10 
   CommsTick = 5                 
 
-  // Source Parameters
-  tone_freqs = 500,700     // comma-delimited list of the tone frequencies (Hz) 
-  tone_amps =  120,130     // comma-delimited list of tone amplitudes 
-			//(dB re: 1 uPa @ 1m)
-  
   // Environmental Parameters
   water_depth = 100             // used for spherical spreading (m)
   water_c = 1500                // Speed of sound in water (m/s)
@@ -33,16 +28,7 @@ ProcessConfig = uSimNoiseCovariance
 // HS: 11/10/10: Changed to dB 
   hydrophone_gain = 180        // conversion from Pascals to float
 
-  // Output file location and name
-  // The output filename will be: 
-  // [filename_prefix][frame_number][filename_suffix]
-  
-  acoustic_filename_prefix = ACO                     // Prefix of the file name
-  acoustic_filename_suffix = .DAT                      
-  nonacoustic_filename_prefix = NAS                      
-  nonacoustic_filename_suffix = .DAT                      
-  // Everything after the framenumber, including the period.
-  base_dir_name = /home/cockrell/DURIP/  
+  base_dir_name = /home/henrik/DURIP/  
   // absolute path including initial and final forward slash.  
   
 }

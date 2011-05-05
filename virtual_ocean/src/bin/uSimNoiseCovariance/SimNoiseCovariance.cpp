@@ -76,6 +76,7 @@ CSimNoiseCovariance::CSimNoiseCovariance()
   minimum_frequency = 0;
   maximum_frequency = 1e20;
   noise_cov_built = false;
+  covariance_requested = false;
 
   // prepare Bessel functions for noise covariances
 
@@ -207,6 +208,16 @@ if(m_MissionReader.GetConfigurationParam("array_type",sVal))
     MOOSTrace("pSimNoiseCovariance:: No accelerometer_gain - Using default unity \n");
   }
 
+  if(m_MissionReader.GetConfigurationParam("sampling_frequency",sVal))
+  {
+    sampling_frequency  = atof(sVal.c_str());
+  }
+  else
+  {
+    MOOSTrace("pSimPassiveSonar:: no sampling_frequency - FAIL\n");
+    exit(EXIT_FAILURE);
+  }
+
   if(m_MissionReader.GetConfigurationParam("noise_level",sVal))
   {
     noise_level  = atof(sVal.c_str());
@@ -221,6 +232,29 @@ if(m_MissionReader.GetConfigurationParam("array_type",sVal))
     MOOSTrace("pSimNoiseCovariance:: no noise_level- FAIL\n");
     exit(EXIT_FAILURE);
   }
+
+  if(m_MissionReader.GetConfigurationParam("num_samples",sVal))
+  {
+    num_samples = atoi(sVal.c_str());
+    file_interval_time = double(num_samples)/sampling_frequency;
+    // Find an fft length (round to next highest power of 2)
+    unsigned int const v = num_samples; 
+    // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
+    float f = (float)(v - 1);  
+    nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
+    MOOSTrace("nfft = %u\n",nfft);
+    // Build the dft of the signal in a format similar to 
+    // matlab (same as gsl), described in
+    // http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
+    num_freqs = nfft/2 + 1; 
+    MOOSTrace("Each file represents about %0.3f seconds of data\n", file_interval_time);
+  }
+  else
+  {
+    MOOSTrace("pSimPassiveSonar:: No num_samples - FAIL\n");
+    exit(EXIT_FAILURE);
+  }
+
   return(true);
 }
 
@@ -253,18 +287,19 @@ bool CSimNoiseCovariance::Iterate()
       MOOSTrace("Waiting until all required variables are in the MOOSDB...\n\n");
     }
   
-      // calculate the hydrophone positions every iteration in case tow position
-      // and relative hydrophone locations are published asychronously.
-      for (int i=0; i < num_array_elements; i++)
-      {
-        array_x.at(i) = array_x_rel.at(i);
-        array_y.at(i) = array_y_rel.at(i);
-        array_z.at(i) = array_z_rel.at(i);
-      }
-
-  // get the noise if profile is available
-  if (noise_profile)
+  // calculate the hydrophone positions every iteration in case tow position
+  // and relative hydrophone locations are published asychronously.
+  for (int i=0; i < num_array_elements; i++)
     {
+      array_x.at(i) = array_x_rel.at(i);
+      array_y.at(i) = array_y_rel.at(i);
+      array_z.at(i) = array_z_rel.at(i);
+    }
+  
+  // get the noise if profile is available
+  if (noise_profile && covariance_requested)
+    {
+      MOOSTrace("calling getAmbientNoise\n");
       double nl = getAmbientNoise(-ael_z, 
 				  depth_nl,noise_db); 
       MOOSTrace("Local ambient noise in dB: %f \n",nl);
@@ -372,6 +407,10 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
 	  else
     	    MOOSTrace("noise_direct=false\n");
 	}	  
+      else if(Msg.m_sKey == "COVARIANCE_REQUEST")
+	{
+	  covariance_requested = true;
+	}
     }
   return(true);
 }
@@ -428,7 +467,7 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 	ndim = 4*num_array_elements;
       else
 	ndim = num_array_elements;
-      if (debug2)
+      if (debug)
           MOOSTrace("nl=%lf, Fs=%lf, nfft=%d\n",nl,sampling_frequency,nfft);
       double p_intens = 1e-12 * pow(10.0,nl/10) 
 	* sampling_frequency * 0.5 * nfft;
@@ -488,22 +527,9 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 	    }
 	  noise_cov_built = true;
 	}
-      else
-	{
-	  double amp_fac = pow(10.0,(nl-nl_prev)/20.0);
-	  for (int k = 0; k< num_freqs; k++)
-	    {
-	      noise_covar[k].scaleCovMat(amp_fac);
-	    }
-	  MOOSTrace("Scaled covariance matrices, factor = %f\n",amp_fac);
-	}
       nl_prev = nl;
 
-      // if pitch has changed more than 5 deg recompute 
-      // covariances for frequency interval of interest      
-
-      if (fabs(array_avg_pitch-array_prev_pitch) 
-	  >= 5.0*M_PI/180.0 )
+      if (covariance_requested)
 	{    
 	  MOOSTrace("Building correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
 
@@ -516,19 +542,22 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 	  for (int j = 0; j < num_array_elements; j++)
 	    for (int i = 0; i < num_array_elements; i++)
 	      {
-		//int indx = i + num_array_elements * j;		//Unused AJP
-		//delta_r.push_back(sqrt(pow(array_x[i]-array_x[j],2) + pow(array_y[i]-array_y[j],2))); //Horizontal distance between sensor i and sensor j
 		delta_z.push_back(array_z[i] - array_z[j]);
 		
 		if (ISOTROPIC)
 		  {
 		    delta_x.push_back(array_x[i] - array_x[j]);
 		    delta_y.push_back(array_y[i] - array_y[j]);
-		    delta_R.push_back(sqrt(pow(array_x[i]-array_x[j],2) + pow(array_y[i]-array_y[j],2) +  pow(array_z[i]-array_z[j],2))); //Distance between sensor i and sensor j
+		    //Distance between sensor i and sensor j
+		    delta_R.push_back(sqrt(pow(array_x[i]-array_x[j],2) 
+					   + pow(array_y[i]-array_y[j],2) 
+					   +  pow(array_z[i]-array_z[j],2))); 
 		  }
 		else
 		  {
-		    delta_r.push_back(sqrt(pow(array_x[i]-array_x[j],2) + pow(array_y[i]-array_y[j],2))); //Horizontal distance between sensor i and sensor j
+		    //Horizontal distance between sensor i and sensor j
+		    delta_r.push_back(sqrt(pow(array_x[i]-array_x[j],2) 
+					   + pow(array_y[i]-array_y[j],2))); 
 		  }
 	      }
 
@@ -602,39 +631,16 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 		  for (int i=0; i<ndim*ndim; i++)
 		    cov[i] *= scale;
 		  
-		  if (debug2 && (k==500 || k==2000))
-		    {
-		      for (int i = 0; i < 4; i++)
-			{
-			      int j=i;
-			      int indx = i + ndim* j;
-			      stringstream ss;
-			      ss << "cov(" << i+1 << "," << j+1 << ")= " << cov[indx];
-			      string str = ss.str();
-			      MOOSTrace("f = %f, %s \n",freq, str.c_str());
-			}
-		    }
-		  if (debug && k == 2000)
-		    {
-		      for (int i = 0; i < ndim; i++)
-			{
-			  for (int j = 0; j <= i; j++)
-			    {
-			      int indx = i + ndim* j;
-			      stringstream ss;
-			      ss << "cov(" << i+1 << "," << j+1 << ")= " << cov[indx];
-			      string str = ss.str();
-			      MOOSTrace("f = %f, %s \n",freq, str.c_str());
-			    }
-			}
-		    }
 		}
 	      newcov.putCovMat(ndim, freq, cov);
 	      noise_covar[k] = newcov;
 	    }
+	  // Write file with covariances
 	  MOOSTrace("Built covariance matrices, pitch=%f degrees\n",
 		    array_avg_pitch*180.0/M_PI);
-	  array_prev_pitch = array_avg_pitch;
+	  write_covmat_file(MOOSTime(), nl);
+
+	  covariance_requested = false;
 	}
     }
   return(nl);
@@ -748,7 +754,7 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
   return(true);
 }    
 
-bool CSimNoiseCovariance::write_covmat_file(double t_now)
+bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now)
 {
   char covmat_filename_buff[1000]; 
   string covmat_name = "NoiseCovariance.cov";
@@ -775,6 +781,7 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now)
 	i_last = int(maximum_frequency/delta_f);
 
       fwrite(&t_now, sizeof(double), 1 , cov_data_file);
+      fwrite(&nl_now, sizeof(double), 1 , cov_data_file);
       fwrite(&minimum_frequency, sizeof(double), 1 , cov_data_file);
       fwrite(&minimum_frequency, sizeof(double), 1 , cov_data_file);
       fwrite(&delta_f, sizeof(double), 1 , cov_data_file);
@@ -795,7 +802,7 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now)
 	  vector<complex<double> > chollow;
 	  double f;
 
-	  noise_covar[f_iter].getCovLow(num_sensors, f, chollow);
+	  noise_covar[f_iter].getCovLow(num_sensors, f, covmat);
 	  noise_covar[f_iter].getCholLow(num_sensors, f, chollow);
 	  fwrite(&f, sizeof(double), 1 , cov_data_file);
 
@@ -818,6 +825,7 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now)
 
       fclose (cov_data_file);
       MOOSTrace("Wrote file: %s \n", covmat_filename_buff);
+      m_Comms.Notify("COVARIANCE_FILE",base_dir_name + "/" + covmat_name);
     }
   return(true);  
 }

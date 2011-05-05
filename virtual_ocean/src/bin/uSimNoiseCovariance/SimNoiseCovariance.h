@@ -15,6 +15,7 @@
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
 #include "lamss/lib_henrik_util/CBessel.h"
+#include "lamss/lib_henrik_util/CCovMat.h"
 
 class ComputeCovariance
 {
@@ -54,38 +55,6 @@ class ComputeCovariance
   std::vector<double> S;
 };
 
-class CovMat
-{
- public:
-
-  bool putCovMat(int nrcv, double frq, std::vector<std::complex<double> > newcov);
-  bool getCovMat(int nrcv, double& frq, std::vector<std::complex<double> >& cov);
-  bool getCovLow(int nrcv, double& frq, std::vector<std::complex<double> >& cov);
-  bool getCholLow(int nrcv, double& frq, std::vector<std::complex<double> >& c);
-  void realization(std::vector<std::complex<double> >& out);
-  bool scaleCovMat(double fac);
- protected:
-  int indx( int i, int j);
-  int indx_tri(int i, int j);
-  std::complex<double> conjg(std::complex<double>);
-  bool cholesky();
-  void addWhiteNoise(double wn);
-  double gasdev();
-
-  CRandom ran;
-
-  int num_rcv;
-  double freq;
-  int iset;
-  double gset;
-
-  bool c_done;
-  // cov is the lower triangular of the covariance matrix
-  std::vector<complex<double> > cov;
-  // c is the cholesky factorized lower triangular
-  std::vector<complex<double> > c;
-};
-
 class CSimNoiseCovariance : public CMOOSApp
 {
   public:
@@ -99,6 +68,7 @@ class CSimNoiseCovariance : public CMOOSApp
 
   protected:
 
+    bool covariance_requested;
     bool debug;
     bool debug2;
 
@@ -153,7 +123,7 @@ class CSimNoiseCovariance : public CMOOSApp
     int num_samples;
     int num_freqs;
     unsigned int nfft;
-
+    double file_interval_time;
     bool noise_cov_built;
     double minimum_frequency;
     double maximum_frequency;
@@ -195,7 +165,7 @@ class CSimNoiseCovariance : public CMOOSApp
 
     // --- Functions ---
 
-    bool write_covmat_file(double t_now);
+    bool write_covmat_file(double t_now, double nl_now);
     // Bessel function generator class
     CBessel besgen;
 

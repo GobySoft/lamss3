@@ -92,7 +92,7 @@ class CSimPassiveSonar : public CMOOSApp
     CmyVectorUtils vecUtils;
     // noise covariances
     std::vector<CovMat> noise_covar;
-    ComputeCovariance compCov;
+    // ComputeCovariance compCov;
 
     // RAP raytracer
     CRapRays Rap;
@@ -277,7 +277,7 @@ class CSimPassiveSonar : public CMOOSApp
     bool generate_bb_timeseries();
     bool write_hyd_file();
     bool write_nas_file(double t_now);
-
+    bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
     // Bessel function generator class
     CBessel besgen;
 
