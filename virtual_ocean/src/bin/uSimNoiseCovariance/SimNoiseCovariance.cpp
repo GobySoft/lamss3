@@ -70,7 +70,6 @@ CSimNoiseCovariance::CSimNoiseCovariance()
 
   // random number seed
   iseed = -123456;
-  nl_prev = -1000;
   array_prev_pitch = -1000;
 
   minimum_frequency = 0;
@@ -286,26 +285,25 @@ bool CSimNoiseCovariance::Iterate()
       MOOSTrace("ARRAY_[X, Y or Z] *not* in the MOOSDB.\n");
       MOOSTrace("Waiting until all required variables are in the MOOSDB...\n\n");
     }
-  
-  // calculate the hydrophone positions every iteration in case tow position
-  // and relative hydrophone locations are published asychronously.
-  for (int i=0; i < num_array_elements; i++)
-    {
-      array_x.at(i) = array_x_rel.at(i);
-      array_y.at(i) = array_y_rel.at(i);
-      array_z.at(i) = array_z_rel.at(i);
+  else
+    {  
+      // calculate the hydrophone positions every iteration in case tow position
+      // and relative hydrophone locations are published asychronously.
+      for (int i=0; i < num_array_elements; i++)
+	{
+	  array_x.at(i) = array_x_rel.at(i);
+	  array_y.at(i) = array_y_rel.at(i);
+	  array_z.at(i) = array_z_rel.at(i);
+	}
+      
+      // get the noise if profile is available
+      if (covariance_requested)
+	{
+	  MOOSTrace("calling computeNoiseCovariance\n");
+	  double nl = computeNoiseCovariance(-ael_z,depth_nl,noise_db); 
+	  MOOSTrace("Local ambient noise in dB: %f \n",nl);
+	}
     }
-  
-  // get the noise if profile is available
-  if (noise_profile && covariance_requested)
-    {
-      MOOSTrace("calling getAmbientNoise\n");
-      double nl = getAmbientNoise(-ael_z, 
-				  depth_nl,noise_db); 
-      MOOSTrace("Local ambient noise in dB: %f \n",nl);
-      //noise_std = pow(10, nl/20)*pow(10, -6);
-    }
-  
   return(true);
 }
 
@@ -403,7 +401,17 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
 	  noise_direct = parseNoiseDirectionality(Msg.m_sVal, theta_deg, S_dB);
 	  
 	  if (noise_direct)
-    	    MOOSTrace("noise_direct=true\n");
+	    {
+	      MOOSTrace("noise_direct=true\n");
+	      theta.clear();
+	      S.clear();
+	      
+	      for (int i=0; i < theta_deg.size(); i++)
+		{
+		  theta.push_back(theta_deg[i]*M_PI/180.0);
+		  S.push_back(pow(10.0,S_dB[i]/10));
+		}
+	    }
 	  else
     	    MOOSTrace("noise_direct=false\n");
 	}	  
@@ -435,31 +443,35 @@ int CSimNoiseCovariance::str2int_vec(string msg, vector<int>& values)
   return(nz);
 }
 
-double CSimNoiseCovariance::getAmbientNoise(double depth, 
+double CSimNoiseCovariance::computeNoiseCovariance(double depth, 
 					  vector<double> dom_nl,
 					  vector<double> noise_db)
 {
   double nl;
-  int m = dom_nl.size();
-  
-  if (depth <= dom_nl[0]) 
-    nl = noise_db[0];
-  else if (depth >= dom_nl[m-1]) 
-    nl= noise_db[m-1];
-  else
+
+  if (noise_profile)
     {
-      for (int j = 1; j < m; j++)
+      int m = dom_nl.size();
+      
+      if (depth <= dom_nl[0]) 
+	nl = noise_db[0];
+      else if (depth >= dom_nl[m-1]) 
+	nl= noise_db[m-1];
+      else
 	{
-	  if (depth <= dom_nl[j] && depth > dom_nl[j-1])
-	    nl = noise_db[j-1] 
-	      + (depth - dom_nl[j-1])/(dom_nl[j]-dom_nl[j-1])
-	      *(noise_db[j] - noise_db[j-1]); 
+	  for (int j = 1; j < m; j++)
+	    {
+	      if (depth <= dom_nl[j] && depth > dom_nl[j-1])
+		nl = noise_db[j-1] 
+		  + (depth - dom_nl[j-1])/(dom_nl[j]-dom_nl[j-1])
+		  *(noise_db[j] - noise_db[j-1]); 
+	    }
 	}
     }
-  // generate isotropic noise covariance matrix
-  // first time, following ones just scaled, avoiding cholesky factorization
-  //
-  if (noise_direct)
+  else
+    nl = noise_level;
+
+  if (noise_direct || ISOTROPIC)
     {
 
       int ndim;
@@ -469,8 +481,7 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 	ndim = num_array_elements;
       if (debug)
           MOOSTrace("nl=%lf, Fs=%lf, nfft=%d\n",nl,sampling_frequency,nfft);
-      double p_intens = 1e-12 * pow(10.0,nl/10) 
-	* sampling_frequency * 0.5 * nfft;
+      double p_intens = 1e-12 * pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
       double rho = 1000;
       // Compute correlated noise only for spectrum of 
       // interest
@@ -481,53 +492,6 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
       int i_last = num_freqs;
       if (maximum_frequency < 0.5*sampling_frequency)
 	i_last = int(maximum_frequency/delta_f);
-
-      // Initialize covariances with white noise    
-
-      if (!noise_cov_built)
-	{
-	  noise_covar.clear();
-	  vector<complex<double> > wncov;
-	  CovMat dummycov;
-	  // first fill in white noise at all frequencies
-	  wncov.clear();
-	  wncov = vecUtils.zzeros(ndim,ndim);
-	  
-	  for (int i_frq = 0; i_frq< num_freqs; i_frq++)
-	    {
-	      double freq = i_frq*sampling_frequency/nfft; 
-	      double k = 2*M_PI*freq/water_c;
-	      double a_intens = p_intens*pow(k,2)
-		/(3*pow(rho,2));
-	      if (debug2 && (i_frq==500 || i_frq==2000))
-		  MOOSTrace("p_intens=%lf, a_intens=%e, freq=%lf Hz\n", p_intens, a_intens, freq);
-	      for (int i=0; i< num_array_elements; i++)
-		{
-		  if (vsa)
-		    {
-		      wncov[4*i*(1+ndim)] = p_intens;
-		      wncov[(4*i+1)*(1+ndim)] = a_intens;
-		      wncov[(4*i+2)*(1+ndim)] = a_intens;
-		      wncov[(4*i+3)*(1+ndim)] = a_intens;
-		    }
-		  else
-		    wncov[i*(1+ndim)] = p_intens;
-		}
-	      
-	      dummycov.putCovMat(ndim,freq,wncov);
-	      noise_covar.push_back(dummycov);
-	    }
-	  theta.clear();
-	  S.clear();
-	  
-	  for (int i=0; i < theta_deg.size(); i++)
-	    {
-	      theta.push_back(theta_deg[i]*M_PI/180.0);
-	      S.push_back(pow(10.0,S_dB[i]/10));
-	    }
-	  noise_cov_built = true;
-	}
-      nl_prev = nl;
 
       if (covariance_requested)
 	{    
@@ -560,8 +524,10 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 					   + pow(array_y[i]-array_y[j],2))); 
 		  }
 	      }
+	  // Clear noise covariances
+	  noise_covar.clear();
 
-	  for (int k = i_first; k< i_last; k++)
+	  for (int k = i_first; k<= i_last; k++)
 	    {
 	      double freq = k*delta_f; 
 	      vector<complex<double> > cov;
@@ -633,12 +599,12 @@ double CSimNoiseCovariance::getAmbientNoise(double depth,
 		  
 		}
 	      newcov.putCovMat(ndim, freq, cov);
-	      noise_covar[k] = newcov;
+	      noise_covar.push_back(newcov);
 	    }
 	  // Write file with covariances
 	  MOOSTrace("Built covariance matrices, pitch=%f degrees\n",
 		    array_avg_pitch*180.0/M_PI);
-	  write_covmat_file(MOOSTime(), nl);
+	  write_covmat_file(MOOSTime(), nl, i_first, i_last);
 
 	  covariance_requested = false;
 	}
@@ -754,7 +720,7 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
   return(true);
 }    
 
-bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now)
+bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now, int i_first, int i_last)
 {
   char covmat_filename_buff[1000]; 
   string covmat_name = "NoiseCovariance.cov";
@@ -773,12 +739,6 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now)
       // Compute correlated noise only for spectrum of 
       // interest
       double delta_f = sampling_frequency/nfft;
-      int i_first = 0;
-      if (minimum_frequency >= 0)
-	i_first = int(minimum_frequency/delta_f);
-      int i_last = num_freqs;
-      if (maximum_frequency < 0.5*sampling_frequency)
-	i_last = int(maximum_frequency/delta_f);
 
       fwrite(&t_now, sizeof(double), 1 , cov_data_file);
       fwrite(&nl_now, sizeof(double), 1 , cov_data_file);
@@ -795,15 +755,15 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now)
 	num_sensors = num_array_elements;
       fwrite(&num_sensors, sizeof(int), 1 , cov_data_file);
 
-      for (int f_iter=i_first; f_iter < i_last; f_iter++)
+      for (int f_iter=i_first; f_iter <= i_last; f_iter++)
 	{
 	  
 	  vector<complex<double> > covmat;
 	  vector<complex<double> > chollow;
 	  double f;
 
-	  noise_covar[f_iter].getCovLow(num_sensors, f, covmat);
-	  noise_covar[f_iter].getCholLow(num_sensors, f, chollow);
+	  noise_covar[f_iter-i_first].getCovLow(num_sensors, f, covmat);
+	  noise_covar[f_iter-i_first].getCholLow(num_sensors, f, chollow);
 	  fwrite(&f, sizeof(double), 1 , cov_data_file);
 
 	  int num = num_sensors*(num_sensors+1)/2;

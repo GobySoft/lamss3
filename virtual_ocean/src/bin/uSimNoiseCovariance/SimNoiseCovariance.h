@@ -81,7 +81,7 @@ class CSimNoiseCovariance : public CMOOSApp
 
     int str2int_vec(std::string, std::vector<int>&);
 
-    double getAmbientNoise(double depth, 
+    double computeNoiseCovariance(double depth, 
 			   std::vector<double> dom_nl,
 			   std::vector<double> noise_db);
     bool parseNoiseProfile( std::string noise_in, 
@@ -165,7 +165,7 @@ class CSimNoiseCovariance : public CMOOSApp
 
     // --- Functions ---
 
-    bool write_covmat_file(double t_now, double nl_now);
+    bool write_covmat_file(double t_now, double nl_now, int i_first, int i_last);
     // Bessel function generator class
     CBessel besgen;
 
