@@ -25,6 +25,20 @@
 #include "lamss/lib_henrik_util/Random.h"
 #include "lamss/lib_henrik_util/CCovMat.h"
 
+class CSensor
+{
+ public:
+  vector<double> spectrum;
+  bool initSpectrum(int nfft_in);
+  bool putSpectrum(vector<double> spec_in);
+  bool addToSpectrum(vector<double> spec_in);
+  vector<double> getSpectrum();
+  vector<double> timeseries();
+
+ protected:
+  int nfft;
+};
+  
 class CAcousticContact
 {
  public:
@@ -49,6 +63,13 @@ class CSimPassiveSonar : public CMOOSApp
 
     bool debug;
     bool debug2;
+
+    // Sensor arrays
+    std::vector<CSensor> hydrophones;
+    std::vector<CSensor> x_accelerometers;
+    std::vector<CSensor> y_accelerometers;
+    std::vector<CSensor> z_accelerometers;
+
 
     CmyVectorUtils vecUtils;
     // noise covariances
@@ -236,6 +257,7 @@ class CSimPassiveSonar : public CMOOSApp
     bool generate_corr_noise_timeseries();
     bool generate_tones_timeseries();
     bool generate_bb_timeseries();
+    bool generate_bb_spectrum();
     bool write_hyd_file();
     bool write_nas_file(double t_now);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);

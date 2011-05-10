@@ -421,205 +421,210 @@ bool CSimPassiveSonar::Iterate()
   // Note that this timing scheme isn't perfect, but the processing chain
   // should be robust enough to handle it.
   if ( (t_now - time_last) > file_interval_time)
-  {
-    time_last = t_now;
-
-  if (multi_target && number_of_targets >0)
-    getTargetInfo(0);
-  else
     {
-      got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
-			    ok_source_bb_bw);
-      got_source_loc = (ok_sourcex && ok_sourcey);
+      time_last = t_now;
+      
+      if (multi_target && number_of_targets >0)
+	getTargetInfo(0);
+      else
+	{
+	  got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
+				ok_source_bb_bw);
+	  got_source_loc = (ok_sourcex && ok_sourcey);
+	}
+      
+      // Output error messages 
+      if(!got_array_info)
+	{
+	  MOOSTrace("ARRAY_[X, Y or Z] *not* in the MOOSDB.\n");
+	  MOOSTrace("Waiting until all required variables are in the MOOSDB...\n\n");
+	  return(true);
+	}
+      
+      // If we have the array's information, generate timeseries and write files 
+      if(got_array_info)
+	{
+	  //Set all timeseries matricies to zero.
+	  gsl_matrix_set_zero(sum_of_timeseries); 
+	  gsl_matrix_set_zero(noise_timeseries); 
+	  gsl_matrix_set_zero(tones_timeseries); 
+	  gsl_matrix_set_zero(bb_timeseries); 
+	  
+	  if (vsa)
+	    {
+	      gsl_matrix_set_zero(sum_of_timeseries_x);
+	      gsl_matrix_set_zero(noise_timeseries_x); 
+	      gsl_matrix_set_zero(tones_timeseries_x); 
+	      gsl_matrix_set_zero(bb_timeseries_x); 
+	      gsl_matrix_set_zero(sum_of_timeseries_y); 
+	      gsl_matrix_set_zero(noise_timeseries_y); 
+	      gsl_matrix_set_zero(tones_timeseries_y); 
+	      gsl_matrix_set_zero(bb_timeseries_y); 
+	      gsl_matrix_set_zero(sum_of_timeseries_z); 
+	      gsl_matrix_set_zero(noise_timeseries_z); 
+	      gsl_matrix_set_zero(tones_timeseries_z); 
+	      gsl_matrix_set_zero(bb_timeseries_z); 
+	    }
+	  // calculate the hydrophone positions every iteration in case tow position
+	  // and relative hydrophone locations are published asychronously.
+	  for (int i=0; i < num_array_elements; i++)
+	    {
+	      array_x.at(i) = array_x_rel.at(i);
+	      array_y.at(i) = array_y_rel.at(i);
+	      array_z.at(i) = array_z_rel.at(i);
+	    }
+	  
+	  // get the noise level and covariances if available
+	  
+	  double nl = getAmbientNoise(-ael_z, 
+				      depth_nl,noise_db); 
+	  MOOSTrace("Local ambient noise in dB: %f \n",nl);
+	  //noise_std = pow(10, nl/20)*pow(10, -6);
+	  //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
+	  noise_std = pow(10, nl/20)*pow(10, -6)*sqrt(sampling_frequency*0.5); 	  
+	  
+	  // if non-white noise generate via covariances
+	  if (noise_direct || ISOTROPIC)
+	    {
+	      if (ISOTROPIC)
+		MOOSTrace("Generating 3D Isotropic Noise\n");
+	      generate_corr_noise_timeseries();
+	    }
+	  else
+	    {
+	      generate_noise_timeseries();
+	    }
+	  // Sum up the pressure from the noise, tones, and bb source.
+	  
+	  gsl_matrix_add (sum_of_timeseries, noise_timeseries);
+	  if (vsa)
+	    {
+	      gsl_matrix_add (sum_of_timeseries_x, noise_timeseries_x);
+	      gsl_matrix_add (sum_of_timeseries_y, noise_timeseries_y);
+	      gsl_matrix_add (sum_of_timeseries_z, noise_timeseries_z);
+	    }
+	  
+	  for (int i=0; i<number_of_targets; i++)
+	    {
+	      MOOSTrace("Handling target %d\n",i);
+
+	      bool ok_tgt_info = getTargetInfo(i);
+	      if (!ok_tgt_info)
+		{
+		  MOOSTrace("Waiting for TGT_%d info\n",m_target_number[i]);
+		  return(true);
+		}
+	      
+	      MOOSTrace("Got TGT_%d info \n",m_target_number[i]);
+	      
+	      double range_x = (ael_x - source_pos_x);
+	      double range_y = (ael_y - source_pos_y);
+	      double range_req = sqrt(range_x*range_x + range_y*range_y);
+	      double depth_req = -ael_z;
+	      
+	      if (!ray_acoustics)
+		{
+		  range_ref = range_req;
+		  depth_ref = depth_req;
+		  water_c = c_0 + depth_ref * c_grad;
+		  ph_shift_ref = 0;
+		  if (rap_acoustics)
+		    {
+		      Rap.setEnv(c_0, c_grad, water_depth, z_max);
+		      Rap.rapRay(ael_x, ael_y, depth_ref,
+				 source_pos_x, source_pos_y, source_dep,
+				 dip_ref, p_ref, tau_ref , turn_ref);
+		      tl_est = - 20.0 * log10(p_ref);
+		      if (turn_ref)
+			ph_shift_ref = M_PI/2;
+		      
+		      double z_rap, r_rap;
+		      Rap.rapDepth(source_pos_x, source_pos_y, source_dep, 
+				   ael_x, ael_y, z_rap);
+		      Rap.rapRange(ael_x, ael_y, depth_ref, 
+				   source_dep, dip_ref, r_rap);
+		    }
+		  else
+		    {
+		      tau_ref = range_ref/c_0;
+		      double delta_k = bottom_loss/8686;
+		      double atten = exp(-delta_k*range_ref);
+		      p_ref = atten * (1/water_depth) * (1/sqrt(range_ref)); 
+		      tl_est = - 20.0 * log10(p_ref);
+		      // for waveguide acoustics, assume horizontal propagation.
+		      dip_ref = 0;
+		    }
+		  
+		  CRay ray;
+		  ray.amp = p_ref;
+		  ray.phase = ph_shift_ref;
+		  ray.tau = tau_ref;
+		  ray.dip_source = 0;
+		  ray.dip_receiver = - dip_ref *M_PI/180.0;
+		  ray.surface_bounces = 0;
+		  ray.bottom_bounces = 0;
+		  eigenray_table.putEigenRay(source_dep, depth_ref,source_bb_freq, range_ref,ray);
+		  putAcousticContact(Targets[i].target_id(),eigenray_table);
+		}
+	      // first get the ray table for this contact
+	      if (getAcousticContact(Targets[i].target_id(),eigenray_table))
+		{
+		  // Get the closest eigenray bundle
+		  eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
+		  if (ray_acoustics)
+		    {
+		      MOOSTrace("Target range= %f, Raytracing range = %f\n", range_req,eig.range);
+		      MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
+		      MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
+		      tl_est = 1e-30;
+		      for (int iray = 0; iray < eig.num_rays; iray++)
+			tl_est += pow(eig.bundle[iray].amp,2);
+		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
+		      MOOSTrace("Incoherent TL = %f\n", tl_est);
+		      
+		      if (fabs(range_req - eig.range) > raytracing_interval)
+			requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+		    }
+		  
+		  generate_tones_timeseries();
+
+		  MOOSTrace("Tones done -  target %d\n",i);
+		  generate_bb_timeseries();
+		  MOOSTrace("BB signal done -  target %d\n",i);
+
+		  // Hydrophones
+		  gsl_matrix_add (sum_of_timeseries, tones_timeseries);
+		  gsl_matrix_add (sum_of_timeseries, bb_timeseries);
+		  if (vsa)
+		    {
+		      // Vector components
+		      gsl_matrix_add (sum_of_timeseries_x, tones_timeseries_x);
+		      gsl_matrix_add (sum_of_timeseries_x, bb_timeseries_x);
+		      gsl_matrix_add (sum_of_timeseries_y, tones_timeseries_y);
+		      gsl_matrix_add (sum_of_timeseries_y, bb_timeseries_y);
+		      gsl_matrix_add (sum_of_timeseries_z, tones_timeseries_z);
+		      gsl_matrix_add (sum_of_timeseries_z, bb_timeseries_z);
+		    }
+		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
+		  if(got_source_loc && i == icnt_rot)
+		    {
+		      // Publish simulated target position rotating through targets
+		      m_Comms.Notify("TARGET_XPOS",source_pos_x);
+		      m_Comms.Notify("TARGET_YPOS",source_pos_y);
+		    }
+		}
+	      else if (ray_acoustics)
+		requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+	    }
+	  
+	  MOOSTrace("writing data files\n");
+	  write_hyd_file();
+	  write_nas_file(t_now);
+	  
+	  MOOSTrace("\n");
+	  frame_number++;
+	}
     }
-
-    // Output error messages 
-    if(!got_array_info)
-    {
-      MOOSTrace("ARRAY_[X, Y or Z] *not* in the MOOSDB.\n");
-      MOOSTrace("Waiting until all required variables are in the MOOSDB...\n\n");
-      return(true);
-    }
-
-    // If we have the array's information, generate timeseries and write files 
-    if(got_array_info)
-      {
-	//Set all timeseries matricies to zero.
-	gsl_matrix_set_zero(sum_of_timeseries); 
-	gsl_matrix_set_zero(noise_timeseries); 
-	gsl_matrix_set_zero(tones_timeseries); 
-	gsl_matrix_set_zero(bb_timeseries); 
-	
-	if (vsa)
-	  {
-	    gsl_matrix_set_zero(sum_of_timeseries_x);
-	    gsl_matrix_set_zero(noise_timeseries_x); 
-	    gsl_matrix_set_zero(tones_timeseries_x); 
-	    gsl_matrix_set_zero(bb_timeseries_x); 
-	    gsl_matrix_set_zero(sum_of_timeseries_y); 
-	    gsl_matrix_set_zero(noise_timeseries_y); 
-	    gsl_matrix_set_zero(tones_timeseries_y); 
-	    gsl_matrix_set_zero(bb_timeseries_y); 
-	    gsl_matrix_set_zero(sum_of_timeseries_z); 
-	    gsl_matrix_set_zero(noise_timeseries_z); 
-	    gsl_matrix_set_zero(tones_timeseries_z); 
-	    gsl_matrix_set_zero(bb_timeseries_z); 
-	  }
-	// calculate the hydrophone positions every iteration in case tow position
-	// and relative hydrophone locations are published asychronously.
-	for (int i=0; i < num_array_elements; i++)
-	  {
-	    array_x.at(i) = array_x_rel.at(i);
-	    array_y.at(i) = array_y_rel.at(i);
-	    array_z.at(i) = array_z_rel.at(i);
-	  }
-	
-	// get the noise level and covariances if available
-
-	double nl = getAmbientNoise(-ael_z, 
-				    depth_nl,noise_db); 
-	MOOSTrace("Local ambient noise in dB: %f \n",nl);
-	//noise_std = pow(10, nl/20)*pow(10, -6);
-	noise_std = pow(10, nl/20)*pow(10, -6)*sqrt(sampling_frequency*0.5);  //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
-	
-	
-	// if non-white noise generate via covariances
-	if (noise_direct || ISOTROPIC)
-	  {
-	    if (ISOTROPIC)
-	      MOOSTrace("Generating 3D Isotropic Noise\n");
-	    generate_corr_noise_timeseries();
-	  }
-	else
-	  {
-	    generate_noise_timeseries();
-	  }
-	// Sum up the pressure from the noise, tones, and bb source.
-	
-	gsl_matrix_add (sum_of_timeseries, noise_timeseries);
-	if (vsa)
-	  {
-	    gsl_matrix_add (sum_of_timeseries_x, noise_timeseries_x);
-	    gsl_matrix_add (sum_of_timeseries_y, noise_timeseries_y);
-	    gsl_matrix_add (sum_of_timeseries_z, noise_timeseries_z);
-	  }
-	
-	for (int i=0; i<number_of_targets; i++)
-	  {
-	    
-	    bool ok_tgt_info = getTargetInfo(i);
-	    if (!ok_tgt_info)
-	      {
-		MOOSTrace("Waiting for TGT_%d info\n",m_target_number[i]);
-		return(true);
-	      }
-	    
-	    MOOSTrace("Got TGT_%d info \n",m_target_number[i]);
-	    
-	    double range_x = (ael_x - source_pos_x);
-	    double range_y = (ael_y - source_pos_y);
-	    double range_req = sqrt(range_x*range_x + range_y*range_y);
-	    double depth_req = -ael_z;
-	    
-	    if (!ray_acoustics)
-	      {
-		range_ref = range_req;
-		depth_ref = depth_req;
-		water_c = c_0 + depth_ref * c_grad;
-		ph_shift_ref = 0;
-		if (rap_acoustics)
-		  {
-		    Rap.setEnv(c_0, c_grad, water_depth, z_max);
-		    Rap.rapRay(ael_x, ael_y, depth_ref,
-			       source_pos_x, source_pos_y, source_dep,
-			       dip_ref, p_ref, tau_ref , turn_ref);
-		    tl_est = - 20.0 * log10(p_ref);
-		    if (turn_ref)
-		      ph_shift_ref = M_PI/2;
-		    
-		    double z_rap, r_rap;
-		    Rap.rapDepth(source_pos_x, source_pos_y, source_dep, 
-				 ael_x, ael_y, z_rap);
-		    Rap.rapRange(ael_x, ael_y, depth_ref, 
-				 source_dep, dip_ref, r_rap);
-		  }
-		else
-		  {
-		    tau_ref = range_ref/c_0;
-		    double delta_k = bottom_loss/8686;
-		    double atten = exp(-delta_k*range_ref);
-		    p_ref = atten * (1/water_depth) * (1/sqrt(range_ref)); 
-		    tl_est = - 20.0 * log10(p_ref);
-		    // for waveguide acoustics, assume horizontal propagation.
-		    dip_ref = 0;
-		  }
-		
-		CRay ray;
-		ray.amp = p_ref;
-		ray.phase = ph_shift_ref;
-		ray.tau = tau_ref;
-		ray.dip_source = 0;
-		ray.dip_receiver = - dip_ref *M_PI/180.0;
-		ray.surface_bounces = 0;
-		ray.bottom_bounces = 0;
-		eigenray_table.putEigenRay(source_dep, depth_ref,source_bb_freq, range_ref,ray);
-		putAcousticContact(Targets[i].target_id(),eigenray_table);
-	      }
-	    // first get the ray table for this contact
-	    if (getAcousticContact(Targets[i].target_id(),eigenray_table))
-	      {
-		// Get the closest eigenray bundle
-		eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
-		if (ray_acoustics)
-		  {
-		    MOOSTrace("Target range= %f, Raytracing range = %f\n", range_req,eig.range);
-		    MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
-		    MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
-		    tl_est = 1e-30;
-		    for (int iray = 0; iray < eig.num_rays; iray++)
-		      tl_est += pow(eig.bundle[iray].amp,2);
-		    tl_est = - 10.0 * log10(tl_est/eig.num_rays);
-		    MOOSTrace("Incoherent TL = %f\n", tl_est);
-		    
-		    if (fabs(range_req - eig.range) > raytracing_interval)
-		      requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
-		  }
-		
-		generate_tones_timeseries();
-		generate_bb_timeseries();
-		// Hydrophones
-		gsl_matrix_add (sum_of_timeseries, tones_timeseries);
-		gsl_matrix_add (sum_of_timeseries, bb_timeseries);
-		if (vsa)
-		  {
-		    // Vector components
-		    gsl_matrix_add (sum_of_timeseries_x, tones_timeseries_x);
-		    gsl_matrix_add (sum_of_timeseries_x, bb_timeseries_x);
-		    gsl_matrix_add (sum_of_timeseries_y, tones_timeseries_y);
-		    gsl_matrix_add (sum_of_timeseries_y, bb_timeseries_y);
-		    gsl_matrix_add (sum_of_timeseries_z, tones_timeseries_z);
-		    gsl_matrix_add (sum_of_timeseries_z, bb_timeseries_z);
-		  }
-		icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
-		if(got_source_loc && i == icnt_rot)
-		  {
-		    // Publish simulated target position rotating through targets
-		    m_Comms.Notify("TARGET_XPOS",source_pos_x);
-		    m_Comms.Notify("TARGET_YPOS",source_pos_y);
-		  }
-	      }
-	    else if (ray_acoustics)
-	      requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
-	  }
-	
-	MOOSTrace("writing data files\n");
-	write_hyd_file();
-	write_nas_file(t_now);
-	
-	MOOSTrace("\n");
-	frame_number++;
-      }
-  }
   return(true);
 }
 
@@ -1031,6 +1036,9 @@ bool CSimPassiveSonar::generate_bb_timeseries()
       if (f_lower < 0 )
 	f_lower = 0;
       
+      int f_lo = int(f_lower*nfft/sampling_frequency);
+      int f_up = int(f_upper*nfft/sampling_frequency);
+
       vector<double> source_spect_mag(num_freqs,0); 
       vector<double> source_spect_phase(num_freqs,0); 
       
@@ -1040,7 +1048,7 @@ bool CSimPassiveSonar::generate_bb_timeseries()
       for(int f_iter=0; f_iter < num_freqs; f_iter++)
 	{
 	  double f = f_iter/(nfft/sampling_frequency);
-	  if (f < f_upper && f > f_lower)
+	  if (f <= f_upper && f >= f_lower)
 	    {
 	      // Scale by nfft, because of the definition of gsl's inverse fft.
 	      //     	      source_spect_mag.at(f_iter) = source_bb_amp*nfft; 
@@ -1052,19 +1060,16 @@ bool CSimPassiveSonar::generate_bb_timeseries()
   	      source_spect_mag.at(f_iter) = source_bb_amp*sqrt(((double) nfft)*sampling_frequency*0.5); //Correction AJP 3 NOV 2010 (Generate broadband source with the correct spectral level.)
 
 	      source_spect_phase.at(f_iter) = 0;
+	  //  Add a random phase for all freq componants except f=0, and f=nyquist
+	  // (whose freq componant must have a phase of zero if the time domain 
+	  // signal is to be real).
+	      if(f_iter != 0 && f_iter != num_freqs-1)
+		source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_1);
 	    }
 	  else
 	    {
 	      source_spect_mag.at(f_iter) = 0;
 	      source_spect_phase.at(f_iter) = 0;
-	    }
-	  
-	  //  Add a random phase for all freq componants except f=0, and f=nyquist
-	  // (whose freq componant must have a phase of zero if the time domain 
-	  // signal is to be real).
-	  if(f_iter != 0 && f_iter != num_freqs-1)
-	    {
-	      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_1);
 	    }
 	}
       
@@ -1129,7 +1134,7 @@ bool CSimPassiveSonar::generate_bb_timeseries()
 	      // double g = 9.806; //Removed g. AJP 11/16/2010
 	      
 	      // frequency loop
-	      for(int f_iter=0; f_iter < num_freqs; f_iter++)
+	      for(int f_iter=f_lo; f_iter <= f_up; f_iter++)
 		{
 		  double f = f_iter/(nfft/sampling_frequency);
 		  double omega = 2*M_PI * f;
@@ -1204,6 +1209,179 @@ bool CSimPassiveSonar::generate_bb_timeseries()
 		  gsl_matrix_set(bb_timeseries_z, phone_iter, sample_iter, 
 				 gsl_data_z[sample_iter]);
 		}
+	    }
+	}
+    }
+  
+  return true;
+}
+
+bool CSimPassiveSonar::generate_bb_spectrum()
+{
+  
+  if (got_source_loc && source_status && got_source_bb_info)
+    {
+      double f_upper = source_bb_freq + source_bb_bw/2;
+      double f_lower = source_bb_freq - source_bb_bw/2;
+      
+      // limit f_upper and f_lower if it's something weird. 
+      if (f_upper > sampling_frequency/2)
+	f_upper = sampling_frequency/2;
+      if (f_lower < 0 )
+	f_lower = 0;
+      
+      int f_lo = int(f_lower*nfft/sampling_frequency);
+      int f_up = int(f_upper*nfft/sampling_frequency);
+
+      vector<double> source_spect_mag(num_freqs,0); 
+      vector<double> source_spect_phase(num_freqs,0); 
+      
+      source_spect_mag.at(0) = 0;
+      source_spect_phase.at(0) = 0;
+      
+      for(int f_iter=0; f_iter < num_freqs; f_iter++)
+	{
+	  double f = f_iter/(nfft/sampling_frequency);
+	  if (f <= f_upper && f >= f_lower)
+	    {
+	      // Scale by nfft, because of the definition of gsl's inverse fft.
+	      //     	      source_spect_mag.at(f_iter) = source_bb_amp*nfft; 
+	      // I don't think that's right should be sqrt(nfft/f_s). HS
+	      // source_spect_mag.at(f_iter) = source_bb_amp*sqrt((double) nfft/sampling_frequency);
+	      // or 
+	      //source_spect_mag.at(f_iter) = source_bb_amp*sqrt((double) nfft); 
+
+	      //Correction AJP 3 NOV 2010 (Generate broadband source with the correct spectral level.)
+  	      source_spect_mag.at(f_iter) = source_bb_amp*sqrt(((double) nfft)*sampling_frequency*0.5); 
+	      source_spect_phase.at(f_iter) = 0;
+	    }
+	  else
+	    {
+	      source_spect_mag.at(f_iter) = 0;
+	      source_spect_phase.at(f_iter) = 0;
+	    }
+	  
+	  //  Add a random phase for all freq componants except f=0, and f=nyquist
+	  // (whose freq componant must have a phase of zero if the time domain 
+	  // signal is to be real).
+	  if(f_iter != 0 && f_iter != num_freqs-1)
+	    {
+	      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_1);
+	    }
+	}
+      
+      //MOOSTrace("source_spect_phase\n");
+      //print_vec(source_spect_phase);
+      
+      // Now we must now take the source specturm and add the appropriate phase 
+      // These fourier_coeff matricies are the spectrums for each hydrophone. 
+      
+      double range_ray = eig.range;
+      double depth_ray = eig.receiver_depth;
+      int num_rays     = eig.num_rays;
+
+      // array element loop
+      for (int phone_iter=0; phone_iter < num_array_elements; phone_iter++)
+	{
+	  // Project absolute vs response onto physical orientation
+	  double deg2rad = M_PI/180;
+	  double hd_ang = array_heading.at(phone_iter)*deg2rad;
+	  double el_ang = array_pitch.at(phone_iter);
+	  double vs_costh = cos(hd_ang);
+	  double vs_sinth = sin(hd_ang);
+	  double vs_cosel = cos(el_ang);
+	  double vs_sinel = sin(el_ang);
+      
+	  double range_x = (array_x.at(phone_iter) - source_pos_x);
+	  double range_y = (array_y.at(phone_iter) - source_pos_y);
+	  double range = sqrt(range_x*range_x + range_y*range_y);
+	  double delta_r = range - range_ray;
+	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
+	  double delta_z = - delta_dep;
+
+	  // Computing vector components in absolute coordinates
+	  double costh = cos(atan2(range_y, range_x));
+	  double sinth = sin(atan2(range_y, range_x));
+
+	  CSensor hyd;
+	  CSensor vec_x;
+	  CSensor vec_y;
+	  CSensor vec_z;
+
+	  hyd.initSpectrum(nfft);
+	  if (vsa)
+	    {
+	      vec_x.initSpectrum(nfft);
+	      vec_y.initSpectrum(nfft);
+	      vec_y.initSpectrum(nfft);
+	    }
+
+	  for (int i_ray=0; i_ray<num_rays; i_ray++)
+	    {
+	      // Elevation angle projection
+	      double dip_ray = eig.bundle[i_ray].dip_receiver;
+	      double p_ray = eig.bundle[i_ray].amp;
+	      double ph_ray = eig.bundle[i_ray].phase;
+	      double tau_ray = eig.bundle[i_ray].tau;
+	      double cosel = cos(dip_ray);
+	      // Positive dip angle for downgoing wave => k_z positive
+	      double sinel = - sin(dip_ray);
+	      double rhow = 1000;
+	      // double g = 9.806; //Removed g. AJP 11/16/2010
+	      
+	      // frequency loop
+	      for(int f_iter=f_lo; f_iter <= f_up; f_iter++)
+		{
+		  double f = f_iter/(nfft/sampling_frequency);
+		  double omega = 2*M_PI * f;
+		  double k = omega/water_c;
+		  double k_r = k * cosel;
+		  double k_z = k * sinel;
+		  
+		  // double v_ref = k * p_ray/(rhow*g);
+		  double v_ref = k * p_ray/(rhow); //Removed g. AJP 11/16/2010
+		  double x_ref = v_ref * costh*cosel;
+		  double y_ref = v_ref * sinth*cosel;
+		  double z_ref = v_ref * sinel;
+		  
+		  double phase_pres = ph_ray + k_r*delta_r + k_z*delta_z + tau_ray*omega;
+		  //double phase_vec = phase_pres + M_PI_2;
+		  double phase_vec = phase_pres - M_PI_2; //Changed phase from +M_PI_2 to -M_PI_2. AJP 11/16/2010
+		  
+		  double p_mag = p_ray * source_spect_mag.at(f_iter);
+		  double p_pha = source_spect_phase.at(f_iter) -phase_pres;
+		  
+		  double x_mag = x_ref * source_spect_mag.at(f_iter);
+		  double x_pha = source_spect_phase.at(f_iter) -phase_vec;
+		  
+		  double y_mag = y_ref * source_spect_mag.at(f_iter);
+		  double y_pha = source_spect_phase.at(f_iter) -phase_vec;
+		  
+		  double z_mag = z_ref * source_spect_mag.at(f_iter);
+		  double z_pha = source_spect_phase.at(f_iter) -phase_vec;
+		  
+		  
+		  hyd.spectrum[f_iter]        += p_mag * cos(p_pha);
+		  hyd.spectrum[nfft-f_iter]   += p_mag * sin(p_pha);
+		  if (vsa)
+		    {
+		      // vector components
+		      vec_x.spectrum[f_iter]      += x_mag * cos(x_pha);
+		      vec_x.spectrum[nfft-f_iter] += x_mag * sin(x_pha);
+		      vec_y.spectrum[f_iter]      += y_mag * cos(y_pha);
+		      vec_y.spectrum[nfft-f_iter] += y_mag * sin(y_pha);
+		      vec_z.spectrum[f_iter]      += z_mag * cos(z_pha);
+		      vec_z.spectrum[nfft-f_iter] += z_mag * sin(z_pha);
+		    }
+		}
+	    }
+	  // Add to sensor class arrays
+	  hydrophones[phone_iter].addToSpectrum(hyd.getSpectrum());
+	  if (vsa)
+	    {
+	      x_accelerometers[phone_iter].addToSpectrum(vec_x.getSpectrum());
+	      y_accelerometers[phone_iter].addToSpectrum(vec_y.getSpectrum());
+	      z_accelerometers[phone_iter].addToSpectrum(vec_z.getSpectrum());
 	    }
 	}
     }
@@ -1743,23 +1921,7 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 		 << "   theta_min:"      << int(-theta_max) << "\n"
 		 << "  } \n"
 		 << " } \n";
-	      /*
-	      ss << "env.adaptive_info.contact=" << acoustic_contact
-		 << ",env.adaptive_info.look_ahead_seconds=" << 1.0
-		 << ",env.adaptive_info.read_shd=false"
-		 << ",env.adaptive_info.auto_receiver_ranges=false"
-		 << ",env.adaptive_info.auto_source_depth=true"
-		 << ",env.output.type=arrival_times"
-		 << ",env.freq=" << freq
-		 << ",env.receivers.number_in_depth=" << 2
-		 << ",env.receivers.number_in_range=" << 2 
-		 << ",env.receivers.first.range=" << range1
-		 << ",env.receivers.last.range="  << range2 
-		 << ",env.receivers.first.depth=" << depth1
-		 << ",env.receivers.last.depth="  << depth2 
-		 << ",env.beams.theta_max="       << int(theta_max) 
-		 << ",env.beams.theta_min="       << int(-theta_max) ;
-	      */
+
 	      m_Comms.Notify("BELLHOP_REQUEST", ss.str());                 
 	      string str = ss.str();
 	      MOOSTrace("Requesting raytracing: %s\n",str.c_str());
@@ -2077,4 +2239,52 @@ bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, doubl
   return(true);  
 }
 
+// Sensor class
+
+bool CSensor::initSpectrum(int nfft_in)
+{
+  nfft = nfft_in;
+  spectrum.clear();
+  for (int i=0; i< nfft; i++)
+    spectrum.push_back(0.0);
+  return(true);
+}
+
+bool CSensor::putSpectrum(vector<double> spec_in)
+{
+  if (nfft == spec_in.size())
+    spectrum = spec_in;
+  else
+    return(false);
+  return(true);
+}
+
+bool CSensor::addToSpectrum(vector<double> spec_in)
+{
+  if (nfft == spec_in.size())
+    {
+      for (int i=0; i< nfft; i++)
+	spectrum[i] += spec_in[i];
+    }
+  else
+    return(false);
+  return(true);
+}
+
+vector<double> CSensor::getSpectrum()
+{
+  return(spectrum);
+}
+
+vector<double> CSensor::timeseries()
+{
+  double gsl_data[nfft];
+  for (int i=0; i< nfft; i++)
+    gsl_data[i] = spectrum[i];
+  gsl_fft_halfcomplex_radix2_inverse (gsl_data, 1, nfft);
+  vector<double> ts;
+  for (int i=0; i< nfft; i++)
+    ts.push_back(gsl_data[i]);
+  return(ts);
+}
 
