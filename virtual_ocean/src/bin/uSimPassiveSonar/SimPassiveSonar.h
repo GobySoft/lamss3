@@ -23,46 +23,7 @@
 
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
-#include "lamss/lib_henrik_util/CBessel.h"
 #include "lamss/lib_henrik_util/CCovMat.h"
-
-class ComputeCovariance
-{
- public:
-
-
-  bool initialize(double freq, double sound_speed, 
-		  std::vector<double> theta, 
-		  std::vector<double> Sin); 
-  bool hydCovariance(double delta_R, double delta_z, 
-		     std::complex<double> & cov);
-  bool vsaCovariance(double delta_R, double delta_z,
-		     std::vector<std::complex<double> >& cov);
-  bool vsaIsotropicCovariance(double delta_R, double delta_x, double delta_y, double delta_z, vector<complex<double> >& cov);
-
-  bool hydIsotropicCovariance(double delta_R, complex<double> & cov);
-
-  CBessel besgen;
-
-  CBessel spherical_besgen;
-
- protected:
-  complex<double> filon(vector<double> x,
-			vector<complex<double> > cfun,
-			vector<complex<double> > cex,
-			vector<double> arg);
-
-  std::complex<double> conjg(std::complex<double>);
-  int indx( int i, int j);
-  int n_th;
-  double omega;
-  double rho;
-  double c;
-  double k;
-  std::vector<double> k_z;
-  std::vector<double> k_r;
-  std::vector<double> S;
-};
 
 class CAcousticContact
 {
@@ -278,10 +239,7 @@ class CSimPassiveSonar : public CMOOSApp
     bool write_hyd_file();
     bool write_nas_file(double t_now);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
-    // Bessel function generator class
-    CBessel besgen;
 
-    CBessel spherical_besgen;
 };
 
 #endif 
