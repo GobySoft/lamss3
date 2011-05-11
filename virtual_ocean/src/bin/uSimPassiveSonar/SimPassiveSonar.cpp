@@ -854,7 +854,7 @@ bool CSimPassiveSonar::generate_signal_spectrum()
       // Snapshot starting time for tone continuity
       double t0 =  frame_number*num_samples/sampling_frequency;
       double delta_f = sampling_frequency/nfft;
-      double tone_fac = sqrt(nfft*sampling_frequency*0.5);
+      double tone_fac = nfft*0.5;
 
       // array element loop
       for (int phone_iter=0; phone_iter < num_array_elements; phone_iter++)
@@ -983,6 +983,28 @@ bool CSimPassiveSonar::generate_signal_spectrum()
 			    }
 			}
 		    }
+		  // projection of vector components onto physical orientations
+		  if (vsa)
+		    {
+		      double sig_x = vec_x.spectrum[f_iter];
+		      double sig_y = vec_y.spectrum[f_iter];
+		      double sig_z = vec_z.spectrum[f_iter];
+		      
+		      vec_x.spectrum[f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
+		      vec_y.spectrum[f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
+			+ sig_z*vs_sinel;
+		      vec_z.spectrum[f_iter]= sig_z*vs_cosel 
+			- (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
+		      sig_x = vec_x.spectrum[nfft-f_iter];
+		      sig_y = vec_y.spectrum[nfft-f_iter];
+		      sig_z = vec_z.spectrum[nfft-f_iter];
+		      
+		      vec_x.spectrum[nfft-f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
+		      vec_y.spectrum[nfft-f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
+			+ sig_z*vs_sinel;
+		      vec_z.spectrum[nfft-f_iter]= sig_z*vs_cosel 
+			- (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
+		    }
 		}
 	    }
 	  // Add to sensor class arrays
@@ -1073,6 +1095,25 @@ bool CSimPassiveSonar::generate_corr_noise_spectrum()
 	      vec_z.spectrum[nfft-f_iter]   = noise_realization[indx].imag();
 
 	    }
+	  // projection of vector components onto physical orientations
+	  // For noise only vertical rotation. Already in relative azimuth coordinates
+	  if (vsa)
+	    {
+	      double sig_x = vec_x.spectrum[f_iter];
+	      double sig_y = vec_y.spectrum[f_iter];
+	      double sig_z = vec_z.spectrum[f_iter];
+	      
+	      vec_x.spectrum[f_iter]= sig_x;
+	      vec_y.spectrum[f_iter]= sig_y*vs_cosel + sig_z*vs_sinel;
+	      vec_z.spectrum[f_iter]= sig_z*vs_cosel - sig_y*vs_sinel;
+	      sig_x = vec_x.spectrum[nfft-f_iter];
+	      sig_y = vec_y.spectrum[nfft-f_iter];
+	      sig_z = vec_z.spectrum[nfft-f_iter];
+	      
+	      vec_x.spectrum[nfft-f_iter]= sig_x;
+	      vec_y.spectrum[nfft-f_iter]= sig_y*vs_cosel + sig_z*vs_sinel;
+	      vec_z.spectrum[nfft-f_iter]= sig_z*vs_cosel - sig_y*vs_sinel;
+	    }
 	}
       
       // Add to sensor class arrays
@@ -1128,18 +1169,6 @@ bool CSimPassiveSonar::generate_spectral_timeseries()
 		     ts_hyd[sample_iter]);
 	  if (vsa)
 	    {
-	      // projection onto physical orientations
-	      double sig_x = ts_x[sample_iter];
-	      double sig_y = ts_y[sample_iter];
-	      double sig_z = ts_z[sample_iter];
-	      // surface noise generated in local horizontal
-	      // array coordinates. Projection only in vertical.
-	      ts_x[sample_iter]= sig_x;
-	      ts_y[sample_iter]= sig_y*vs_cosel 
-		+ sig_z*vs_sinel;
-	      ts_z[sample_iter]= sig_z*vs_cosel 
-		- sig_y*vs_sinel;
-	      
 	      gsl_matrix_set(sum_of_timeseries_x, elem_iter, sample_iter, 
 			     ts_x[sample_iter]);
 	      gsl_matrix_set(sum_of_timeseries_y, elem_iter, sample_iter, 
