@@ -30,6 +30,7 @@ class CSensor
  public:
   vector<double> spectrum;
   bool initSpectrum(int nfft_in);
+  bool clearSpectrum();
   bool putSpectrum(vector<double> spec_in);
   bool addToSpectrum(vector<double> spec_in);
   vector<double> getSpectrum();
@@ -228,22 +229,9 @@ class CSimPassiveSonar : public CMOOSApp
 
     // matricies 
     gsl_matrix * sum_of_timeseries;
-    gsl_matrix * noise_timeseries;
-    gsl_matrix * tones_timeseries;
-    gsl_matrix * bb_timeseries;
-    
     gsl_matrix * sum_of_timeseries_x;
-    gsl_matrix * noise_timeseries_x;
-    gsl_matrix * tones_timeseries_x;
-    gsl_matrix * bb_timeseries_x;
     gsl_matrix * sum_of_timeseries_y;
-    gsl_matrix * noise_timeseries_y;
-    gsl_matrix * tones_timeseries_y;
-    gsl_matrix * bb_timeseries_y;
     gsl_matrix * sum_of_timeseries_z;
-    gsl_matrix * noise_timeseries_z;
-    gsl_matrix * tones_timeseries_z;
-    gsl_matrix * bb_timeseries_z;
     
     // gsl random number generator
     const gsl_rng_type * gsl_rng_type_1;
@@ -253,11 +241,12 @@ class CSimPassiveSonar : public CMOOSApp
     //    int get_values(std::string, std::vector<double>& values);
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
-    bool generate_noise_timeseries();
-    bool generate_corr_noise_timeseries();
-    bool generate_tones_timeseries();
-    bool generate_bb_timeseries();
-    bool generate_bb_spectrum();
+
+    bool generate_signal_spectrum();
+    bool generate_corr_noise_spectrum();
+    bool generate_spectral_timeseries();
+    bool initialize_spectrum();
+
     bool write_hyd_file();
     bool write_nas_file(double t_now);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
