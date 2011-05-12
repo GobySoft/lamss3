@@ -983,34 +983,35 @@ bool CSimPassiveSonar::generate_signal_spectrum()
 			    }
 			}
 		    }
-		  // projection of vector components onto physical orientations
-		  if (vsa)
-		    {
-		      double sig_x = vec_x.spectrum[f_iter];
-		      double sig_y = vec_y.spectrum[f_iter];
-		      double sig_z = vec_z.spectrum[f_iter];
-		      
-		      vec_x.spectrum[f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
-		      vec_y.spectrum[f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
-			+ sig_z*vs_sinel;
-		      vec_z.spectrum[f_iter]= sig_z*vs_cosel 
-			- (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
-		      sig_x = vec_x.spectrum[nfft-f_iter];
-		      sig_y = vec_y.spectrum[nfft-f_iter];
-		      sig_z = vec_z.spectrum[nfft-f_iter];
-		      
-		      vec_x.spectrum[nfft-f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
-		      vec_y.spectrum[nfft-f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
-			+ sig_z*vs_sinel;
-		      vec_z.spectrum[nfft-f_iter]= sig_z*vs_cosel 
-			- (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
-		    }
 		}
 	    }
-	  // Add to sensor class arrays
+// Add to sensor class arrays
 	  hydrophones[phone_iter].addToSpectrum(hyd.getSpectrum());
 	  if (vsa)
 	    {
+	      for (int f_iter=f_lo; f_iter <= f_up; f_iter++)
+		{
+		  // projection of vector components onto physical orientations
+		  double sig_x = vec_x.spectrum[f_iter];
+		  double sig_y = vec_y.spectrum[f_iter];
+		  double sig_z = vec_z.spectrum[f_iter];
+		  
+		  vec_x.spectrum[f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
+		  vec_y.spectrum[f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
+		    + sig_z*vs_sinel;
+		  vec_z.spectrum[f_iter]= sig_z*vs_cosel 
+		    - (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
+		  
+		  sig_x = vec_x.spectrum[nfft-f_iter];
+		  sig_y = vec_y.spectrum[nfft-f_iter];
+		  sig_z = vec_z.spectrum[nfft-f_iter];
+		  
+		  vec_x.spectrum[nfft-f_iter]= sig_x*vs_costh - sig_y*vs_sinth;
+		  vec_y.spectrum[nfft-f_iter]= (sig_x*vs_sinth + sig_y*vs_costh)*vs_cosel 
+		    + sig_z*vs_sinel;
+		  vec_z.spectrum[nfft-f_iter]= sig_z*vs_cosel 
+		    - (sig_x*vs_sinth + sig_y*vs_costh)*vs_sinel;
+		}	  
 	      x_accelerometers[phone_iter].addToSpectrum(vec_x.getSpectrum());
 	      y_accelerometers[phone_iter].addToSpectrum(vec_y.getSpectrum());
 	      z_accelerometers[phone_iter].addToSpectrum(vec_z.getSpectrum());
