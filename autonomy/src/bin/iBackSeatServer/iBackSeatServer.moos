@@ -1,0 +1,14 @@
+////////////////////////////////////////
+ServerHost = localhost
+ServerPort = 9103
+Community = unicorn
+
+/////////////////////////////////////////
+ProcessConfig = iBackSeatServer 
+{
+	AppTick   = 4
+	CommsTick = 4
+
+	BackSeatPort = 9113
+
+}

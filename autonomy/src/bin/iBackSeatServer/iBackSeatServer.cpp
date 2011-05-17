@@ -1,0 +1,314 @@
+////////////////////////////////////////////////////////
+//#Include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <iterator>
+#include <string>
+#include <algorithm>
+#include <stdlib.h>
+#include <math.h>
+#include <ctype.h>
+#include <cctype>
+#include <stdio.h>
+#include <list>
+#include <sys/time.h>
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
+#include "iBackSeatServer.h"
+#include "lamss/lib_anrp_util/CommServer.h"
+#include "lamss/lib_anrp_util/NMEAMessage.h"
+#include "lamss/lib_anrp_util/binary2hex.h"
+#include "lamss/lib_anrp_util/CClientTCPSocket.h"
+#include "lamss/lib_anrp_util/CUDPSocket.h"
+#include "lamss/lib_anrp_util/CDatagramCtl.h"
+#include "lib_mbutil/MBUtils.h"
+
+//#include <goby/util/liblinebasedcomms/tcp_server.h>
+
+using namespace std;
+//using goby::util::as;
+
+//goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
+
+CiBackSeatServer::CiBackSeatServer()
+{
+  // constructor
+  MOOSTrace("====================================\n");
+  MOOSTrace("\n");
+  MOOSTrace("             iBackSeatServer\n");
+  MOOSTrace("\n");
+  MOOSTrace("\n");
+  MOOSTrace("(c) Copyright, 2011 Arjuna Balasuriya MIT\n");
+  MOOSTrace("====================================\n");
+
+}
+
+CiBackSeatServer::~CiBackSeatServer()
+{
+  // destructor
+}
+
+bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
+{
+ 
+    CMOOSMsg Msg;
+    string navx;
+    string navy;
+    string navz;
+    string heading;
+    string depth;
+    string speed;
+    string yaw;
+    string pitch;
+
+    double nav_x;
+    double nav_y;
+    double nav_z;
+    double direction;
+    double dep;
+    double spd;
+    double yw;
+    double pit;
+
+  
+  //  MOOSMSG_LIST::iterator pp;
+
+    for(MOOSMSG_LIST::iterator p = NewMail.begin(); p != NewMail.end(); p++)
+//  for(pp = NewMail.begin(); pp != NewMail.end(); pp++)
+    {
+    CMOOSMsg &Msg = *p;
+ 
+    if(Msg.m_sKey == "FRONTSEAT_X")  
+    {
+	nav_x  = Msg.GetDouble();
+	navx = doubleToString(nav_x, 2);
+//	std::cout<<"Nav x : "<<nav_x<<std::endl;
+    }
+    if(Msg.m_sKey == "FRONTSEAT_Y")  
+    {
+	nav_y  = Msg.GetDouble();
+	navy = doubleToString(nav_y, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_Z")  
+    {
+	nav_z  = Msg.GetDouble();
+	navz = doubleToString(nav_z, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_HEADING")  
+    {
+	direction  = Msg.GetDouble();
+	heading = doubleToString(direction, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_DEPTH")  
+    {
+	dep  = Msg.GetDouble();
+	depth = doubleToString(dep, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_SPEED")  
+    {
+	spd  = Msg.GetDouble();
+	speed = doubleToString(spd, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_YAW")  
+    {
+	yw  = Msg.GetDouble();
+	yaw = doubleToString(yw, 2);
+    }
+    if(Msg.m_sKey == "FRONTSEAT_PITCH")  
+    {
+	pit  = Msg.GetDouble();
+	pitch = doubleToString(pit, 2);
+    }
+
+  }
+
+   string data_packet ="$BFNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+   string checksum=gen_NMEAchecksum(data_packet.c_str());
+   data_packet+=checksum+"\r\n";
+
+   std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
+ //  tcp_server.write(data_packet);
+
+  tcp_server->write(data_packet);
+
+  UpdateMOOSVariables(NewMail);
+  
+  return true;
+}
+
+
+bool CiBackSeatServer::OnConnectToServer()
+{
+
+  //Reading the moos file
+  int tcp_port = 9113;
+  if (!m_MissionReader.GetConfigurationParam("BackSeatPort", tcp_port))
+    {
+        std::cerr << "tcp port not specified, using "
+                  << tcp_port << "." << std::endl;
+    }
+
+    
+    std::cout << "starting server on port " << tcp_port << std::endl;
+    try
+    {
+        tcp_server.reset(new goby::util::TCPServer(tcp_port));
+        tcp_server->start();
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "failed to start TCP Server! Reason: " << e.what() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+  //Register MOOS variables
+
+  m_Comms.Register("UMVS_BLUEFIN_STATUS",0);
+  m_Comms.Register("TRUE_X",0);
+  m_Comms.Register("TRUE_Y",0);
+  m_Comms.Register("TIDE_HEIGHT",0);
+  m_Comms.Register("SIMULATION_MODE",0);
+  m_Comms.Register("FRONTSEAT_X",0);
+  m_Comms.Register("FRONTSEAT_Y",0);
+  m_Comms.Register("FRONTSEAT_Z",0);
+  m_Comms.Register("FRONTSEAT_YAW",0);
+  m_Comms.Register("FRONTSEAT_YAW_RATE",0);
+  m_Comms.Register("FRONTSEAT_SPEED",0);
+  m_Comms.Register("FRONTSEAT_RUDDER",0);
+  m_Comms.Register("FRONTSEAT_PITCH",0);
+  m_Comms.Register("FRONTSEAT_PITCH_RATE",0);
+  m_Comms.Register("FRONTSEAT_HEADING",0);
+  m_Comms.Register("FRONTSEAT_ELEVATOR",0);
+  m_Comms.Register("FRONTSEAT_DEPTH",0);
+  m_Comms.Register("FRONTSEAT_BODY_VEL_X",0);
+  m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
+
+  return true;
+}
+
+bool CiBackSeatServer::Iterate()
+{
+
+    std::string in;
+    NMEAMessage Sentence;
+
+    while(tcp_server->readline(&in))
+	std::cout <<"From clients:["<<in<<"]"<<std::endl;
+	
+    std::cout <<"From client :" << in << std::endl;
+    Sentence.Set(in.c_str());
+    Translate(Sentence);
+
+
+    
+    return true;
+}
+
+
+bool CiBackSeatServer::OnStartUp()
+{
+
+   return true;
+}
+
+void CiBackSeatServer::Translate(NMEAMessage Sentence)
+{
+
+  if (Sentence.Part(0)=="BPRMB")
+  {
+	double backseat_time = atof(Sentence.Part(1).c_str());
+   	double desired_heading = atof(Sentence.Part(2).c_str());
+   	double desired_depth = atof(Sentence.Part(3).c_str());
+   	double desired_speed = atof(Sentence.Part(4).c_str());
+
+	m_Comms.Notify("DESIRED_HEADING",desired_heading);
+	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
+	m_Comms.Notify("DESIRED_SPEED",desired_speed);
+  }
+
+}
+
+string CiBackSeatServer::SecondsSinceMidnight(int nDigits)
+{
+    std::stringstream ss;
+    struct timeval tv; 
+    struct timezone tz;
+    struct tm today;
+    string sVar;
+
+    gettimeofday(&tv,&tz);
+    gmtime_r(&(tv.tv_sec),&today);
+
+    // Decimal digits allowed
+    if (nDigits < 1) nDigits=1;
+    if (nDigits > 6) nDigits=6;
+
+    // Generate time string
+    ss << setw(2) << setfill('0') << today.tm_hour;
+    ss << setw(2) << setfill('0') << today.tm_min;
+    ss << setw(2) << setfill('0') << today.tm_sec;
+    ss << ".";
+// Replaced pow10 with pow.  OS X doesn't have pow10.
+//   ss << setw(nDigits) << setfill('0') << round(tv.tv_usec*pow10(nDigits-6));
+    ss << setw(nDigits) << setfill('0') << round(tv.tv_usec*pow(10.0, nDigits-6));
+    ss >> sVar;
+
+    return sVar;
+}
+
+string CiBackSeatServer::gen_NMEAchecksum(const char *str)
+{
+    // This is a modified version of the VerifyChecksum() code written by
+    // Andrew Patrikalakis (anrp@mit.edu)
+    // The original code can be found in <MOOSPATH>/lib/anrp_util/NMEAMessage.h
+	
+    const char *st, *ed;
+    int sum = 0;
+	
+    std::stringstream ss;
+    string check_sum;
+		
+    st = strchr(str, '$');
+    ed = strchr(str, '*');
+
+    if (!st || !ed) {
+        return 0;
+    }
+
+    for (st++; st < ed; st++) {
+        sum ^= *st;
+    }
+
+    //This part was added by Matt on RVCT during May 07
+    char buf[8];
+    sprintf(buf, "%02x", sum);
+    return buf;
+
+    //ss.setf(std::ios_base::hex,std::ios_base::basefield);
+    //ss << uppercase << sum;
+    //ss >> check_sum;
+    //return check_sum;
+}
+
+
+string doubleToString(double val, int digits)
+{
+  char buffAUX[10] = "%.5f\0";
+  if((digits>0)&&(digits<7))
+    buffAUX[2] = digits+48;
+
+  char buff[100];
+  sprintf(buff, buffAUX, val);
+
+  string str = buff;
+  return(str);
+}
+
+string intToString(int val)
+{
+  char buff[500];
+  sprintf(buff, "%d", val);
+  string str = buff;
+  return(str);
+}
+
