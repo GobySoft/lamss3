@@ -275,7 +275,7 @@ bool CSimTowedArray::OnStartUp()
 	    }
 	  }
       }
-    else if (array_type == "towed")
+    else 
       {
 	MOOSTrace("pSimTowedArray:: number_sectors not specified - FAIL\n");
 	return false;
@@ -325,7 +325,7 @@ bool CSimTowedArray::OnStartUp()
     {
       Array.array_section_number = atoi(sVal.c_str());
     }
-    else if (array_type == "towed") 
+    else 
     {
         MOOSTrace("pSimTowedArray:: array_section_number not specified - FAIL\n");
         return false;
@@ -404,7 +404,6 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "NAV_PITCH",0);
     m_Comms.Register( "VSA_DIR",0);
     m_Comms.Register( "VSA_FRAME",0);
-    m_Comms.Register( "VEHICLE_ID",0);
     return(true);
 }
 
@@ -642,18 +641,24 @@ bool CSimTowedArray::Iterate()
 	  }
 	else
 	  {
-            if (! Array_init) 
+            if (array_type == "towed")
 	      {
-		std::cout << "WARNING: Insufficient vehicle speed for solution, array assumed vertical." << std::endl;
-	      }
-            else 
-	      {
-		std::cout << "WARNING: Insufficient vehicle speed for solution, array initialised but tow speed (" << towing_speed << ") less than the start speed (" << start_speed << ")." << std::endl;
+		if (! Array_init) 
+		  {
+		    std::cout << "WARNING: Insufficient vehicle speed for solution, array assumed vertical." << std::endl;
+		  }
+		else 
+		  {
+		    std::cout << "WARNING: Insufficient vehicle speed for solution, array initialised but tow speed (" << towing_speed << ") less than the start speed (" << start_speed << "). Straight pitched array assumed. " << std::endl;
+		  }
 	      }
 	    double horiz_speed = sqrt(pow(vx,2)+pow(vy,2));
 	    //	    double theta = (1-horiz_speed/start_speed)*(-90.0);
-	    ael_pitch = -acos(pow(horiz_speed/start_speed,2));
-
+	    if (array_type == "towed")
+	      ael_pitch = -acos(pow(horiz_speed/start_speed,2));
+	    else
+	      ael_pitch = nav_pitch;
+ 
 	    Array.straight_array(tow_pos_x, tow_pos_y, tow_pos_z, 
 				 tow_vel_x, tow_vel_y, tow_vel_z,  
 				 ael_heading, ael_pitch );
