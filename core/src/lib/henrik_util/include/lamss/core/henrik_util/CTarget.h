@@ -36,6 +36,7 @@
 #include <string.h>
 #include <string>
 #include <vector>
+
  
 class CTarget 
 {
@@ -61,8 +62,9 @@ class CTarget
   double dest_id;
   std::vector<double> tone_freq;
   std::vector<double> tone_dbl;
+  
 
-  double target_amp() {pow(10,-6)*pow(10,target_spl/20);};
+  double target_amp() {pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
 
 };
 
