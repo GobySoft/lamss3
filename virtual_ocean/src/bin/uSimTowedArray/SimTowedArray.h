@@ -57,7 +57,7 @@ class CArrayModel
 
   bool straight_array(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, double& ael_heading, double& ael_pitch);
 
-  bool function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, int array_type);
+  bool function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz);
 
   bool cable_disc();
 
@@ -65,7 +65,7 @@ class CArrayModel
 
   bool poly_curr_grad_ith_auv(int ith_order );
 
-  bool function_cable(int& nt, bool Array_init, double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, int array_type);
+  bool function_cable(int& nt, bool Array_init, double xtowp, double ytowp, double ztowp, double vx, double vy, double vz);
 
   bool dyssdt(double sd,  std::vector<double> yss, std::vector<double>& dydt );
 
@@ -239,9 +239,7 @@ class CSimTowedArray : public CMOOSApp
   double iterate_time;
 
   std::string veh_name;
-  int veh_id;
-  int init_veh_id;
-  int array_type;
+  std::string  array_type;
 
   std::string vsa_dir;
   int vsa_frame;

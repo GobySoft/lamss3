@@ -23,6 +23,8 @@ CSimTowedArray::CSimTowedArray()
   MOOSTrace("(c) Copyright, 2007 Henrik Schmidt MIT\n");
   MOOSTrace("====================================\n");
 
+  array_type = "towed";
+
   // Tow point offset default for Unicorn
   tow_off_x = 0;
   tow_off_y = -2.1;
@@ -207,12 +209,16 @@ bool CSimTowedArray::OnStartUp()
 
     if(m_MissionReader.GetConfigurationParam("array_type",sVal))
     {
-      array_type = atoi(sVal.c_str());
+      if (MOOSStrCmp(sVal,"fixed"))
+	array_type = sVal;
+      else
+	array_type = "towed";
+
+      MOOSTrace("Array is %s\n",array_type.c_str());
     }
     else
     {
-        MOOSTrace("pSimTowedArray:: array_type not specified - FAIL\n");
-        return false;
+      MOOSTrace("Array is %s\n",array_type.c_str());
     }
 
     if(m_MissionReader.GetConfigurationParam("tow_point_x",sVal))
@@ -269,7 +275,7 @@ bool CSimTowedArray::OnStartUp()
 	    }
 	  }
       }
-    else
+    else if (array_type == "towed")
       {
 	MOOSTrace("pSimTowedArray:: number_sectors not specified - FAIL\n");
 	return false;
@@ -308,7 +314,7 @@ bool CSimTowedArray::OnStartUp()
 	else
 	  Array.towbody = false;
       }
-    else
+    else if (array_type == "towed")
       {
 	MOOSTrace("pSimTowedArray:: tow_body not specified - FAIL\n");
 	return false;
@@ -319,7 +325,7 @@ bool CSimTowedArray::OnStartUp()
     {
       Array.array_section_number = atoi(sVal.c_str());
     }
-    else
+    else if (array_type == "towed") 
     {
         MOOSTrace("pSimTowedArray:: array_section_number not specified - FAIL\n");
         return false;
@@ -329,7 +335,7 @@ bool CSimTowedArray::OnStartUp()
     {
       Array.first_phone_offset = atof(sVal.c_str());
     }
-    else
+    else 
     {
         MOOSTrace("pSimTowedArray:: first_phone_offset not specified - FAIL\n");
         return false;
@@ -377,7 +383,7 @@ bool CSimTowedArray::OnStartUp()
 	spacings[0]=Array.first_phone_offset;
 	vecUtils.cumsum(spacings,Array.phone_offset);
       }
-    else
+    else 
       {
 	MOOSTrace("pSimTowedArray:: phone_spacing_groups not specified - FAIL\n");
 	return false;
@@ -524,7 +530,7 @@ bool CSimTowedArray::Iterate()
 		// Solve for steady-state array configuration using the mean
 		// velocity of the vehicle
 
-		Array.function_steady(xtowp, ytowp, ztowp, vx_f, vy_f, vz_f, array_type);
+		Array.function_steady(xtowp, ytowp, ztowp, vx_f, vy_f, vz_f);
 		MOOSTrace("Array model Initialized\n");
 		Array_init=true;
 		nt=0;
@@ -537,9 +543,9 @@ bool CSimTowedArray::Iterate()
 	    
 	  } // end if (pp > hist_length)
     
-	    // At low speed assume vertical array
+	    // At low speed assume straight array
 	
-	if (towing_speed > start_speed && Array_init == true)   
+	if (array_type == "towed" && towing_speed > start_speed && Array_init == true)   
 	  // No integration if vehicle speed is too small
 	  
 	  { 
@@ -562,7 +568,7 @@ bool CSimTowedArray::Iterate()
 	      }
 	    MOOSTrace("SimTowedArray: vx=%f , vy=%f, vz=%f, heading=%f\n", vx_f,vy_f,vz_f, 90-180/M_PI*atan2(vy_f,vx_f));
 	    
-	    if (!Array.function_cable(nt, Array_init, xtowp, ytowp, ztowp, vx_f, vy_f, vz_f, array_type))
+	    if (!Array.function_cable(nt, Array_init, xtowp, ytowp, ztowp, vx_f, vy_f, vz_f))
 	      return(false);
 
 	    if (Array.count > 3)
@@ -620,20 +626,6 @@ bool CSimTowedArray::Iterate()
 		 m_Comms.Notify("ARRAY_Z", Array.ac_array_z);
 		
 		 MOOSTrace("*");
-		// Write heading and pitch scalars to MOOS, if VSA information
-		// is not provided from some other process.
-		// These will be replaced with vectors produced by "pAEL"
-		// We will comment out these lines and those above when
-		// "pAEL" comes on line, since it will assume that the
-		// VSA information will come from a process further upstream.,
-		// and that "pAEL" will write out vectors of heading, pitch, etc.
-		
-		// These scalars (not vectors produced by "pAEL") are currently needed by "pBearings_VSA"
-		
-		
-		// m_Comms.Notify(veh_name+"_AEL_PITCH",ael_pitch*M_PI/180.0);
-		// m_Comms.Notify(veh_name+"_AEL_HEADING",ael_heading);
-		// array_pitch changed to radians 
 		m_Comms.Notify("AEL_PITCH",ael_pitch);
 		//		m_Comms.Notify("AEL_PITCH",ael_pitch*M_PI/180.0);
 		m_Comms.Notify("AEL_HEADING",ael_heading);
@@ -763,32 +755,6 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 	string frame =  Msg.m_sVal;
 	vsa_frame = atoi(frame.c_str());
 	got_frame = true;
-      }
-
-      if(Msg.m_sKey == "VEHICLE_ID")
-      {
-	veh_id = int(Msg.m_dfVal);
-	MOOSTrace("Vehicle ID: %d\n",veh_id);
-	init_veh_id = 1;
-	if (veh_id == 4)
-	  {
-	    veh_name = "MACRURA";
-	    MOOSTrace("Vehicle ID found\n");
-	    MOOSTrace("Simulating MACRURA + VSA\n");
-	    // array_type = 1;
-	  }
-	else if (veh_id == 3)
-	  {
-	    veh_name = "UNICORN";
-	    MOOSTrace("Vehicle ID found\n");
-	    MOOSTrace("Simulating UNICORN + DURIP\n");
-	    //array_type = 2;
-	  }
-	else
-	  {
-	    MOOSTrace("Unknown vehicle ID\n");
-	    return(false);
-	  }
       }
 
    }
@@ -974,7 +940,7 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y,
   return(true);
 }
 
-bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, int array_type)
+bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz)
 {
   
   var_sus=5;	//number of variables subscribed
@@ -1551,10 +1517,8 @@ bool CArrayModel::poly_curr_grad_ith_auv(int ith_order )
   return(true);
 }
 
-bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, int array_type)
+bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double ytowp, double ztowp, double vx, double vy, double vz)
 {
-// function [x_array,y_array,z_array, ac_array_x, ac_array_y, ac_array_z, old_time,nt,ycold,yc,cxc,cyc,gxc,gyc,pcx,pcy,qgx,qgy,xss1,yss1,zss1,prob,array_tension,arr_heading,arr_pitch,old_ynew,old_bigy,old_bigyold ,old_bigynew,old_InvJacob,old_Jacobo, count]=function_cable(vx,vy,vz,xtowp, ytowp,ztowp,ycold,yc,Nseg,rho,dia,tandrag,nordrag,weight,dels,mass,mass1,ext,cxc,cyc,gxc,gyc,towbody,area,dragcoef,wgt,tbmass,vol,pcx, pcy,qgx,qgy,dmu,currtim,over_extrap,offset_to_array,phone_offset,var_sus,Array_init,time,deltim,old_time,nt,sr,compass_offset_full,depth_offset_full,pitch_offset_full,array_start,array_end,old_ynew,old_bigy,old_bigyold ,old_bigynew,old_InvJacob,old_Jacobo, count, cond_check, array_type);
-// DHG 2007/04/04 array_type is 1 for FATLINE and 0 for DURIP
 
   nt=nt+1;
   // MOOSTrace("function_cable: nt=%d\n",nt);
