@@ -224,7 +224,7 @@ if(m_MissionReader.GetConfigurationParam("array_type",sVal))
     // distribution reqired to make the noise have a decibel
     // level commensurate with the one specified in noise_level.
     //noise_std = pow(10, noise_level/20)*pow(10, -6);
-    noise_std = pow(10, noise_level/20)*pow(10, -6)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
+    noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
   }
   else
   {

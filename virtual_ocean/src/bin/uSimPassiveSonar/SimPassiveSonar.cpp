@@ -335,7 +335,7 @@ bool CSimPassiveSonar::OnStartUp()
     // distribution reqired to make the noise have a decibel
     // level commensurate with the one specified in noise_level.
     //noise_std = pow(10, noise_level/20)*pow(10, -6);
-    noise_std = pow(10, noise_level/20)*pow(10, -6)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
+    noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
   }
   else
   {
@@ -454,9 +454,9 @@ bool CSimPassiveSonar::Iterate()
 	  double nl = getAmbientNoise(-ael_z, 
 				      depth_nl,noise_db); 
 	  MOOSTrace("Local ambient noise in dB: %f \n",nl);
-	  //noise_std = pow(10, nl/20)*pow(10, -6);
+	  //noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0);
 	  //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
-	  noise_std = pow(10, nl/20)*pow(10, -6)*sqrt(sampling_frequency*0.5); 	  
+	  noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5); 	  
 	  
 	  // initialize spectra
 	  initialize_spectrum();
@@ -1472,7 +1472,7 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       source_pos_y = Targets[i].target_y;
       source_dep = Targets[i].target_dep;
       source_bb_spl = Targets[i].target_spl;
-      source_bb_amp = 1e-6*pow(10,source_bb_spl/20);
+      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
       MOOSTrace("target %d spl = %f, amp = %e \n", Targets[i].target_number, source_bb_spl,source_bb_amp);
       source_bb_freq = Targets[i].target_freq;
       source_bb_bw = Targets[i].target_bw;
@@ -1486,7 +1486,7 @@ bool CSimPassiveSonar::getTargetInfo(int i)
 	  tone_freqs.push_back(Targets[i].tone_freq[j]);
 	  tone_amps.push_back(Targets[i].tone_dbl[j]);
 	  tone_ks.push_back(2*M_PI*Targets[i].tone_freq[j]/water_c);
-          tone_amps_Pa.push_back(pow(10, Targets[i].tone_dbl[j]/20)*pow(10, -6));
+          tone_amps_Pa.push_back(pow(10.0, Targets[i].tone_dbl[j]/20.0)*pow(10.0, -6.0));
 	}
       got_source_bb_info = true;
       got_source_loc = true;
@@ -1694,8 +1694,8 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	    {
 	      double freq = i_frq*sampling_frequency/nfft; 
 	      double k = 2*M_PI*freq/water_c;
-	      double a_intens = p_intens*pow(k,2)
-		/(3*pow(rho,2));
+	      double a_intens = p_intens*pow(k,2.0)
+		/(3*pow(rho,2.0));
 	      if (debug2 && (i_frq==500 || i_frq==2000))
 		  MOOSTrace("p_intens=%lf, a_intens=%e, freq=%lf Hz\n", p_intens, a_intens, freq);
 	      for (int i=0; i< num_array_elements; i++)
