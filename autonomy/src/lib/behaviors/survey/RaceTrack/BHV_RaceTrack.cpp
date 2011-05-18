@@ -520,8 +520,8 @@ double BHV_RaceTrack::currentCompensatedHeading(double desired_heading, double u
 void BHV_RaceTrack::postViewablePolygon()
 {
   XYSegList seglist = m_waypoint_engine.getSegList();
-  seglist.set_vertex_color(m_hint_vertex_color);
-  seglist.set_edge_color(m_hint_edge_color);
+  seglist.set_color("vertex",m_hint_vertex_color);
+  seglist.set_color("edge",m_hint_edge_color);
   seglist.set_edge_size(m_hint_edge_size);
   seglist.set_vertex_size(m_hint_vertex_size);
   // Handle the label setting
@@ -567,8 +567,8 @@ void BHV_RaceTrack::postViewablePoint()
   view_point.set_label(m_us_name + "_waypoint");
   view_point.set_type("waypoint");
   view_point.set_source(m_us_name + "_" + bhv_tag);
-  view_point.set_label_color(m_hint_nextpt_lcolor);
-  view_point.set_vertex_color(m_hint_nextpt_color);
+  view_point.set_color("label",m_hint_nextpt_lcolor);
+  view_point.set_color("vertex",m_hint_nextpt_color);
   postMessage("VIEW_POINT", view_point.get_spec());
 }
 
