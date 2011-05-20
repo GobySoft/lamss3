@@ -1,0 +1,49 @@
+import "goby/moos/libmoos_util/tes_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package lamss.protobuf;
+
+message Point
+{
+  required double x = 1;
+  required double y = 2;
+  optional double z = 3 [default = 0];
+}
+
+
+message ViewPoint
+{
+  required string vehicle_name = 1;
+  required Point point = 2;
+  optional bool active = 3 [default = false];
+  enum PointType
+  {
+    UNKNOWN = 0;
+    WAYPOINT = 1;
+    TRAILPOINT = 2;
+    ATTRACTOR = 3;
+    STATION = 4;
+  }
+  optional PointType type = 4 [default = UNKNOWN];
+}
+
+message ViewSegList
+{
+  required string vehicle_name = 1;
+  enum MissionType
+  {
+    UNKNOWN = 0;
+    DEPLOY = 1;
+    PROSECUTE = 2;
+    RETURN = 3;
+    TRANSIT = 4;
+  }
+  optional MissionType mission = 2 [default = UNKNOWN];
+  repeated Point point = 3;
+  optional bool active = 4 [default = false];
+}
+
+message ViewMessageConfig
+{
+  optional TesMoosAppConfig common = 1 [(description)="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+}

@@ -1,7 +1,7 @@
 /*****************************************************************/
-/*    NAME: Henrik Schmidt                                       */
+/*    NAME: Henrik Schmidt, Toby Schneider                       */
 /*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: ViewMessage.cpp                                 */
+/*    FILE: ViewMessage.cpp                                      */
 /*    DATE: Aug. 2, 2008                                         */
 /*                                                               */
 /* This program is free software; you can redistribute it and/or */
@@ -21,472 +21,246 @@
 /*****************************************************************/
 
 #include "ViewMessage.h"
-
-#include <iostream>
 #include <sstream>
-#include <math.h>
+#include <limits>
 
-using namespace std;
+#include "goby/util/string.h"
+
+// name of the PointType enumeration field in view_message.proto
+const std::string CViewMessage::TYPE_FIELD_NAME = "type";
+// name of the MissionType enumeration field in view_message.proto
+const std::string CViewMessage::MISSION_FIELD_NAME = "mission";
+
+CViewMessage* CViewMessage::inst_ = 0;
+lamss::protobuf::ViewMessageConfig CViewMessage::cfg_;
+
+CViewMessage* CViewMessage::get_instance()
+{
+    if(!inst_)
+        inst_ = new CViewMessage();
+    return inst_;
+}
 
 
 CViewMessage::CViewMessage()
+    : TesMoosApp(&cfg_),
+      ownship_("unknown"),
+      mission_state_("unknown")
 {
-  new_point = false;
-  new_poly = false;
-  new_segl = false;
-  x.clear();
-  y.clear();
-  ownship = "unknown";
-  mission_state = "unknown";
-  old_state = "unknown";
-  m_pnt_x.clear();
-  m_pnt_y.clear();
-  m_pnt_valid.clear();
-  m_pnt_type.clear();
-  m_poly_max = 9;
-}
+    TesMoosApp::set_ignore_stale(false);
+    
+    subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
+    subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
+    subscribe("VIEW_SEGLIST", &CViewMessage::handle_view_seglist, this);
+    subscribe("VEHICLE_NAME", &CViewMessage::handle_vehicle_name, this);
+    subscribe("MISSION_STATE", &CViewMessage::handle_mission_state, this);
 
-CViewMessage::~CViewMessage()
-{
-}
 
-bool CViewMessage::OnStartUp()
-{
-  
-  //Initialize m_Geodesy from lat lon origin in .moos file
-  string sVal;
-  double dfLatOrigin;
-  double dfLongOrigin;
-  
-  if(m_MissionReader.GetValue("LatOrigin",sVal))
-    {
-      dfLatOrigin = atof(sVal.c_str());
-      //MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
-    }
-  else
-    {
-      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
-  
-  if(m_MissionReader.GetValue("LongOrigin",sVal))
-    {
-      dfLongOrigin = atof(sVal.c_str());
-      //MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
-    }
-  else
-    {
-      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
-  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-    {
-      MOOSTrace("Geodesy Init inside pTargetSim failed - FAIL\n");
-      return false;
-    }
-  //Done initializaing m_Geodesy
-  
-  return(true);
-}
-
-bool CViewMessage::OnConnectToServer()
-{
-  m_Comms.Register( "VIEW_POINT",0);
-  m_Comms.Register( "VIEW_POLYGON",0);
-  m_Comms.Register( "VIEW_SEGLIST",0);
-  m_Comms.Register( "VEHICLE_NAME",0);
-  m_Comms.Register( "MISSION_STATE",0);
- 
-  return(true);
-}
-
-bool CViewMessage::Iterate()
-{
-  // Now generate message format
-  string view_msg = "";
-  if (new_point)
-    {
-      for (int i=0; i < m_pnt_type.size(); i++)
-	{
-	  if (i > 0)
-	    view_msg = view_msg + ",";
-
-	  if (m_pnt_valid[i])
-	      pt_active = "true";
-	  else
-	      pt_active = "false";
-
-	  view_msg = view_msg + "pt_active_" + intToString(i+1) + "=" + pt_active +","
-	    + "pt_type_" + intToString(i+1) + "=" + m_pnt_type[i] + ","
-	    + "pt_x_" + intToString(i+1) + "=" + doubleToString(m_pnt_x[i]) + ","
-	    + "pt_y_" + intToString(i+1) + "=" + doubleToString(m_pnt_y[i]);
-	}
-      MOOSTrace("point message created:" + view_msg + "\n\n");
-      m_Comms.Notify("VIEW_POINT_OUT",view_msg);
-      
-      new_point = false;
-    }
-  
-  if (new_poly)
-    {
-      view_msg = "active=" + poly_active + ","
-	+ "mission=" + mission_state + ","
-	+ "edge_size=" + doubleToString(edge_size,0) + ","           
-	+ "vertex_size=" + doubleToString(vertex_size,0);
-      for (int i=0;i<x.size();i++)
-	{
-	  view_msg += ",x_" + intToString(i+1) + "=" + doubleToString(x[i],0) + ","
-	    + "y_" + intToString(i+1) + "=" + doubleToString(y[i],0);
-	}
-      
-      for (int i=x.size();i<m_poly_max;i++)
-	{
-	  view_msg += ",x_" + intToString(i+1) + "=" + doubleToString(x[0],0) + ","
-	    + "y_" + intToString(i+1) + "=" + doubleToString(y[0],0);
-	}
-      
-      MOOSTrace("polygon message created:" + view_msg + "\n\n");
-      m_Comms.Notify("VIEW_POLYGON_OUT",view_msg);
-      
-      new_poly = false;
-    }
-
-  if (new_segl)
-    {
-      view_msg = "active=" + segl_active + ","
-	+ "mission=" + mission_state;
-      int end = x_sl.size()-1;
-      for (int i=0;i<x_sl.size();i++)
-	{
-	  view_msg += ",x_" + intToString(i+1) + "=" + doubleToString(x_sl[i],0) + ","
-	    + "y_" + intToString(i+1) + "=" + doubleToString(y_sl[i],0);
-	}
-      
-      for (int i=x_sl.size();i<m_poly_max;i++)
-	{
-	  view_msg += ",x_" + intToString(i+1) + "=" + doubleToString(x_sl[end],0) + ","
-	    + "y_" + intToString(i+1) + "=" + doubleToString(y_sl[end],0);
-	}
-      
-      MOOSTrace("seglist message created:" + view_msg + "\n\n");
-      m_Comms.Notify("VIEW_SEGLIST_OUT",view_msg);
-      
-      new_segl = false;
-    }
-
-  return(true);
+    subscribe("IN_VIEW_SEGLIST", &CViewMessage::handle_in_view_seglist, this);
+    subscribe("IN_VIEW_POLYGON", &CViewMessage::handle_in_view_polygon, this);
+    subscribe("IN_VIEW_POINT", &CViewMessage::handle_in_view_point, this);
 }
 
 
-//-------------------------------------------------------------
-// Procedure: OnNewMail
-
-bool CViewMessage::OnNewMail(MOOSMSG_LIST &NewMail)
-
-
+void CViewMessage::handle_view_point(const CMOOSMsg& msg)
 {
-  MOOSMSG_LIST::iterator p;
+    if(msg.GetSource() == GetAppName())
+        return;
 
-  for(p = NewMail.begin(); p != NewMail.end(); p++) 
+    std::string view_point = msg.m_sVal;
+    std::cout << "\ngot VIEW_POINT" << std::endl;
+    XYPoint point = string2Point(view_point);
+    std::cout << "XYPoint:" <<  point.get_spec() << std::endl;    
+    lamss::protobuf::ViewPoint proto_point = to_protobuf(point);
+    std::cout << "lamss.protobuf.ViewPoint: " << proto_point.ShortDebugString() << std::endl;
+
+    std::string goby1_moos_str;
+    to_moos_comma_equals_string(proto_point, &goby1_moos_str);
+    std::cout << "as key=value, string: " << goby1_moos_str << std::endl;            
+
+    if(proto_point.active())
+        publish("OUT_VIEW_POINT", goby1_moos_str);
+}
+
+void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
+{
+
+    lamss::protobuf::ViewPoint proto_point;
+    from_moos_comma_equals_string(&proto_point, msg.GetString());
+    std::cout << "back to proto: " << proto_point.ShortDebugString() << std::endl;
+
+
+    std::string xypoint_str = from_protobuf(proto_point).get_spec();
+    std::cout << "back to XYPoint:" << xypoint_str  << std::endl;
+
+    publish("VIEW_POINT", xypoint_str);    
+}
+
+void CViewMessage::handle_view_polygon(const CMOOSMsg& msg)
+{
+    if(msg.GetSource() == GetAppName())
+        return;
+
+    std::string view_poly = msg.m_sVal;
+    std::cout << "\ngot VIEW_POLYGON" << std::endl;
+    MOOSTrace(view_poly + "\n\n");
+    XYPolygon poly = string2Poly(view_poly);
+    process_seglist(poly, true);
+}
+
+void CViewMessage::handle_view_seglist(const CMOOSMsg& msg)
+{
+    if(msg.GetSource() == GetAppName())
+        return;
+
+    std::string view_segl = msg.m_sVal;
+    std::cout << "\ngot VIEW_SEGLIST" << std::endl;
+    XYSegList seglist = string2SegList(view_segl);
+    process_seglist(seglist);
+}
+
+void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
+{
+    std::cout << "XYSegList:" <<  seglist.get_spec() << std::endl;
+    lamss::protobuf::ViewSegList proto_seglist = to_protobuf(seglist);
+    std::cout << "lamss.protobuf.ViewSegList: " << proto_seglist.ShortDebugString() << std::endl;
+
+    std::string goby1_moos_str;
+    to_moos_comma_equals_string(proto_seglist, &goby1_moos_str);
+    std::cout << "as key=value, string: " << goby1_moos_str << std::endl;
+
+    if(proto_seglist.active())
+        publish(is_polygon ? "OUT_VIEW_POLYGON" : "OUT_VIEW_SEGLIST", goby1_moos_str);    
+
+}
+
+void CViewMessage::handle_in_view_seglist(const CMOOSMsg& msg)
+{
+    process_in_seglist(msg.GetString());    
+}
+
+
+void CViewMessage::handle_in_view_polygon(const CMOOSMsg& msg)
+{
+    process_in_seglist(msg.GetString(), true);
+}
+
+
+void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_polygon)
+{
+    lamss::protobuf::ViewSegList proto_seglist;        
+    from_moos_comma_equals_string(&proto_seglist, goby1_str);
+    std::cout << "back to proto: " << proto_seglist.ShortDebugString() << std::endl;
+
+    std::string xyseglist_str = from_protobuf(proto_seglist).get_spec();
+    std::cout << "back to XYSegList:" <<  xyseglist_str << std::endl; 
+
+    publish(is_polygon ? "VIEW_POLYGON" : "VIEW_SEGLIST", xyseglist_str);
+}
+
+
+
+void CViewMessage::handle_vehicle_name(const CMOOSMsg& msg)
+{
+    ownship_ = msg.GetString();
+    boost::to_lower(ownship_);
+}
+
+void CViewMessage::handle_mission_state(const CMOOSMsg& msg)
+{
+    mission_state_ = msg.GetString();
+}
+
+lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
+{
+    lamss::protobuf::ViewPoint out;
+
+    out.set_vehicle_name(ownship_);
+    out.set_active(point.active());
+    out.mutable_point()->set_x(point.x());
+    out.mutable_point()->set_y(point.y());
+    out.mutable_point()->set_z(point.z());
+
+
+    const google::protobuf::EnumDescriptor* enum_desc =
+        lamss::protobuf::ViewPoint::PointType_descriptor();
+    const google::protobuf::EnumValueDescriptor* enum_value = enum_desc->FindValueByName(boost::to_upper_copy(point.get_type()));
+    const google::protobuf::FieldDescriptor* enum_field = out.GetDescriptor()->FindFieldByName(TYPE_FIELD_NAME);
+    
+    if(enum_value && enum_field)
+        out.GetReflection()->SetEnum(&out, enum_field, enum_value);
+
+    return out;
+}
+
+XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
+{
+    XYPoint out;
+    out.set_vertex(point.point().x(), point.point().y(), point.point().z());
+    out.set_active(point.active());
+    out.set_type(point.GetReflection()->GetEnum(point, point.GetDescriptor()->FindFieldByName(TYPE_FIELD_NAME))->name());
+    out.set_label(point.vehicle_name() + "_" + out.get_type());
+    return out;
+}
+
+
+lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
+{
+    lamss::protobuf::ViewSegList out;
+    out.set_vehicle_name(ownship_);
+
+    std::cout << "Seglist size is: " << seglist.size();
+    
+    for(unsigned i = 0, n = seglist.size(); i < n; ++i)
     {
+        lamss::protobuf::Point* point = out.add_point();
+        point->set_x(seglist.get_vx(i));
+        point->set_y(seglist.get_vy(i));
+        point->set_z(seglist.get_vz(i));
+    }
+    
+    const google::protobuf::EnumDescriptor* enum_desc =
+        lamss::protobuf::ViewSegList::MissionType_descriptor();
+
+    //std::string::size_type start_vehicle_name = seglist.get_label().find(boost::to_lower_copy(ownship_));
+    // std::string mission_state = (start_vehicle_name == std::string::npos) ?
+    //     "unknown" :
+    //     seglist.get_label().substr(start_vehicle_name + ownship_.size() + 1);
+    
+    boost::to_upper(mission_state_);
+
+    std::cout << "Mission_State is: [" << mission_state_ << "]" <<  std::endl;
+    
+    const google::protobuf::EnumValueDescriptor* enum_value = enum_desc->FindValueByName(mission_state_);
+    const google::protobuf::FieldDescriptor* enum_field = out.GetDescriptor()->FindFieldByName(MISSION_FIELD_NAME);
+    if(enum_value && enum_field)
+        out.GetReflection()->SetEnum(&out, enum_field, enum_value);
+    
+    out.set_active(seglist.active());
+    return out;
+}
+
+XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglist)
+{
+    XYSegList out;
+
+    for(int i = 0, n = seglist.point_size(); i < n; ++i)
+    {
+        std::cout << "seglist.point(i).x() == NaN" << std::boolalpha << is_nan(seglist.point(i).x()) << std::endl;
+        
+        if(!is_nan(seglist.point(i).x()) &&
+           !is_nan(seglist.point(i).y()) &&
+           !is_nan(seglist.point(i).z()))
+        {
+            std::cout << "adding x: " << seglist.point(i).x() << ", y: " << seglist.point(i).y() << ", z: " << seglist.point(i).z() << std::endl;
+
       
-      CMOOSMsg &Msg = *p;
-      
-      
-      //local node ID
-      if(Msg.m_sKey == "VEHICLE_NAME")
-	{
-	  ownship = tolower(Msg.m_sVal);
-	}
-      else if(Msg.m_sKey == "MISSION_STATE")
-	{
-
-	  string new_state = Msg.m_sVal;
-	  kill_old = (!MOOSStrCmp(new_state,old_state));
-	  mission_state = new_state;
-	}
-      else if(Msg.m_sKey == "VIEW_POINT")
-	{
-	  string view_point = Msg.m_sVal;
-	  MOOSTrace("got VIEW_POINT\n");
-	  MOOSTrace(view_point + "\n\n");
-
-	  new_point = insertPoint(view_point);
-	}
-      else if(Msg.m_sKey == "VIEW_POLYGON")
-	{
-	  string view_poly = Msg.m_sVal;
-	  MOOSTrace("got VIEW_POLYGON\n");
-	  MOOSTrace(view_poly + "\n\n");
-	  if (!new_poly)
-	    new_poly = insertPolygon(view_poly);
-	}
-      else if(Msg.m_sKey == "VIEW_SEGLIST")
-	{
-	  string view_segl = Msg.m_sVal;
-	  MOOSTrace("got VIEW_SEGLIST\n");
-	  MOOSTrace(view_segl + "\n\n");
-	  if (!new_segl)
-	    new_segl = insertSeglist(view_segl);
-	}
+            
+            out.add_vertex(seglist.point(i).x(), seglist.point(i).y(), seglist.point(i).z());
+        }
     }
-  return(true);
+    
+    out.set_active(seglist.active());
+    out.set_label(seglist.vehicle_name() + "_" + seglist.GetReflection()->GetEnum(seglist, seglist.GetDescriptor()->FindFieldByName(MISSION_FIELD_NAME))->name());
+    return out;
 }
-
-bool CViewMessage::insertPoint(string view_point)
-{
-  string label_id = MOOSChomp(view_point,",");
-  string str_active = "true";
-  if (MOOSStrCmp(label_id,"active"))
-    {
-      str_active = MOOSChomp(view_point,":");
-      label_id = MOOSChomp(view_point,",");
-      active = MOOSStrCmp(str_active,"true");
-    }
-  else
-    {
-      active = true;
-      str_active = "true";
-    }
-
-  pt_active = str_active;
-  pt_label = MOOSChomp(view_point,":");
-
-  //  MOOSTrace("insertPoint: active=" + str_active + ",label=" + pt_label +"\n");  
-
-  string::size_type name_pos = pt_label.find(ownship);
-  //  vehicle=tolower(MOOSChomp(pt_label,"_"));
-  //      if (ownship == "unknown" || MOOSStrCmp(ownship,vehicle))
-  if (ownship == "unknown" || name_pos != string::npos)
-    {
-      //	  MOOSTrace("Parsing point message\n");
-      // then the type
-      string type_id = MOOSChomp(view_point,",");
-      pt_type = MOOSChomp(view_point,":");
-
-      // then the source behavior
-      string source_id = MOOSChomp(view_point,",");
-      source = MOOSChomp(view_point,":");
-
-      //      MOOSTrace("insertPoint: type=" + pt_type + ",source=" + source + "\n");  
-
-      // finally the point
-      string x_str = MOOSChomp(view_point,",");
-      pt_x = atof(x_str.c_str());
-      string y_str = MOOSChomp(view_point,":");
-      pt_y = atof(y_str.c_str());
-
-      // Check if it already exists
-      // if not insert if active
-      int index = -1;
-      for (int i=0; i< m_pnt_type.size(); i++)
-	{
-	  if (MOOSStrCmp(m_pnt_type[i],pt_type))
-	    index = i;
-	}
-      if (index < 0 && active)
-	{
-	  m_pnt_x.push_back(pt_x);
-	  m_pnt_y.push_back(pt_y);
-	  m_pnt_valid.push_back(active);
-	  m_pnt_type.push_back(pt_type);
-	  index = m_pnt_type.size()-1;
-	}
-      //      MOOSTrace("insertPoint: index=%d\n",index);  
-
-      if (index >= 0)
-	{
-	  m_pnt_x[index]     = pt_x;
-	  m_pnt_y[index]     = pt_y;
-	  m_pnt_valid[index] = active;
-	  m_pnt_type[index]  = pt_type;
-	  return(true);
-	}
-      else
-	return(false);
-    }
-  else
-    return(false);
-}
-
-bool CViewMessage::deletePoint(string pt_type)
-{
-  // Check if it exists before trying to delete
-  int index = -1;
-  for (int i=0; i< m_pnt_type.size(); i++)
-    {
-      if (MOOSStrCmp(m_pnt_type[i],pt_type))
-	index = i;
-    }
-  if (index >= 0)
-    {
-      for (int i=index+1; i< m_pnt_type.size(); i++)
-	{
-	  m_pnt_x[i-1] = m_pnt_x[i];
-	  m_pnt_y[i-1] = m_pnt_y[i];
-	  m_pnt_valid[i-1] = m_pnt_valid[i];
-	  m_pnt_type[i-1] = m_pnt_type[i];
-	}
-      m_pnt_x.pop_back();
-      m_pnt_y.pop_back();
-      m_pnt_valid.pop_back();
-      m_pnt_type.pop_back();
-    }
-  return(index>=0);
-}
-
-
-bool CViewMessage::insertPolygon(string view_poly)
-{
-  bool valid =false;
-  // first the active flag and label
-  string label_id = MOOSChomp(view_poly,",");
-  string str_active = "true";
-  
-  if (MOOSStrCmp(label_id,"active"))
-    {
-      str_active = MOOSChomp(view_poly,":");
-      label_id = MOOSChomp(view_poly,",");
-      active = MOOSStrCmp(str_active,"true");
-    }
-  else
-    {
-      active = true;
-      str_active = "true";
-    }
-  if (active)
-    {
-      poly_active = str_active;
-      poly_label = MOOSChomp(view_poly,":");
-      MOOSTrace("poly_label = " + poly_label + "\n\n");
-
-      string::size_type name_pos = poly_label.find(ownship);
-      //      vehicle=tolower(MOOSChomp(poly_label,"_"));
-      //      if (ownship == "unknown" || MOOSStrCmp(ownship,vehicle))
-      if (ownship == "unknown" || name_pos != string::npos)
-	{
-	  valid = true;
-	  MOOSTrace("Parsing polygon message\n");
-	  // then the edge_size
-	  string edge_id = MOOSChomp(view_poly,",");
-	  valid = valid && MOOSStrCmp(edge_id,"edge_size");
-	  string num = MOOSChomp(view_poly,":");
-	  MOOSTrace("insertPolygon: " + edge_id + "=" + num +"\n");
-	  valid = valid && num != ""; 
-	  if (valid)
-	    {
-	      edge_size = atof(num.c_str());
-	      // then the vertex size
-	      string vertex_id = MOOSChomp(view_poly,",");
-	      num = MOOSChomp(view_poly,":");
-	  MOOSTrace("insertPolygon: " + vertex_id + "=" + num + "\n");
-	      valid = valid && num != ""; 
-	      vertex_size = atof(num.c_str());
-	      // finally the points
-	      string point;
-	      x.clear();
-	      y.clear();
-	      while (view_poly != "")
-		{
-		  string x_str = MOOSChomp(view_poly,",");
-		  // valid = valid && x_str != ""; 
-		  pt_x = atof(x_str.c_str());
-		  x.push_back(pt_x);
-		  string y_str = MOOSChomp(view_poly,":");
-		  //  valid = valid && y_str != ""; 
-		  pt_y = atof(y_str.c_str());
-		  y.push_back(pt_y);
-		}
-	      MOOSTrace("insertPolygon: points= %d \n",x.size());
-	      sampleSeglist(m_poly_max,x,y);
-
-	      MOOSTrace("after sampling: points= %d \n",x.size());
-	    }
-	}
-    }
-  return(valid);
-}
-
-
-bool CViewMessage::insertSeglist(string view_segl)
-{
-  bool new_segl = false;
-  // first the active flag and label
-  string label_id = MOOSChomp(view_segl,",");
-  string str_active = "true";
-  
-  if (MOOSStrCmp(label_id,"active"))
-    {
-      str_active = MOOSChomp(view_segl,":");
-      label_id = MOOSChomp(view_segl,",");
-      active = MOOSStrCmp(str_active,"true");
-    }
-  else
-    {
-      active = true;
-      str_active = "true";
-    }
-  
-  if (active)
-    {
-      segl_active = str_active;
-      segl_label = MOOSChomp(view_segl,":");
-      
-      string::size_type name_pos = segl_label.find(ownship);
-      //      vehicle=tolower(MOOSChomp(segl_label,"_"));
-      //      if (ownship == "unknown" || MOOSStrCmp(ownship,vehicle))
-      if (ownship == "unknown" || name_pos != string::npos)
-	{
-	  new_segl = true;
-	  MOOSTrace("Parsing seglist message\n");
-	  // finally the points
-	  string point;
-	  x_sl.clear();
-	  y_sl.clear();
-	  while (view_segl != "")
-	    {
-	      string x_str = MOOSChomp(view_segl,",");
-	      new_segl = new_segl && x_str != ""; 
-	      pt_x = atof(x_str.c_str());
-	      x_sl.push_back(pt_x);
-	      string y_str = MOOSChomp(view_segl,":");
-	      new_segl = new_segl && y_str != ""; 
-	      pt_y = atof(y_str.c_str());
-	      y_sl.push_back(pt_y);
-	    }
-	}
-    }
-  return(new_segl);
-}
-
-bool CViewMessage::sampleSeglist(int n_pnt, vector<double>& x,vector<double>& y)
-{
-  vector<double> buf_x ;
-  vector<double> buf_y ;
-
-  if (x.size() > n_pnt)
-    {
-      int n_new = x.size();
-      int red_fac = 1;
-      while (n_new > n_pnt)
-	{
-	  red_fac += 1;
-	  n_new = (int) x.size()/red_fac;
-	}
-
-      buf_x.clear();
-      buf_y.clear();
-      for (int i=0 ; i < n_new; i++)
-	{
-	  if (i*red_fac < x.size())
-	    {
-	      buf_x.push_back(x[i*red_fac]);
-	      buf_y.push_back(y[i*red_fac]);
-	    }
-	}
-      x = buf_x;
-      y = buf_y;
-    }
-  return(true);
-}
-

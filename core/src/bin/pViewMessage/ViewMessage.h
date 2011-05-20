@@ -1,7 +1,7 @@
 /*****************************************************************/
-/*    NAME: Henrik Schmidt                                       */
+/*    NAME: Henrik Schmidt, Toby Schneider                       */
 /*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: ViewMessage.h                                 */
+/*    FILE: ViewMessage.h                                        */
 /*    DATE: Aug. 2, 2008                                         */
 /*                                                               */
 /* This program is free software; you can redistribute it and/or */
@@ -23,85 +23,70 @@
 #ifndef VIEWMESSAGE_HEADER
 #define VIEWMESSAGE_HEADER
 
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
-#include "lib_mbutil/MBUtils.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
-#include "lib_geometry/XYPoint.h"
 #include <string>
 
+#include "lib_geometry/XYFormatUtilsPoint.h" 
+#include "lib_geometry/XYFormatUtilsPoly.h" 
+#include "lib_geometry/XYFormatUtilsSegl.h" 
+#include "lib_geometry/XYPoint.h"
+#include "lib_geometry/XYPolygon.h"
+#include "lib_geometry/XYSegList.h"
 
+#include "goby/moos/libmoos_util/moos_protobuf_helpers.h"
+#include "goby/moos/libmoos_util/tes_moos_app.h"
 
+#include "view_message.pb.h"
 
-class CViewMessage : public CMOOSApp
+class CViewMessage : public TesMoosApp
 {
- public:
-  CViewMessage();
-  virtual ~CViewMessage();
+  public:
+    static CViewMessage* get_instance();
 
-  bool Iterate();
-  bool OnNewMail(MOOSMSG_LIST &NewMail);
-  bool OnConnectToServer();
-  bool OnStartUp();
-  bool insertPoint(std:: string);
-  bool deletePoint(std:: string);
-  bool insertPolygon(std:: string);
-  bool insertSeglist(std:: string);
-  bool sampleSeglist(int n_pnt, std::vector<double>& x,std::vector<double>& y);
+  private:
+    CViewMessage();
+    void loop() { }    
 
- protected:
-
-  CMOOSGeodesy m_Geodesy; 
-
-  std::string source;
-  std::string vehicle;
-  std::string ownship;
+    // take publishes from BHVs and write appropriate output for pAcommsHandler
+    void handle_view_point(const CMOOSMsg& msg);
+    void handle_view_polygon(const CMOOSMsg& msg);
+    void handle_view_seglist(const CMOOSMsg& msg);
+    void process_seglist(const XYSegList& seglist, bool is_polygon = false);
 
 
-  std::string pt_active;
-  std::string pt_type;
-  std::string pt_label;
+    // write appropriate variables on receiving side
+    void handle_in_view_point(const CMOOSMsg& msg);
+    void handle_in_view_seglist(const CMOOSMsg& msg);
+    void handle_in_view_polygon(const CMOOSMsg& msg);
+    void process_in_seglist(const std::string& goby1_str, bool is_polygon = false);
+        
+    
+    // set state
+    void handle_vehicle_name(const CMOOSMsg& msg);
+    void handle_mission_state(const CMOOSMsg& msg);
 
-  double pt_x;
-  double pt_y;
 
-  int m_poly_max;
+    lamss::protobuf::ViewPoint to_protobuf(const XYPoint& point);
+    XYPoint from_protobuf(const lamss::protobuf::ViewPoint& point);    
+    lamss::protobuf::ViewSegList to_protobuf(const XYSegList& point);
+    XYSegList from_protobuf(const lamss::protobuf::ViewSegList& point);
 
-  std::vector<double> m_pnt_x;
-  std::vector<double> m_pnt_y;
-  std::vector<bool> m_pnt_valid;
-  std::vector<std::string> m_pnt_type;
+    // NaN values have the odd property that comparisons involving them are always false
+    bool is_nan(double a)
+    { return a != a; }
+    
+    
+  private:    
+    std::string ownship_;  
+    std::string mission_state_;
 
-  std::string poly_active;
-  std::string poly_type;
-  std::string poly_label;
+    static const std::string TYPE_FIELD_NAME;
+    static const std::string MISSION_FIELD_NAME;
 
-  std::string segl_active;
-  std::string segl_type;
-  std::string segl_label;
+    static lamss::protobuf::ViewMessageConfig cfg_;
+    static CViewMessage* inst_;    
 
-  std::string mission_state;
-  std::string old_state;
-
-  std::vector<double> x;
-  std::vector<double> y;
-
-  std::vector<double> x_sl;
-  std::vector<double> y_sl;
-
-  bool new_point;
-  bool new_poly;
-  bool new_segl;
-
-  bool active;
-  bool kill_old;
-  bool polygon;
-  bool seglist;
-
-  double edge_size;
-  double vertex_size;
-
+    
+    
 };
 
-#endif 
-
+#endif
