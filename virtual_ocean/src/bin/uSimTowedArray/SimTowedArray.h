@@ -241,9 +241,6 @@ class CSimTowedArray : public CMOOSApp
   std::string veh_name;
   std::string  array_type;
 
-  std::string vsa_dir;
-  int vsa_frame;
-
   std::vector<double> m_buffer;
   std::vector<double> m_dummy;
 
@@ -270,12 +267,6 @@ class CSimTowedArray : public CMOOSApp
 
   int pp;
   int get_back;
-  int Frame_Number;
-
-  int create_dir_frame;
-  int create_dir_frame_save;
-  int write_out_files;
-  int write_out_files_save;
 
   double nav_x;
   double nav_y;

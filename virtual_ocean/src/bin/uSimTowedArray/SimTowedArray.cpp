@@ -92,10 +92,6 @@ CSimTowedArray::CSimTowedArray()
     first = true;
     pp=0;
 
-    create_dir_frame_save = create_dir_frame;   //DHG 2007/03/14
-    write_out_files_save = write_out_files;     //DHG 2007/03/14
-    Frame_Number = 0;                           //DHG 2007/03/15
-
     got_dir = false;                               //DHG 2007/03/14
     got_frame = false;                             //DHG 2007/03/14
 
@@ -163,32 +159,6 @@ bool CSimTowedArray::OnStartUp()
         MOOSTrace("pSimTowedArray:: start_speed not specified - FAIL\n");
         return false;
     }
-
-    if(m_MissionReader.GetConfigurationParam("create_dir_frame",sVal))
-    {
-      create_dir_frame = atoi(sVal.c_str());
-
-      if (create_dir_frame != 0)
-	{
-	  vsa_dir = "/tmp";
-	  got_dir = true;
-	}
-    }
-    else
-    {
-        MOOSTrace("pSimTowedArray:: create_dir_frame not specified - FAIL\n");
-        return false;
-    }
-
-    if(m_MissionReader.GetConfigurationParam("write_out_files",sVal))
-      {
-	write_out_files = atoi(sVal.c_str());
-      }
-    else
-      {
-        MOOSTrace("pSimTowedArray:: write_out_files not specified - FAIL\n");
-        return false;
-      }
 
     if(m_MissionReader.GetConfigurationParam("filter_length",sVal))
     {
@@ -402,8 +372,6 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "NAV_SPEED",0);
     m_Comms.Register( "NAV_YAW",0);
     m_Comms.Register( "NAV_PITCH",0);
-    m_Comms.Register( "VSA_DIR",0);
-    m_Comms.Register( "VSA_FRAME",0);
     return(true);
 }
 
@@ -464,9 +432,6 @@ bool CSimTowedArray::Iterate()
       }
 
     MOOSTrace("filter_v = %d\n",filter_v);
-
-    write_out_files = write_out_files_save;    //DHG 2007/03/14
-
 
     if (towing)
       {
@@ -662,6 +627,9 @@ bool CSimTowedArray::Iterate()
 	    Array.straight_array(tow_pos_x, tow_pos_y, tow_pos_z, 
 				 tow_vel_x, tow_vel_y, tow_vel_z,  
 				 ael_heading, ael_pitch );
+	    if (horiz_speed < 1e-6)
+	      ael_heading = -nav_yaw * 180.0/M_PI;
+
 	    m_Comms.Notify("CABLE_TENSION",0);
 	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
 	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);  
@@ -746,21 +714,6 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 	got_pitch = true;
       }
 
-      if(Msg.m_sKey == "VSA_DIR")
-      {
-	if (create_dir_frame == 0 && got_dir == 0)
-	  {
-	    vsa_dir = Msg.m_sVal;
-	    got_dir = true;
-	  }
-      }
-
-      if(Msg.m_sKey == "VSA_FRAME")
-      {
-	string frame =  Msg.m_sVal;
-	vsa_frame = atoi(frame.c_str());
-	got_frame = true;
-      }
 
    }
   

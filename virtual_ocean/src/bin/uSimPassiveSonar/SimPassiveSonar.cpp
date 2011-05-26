@@ -1656,8 +1656,8 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
   // generate isotropic noise covariance matrix
   // first time, following ones just scaled, avoiding cholesky factorization
   //
-  if (noise_direct)
-    {
+  //  if (noise_direct)
+  //    {
 
       int ndim;
       if (vsa)
@@ -1740,7 +1740,7 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
       // if pitch has changed more than 5 deg recompute 
       // covariances for frequency interval of interest      
 
-      if (fabs(array_avg_pitch-array_prev_pitch) 
+      if ((noise_direct || ISOTROPIC) && fabs(array_avg_pitch-array_prev_pitch) 
 	  >= 5.0*M_PI/180.0 )
 	{    
 	  m_Comms.Notify("COVARIANCE_REQUEST","now");
@@ -1748,7 +1748,7 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	  MOOSTrace("Requesting correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
 	  array_prev_pitch = array_avg_pitch;
 	}
-    }
+      //    }
   return(nl);
 }
 
