@@ -625,10 +625,8 @@ bool CSimTowedArray::Iterate()
 	      ael_pitch = nav_pitch;
  
 	    Array.straight_array(tow_pos_x, tow_pos_y, tow_pos_z, 
-				 tow_vel_x, tow_vel_y, tow_vel_z,  
+				 tow_vel_x, tow_vel_y, tow_vel_z, nav_yaw,  
 				 ael_heading, ael_pitch );
-	    if (horiz_speed < 1e-6)
-	      ael_heading = -nav_yaw * 180.0/M_PI;
 
 	    m_Comms.Notify("CABLE_TENSION",0);
 	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
@@ -804,7 +802,7 @@ int CArrayModel::indx(int n_rows, int row, int col)
 
 bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y, 
 				 double tow_pos_z, double tow_vel_x, 
-				 double tow_vel_y, double tow_vel_z, 
+				 double tow_vel_y, double tow_vel_z, double nav_yaw, 
 				 double & ael_heading, double & ael_pitch )
 {
   // This function is a simple model that assumes the array straight behind the vehicle at a prescribed pitch angle.
@@ -837,9 +835,12 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y,
   for (int i=0; i<m_nelm; i++)
     buf_xi.push_back(offset_to_array + phone_offset[i]);
 
-  double array_angle = atan2(tow_vel_y, tow_vel_x);
+  double array_angle;
+  if (pow(tow_vel_x,2)+pow(tow_vel_y,2) < 1e-6)
+      array_angle = nav_yaw+0.5*M_PI;
+  else
+      array_angle = atan2(tow_vel_y, tow_vel_x);
   ael_heading = angleUtils.angle360(90.0-array_angle*180/PI);
-
   MOOSTrace("ael_heading = %f\n");
 
   std::vector<double> x1;

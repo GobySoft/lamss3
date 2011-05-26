@@ -55,7 +55,8 @@ class CArrayModel
 
   int indx(int n_rows, int row, int col);
 
-  bool straight_array(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, double& ael_heading, double& ael_pitch);
+  bool straight_array(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, 
+		      double nav_yaw, double& ael_heading, double& ael_pitch);
 
   bool function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz);
 
