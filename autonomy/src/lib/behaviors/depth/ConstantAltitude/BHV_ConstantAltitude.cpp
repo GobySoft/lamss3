@@ -106,12 +106,12 @@ IvPFunction *BHV_ConstantAltitude::onRunState()
   // check here for bottom altitude and change max depth if necessary
   double curr_water_depth = curr_depth + curr_altitude;
   depth_local = curr_water_depth-altitude;
-
+  double peak_width = 0.1*altitude;
   ZAIC_PEAK zaic_depth(m_domain, "depth");
   zaic_depth.setSummit(depth_local);
-  zaic_depth.setPeakWidth(0.1*altitude);
-  zaic_depth.setBaseWidth(0.0);
-  zaic_depth.setSummitDelta(100.0);
+  zaic_depth.setPeakWidth(peak_width);
+  zaic_depth.setBaseWidth(depth_local-peak_width);
+  zaic_depth.setSummitDelta(90.0);
   zaic_depth.setMinMaxUtil(0, 100);
 
   IvPFunction *ipf_depth = zaic_depth.extractOF();

@@ -115,7 +115,7 @@ IvPFunction *BHV_MinAltitude::onRunState()
       ZAIC_PEAK zaic_depth(m_domain, "depth");
       zaic_depth.setSummit(0.0);
       zaic_depth.setPeakWidth(max_depth_local);
-      zaic_depth.setBaseWidth(0.0);
+      zaic_depth.setBaseWidth(1.0);
       // zaic_depth.setSummitDelta(0.0);  // Henrik's version
       zaic_depth.setSummitDelta(0.1);   // A mikerb version Sep 20, 2007
       zaic_depth.setMinMaxUtil(0, 100);
