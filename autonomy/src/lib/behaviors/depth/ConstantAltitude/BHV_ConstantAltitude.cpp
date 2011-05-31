@@ -50,9 +50,10 @@ BHV_ConstantAltitude::BHV_ConstantAltitude(IvPDomain gdomain) :
 
   m_domain = subDomain(m_domain, "depth");
 
+  m_missing_altitude_critical = true;
+
   // Declare the variables we will need from the info_buffer
   addInfoVars("NAV_DEPTH");
-  addInfoVars("NAV_SPEED");
   addInfoVars("NAV_ALTITUDE");
 
 }
@@ -88,6 +89,8 @@ bool BHV_ConstantAltitude::setParam(string g_param, string g_val)
       altitude = dval;
       return(true);
     }
+  else if(g_param == "missing_altitude_critical")
+    return(setBooleanOnString(m_missing_altitude_critical, g_val));
   return(false);
 }
 
@@ -101,8 +104,23 @@ IvPFunction *BHV_ConstantAltitude::onRunState()
  
   bool   ok,ok1,ok2;
   double curr_depth = getBufferDoubleVal("NAV_DEPTH", ok);
+  if(!ok) {
+    postEMessage("No ownship NAV_DEPTH info in the helm info_buffer");
+    postMessage("MIN_ALT_STATUS", "Missing NAV_DEPTH info");
+    return(0);
+  }
   double curr_altitude = getBufferDoubleVal("NAV_ALTITUDE", ok1);
-  double curr_speed = getBufferDoubleVal("NAV_SPEED", ok2);
+  if(!ok1) {
+    if(m_missing_altitude_critical)
+      postEMessage("No ownship NAV_ALTITUDE info in the helm info_buffer");
+    else {
+      postEMessage("No ownship NAV_ALTITUDE info in the helm info_buffer");
+      curr_altitude = 0;
+    }
+    postMessage("CONST_ALT_STATUS", "Missing NAV_ALTITUDE info");
+    return(0);
+  }
+
   // check here for bottom altitude and change max depth if necessary
   double curr_water_depth = curr_depth + curr_altitude;
   depth_local = curr_water_depth-altitude;
