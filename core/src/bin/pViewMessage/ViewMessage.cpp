@@ -176,6 +176,8 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
     lamss::protobuf::ViewPoint out;
 
     out.set_vehicle_name(ownship_);
+    out.set_destination(1);
+
     out.set_active(point.active());
     out.mutable_point()->set_x(point.x());
     out.mutable_point()->set_y(point.y());
@@ -208,6 +210,8 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
 {
     lamss::protobuf::ViewSegList out;
     out.set_vehicle_name(ownship_);
+
+    out.set_destination(1);
 
     std::cout << "Seglist size is: " << seglist.size();
     

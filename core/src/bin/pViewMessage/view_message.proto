@@ -25,6 +25,7 @@ message ViewPoint
     STATION = 4;
   }
   optional PointType type = 4 [default = UNKNOWN];
+  required int32 destination = 5;
 }
 
 message ViewSegList
@@ -41,6 +42,7 @@ message ViewSegList
   optional MissionType mission = 2 [default = UNKNOWN];
   repeated Point point = 3;
   optional bool active = 4 [default = false];
+  required int32 destination = 5;
 }
 
 message ViewMessageConfig
