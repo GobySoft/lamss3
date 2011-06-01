@@ -180,6 +180,7 @@ bool BHV_RaceTrack::setParam(string g_param, string g_val)
   else if(g_param == "points") {
     m_deploy_location  = g_val;
     m_deploy_pending = true;
+    first_iteration = true;
     return(true);
   }  
   else if(g_param == "clockwise") 

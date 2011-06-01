@@ -41,7 +41,7 @@ protected:
 private: // Behavior Parameters
   double      depth_local;
   double      altitude;
-
+  bool        m_missing_altitude_critical;
 };
 
 extern "C" {
