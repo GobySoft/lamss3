@@ -300,6 +300,7 @@ class CSimTowedArray : public CMOOSApp
   double ael_heading;
   double ael_pitch;
 
+  int array_definition_type;
 
   CArrayModel Array;
 

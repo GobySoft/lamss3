@@ -311,55 +311,145 @@ bool CSimTowedArray::OnStartUp()
         return false;
     }
 
-    if(m_MissionReader.GetConfigurationParam("phone_spacing_groups",sVal))
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////BEGIN: LOAD ARRAY DEFINITION PARAMETERS								////
+    ////       Read in array_definition_type							////
+    ////	       if (array_definition_type==0)							////
+    ////			number_elements								////
+    ////			element_spacing								////
+    ////	       if (array_definition_type==1)							////
+    ////			num_array_spacing_groups						////
+    ////			spacing_group_k (for k=1:def_num_array_spacing_groups)		////
+    ////			num_spacings_group_k (for k=1:def_num_array_spacing_groups)		////
+    ////	       if (array_definition_type==2)							////
+    ////	       		def_array_element_locations 						////
+    ////												////
+    ////Global variables set: 	array_definition_type							////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////		
+    int arrayselect=1; // default is old specification
+    if (!m_MissionReader.GetConfigurationParam("array_definition_type",arrayselect))
       {
-	int num_spacing_groups = atoi(sVal.c_str());
-	MOOSTrace("Reading %d phone spacings\n", num_spacing_groups);
-	vector<double> spacings;
-	spacings.push_back(0.0);
-	double spac;
-	for (int i=0; i<num_spacing_groups; i++)
-	  {
-	    string param;
-	    string svalues;
-	    char buff[24];
-	    sprintf(buff,"spacing_group_%1d",i+1);
-	    param = buff;
-	    if (m_MissionReader.GetConfigurationParam(param,svalues))
-	      {
-		spac = atof(svalues.c_str());
-	      }
-	    else
-	      {
-		MOOSTrace("pSimTowedArray::%s not specified - FAIL\n",param.c_str());
-		return false;
-	      }
-	    sprintf(buff,"num_spacings_group_%1d",i+1);
-	    param = buff;
-	    if (m_MissionReader.GetConfigurationParam(param,svalues))
-	      {
-		int num_spac = atoi(svalues.c_str());
-		for (int i=0; i<num_spac; i++)
-		  spacings.push_back(spac);
-	      }
-	    else
-	      {
-		MOOSTrace("pSimTowedArray::%s not specified - FAIL\n",param.c_str());
-		return false;
-	      }
-	  }
-	vecUtils.cumsum(spacings,Array.phone_position);
-	Array.m_nelm = Array.phone_position.size();
-	spacings[0]=Array.first_phone_offset;
-	vecUtils.cumsum(spacings,Array.phone_offset);
+	MOOSTrace("No specification for def_array_definition_type - setting array_definition_type=0 \n ");
+	array_definition_type=0;
       }
-    else 
+    array_definition_type = arrayselect;
+    
+    if (array_definition_type==0) //use def_numchannels and def_spacing
       {
-	MOOSTrace("pSimTowedArray:: phone_spacing_groups not specified - FAIL\n");
+    	double nc;
+    	if (!m_MissionReader.GetConfigurationParam("number_elements",nc))
+	  {
+	    MOOSDebugWrite("No number of elements defined - FAIL\n");
+            return false;
+	  }
+    	 Array.m_nelm = (int) nc;
+	
+	//element spacing on array
+	double element_spacing;
+    	if (!m_MissionReader.GetConfigurationParam("element_spacing",element_spacing))
+	  {
+            MOOSDebugWrite("No default element spacing available - FAIL\n");
+	    return false;
+	  }
+	Array.phone_offset.clear();
+	Array.phone_position.clear();
+	
+	for(int k=0;k<Array.m_nelm;k++)
+	  {
+	    Array.phone_position.push_back(Array.first_phone_offset + k*element_spacing);
+	    Array.phone_offset.push_back(Array.first_phone_offset + k*element_spacing);
+	  }
+      }
+    else if (array_definition_type==1) 
+      //use def_num_array_spacing_groups, spacing_group_k, & num_spacings_group_k for k=1:def_num_array_spacing_groups.
+      {
+	if(m_MissionReader.GetConfigurationParam("phone_spacing_groups",sVal))
+	  {
+	    int num_spacing_groups = atoi(sVal.c_str());
+	    MOOSTrace("Reading %d phone spacings\n", num_spacing_groups);
+	    vector<double> spacings;
+	    spacings.push_back(0.0);
+	    double spac;
+	    for (int i=0; i<num_spacing_groups; i++)
+	      {
+		string param;
+		string svalues;
+		char buff[24];
+		sprintf(buff,"spacing_group_%1d",i+1);
+		param = buff;
+		if (m_MissionReader.GetConfigurationParam(param,svalues))
+		  {
+		    spac = atof(svalues.c_str());
+		  }
+		else
+		  {
+		    MOOSTrace("uSimTowedArray::%s not specified - FAIL\n",param.c_str());
+		    return false;
+		  }
+		sprintf(buff,"num_spacings_group_%1d",i+1);
+		param = buff;
+		if (m_MissionReader.GetConfigurationParam(param,svalues))
+		  {
+		    int num_spac = atoi(svalues.c_str());
+		    for (int i=0; i<num_spac; i++)
+		      spacings.push_back(spac);
+		  }
+		else
+		  {
+		    MOOSTrace("uSimTowedArray::%s not specified - FAIL\n",param.c_str());
+		    return false;
+		  }
+	      }
+	    vecUtils.cumsum(spacings,Array.phone_position);
+	    Array.m_nelm = Array.phone_position.size();
+	    spacings[0]=Array.first_phone_offset;
+	    vecUtils.cumsum(spacings,Array.phone_offset);
+	  }
+	else 
+	  {
+	    MOOSTrace("uSimTowedArray:: phone_spacing_groups not specified - FAIL\n");
+	    return false;
+	  }
+      }    
+    else if (array_definition_type==2) //use def_array_element_locations 
+      {
+	string array_element_locations_string; 
+        if (m_MissionReader.GetConfigurationParam("array_element_locations",array_element_locations_string))
+	  {
+	    string current_element_location_temp;
+	    vector<double> element_locations_temp;
+	    int num_elements=0;
+	    current_element_location_temp = MOOSChomp(array_element_locations_string,",");
+	    
+	    while (!current_element_location_temp.empty())
+	      { 
+		element_locations_temp.push_back(atof(current_element_location_temp.c_str()));
+		num_elements++;
+		current_element_location_temp = MOOSChomp(array_element_locations_string,",");
+	      }
+	    
+	    for(int k=0; k < num_elements; k++)
+	      {
+		Array.phone_position.push_back(element_locations_temp[k]);
+		Array.phone_offset.push_back(element_locations_temp[k] + Array.first_phone_offset);
+	      }
+	    Array.m_nelm =num_elements;
+	  }
+	else
+	  {
+	    MOOSDebugWrite("uSimTowedArray::array_element_locations not specified - FAIL\n");
+	    return false;
+	  }
+      }
+    else
+      {
+	MOOSTrace("uSimTowedarray:: array_definition_type = %d not supported - FAIL\n",array_definition_type);
 	return false;
       }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////END: LOAD ARRAY DEFINITION PARAMETERS								////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////
     
-
     return(true);
 }
 
