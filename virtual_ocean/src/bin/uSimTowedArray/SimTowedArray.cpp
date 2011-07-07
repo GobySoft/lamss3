@@ -322,7 +322,7 @@ bool CSimTowedArray::OnStartUp()
     ////			spacing_group_k (for k=1:def_num_array_spacing_groups)		////
     ////			num_spacings_group_k (for k=1:def_num_array_spacing_groups)		////
     ////	       if (array_definition_type==2)							////
-    ////	       		def_array_element_locations 						////
+    ////	       		array_element_locations 						////
     ////												////
     ////Global variables set: 	array_definition_type							////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////		

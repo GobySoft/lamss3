@@ -42,6 +42,12 @@ towbody_parameters = -10.0,   1.0,     0.01
 
 array_section_number = 2
 first_phone_offset   = 3.0
+
+array_definition_type = 1
+// 0: number_elements, element_spacing
+// 1: phone spacing groups etc. (default)
+// 2: array_element_locations (0,0.75,1.5,....)
+
 phone_spacing_groups = 3
 spacing_group_1      = 1.5  
 num_spacings_group_1 = 5
