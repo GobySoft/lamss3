@@ -61,6 +61,8 @@ private: // Behavior Parameters
   double deploy_x_in,deploy_y_in;
   double end_x_in,end_y_in;
   int leg;
+  double peak_width;
+  double summit_delta;
 
   double east_current_spd;
   double north_current_spd;

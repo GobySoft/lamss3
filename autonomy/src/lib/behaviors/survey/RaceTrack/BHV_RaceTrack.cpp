@@ -53,6 +53,9 @@ BHV_RaceTrack::BHV_RaceTrack(IvPDomain gdomain) :
   distance_traveled    = 0;   // meters
   approach_angle = 80;
   dist_tolerance = 10;
+  // zaic defaults
+  peak_width = 30;
+  summit_delta = 50;
   // Behavior State Variable Initial Values:
   first_iteration      = true;
   deploy_x = 0;
@@ -169,14 +172,30 @@ bool BHV_RaceTrack::setParam(string g_param, string g_val)
 	
       return(true);
     } 
-   else if(g_param == "heading") 
-     {
-       double dval = atof(g_val.c_str());
-       if((dval < 0) || (!isNumber(g_val)))
-	 return(false);
-       heading = angle360(dval);
-       return(true);
-     }
+  else if(g_param == "heading") 
+    {
+      double dval = atof(g_val.c_str());
+      if((dval < 0) || (!isNumber(g_val)))
+	return(false);
+      heading = angle360(dval);
+      return(true);
+    }
+  else if(g_param == "peak_width") 
+    {
+      double dval = atof(g_val.c_str());
+      if((dval < 0) || (dval > 180) || (!isNumber(g_val)))
+	return(false);
+      peak_width = dval;
+      return(true);
+    }
+  else if(g_param == "summit_delta") 
+    {
+      double dval = atof(g_val.c_str());
+      if((dval < 0) || (dval > 100) || (!isNumber(g_val)))
+	return(false);
+      summit_delta = dval;
+      return(true);
+    }
   else if(g_param == "points") {
     m_deploy_location  = g_val;
     m_deploy_pending = true;
@@ -413,9 +432,9 @@ IvPFunction *BHV_RaceTrack::onRunState()
 	ZAIC_PEAK zaic_heading(m_domain,"course");
 	zaic_heading.setSummit(new_heading);
 	zaic_heading.setValueWrap(true);
-	zaic_heading.setPeakWidth(90.0);
-	zaic_heading.setBaseWidth(90.0);
-	zaic_heading.setSummitDelta(20.0);
+	zaic_heading.setPeakWidth(peak_width);
+	zaic_heading.setBaseWidth(180.0 - peak_width);
+	zaic_heading.setSummitDelta(summit_delta);
 	
 	IvPFunction *ipf_heading = zaic_heading.extractOF();
 	
