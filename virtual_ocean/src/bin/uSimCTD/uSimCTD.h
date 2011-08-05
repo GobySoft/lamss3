@@ -1,55 +1,65 @@
-// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// *****************************************************************************
 // Author: Raymond Lum
-// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// Date:   Aug 3, 2011
+// *****************************************************************************
 
 #ifndef uSimCTD_HEADER
 #define uSimCTD_HEADER
 
-#define STRLEN         200
+#define LARGEVAL 1000000
 
 #include "MOOSLIB/MOOSLib.h"
 #include "MOOSGenLib/MOOSGenLib.h"
 
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+//#include <string>
+//#include <iostream>
+//#include <fstream>
+//#include <sstream>
 
 #include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 
 using namespace std;
 
 class CuSimCTD : public CMOOSApp
 {
+ 
  public:
+  
   CuSimCTD();
   virtual ~CuSimCTD();
-
-  bool Iterate();
-  bool OnNewMail(MOOSMSG_LIST &NewMail);
+  
   bool OnConnectToServer();
   bool OnStartUp();
+  bool OnNewMail(MOOSMSG_LIST &NewMail);
+  bool Iterate();
   
  protected:
   
-  double dfC;
-  double dfT;
-  double dfS;
+  string   sCTD_Txt_File;
+  string   sCTD_Bin_File;
+  char     cCTD_File_Type;
+  ifstream fsCTD_File;
   
-  double dfLat;
-  double dfLong;
-  double dfDepth;
+  int      NDataPoint;
+  string   sCTD_DB_buffer;
+  double   **dfCTD_DB;
   
-  const  char *sMods_Bin_File;
-  FILE   *fsMods_Bin_File;
-  double **dfMods_DB;
+  double   dfLong;
+  double   dfLat;
+  double   dfDepth;
   
-  int    NDataPoint;
-
-  char   GetCtsfrLatLong();
+  double   dfLongMatch;
+  double   dfLatMatch;
+  double   dfDepthMatch;
   
+  double   dfC;
+  double   dfT;
+  double   dfS;
+  
+  void     GetCtsfrLongLatDepth();
+ 
 };
 
 #endif

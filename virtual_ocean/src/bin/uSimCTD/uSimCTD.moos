@@ -2,11 +2,15 @@ ProcessConfig = uSimCTD
 {
   AppTick   = 5
   CommsTick = 5
-
-// MB06
-// No ctdsim2 data available
-
-// NJ07
-  Mods_Bin_File = ../../../data/may07_ctdsim2.bin
-
+  
+  // define either CTD_Txt_File (in XYZCTS text format) or CTD_Bin_File (in XYZCTS binary format)
+  // if specified file is missing, uSimCTD returns error
+  
+  CTD_Txt_File = /home/raylum/lamss/src/moos/uSimCTD/data/ctd.xyzcts
+  CTD_Bin_File = /home/raylum/lamss/src/moos/uSimCTD/data/ctd.xyzcts.bin
+  
+  // if both files are defined here,
+  //   uSimCTD first searches for CTD_Txt_File & uses it if it is available
+  //   else it continues searching for CTD_Bin_File & uses it if is available
+  //   in event that both specified files are missing, uSimCTD returns error 
 }
