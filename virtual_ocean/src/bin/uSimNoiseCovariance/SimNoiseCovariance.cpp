@@ -55,8 +55,6 @@ CSimNoiseCovariance::CSimNoiseCovariance()
   ok_hydy = false;
   ok_hydz = false;
   got_array_info = false;
-  hydrophone_gain = 1;
-  accel_gain = 1;
   
   debug = false;
   debug2 = false;
@@ -184,77 +182,55 @@ if(m_MissionReader.GetConfigurationParam("array_type",sVal))
       }
     else
       MOOSTrace("No svp_gradient specied, assuming isovelocity \n");
-
-    if(m_MissionReader.GetValue("max_rap_depth",z_max))
-
-  if(m_MissionReader.GetConfigurationParam("hydrophone_gain",sVal))
-  {
-    // hydrophone_gain = atof(sVal.c_str());
-
-    hydrophone_gain = pow(10.0, atof(sVal.c_str())/20.0);
-  }
-  else
-  {
-    MOOSTrace("pSimNoiseCovariance:: No hydrophone_gain - using default unity \n");
-  }
-
-  if(m_MissionReader.GetConfigurationParam("accelerometer_gain",sVal))
-  {
-    accel_gain = pow(10.0, atof(sVal.c_str())/20.0);
-  }
-  else
-  {
-    MOOSTrace("pSimNoiseCovariance:: No accelerometer_gain - Using default unity \n");
-  }
-
-  if(m_MissionReader.GetConfigurationParam("sampling_frequency",sVal))
-  {
-    sampling_frequency  = atof(sVal.c_str());
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: no sampling_frequency - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("noise_level",sVal))
-  {
-    noise_level  = atof(sVal.c_str());
-    // calculate the standard deviation of the Gaussian 
-    // distribution reqired to make the noise have a decibel
-    // level commensurate with the one specified in noise_level.
-    //noise_std = pow(10, noise_level/20)*pow(10, -6);
-    noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
-  }
-  else
-  {
-    MOOSTrace("pSimNoiseCovariance:: no noise_level- FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("num_samples",sVal))
-  {
-    num_samples = atoi(sVal.c_str());
-    file_interval_time = double(num_samples)/sampling_frequency;
-    // Find an fft length (round to next highest power of 2)
-    unsigned int const v = num_samples; 
-    // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
-    float f = (float)(v - 1);  
-    nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
-    MOOSTrace("nfft = %u\n",nfft);
-    // Build the dft of the signal in a format similar to 
-    // matlab (same as gsl), described in
-    // http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
-    num_freqs = nfft/2 + 1; 
-    MOOSTrace("Each file represents about %0.3f seconds of data\n", file_interval_time);
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No num_samples - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  return(true);
+    
+    if(m_MissionReader.GetConfigurationParam("sampling_frequency",sVal))
+      {
+	sampling_frequency  = atof(sVal.c_str());
+      }
+    else
+      {
+	MOOSTrace("pSimPassiveSonar:: no sampling_frequency - FAIL\n");
+	exit(EXIT_FAILURE);
+      }
+    
+    if(m_MissionReader.GetConfigurationParam("noise_level",sVal))
+      {
+	noise_level  = atof(sVal.c_str());
+	// calculate the standard deviation of the Gaussian 
+	// distribution reqired to make the noise have a decibel
+	// level commensurate with the one specified in noise_level.
+	//noise_std = pow(10, noise_level/20)*pow(10, -6);
+	noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
+      }
+    else
+      {
+	MOOSTrace("pSimNoiseCovariance:: no noise_level- FAIL\n");
+	exit(EXIT_FAILURE);
+      }
+    
+    if(m_MissionReader.GetConfigurationParam("num_samples",sVal))
+      {
+	num_samples = atoi(sVal.c_str());
+	file_interval_time = double(num_samples)/sampling_frequency;
+	// Find an fft length (round to next highest power of 2)
+	unsigned int const v = num_samples; 
+	// Put the result here. (So v=3 -> r=4; v=8 -> r=8)
+	float f = (float)(v - 1);  
+	nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
+	MOOSTrace("nfft = %u\n",nfft);
+	// Build the dft of the signal in a format similar to 
+	// matlab (same as gsl), described in
+	// http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
+	num_freqs = nfft/2 + 1; 
+	MOOSTrace("Each file represents about %0.3f seconds of data\n", file_interval_time);
+      }
+    else
+      {
+	MOOSTrace("pSimPassiveSonar:: No num_samples - FAIL\n");
+	exit(EXIT_FAILURE);
+      }
+    
+    return(true);
 }
 
 bool CSimNoiseCovariance::OnConnectToServer()

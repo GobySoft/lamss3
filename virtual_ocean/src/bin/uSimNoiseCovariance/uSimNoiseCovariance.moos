@@ -25,8 +25,6 @@ ProcessConfig = uSimNoiseCovariance
   num_array_elements = 32           // number of elements in the array
   sampling_frequency = 4000       // Hz
   num_samples = 8000              // number of samples per file
-// HS: 11/10/10: Changed to dB 
-  hydrophone_gain = 180        // conversion from Pascals to float
 
   base_dir_name = /home/henrik/DURIP/  
   // absolute path including initial and final forward slash.  

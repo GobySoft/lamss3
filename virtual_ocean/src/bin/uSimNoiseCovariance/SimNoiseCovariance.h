@@ -128,8 +128,6 @@ class CSimNoiseCovariance : public CMOOSApp
     double minimum_frequency;
     double maximum_frequency;
   
-    double hydrophone_gain;
-    double accel_gain;
 
     // output file location and name
     std::string base_dir_name;
