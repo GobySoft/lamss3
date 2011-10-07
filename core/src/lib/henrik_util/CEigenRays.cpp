@@ -167,6 +167,7 @@ bool CEigenRayTable::putEigenRay(double sd, double rd, double f, double r, CRay 
 
 void CEigenRayTable::clear()
 {
+  // Clear eigenray table
   num_ranges = 0;
   num_depths =0;
   range.clear();
@@ -177,11 +178,21 @@ void CEigenRayTable::clear()
 
 }
 
+int CEigenRayTable::getRanges(vector<double>& ranges)
+{
+  ranges = range;
+  return(range.size());
+}
+					    
+int CEigenRayTable::getDepths(vector<double>& depths)
+{
+  depths = depth;
+  return(depth.size());
+}
+					    
 void CEigenRay::clear()
 {
-  // Returns the number of eigenrays and builds the ray table from the 
-  // results produced by Bellhop in a .arr file
-
+  // Clear eigenrays
  
    num_rays = 0;
   bundle.clear();

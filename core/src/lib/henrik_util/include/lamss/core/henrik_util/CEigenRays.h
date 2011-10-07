@@ -70,7 +70,11 @@ class CEigenRayTable
   bool getEigenRays(double req_range, double req_depth, 
 		   double& act_range, double& act_depth,
 		   CEigenRay& eig); 
-  bool putEigenRay(double sd, double rd, double f, double r, CRay ray); 
+  bool putEigenRay(double sd, double rd, double f, double r, CRay ray);
+  int getDepths(std::vector<double>& depths);
+  int getRanges(std::vector<double>& ranges);
+
+ 
 
   void clear();
 
