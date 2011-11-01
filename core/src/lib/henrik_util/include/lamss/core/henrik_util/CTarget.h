@@ -59,7 +59,8 @@ class CTarget
   double target_spl;
   double target_freq;
   double target_bw;
-  double dest_id;
+  double target_strength;
+  double target_str;
   std::vector<double> tone_freq;
   std::vector<double> tone_dbl;
   

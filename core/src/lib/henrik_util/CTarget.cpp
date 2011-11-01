@@ -47,7 +47,7 @@ bool CTarget::setTargetValues(int tgt_num, bool tgt_on, vector<double> values)
 	target_spl = values[6];
 	target_freq = values[7];
 	target_bw = values[8];
-	dest_id= values[9];
+	target_str= values[9];
 	tone_freq.clear();
 	tone_dbl.clear();
 	int num_tones=int((values.size()-10)/2);
@@ -79,7 +79,7 @@ bool CTarget::getTargetValues(int& tgt_num, bool& tgt_on, vector<double>& values
   values.push_back(target_spl);
   values.push_back(target_freq);
   values.push_back(target_bw);
-  values.push_back(dest_id);
+  values.push_back(target_str);
   for (int i=0; i<tone_freq.size();i++)
     {
       values.push_back(tone_freq[i]);
@@ -99,6 +99,7 @@ bool CTarget::printTargetValues()
   MOOSTrace("target_hdg = %f\n",target_hdg);  
   MOOSTrace("target_dep = %f\n",target_dep);
   MOOSTrace("target_spl = %f\n",target_spl);
+  MOOSTrace("target_str = %f\n",target_str);
   MOOSTrace("target_freq = %f \n",target_freq);
   MOOSTrace("target_bw = %f\n",target_bw);
 
@@ -159,7 +160,7 @@ string CTarget::target_state()
   output += doubleToString(target_bw,2);
   output += ",";
 
-  output += doubleToString(dest_id,2);
+  output += doubleToString(target_str,2);
   output += ",";
  
   for (int i=0; i<tone_freq.size();i++)

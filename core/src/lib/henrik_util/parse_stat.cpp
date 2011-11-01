@@ -14,6 +14,7 @@ bool parse_tgt_stat(std::string val,
 		  double & tgt_frq,
 		  double & tgt_bw,
 		  double & tgt_spl,
+		  double & tgt_str,
 		  std::vector<double> & tone_frq,
 		  std::vector<double> & tone_dbl)
 {
@@ -33,6 +34,7 @@ bool parse_tgt_stat(std::string val,
   MOOSValFromString(tgt_frq,val,"tgt_freq");
   MOOSValFromString(tgt_bw,val,"tgt_bw");
   MOOSValFromString(tgt_spl,val,"tgt_spl");
+  MOOSValFromString(tgt_str,val,"tgt_str");
 
   tone_frq.clear();
   tone_dbl.clear();
