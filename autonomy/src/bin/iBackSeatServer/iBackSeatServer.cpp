@@ -12,16 +12,16 @@
 #include <stdio.h>
 #include <list>
 #include <sys/time.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOSLib.h"
+#include "MOOSGenLib.h"
 #include "iBackSeatServer.h"
-#include "lamss/lib_anrp_util/CommServer.h"
-#include "lamss/lib_anrp_util/NMEAMessage.h"
-#include "lamss/lib_anrp_util/binary2hex.h"
-#include "lamss/lib_anrp_util/CClientTCPSocket.h"
-#include "lamss/lib_anrp_util/CUDPSocket.h"
-#include "lamss/lib_anrp_util/CDatagramCtl.h"
-#include "lib_mbutil/MBUtils.h"
+#include "CommServer.h"
+#include "NMEAMessage.h"
+#include "binary2hex.h"
+#include "CClientTCPSocket.h"
+#include "CUDPSocket.h"
+#include "CDatagramCtl.h"
+#include "MBUtils.h"
 
 //#include <goby/util/liblinebasedcomms/tcp_server.h>
 
