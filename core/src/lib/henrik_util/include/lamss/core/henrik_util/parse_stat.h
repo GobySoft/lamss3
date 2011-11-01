@@ -37,6 +37,7 @@ bool parse_tgt_stat(std::string trk_str,
 		double & tgt_frq,
 		double & tgt_bw,
 		double & tgt_spl,
+		double & tgt_str,
 		std::vector<double> & tone_frq,
 		std::vector<double> & tone_dbl
 		);
