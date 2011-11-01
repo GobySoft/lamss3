@@ -12,16 +12,16 @@
 #include <stdio.h>
 #include <list>
 #include <sys/time.h>
-#include "MOOSLib.h"
-#include "MOOSGenLib.h"
+#include "MOOSLIB/MOOSLib.h"
+#include "MOOSGenLib/MOOSGenLib.h"
 #include "iBackSeatServer.h"
-#include "CommServer.h"
-#include "NMEAMessage.h"
-#include "binary2hex.h"
-#include "CClientTCPSocket.h"
-#include "CUDPSocket.h"
-#include "CDatagramCtl.h"
-#include "MBUtils.h"
+#include "lamss/lib_anrp_util/CommServer.h"
+#include "lamss/lib_anrp_util/NMEAMessage.h"
+#include "lamss/lib_anrp_util/binary2hex.h"
+#include "lamss/lib_anrp_util/CClientTCPSocket.h"
+#include "lamss/lib_anrp_util/CUDPSocket.h"
+#include "lamss/lib_anrp_util/CDatagramCtl.h"
+#include "lib_mbutil/MBUtils.h"
 
 //#include <goby/util/liblinebasedcomms/tcp_server.h>
 
@@ -190,15 +190,15 @@ bool CiBackSeatServer::Iterate()
 {
 
     std::string in;
-    std::string out;
+    std::string in_final;
     NMEAMessage Sentence;
 
     while(tcp_server->readline(&in)){
 	std::cout <<"From clients:["<<in<<"]"<<std::endl;
-	out=in;
+	in_final=in;
     }
-    std::cout <<"From client :" << out << std::endl;
-    Sentence.Set(out.c_str());
+    std::cout <<"From client :" << in_final << std::endl;
+    Sentence.Set(in_final.c_str());
     Translate(Sentence);
 
 
