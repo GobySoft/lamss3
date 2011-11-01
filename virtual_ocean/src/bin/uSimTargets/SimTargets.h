@@ -55,6 +55,7 @@ class CSimTargets : public CMOOSApp
 
   double target_freq;
   double target_spl;
+  double target_str;
   double target_bw;
   double dest_id;
   vector<double> tone_freq;

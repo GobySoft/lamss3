@@ -105,6 +105,7 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
 		   target_freq,
 		   target_bw,
 		   target_spl,
+		   target_str,
 		   tone_freq,
 		   tone_dbl);
 
@@ -151,6 +152,7 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
 		   target_freq,
 		   target_bw,
 		   target_spl,
+		   target_str,
 		   tone_freq,
 		   tone_dbl);
 
