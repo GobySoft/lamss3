@@ -190,13 +190,15 @@ bool CiBackSeatServer::Iterate()
 {
 
     std::string in;
+    std::string out;
     NMEAMessage Sentence;
 
-    while(tcp_server->readline(&in))
+    while(tcp_server->readline(&in)){
 	std::cout <<"From clients:["<<in<<"]"<<std::endl;
-	
-    std::cout <<"From client :" << in << std::endl;
-    Sentence.Set(in.c_str());
+	out=in;
+    }
+    std::cout <<"From client :" << out << std::endl;
+    Sentence.Set(out.c_str());
     Translate(Sentence);
 
 
