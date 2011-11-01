@@ -189,6 +189,7 @@ protected:
 	double cue_freq;
 	double cue_bw;
 	double cue_spl;
+	double cue_str;
 	std::vector<double> cue_tone_freq;
 	std::vector<double> cue_tone_dbl;
 

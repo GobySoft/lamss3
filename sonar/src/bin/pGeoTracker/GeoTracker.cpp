@@ -249,6 +249,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 		   cue_freq,
 		   cue_bw,
 		   cue_spl,
+		   cue_str,
 		   cue_tone_freq,
 		   cue_tone_dbl);
 
