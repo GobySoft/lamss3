@@ -1341,7 +1341,17 @@ bool CSimPassiveSonar::write_hyd_file()
   fclose (data_file);
   
   MOOSTrace("Wrote file: %s \n", acoustic_filename_buff);
+ 
+  // The following was added by HS 111102 to eliminate the need for
+  // the frame_count.inp file and iDAS in simulation, 
+  // and preparing for compatibility with consolidated acquisition 
+  // software by tes for DURIP array etc.   
+  //
+
+      m_Comms.Notify("VSA_DIR", base_dir_name);
+      m_Comms.Notify("VSA_FRAME", double(frame_number));
   
+      /*
   char frame_filename_buff[1000]; 
   sprintf(frame_filename_buff,"%s/frame_count.inp",base_dir_name.c_str());
   
@@ -1358,6 +1368,7 @@ bool CSimPassiveSonar::write_hyd_file()
       fprintf (frame_file, "%d\n", 0);
       fclose (frame_file);
     }
+      */
   return true;
 }
 
