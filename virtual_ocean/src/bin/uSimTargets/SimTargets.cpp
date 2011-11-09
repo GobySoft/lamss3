@@ -408,7 +408,7 @@ void CSimTargets::updateTargetList()
 	    values.push_back(target_spl);
 	    values.push_back(target_freq);
 	    values.push_back(target_bw);
-	    values.push_back(dest_id);
+	    values.push_back(target_str);
 	    for (int j=0; j<tone_freq.size();j++)
 	      {
 		values.push_back(tone_freq[j]);
@@ -431,7 +431,7 @@ void CSimTargets::updateTargetList()
     values.push_back(target_spl);
     values.push_back(target_freq);
     values.push_back(target_bw);
-    values.push_back(dest_id);
+    values.push_back(target_str);
     for (int j=0; j<tone_freq.size();j++)
       {
 	values.push_back(tone_freq[j]);
