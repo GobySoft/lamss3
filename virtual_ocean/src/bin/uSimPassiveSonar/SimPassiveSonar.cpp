@@ -1441,7 +1441,7 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
 	    }
 	}
       
-      if(array_type == "DURIP")
+      if(array_type == "DURIP" || array_type == "HYD")
 	{
 	  // For DURIP, print out first and last sensors' info only.
 	  fprintf (nas_data_file, "%8.4f %8.4f 0.0 %8.4f\n", array_heading.at(0), array_pitch.at(0), fabs(array_z.at(0)));
