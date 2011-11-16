@@ -129,7 +129,7 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
     to_moos_comma_equals_string(proto_seglist, &goby1_moos_str);
     std::cout << "as key=value, string: " << goby1_moos_str << std::endl;
 
-    if(proto_seglist.active())
+    if(proto_seglist.active() && proto_seglist.point_size() != 0)
         publish(is_polygon ? "OUT_VIEW_POLYGON" : "OUT_VIEW_SEGLIST", goby1_moos_str);    
 
 }
