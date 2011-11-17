@@ -122,7 +122,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
   }
 
-   string data_packet ="$BFNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+   string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
    string checksum=gen_NMEAchecksum(data_packet.c_str());
    data_packet+=checksum+"\r\n";
 
@@ -226,6 +226,25 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 	m_Comms.Notify("DESIRED_HEADING",desired_heading);
 	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
 	m_Comms.Notify("DESIRED_SPEED",desired_speed);
+  }
+  if (Sentence.Part(0) == "BPNPU")
+  {
+	string backseat_time = (Sentence.Part(1).c_str());
+	string backseat_latitude = (Sentence.Part(2).c_str());
+	string backseat_lathemisphere = (Sentence.Part(3).c_str());
+	string backseat_longitude = (Sentence.Part(4).c_str());
+	string backseat_lonhemisphere = (Sentence.Part(5).c_str());
+	string backseat_errorprob = (Sentence.Part(6).c_str());
+	string backseat_depth = (Sentence.Part(7).c_str());
+	string backseat_forceupdate = (Sentence.Part(8).c_str());
+	string backseat_timestamp = (Sentence.Part(9).c_str());
+
+//	string usbl_msg = "BPNPU"+","+backseat_time+","+backseat_latitude+","+backseat_lathemisphere+","+backseat_longitude+","+backseat_lonhemisphere+","+backseat_errorprob+","+backseat_depth+","+backseat_forceupdate+","+backseat_timestamp;
+string usbl_msg = "BPNPU";
+	usbl_msg = usbl_msg+","+backseat_time+","+backseat_latitude+","+backseat_lathemisphere+","+backseat_longitude+","+backseat_lonhemisphere+","+backseat_errorprob+","+backseat_depth+","+backseat_forceupdate+","+backseat_timestamp;
+
+	m_Comms.Notify("USBL_MESSAGE",usbl_msg);
+
   }
 
 }
