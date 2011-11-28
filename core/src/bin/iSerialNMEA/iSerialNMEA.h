@@ -87,6 +87,7 @@ class CiSerialNMEA : public TesMoosApp
     double m_nav_y;
     double m_lat;
     double m_long;
+    double m_depth;
     double m_nav_speed;
     double m_nav_heading;
     double m_last_post_time;
