@@ -187,6 +187,13 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
         else
             got_position = true;            
     }
+    else if (MOOSStrCmp(nmea.sentence_id(), "RMC"))
+    {
+      if(!processRMC(nmea))
+            ok = false;
+        else
+            got_position = true;            
+    }
 // heading true
     else if (MOOSStrCmp(nmea.sentence_id(), "HDT"))
     {
@@ -334,6 +341,60 @@ bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
 
     return true;
 }
+
+// parse GGA string
+// 
+bool CiSerialNMEA::processRMC(const goby::util::NMEASentence& nmea)
+{
+    glogger() << "iSerialNMEA: RMC type string" << std::endl;
+    
+    if(nmea.size() < 6)
+      return false;
+
+    m_best_time = goby::util::ptime2unix_double(GPStime2ptime(nmea[1]));
+    
+    std::string lat_deg;
+    std::string lat_min;
+
+    if(nmea[3].length() > 2)
+    {
+        lat_deg = nmea[3].substr(0, 2);
+        lat_min = nmea[3].substr(2, nmea[3].size());
+    }
+    else
+        return false;
+    
+    m_lat = atof(lat_deg.c_str()) + (atof(lat_min.c_str()) / 60);
+
+    if (MOOSStrCmp("S", nmea[4]))
+        m_lat = -m_lat;
+    
+    std::string long_deg;
+    std::string long_min;
+
+    if(nmea[5].length() > 3)
+    {
+        long_deg = nmea[5].substr(0, 3);
+        long_min = nmea[5].substr(3, nmea[5].size());
+    }
+    else
+        return false;
+    
+
+    m_long = atof(long_deg.c_str())+(atof(long_min.c_str()) / 60);
+
+    if (MOOSStrCmp("W", nmea[6]))
+        m_long = -m_long;
+
+
+
+    // convert lat, long into x, y.
+    if(!m_geodesy.LatLong2LocalUTM(m_lat, m_long, m_nav_y, m_nav_x))
+        return false;
+
+    return true;
+}
+
 
 
 // parse GLL string
