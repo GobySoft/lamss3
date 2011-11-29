@@ -126,6 +126,11 @@ void CiSerialNMEA::read_configuration()
             glogger() << "opening tcp client: " << cfg_.tcp_server() << ":" << cfg_.tcp_port() << std::endl;            
             serial_ = new goby::util::TCPClient(cfg_.tcp_server(), cfg_.tcp_port());
         }
+        else if(cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_TCP_AS_SERVER)
+        {            
+            glogger() << "opening tcp server: " << cfg_.tcp_port() << std::endl;            
+            serial_ = new goby::util::TCPServer(cfg_.tcp_port());
+        }
         else
         {
             glogger() << die << "unsupported connection type" << std::endl;
