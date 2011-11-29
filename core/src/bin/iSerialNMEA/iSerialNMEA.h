@@ -72,6 +72,7 @@ class CiSerialNMEA : public TesMoosApp
     bool parseNMEA(const goby::util::NMEASentence&);
 
     bool processGGA(const goby::util::NMEASentence&);
+    bool processRMC(const goby::util::NMEASentence&);
     bool processHDT(const goby::util::NMEASentence&);
     bool processVTG(const goby::util::NMEASentence&);
     bool processGLL(const goby::util::NMEASentence&);
