@@ -47,6 +47,7 @@ CiSerialNMEA::CiSerialNMEA()
       m_nav_y(0),
       m_lat(0),
       m_long(0),
+      m_depth(0),
       m_nav_speed(0),
       m_nav_heading(0),
       m_last_post_time(-1),
@@ -274,7 +275,7 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
                                           m_long,
                                           m_nav_speed,
                                           m_nav_heading,
-                                          cfg_.fixed_depth());
+                                          cfg_.has_fixed_depth() ? cfg_.fixed_depth() : m_depth);
         
 
         glogger() << group("report") << summary << std::endl;        
@@ -327,13 +328,13 @@ bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
     else
         return false;
     
-
+    
     m_long = atof(long_deg.c_str())+(atof(long_min.c_str()) / 60);
 
     if (MOOSStrCmp("W", nmea[5]))
         m_long = -m_long;
 
-
+    m_depth = -nmea.as<double>(9); // altitude
 
     // convert lat, long into x, y.
     if(!m_geodesy.LatLong2LocalUTM(m_lat, m_long, m_nav_y, m_nav_x))
