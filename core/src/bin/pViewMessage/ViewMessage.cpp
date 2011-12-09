@@ -214,15 +214,19 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     out.set_destination(1);
 
     std::cout << "Seglist size is: " << seglist.size();
-    
+    int seglist_inc = 1;
+    if (seglist.size() >= 10)
+	seglist_inc = int(seglist.size()/10.0)+1;
+  
     for(unsigned i = 0, n = seglist.size(); i < n; ++i)
-    {
-        lamss::protobuf::Point* point = out.add_point();
-        point->set_x(seglist.get_vx(i));
-        point->set_y(seglist.get_vy(i));
-        point->set_z(seglist.get_vz(i));
-    }
-    
+      if (i%seglist_inc == 0)
+	{
+	  lamss::protobuf::Point* point = out.add_point();
+	  point->set_x(seglist.get_vx(i));
+	  point->set_y(seglist.get_vy(i));
+	  point->set_z(seglist.get_vz(i));
+	}
+  
     const google::protobuf::EnumDescriptor* enum_desc =
         lamss::protobuf::ViewSegList::MissionType_descriptor();
 
