@@ -2,9 +2,10 @@
 # The CMakeLists.txt for:                    pViewMessage
 # Author(s):                                   H. Schmidt
 #--------------------------------------------------------
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+# file(GLOB PROTOS *.proto)  
+
+file(GLOB PROTOS_CONFIGURED ${CMAKE_CURRENT_BINARY_DIR}/*.proto)  
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} ${PROTOS_CONFIGURED})
 
 FILE(GLOB SRC *.cpp)
 
@@ -14,10 +15,7 @@ TARGET_LINK_LIBRARIES(pViewMessage
   ${MOOS_LIBRARIES}
   ${IVP_GEOMETRY_LIBRARY}
   ${IVP_MBUTIL_LIBRARY}
-  ${GOBY_CORE_LIBRARY}
-  ${GOBY_PROTOBUF_LIBRARY}
-  ${GOBY_MOOSUTIL_LIBRARY}
-  ${GOBY_LOGGER_LIBRARY}
+  ${GOBY_LIBRARIES}
   ${Boost_LIBRARIES}
   ${PROTOBUF_LIBRARIES}
 )

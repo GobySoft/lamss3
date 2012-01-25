@@ -1,5 +1,5 @@
-import "goby/moos/libmoos_util/tes_moos_app.proto";
-import "goby/protobuf/option_extensions.proto";
+import "@GOBY_MOOS_APP_PROTO@";
+import "@GOBY_OPTION_EXTENSIONS_PROTO@";
 
 package lamss.protobuf;
 
@@ -47,5 +47,5 @@ message ViewSegList
 
 message ViewMessageConfig
 {
-  optional TesMoosAppConfig common = 1 [(description)="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+  optional @GOBY_MOOS_APP_NAME@Config common = 1 [@GOBY_FIELD_DESCRIPTION@="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 }

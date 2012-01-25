@@ -32,13 +32,25 @@
 #include "lib_geometry/XYPolygon.h"
 #include "lib_geometry/XYSegList.h"
 
-#include "goby/moos/libmoos_util/moos_protobuf_helpers.h"
-#include "goby/moos/libmoos_util/tes_moos_app.h"
+#include "goby/version.h"
+#if GOBY_VERSION_MAJOR >= 2 
+ #include "goby/moos/moos_protobuf_helpers.h"
+ #include "goby/moos/goby_moos_app.h" 
+#else
+ #include "goby/moos/libmoos_util/moos_protobuf_helpers.h"
+ #include "goby/moos/libmoos_util/tes_moos_app.h"
+ #include "goby/util/string.h"
+#endif
 
 #include "view_message.pb.h"
 
-class CViewMessage : public TesMoosApp
-{
+class CViewMessage :
+#if GOBY_VERSION_MAJOR < 2
+   public TesMoosApp {
+    typedef TesMoosApp GobyMOOSApp;
+#else
+   public GobyMOOSApp  {       
+#endif
   public:
     static CViewMessage* get_instance();
 
@@ -73,6 +85,25 @@ class CViewMessage : public TesMoosApp
     // NaN values have the odd property that comparisons involving them are always false
     bool is_nan(double a)
     { return a != a; }
+    
+    void to_moos_string(std::string* out, const google::protobuf::Message& in)
+    {
+#if GOBY_VERSION_MAJOR >= 2
+        goby::moos::MOOSTranslation<goby::moos::protobuf::TranslatorEntry::TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS>::serialize(out, in);
+#else
+        to_moos_comma_equals_string(in, out);
+#endif
+    }
+
+    void from_moos_string(const std::string& in, google::protobuf::Message* out)
+    {
+#if GOBY_VERSION_MAJOR >= 2
+        goby::moos::MOOSTranslation<goby::moos::protobuf::TranslatorEntry::TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS>::parse(in, out);
+#else
+        from_moos_comma_equals_string(out, in);
+#endif
+    }
+    
     
     
   private:    

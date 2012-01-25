@@ -24,7 +24,6 @@
 #include <sstream>
 #include <limits>
 
-#include "goby/util/string.h"
 
 // name of the PointType enumeration field in view_message.proto
 const std::string CViewMessage::TYPE_FIELD_NAME = "type";
@@ -42,12 +41,12 @@ CViewMessage* CViewMessage::get_instance()
 }
 
 
-CViewMessage::CViewMessage()
-    : TesMoosApp(&cfg_),
-      ownship_("unknown"),
-      mission_state_("unknown")
+CViewMessage::CViewMessage() :
+    GobyMOOSApp(&cfg_),    
+    ownship_("unknown"),
+    mission_state_("unknown")
 {
-    TesMoosApp::set_ignore_stale(false);
+    GobyMOOSApp::set_ignore_stale(false);
     
     subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
     subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
@@ -75,7 +74,9 @@ void CViewMessage::handle_view_point(const CMOOSMsg& msg)
     std::cout << "lamss.protobuf.ViewPoint: " << proto_point.ShortDebugString() << std::endl;
 
     std::string goby1_moos_str;
-    to_moos_comma_equals_string(proto_point, &goby1_moos_str);
+
+    to_moos_string(&goby1_moos_str, proto_point);
+
     std::cout << "as key=value, string: " << goby1_moos_str << std::endl;            
 
     if(proto_point.active())
@@ -86,7 +87,7 @@ void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
 {
 
     lamss::protobuf::ViewPoint proto_point;
-    from_moos_comma_equals_string(&proto_point, msg.GetString());
+    from_moos_string(msg.GetString(), &proto_point);
     std::cout << "back to proto: " << proto_point.ShortDebugString() << std::endl;
 
 
@@ -126,7 +127,9 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
     std::cout << "lamss.protobuf.ViewSegList: " << proto_seglist.ShortDebugString() << std::endl;
 
     std::string goby1_moos_str;
-    to_moos_comma_equals_string(proto_seglist, &goby1_moos_str);
+
+    to_moos_string(&goby1_moos_str, proto_seglist);
+
     std::cout << "as key=value, string: " << goby1_moos_str << std::endl;
 
     if(proto_seglist.active() && proto_seglist.point_size() != 0)
@@ -148,8 +151,10 @@ void CViewMessage::handle_in_view_polygon(const CMOOSMsg& msg)
 
 void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_polygon)
 {
-    lamss::protobuf::ViewSegList proto_seglist;        
-    from_moos_comma_equals_string(&proto_seglist, goby1_str);
+    lamss::protobuf::ViewSegList proto_seglist;
+    
+    from_moos_string(goby1_str, &proto_seglist);
+    
     std::cout << "back to proto: " << proto_seglist.ShortDebugString() << std::endl;
 
     std::string xyseglist_str = from_protobuf(proto_seglist).get_spec();
