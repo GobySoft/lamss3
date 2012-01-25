@@ -25,8 +25,17 @@
 #include <boost/foreach.hpp>
 #include <boost/math/special_functions.hpp>
 
+#include "goby/version.h"
+#if GOBY_VERSION_MAJOR >= 2
+#include "goby/moos/moos_string.h"
+using goby::moos::val_from_string;
+#else
 #include "goby/util/string.h"
+using goby::util::val_from_string;
+#endif
+
 #include "goby/util/time.h"
+
 using namespace std;
 
 CSimPassiveSonar::CSimPassiveSonar()
@@ -1772,8 +1781,8 @@ bool CSimPassiveSonar::parseNoiseProfile( string noise_in,
   noise_db.clear();
 
   std::string depths_nl, nls;    
-  goby::util::val_from_string(depths_nl, noise_in, "depths");
-  goby::util::val_from_string(nls, noise_in, "NL");
+  val_from_string(depths_nl, noise_in, "depths");
+  val_from_string(nls, noise_in, "NL");
   
   std::vector<std::string> depth_nl_vec;
   std::vector<std::string> nl_vec;
@@ -1826,8 +1835,8 @@ bool CSimPassiveSonar::parseNoiseDirectionality( string noise_in,
   noise_db.clear();
 
   std::string depths_nl, nls;    
-  goby::util::val_from_string(depths_nl, noise_in, "theta");
-  goby::util::val_from_string(nls, noise_in, "S");
+  val_from_string(depths_nl, noise_in, "theta");
+  val_from_string(nls, noise_in, "S");
   
   std::vector<std::string> depth_nl_vec;
   std::vector<std::string> nl_vec;
