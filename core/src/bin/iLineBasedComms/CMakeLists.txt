@@ -3,9 +3,8 @@
 # Author(s):                                 t. schneider
 #--------------------------------------------------------
 
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+file(GLOB PROTOS_CONFIGURED ${CMAKE_CURRENT_BINARY_DIR}/*.proto)  
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} ${PROTOS_CONFIGURED})
 
 FILE(GLOB SRC *.cpp)
 

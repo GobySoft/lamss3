@@ -22,13 +22,26 @@
 #ifndef iLineBasedCommsH
 #define iLineBasedCommsH
 
-#include "goby/moos/libmoos_util/tes_moos_app.h"
+#include <string>
+
+#include "goby/version.h"
+#if GOBY_VERSION_MAJOR >= 2 
+ #include "goby/moos/goby_moos_app.h"
+#else
+ #include "goby/moos/libmoos_util/tes_moos_app.h"
+#endif
+
 #include "goby/util/linebasedcomms.h"
 
 #include "iLineBasedComms_config.pb.h"
 
-class CiLineBasedComms : public TesMoosApp
-{
+class CiLineBasedComms :
+#if GOBY_VERSION_MAJOR < 2
+   public TesMoosApp {
+    typedef TesMoosApp GobyMOOSApp;
+#else
+   public GobyMOOSApp  {       
+#endif
   public:
     static CiLineBasedComms* get_instance();
     
