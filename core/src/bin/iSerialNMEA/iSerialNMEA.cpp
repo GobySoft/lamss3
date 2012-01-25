@@ -29,6 +29,13 @@
 
 #include "iSerialNMEA.h"
 
+#if GOBY_VERSION_MAJOR >= 2 
+#include "goby/common/logger.h"
+using namespace goby::util::logger;
+#else
+#include "goby/util/logger.h"
+#endif
+
 using goby::util::glogger;
 
 iSerialNMEAConfig CiSerialNMEA::cfg_;
@@ -42,7 +49,7 @@ CiSerialNMEA* CiSerialNMEA::get_instance()
 }
 
 CiSerialNMEA::CiSerialNMEA()
-    : TesMoosApp(&cfg_),
+    : GobyMOOSApp(&cfg_),
       m_nav_x(0),
       m_nav_y(0),
       m_lat(0),

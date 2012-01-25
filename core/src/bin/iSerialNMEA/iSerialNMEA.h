@@ -30,8 +30,14 @@
 
 #include <boost/date_time.hpp>
 
+#include "goby/version.h"
+#if GOBY_VERSION_MAJOR >= 2 
+ #include "goby/moos/goby_moos_app.h"
+#else
+ #include "goby/moos/libmoos_util/tes_moos_app.h"
+#endif
+
 #include "goby/util/linebasedcomms.h"
-#include "goby/moos/libmoos_util/tes_moos_app.h"
 
 #include "iSerialNMEA_config.pb.h"
 
@@ -40,8 +46,13 @@
 // number of last speeds to average (where a speed is the time between two GPS points)
 #define SPEED_POINTS 5
 
-class CiSerialNMEA : public TesMoosApp
-{
+class CiSerialNMEA :
+#if GOBY_VERSION_MAJOR < 2
+   public TesMoosApp {
+    typedef TesMoosApp GobyMOOSApp;
+#else
+   public GobyMOOSApp  {       
+#endif
   public:
     static CiSerialNMEA* get_instance();
     
@@ -53,7 +64,7 @@ class CiSerialNMEA : public TesMoosApp
     void do_subscriptions();    
 
     void subscribe(const std::string& var)
-    { TesMoosApp::subscribe(var, &CiSerialNMEA::inbox, this); }
+    { GobyMOOSApp::subscribe(var, &CiSerialNMEA::inbox, this); }
 
     
     std::string assembleAIS(std::string name,
