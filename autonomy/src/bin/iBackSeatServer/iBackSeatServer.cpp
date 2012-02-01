@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include "MOOSLIB/MOOSLib.h"
 #include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOSUtilityLib/MOOSGeodesy.h"
 #include "iBackSeatServer.h"
 #include "lamss/lib_anrp_util/CommServer.h"
 #include "lamss/lib_anrp_util/NMEAMessage.h"
@@ -39,6 +40,7 @@ CiBackSeatServer::CiBackSeatServer()
   MOOSTrace("\n");
   MOOSTrace("\n");
   MOOSTrace("(c) Copyright, 2011 Arjuna Balasuriya MIT\n");
+  MOOSTrace("Modified on 2/1/2012\n");
   MOOSTrace("====================================\n");
 
 }
@@ -122,8 +124,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
   }
 
-   string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+  string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+
    string checksum=gen_NMEAchecksum(data_packet.c_str());
+
    data_packet+=checksum+"\r\n";
 
    std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
@@ -160,6 +164,34 @@ bool CiBackSeatServer::OnConnectToServer()
         std::cerr << "failed to start TCP Server! Reason: " << e.what() << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    string sValu;
+    double dfLatOrigin;
+    double dfLongOrigin;
+
+    if(m_MissionReader.GetValue("LatOrigin", sValu))
+    {
+	dfLatOrigin = atof(sValu.c_str());
+    }
+    else
+    {
+	std::cout<<"No Lat Origin value in the MOOS file"<<std::endl;
+    }
+
+   if(m_MissionReader.GetValue("LongOrigin", sValu))
+    {
+	dfLongOrigin = atof(sValu.c_str());
+    }
+    else
+    {
+	std::cout<<"No Long Origin value in the MOOS file"<<std::endl;
+    }
+
+    if(!m_Geodesy.Initialise(dfLatOrigin, dfLongOrigin))
+    {
+	std::cout<<"Error in initialising Geodesy"<<std::endl;
+    }
+
 
   //Register MOOS variables
 
