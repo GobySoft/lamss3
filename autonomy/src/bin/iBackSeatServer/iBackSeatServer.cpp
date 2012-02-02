@@ -62,6 +62,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     string speed;
     string yaw;
     string pitch;
+    string altitude_str;
 
     double nav_x;
     double nav_y;
@@ -71,6 +72,8 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     double spd;
     double yw;
     double pit;
+    double last_bathy_z = 0.0;
+    double altitude;
 
   
   //  MOOSMSG_LIST::iterator pp;
@@ -121,10 +124,40 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 	pit  = Msg.GetDouble();
 	pitch = doubleToString(pit, 2);
     }
+    if(Msg.m_sKey == "BATHY_Z")
+    {
+	last_bathy_z = Msg.m_dfVal;
+	altitude = nav_z - last_bathy_z;
+	altitude_str = doubleToString(altitude,2);
+    }
 
   }
 
-  string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+  double latti = 0;
+  double longi = 0;
+
+  if(!m_Geodesy.UTM2LatLong(nav_x, nav_y,latti, longi))
+  {
+	std::cout<<"Error in converting local coordinates to global"<<std::endl;
+  }
+
+  string lattitude_str = doubleToString(latti,3);
+  string longitude_str = doubleToString(longi,3);
+
+  //Hemisphere Lat_a (N/S) & Long_b (E/W)
+  string Lat_a;
+  string Long_b;
+
+  if(latti < 0.0) Lat_a = "S";
+  else Lat_a = "N";
+
+  if(longi < 0.0) Long_b = "W";
+  else Long_b = "E";
+
+
+  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+
+//  string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
