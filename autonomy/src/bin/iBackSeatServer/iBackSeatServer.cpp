@@ -141,9 +141,6 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 	std::cout<<"Error in converting local coordinates to global"<<std::endl;
   }
 
-  string lattitude_str = doubleToString(latti,3);
-  string longitude_str = doubleToString(longi,3);
-
   //Hemisphere Lat_a (N/S) & Long_b (E/W)
   string Lat_a;
   string Long_b;
@@ -154,10 +151,30 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   if(longi < 0.0) Long_b = "W";
   else Long_b = "E";
 
+  //Convert Decimal Degrees to BF NMEA standard
+  //Latitude llll.ll - first 2 digits are decimal degrees
+  //Longitude yyyyy.yy - first 3 are decimal degrees
 
-  //string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+  //Latitude conversion
+  double lat_degrees = abs(floor(latti));
+  double lat_minutes = abs(latti - floor(latti))*60;
 
-string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+  double nmea_lat = lat_degrees*100 + lat_minutes;
+
+  //Longitude conversion
+
+  double lon_degrees = abs(floor(longi));
+  double lon_minutes = abs(longi - floor(longi))*60;
+
+  double nmea_lon = lon_degrees*100 + lon_minutes;
+
+  string lattitude_str = doubleToString(nmea_lat,2);
+  string longitude_str = doubleToString(nmea_lon,2);
+
+
+  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+
+//string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
