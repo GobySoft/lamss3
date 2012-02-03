@@ -102,44 +102,52 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     if(Msg.m_sKey == "FRONTSEAT_HEADING")  
     {
 	direction  = Msg.GetDouble();
-	heading = doubleToString(direction, 2);
+	heading = doubleToString(direction, 1);
     }
     if(Msg.m_sKey == "FRONTSEAT_DEPTH")  
     {
 	dep  = Msg.GetDouble();
-	depth = doubleToString(dep, 2);
+	depth = doubleToString(dep, 1);
     }
     if(Msg.m_sKey == "FRONTSEAT_SPEED")  
     {
 	spd  = Msg.GetDouble();
-	speed = doubleToString(spd, 2);
+	speed = doubleToString(spd, 1);
     }
     if(Msg.m_sKey == "FRONTSEAT_YAW")  
     {
 	yw  = Msg.GetDouble();
-	yaw = doubleToString(yw, 2);
+	yaw = doubleToString(yw, 1);
     }
     if(Msg.m_sKey == "FRONTSEAT_PITCH")  
     {
 	pit  = Msg.GetDouble();
-	pitch = doubleToString(pit, 2);
+	pitch = doubleToString(pit, 1);
     }
     if(Msg.m_sKey == "BATHY_Z")
     {
-	last_bathy_z = Msg.m_dfVal;
-	altitude = nav_z - last_bathy_z;
-	altitude_str = doubleToString(altitude,2);
+	last_bathy_z = Msg.GetDouble();
+
     }
 
   }
+
+  altitude = nav_z - last_bathy_z;
+  m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
+  altitude_str = doubleToString(altitude,1);
 
   double latti = 0;
   double longi = 0;
 
-  if(!m_Geodesy.UTM2LatLong(nav_x, nav_y,latti, longi))
+//  if(!m_Geodesy.UTM2LatLong(nav_x, nav_y,latti, longi))
+ if(!m_Geodesy.LocalGrid2LatLong(nav_x, nav_y,latti, longi))
   {
 	std::cout<<"Error in converting local coordinates to global"<<std::endl;
   }
+
+  std::cout<<"Latitude = "<<latti<<", Longitude = "<<longi<<std::endl;
+  m_Comms.Notify("FRONTSEAT_LATITUDE",latti);
+  m_Comms.Notify("FRONTSEAT_LONGITUDE",longi);
 
   //Hemisphere Lat_a (N/S) & Long_b (E/W)
   string Lat_a;
@@ -172,9 +180,9 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   string longitude_str = doubleToString(nmea_lon,2);
 
 
-  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+//  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
 
-//string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
@@ -222,6 +230,7 @@ bool CiBackSeatServer::OnConnectToServer()
     if(m_MissionReader.GetValue("LatOrigin", sValu))
     {
 	dfLatOrigin = atof(sValu.c_str());
+	m_Comms.Notify("LAT_ORIGIN",dfLatOrigin);
     }
     else
     {
@@ -231,6 +240,7 @@ bool CiBackSeatServer::OnConnectToServer()
    if(m_MissionReader.GetValue("LongOrigin", sValu))
     {
 	dfLongOrigin = atof(sValu.c_str());
+	m_Comms.Notify("LON_ORIGIN",dfLongOrigin);
     }
     else
     {
