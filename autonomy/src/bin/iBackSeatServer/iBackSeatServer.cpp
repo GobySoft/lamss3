@@ -155,9 +155,9 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   else Long_b = "E";
 
 
-  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+  //string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
 
-//  string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
+string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
