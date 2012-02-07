@@ -33,10 +33,12 @@
 using namespace goby::common::logger;
 #include "goby/common/time.h"
 using goby::common::ptime2unix_double;
+using goby::common::Colors;
 #else
 #include "goby/util/logger.h"
 #include "goby/util/time.h"
 using goby::util::ptime2unix_double;
+using goby::util::Colors;
 #endif
 
 using goby::util::glogger;
@@ -163,8 +165,8 @@ void CiSerialNMEA::read_configuration()
             glogger() << die << "could not initialize geodesy" << std::endl;
     }
 
-    glogger().add_group("serial", goby::common::Colors::lt_magenta, "serial feed");
-    glogger().add_group("report", goby::common::Colors::lt_blue, "report feed");
+    glogger().add_group("serial", Colors::lt_magenta, "serial feed");
+    glogger().add_group("report", Colors::lt_blue, "report feed");
 }
 
 void CiSerialNMEA::do_subscriptions()
