@@ -34,7 +34,7 @@ using goby::moos::val_from_string;
 using goby::util::val_from_string;
 #endif
 
-#include "goby/util/time.h"
+//#include "goby/util/time.h"
 
 using namespace std;
 
