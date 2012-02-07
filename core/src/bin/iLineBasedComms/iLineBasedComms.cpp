@@ -27,7 +27,7 @@
 
 #if GOBY_VERSION_MAJOR >= 2 
 #include "goby/common/logger.h"
-using namespace goby::util::logger;
+using namespace goby::common::logger;
 #else
 #include "goby/util/logger.h"
 #endif
