@@ -25,15 +25,18 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "goby/util/time.h"
 
 #include "iSerialNMEA.h"
 
 #if GOBY_VERSION_MAJOR >= 2 
 #include "goby/common/logger.h"
-using namespace goby::util::logger;
+using namespace goby::common::logger;
+#include "goby/common/time.h"
+using goby::common::ptime2unix_double;
 #else
 #include "goby/util/logger.h"
+#include "goby/util/time.h"
+using goby::util::ptime2unix_double;
 #endif
 
 using goby::util::glogger;
@@ -160,8 +163,8 @@ void CiSerialNMEA::read_configuration()
             glogger() << die << "could not initialize geodesy" << std::endl;
     }
 
-    glogger().add_group("serial", goby::util::Colors::lt_magenta, "serial feed");
-    glogger().add_group("report", goby::util::Colors::lt_blue, "report feed");
+    glogger().add_group("serial", goby::common::Colors::lt_magenta, "serial feed");
+    glogger().add_group("report", goby::common::Colors::lt_blue, "report feed");
 }
 
 void CiSerialNMEA::do_subscriptions()
@@ -306,7 +309,7 @@ bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
     if(nmea.size() < 6)
       return false;
 
-    m_best_time = goby::util::ptime2unix_double(GPStime2ptime(nmea[1]));
+    m_best_time = ptime2unix_double(GPStime2ptime(nmea[1]));
     
     std::string lat_deg;
     std::string lat_min;
@@ -359,7 +362,7 @@ bool CiSerialNMEA::processRMC(const goby::util::NMEASentence& nmea)
     if(nmea.size() < 6)
       return false;
 
-    m_best_time = goby::util::ptime2unix_double(GPStime2ptime(nmea[1]));
+    m_best_time = ptime2unix_double(GPStime2ptime(nmea[1]));
     
     std::string lat_deg;
     std::string lat_min;
