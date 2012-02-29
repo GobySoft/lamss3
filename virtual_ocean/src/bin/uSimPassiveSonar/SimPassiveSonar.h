@@ -169,6 +169,9 @@ class CSimPassiveSonar : public CMOOSApp
     std::string acoustic_filename_suffix;
     std::string nonacoustic_filename_prefix;
     std::string nonacoustic_filename_suffix;
+    std::string sync_path;
+    std::string sync_missions_root;
+    bool sync;
 
     //---Variables that get their value from the MOOSDB---
     double ael_x;

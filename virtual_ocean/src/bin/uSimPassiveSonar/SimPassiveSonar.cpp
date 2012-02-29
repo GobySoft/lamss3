@@ -101,6 +101,9 @@ CSimPassiveSonar::CSimPassiveSonar()
   ok_source_bb_bw = false;
   got_source_bb_info = false;
 
+  sync = false;
+  sync_path = "mituser@gambero:/opt/missions-dsop/logs/simulation/DURIP";
+
   // Clear ray buffer
   eig.clear();
   
@@ -262,6 +265,12 @@ bool CSimPassiveSonar::OnStartUp()
     MOOSTrace("pSimPassiveSonar:: nonacoustic_filename_suffix not specified - FAIL\n");
     exit(EXIT_FAILURE);
   }
+
+  if(m_MissionReader.GetConfigurationParam("sync_path",sVal))
+    {
+      sync_path = sVal.c_str();
+      sync = true;
+    }
 
   if(m_MissionReader.GetConfigurationParam("water_depth",sVal))
   {
@@ -574,8 +583,10 @@ bool CSimPassiveSonar::Iterate()
 	  generate_spectral_timeseries();
 	  
 	  MOOSTrace("writing data files\n");
-	  write_hyd_file();
 	  write_nas_file(t_now);
+	  write_hyd_file();
+	  m_Comms.Notify("VSA_DIR", base_dir_name);
+	  m_Comms.Notify("VSA_FRAME", double(frame_number));
 	  
 	  MOOSTrace("\n");
 	  frame_number++;
@@ -1259,6 +1270,8 @@ bool CSimPassiveSonar::write_hyd_file()
   double rad2deg = 180.0/M_PI;
   char acoustic_filename_buff[1000]; 
   char hydrophone_filename_buff[1000]; 
+
+  std::string acoustic_filename;
   // Sure hope nobody wants a filename longer than 1000 chars
   sprintf(acoustic_filename_buff,"%s/%s%09d%s",base_dir_name.c_str(),
 	  acoustic_filename_prefix.c_str(),frame_number,
@@ -1357,8 +1370,15 @@ bool CSimPassiveSonar::write_hyd_file()
   // software by tes for DURIP array etc.   
   //
 
-      m_Comms.Notify("VSA_DIR", base_dir_name);
-      m_Comms.Notify("VSA_FRAME", double(frame_number));
+  // Now transfer file to client if on separate host
+  if (sync)
+    {
+      std::string acoustic_filename(acoustic_filename_buff);
+      std::string cmd = "scp " + acoustic_filename + " " + sync_path;
+      MOOSTrace("Synching with: %s \n", cmd.c_str());
+      system(cmd.c_str());
+      MOOSTrace("Synched with: %s \n", cmd.c_str());
+    }
   
       /*
   char frame_filename_buff[1000]; 
@@ -1460,6 +1480,14 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
       
       fclose (nas_data_file);
       MOOSTrace("Wrote file: %s \n", nonacoustic_filename_buff);
+      if (sync)
+	{
+	  std::string nonacoustic_filename(nonacoustic_filename_buff);
+	  std::string cmd = "scp -B " + nonacoustic_filename + " " + sync_path;
+	  MOOSTrace("Synching with: %s \n", cmd.c_str());
+	  system(cmd.c_str());
+	  MOOSTrace("Synched with: %s \n", cmd.c_str());
+	}
     }
   
   
