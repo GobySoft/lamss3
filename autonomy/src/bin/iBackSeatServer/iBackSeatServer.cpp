@@ -295,6 +295,10 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("FRONTSEAT_BODY_VEL_X",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
 
+
+
+
+
   return true;
 }
 
@@ -304,6 +308,20 @@ bool CiBackSeatServer::Iterate()
     std::string in;
     std::string in_final;
     NMEAMessage Sentence;
+
+//Tell the client that front seat is ready to receive commands
+string data_packet ="$BFMIS,"+SecondsSinceMidnight(3)+",file,Running*";
+
+   string checksum=gen_NMEAchecksum(data_packet.c_str());
+
+   data_packet+=checksum+"\r\n";
+
+   std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
+ //  tcp_server.write(data_packet);
+
+  tcp_server->write(data_packet);
+
+
 
     while(tcp_server->readline(&in)){
 	std::cout <<"From clients:["<<in<<"]"<<std::endl;
@@ -333,7 +351,8 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 	double backseat_time = atof(Sentence.Part(1).c_str());
    	double desired_heading = atof(Sentence.Part(2).c_str());
    	double desired_depth = atof(Sentence.Part(3).c_str());
-   	double desired_speed = atof(Sentence.Part(4).c_str());
+   	double depth_mode = atof(Sentence.Part(4).c_str());
+   	double desired_speed = atof(Sentence.Part(5).c_str());
 
 	m_Comms.Notify("DESIRED_HEADING",desired_heading);
 	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
