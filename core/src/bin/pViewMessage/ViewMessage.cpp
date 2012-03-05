@@ -265,9 +265,7 @@ XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglis
            !is_nan(seglist.point(i).y()) &&
            !is_nan(seglist.point(i).z()))
         {
-            std::cout << "adding x: " << seglist.point(i).x() << ", y: " << seglist.point(i).y() << ", z: " << seglist.point(i).z() << std::endl;
-
-      
+            std::cout << "adding x: " << seglist.point(i).x() << ", y: " << seglist.point(i).y() << ", z: " << seglist.point(i).z() << std::endl;      
             
             out.add_vertex(seglist.point(i).x(), seglist.point(i).y(), seglist.point(i).z());
         }
@@ -275,5 +273,6 @@ XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglis
     
     out.set_active(seglist.active());
     out.set_label(seglist.vehicle_name() + "_" + seglist.GetReflection()->GetEnum(seglist, seglist.GetDescriptor()->FindFieldByName(MISSION_FIELD_NAME))->name());
+    out.set_edge_size(1);
     return out;
 }
