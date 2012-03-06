@@ -296,9 +296,6 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
 
 
-
-
-
   return true;
 }
 
