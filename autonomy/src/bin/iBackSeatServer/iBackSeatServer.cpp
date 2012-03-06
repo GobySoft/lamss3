@@ -323,11 +323,11 @@ string data_packet ="$BFMIS,"+SecondsSinceMidnight(3)+",file,Running*";
     while(tcp_server->readline(&in)){
 	std::cout <<"From clients:["<<in<<"]"<<std::endl;
 	in_final=in;
-    }
-    std::cout <<"From client :" << in_final << std::endl;
+    
+    std::cout <<"<==From client :" << in_final << std::endl;
     Sentence.Set(in_final.c_str());
     Translate(Sentence);
-
+    }
 
     
     return true;
@@ -343,13 +343,20 @@ bool CiBackSeatServer::OnStartUp()
 void CiBackSeatServer::Translate(NMEAMessage Sentence)
 {
 
+  std::cout<<"In the Translate with "<<Sentence.Part(0).c_str()<<std::endl;
+
   if (Sentence.Part(0)=="BPRMB")
   {
+
+	std::cout <<"<===================== Received Desired control commands"<<std::endl;
+
 	double backseat_time = atof(Sentence.Part(1).c_str());
    	double desired_heading = atof(Sentence.Part(2).c_str());
    	double desired_depth = atof(Sentence.Part(3).c_str());
    	double depth_mode = atof(Sentence.Part(4).c_str());
    	double desired_speed = atof(Sentence.Part(5).c_str());
+
+	
 
 	m_Comms.Notify("DESIRED_HEADING",desired_heading);
 	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
