@@ -608,6 +608,8 @@ void CMVSim::PostResults()
 			m_Comms.Notify(sP+"BODY_VEL_X",dfBodyVelX);
 			m_Comms.Notify(sP+"PITCH",dfPitch);
 			m_Comms.Notify(sP+"PITCH_RATE",dfPitchRate);
+			// Roll of zero added tu pub list
+			m_Comms.Notify(sP+"ROLL",0.0);
 			m_Comms.Notify(sP+"RUDDER",dfRudder);
 			m_Comms.Notify(sP+"ELEVATOR",dfElevator);
 			m_Comms.Notify(sP+"TOW_POS_Z",dfTowPosZ);
