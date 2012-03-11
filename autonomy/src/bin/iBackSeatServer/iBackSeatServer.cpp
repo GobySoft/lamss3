@@ -132,8 +132,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
   }
 
+  
   altitude = nav_z - last_bathy_z;
-  m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
+ std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
+ m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
   altitude_str = doubleToString(altitude,1);
 
   double latti = 0;
@@ -202,7 +204,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
 //  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
 
-string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+altitude_str+"*";
+string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
@@ -294,7 +296,7 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("FRONTSEAT_DEPTH",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_X",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
-
+  m_Comms.Register("BATHY_Z",0);
 
   return true;
 }
