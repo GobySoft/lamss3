@@ -42,6 +42,8 @@ class CRapRays
 		double x0, double y0, double& z_rap);
   bool rapRange(double x0, double y0, double z0, 
 		double z, double th0_deg, double& r_rap);
+  bool rapDipRange(double z0, double z, 
+		   double tau, double& th0_deg, double& r_rap);
   bool rapGeoTrack(double x0, double y0, 
 		   double hdg0, double spd0, 
 		   double brg, double brg_rate,

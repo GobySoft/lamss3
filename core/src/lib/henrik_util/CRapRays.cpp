@@ -28,6 +28,13 @@ using namespace std;
 bool CRapRays::setEnv(double c_surface, double c_gradient, 
 		      double water_depth, double z_rap_max)
 {
+  // Initialize RapRays class
+  // Input variables
+  // c_surface   Sound speed in m/s at sea surface
+  // c_gradient  Sound speed gradient in depth in (m/s)/m
+  // z_max       Maximum depth of lower turning point allowed for ray to be considered RAP
+  // water-depth water depth in m.
+  //
   c_0 = c_surface;
   c_grad = c_gradient;
   z_max = z_rap_max;
@@ -127,6 +134,8 @@ bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, doubl
 bool CRapRays::rapDepth(double x, double y, double z, 
 			double x0, double y0, double& z_rap)
 {
+  // Computes the depth of the lower turning point for  a RAP ray
+  // connecting a source at (x,y,z) and a receiver at (x,y)
   if ( c_grad * (z_max - z) <= 0.0 )
     return(false);
   else
@@ -149,6 +158,59 @@ bool CRapRays::rapDepth(double x, double y, double z,
       MOOSTrace("r_rap = %f, z_rap = %f \n", r_rap,z_rap);
       return(true);
     }
+}
+
+bool CRapRays::rapDipRange(double z0, double z, 
+			   double tau, 
+			   double& th0_deg, double& r_rap)
+{
+  // Uses Newton Iteration to find the target range and source launch
+  // angle corresponding to a known travel time tau_0 along the RAP
+  //
+  // Input Variables
+  // z0      Source depth in m.
+  // z       Receiver depth in m.
+  // tau     One-way travel time
+  // Output variables
+  // th0_deg RAP launch angle at source in deg, positive down
+  // r_rap   Estimated horizontal range corresponding to travel time tau
+  //    
+  double c_s = c_0 + z0 * c_grad;
+  double c_r = c_0 + z * c_grad;
+  double c_mean = 0.5*(c_s+c_r);
+  double r_1 = c_mean*tau;
+  double r_2 = r_1*0.99;
+  double th_1;
+  double th_2;
+  double p_1;
+  double p_2;
+  double tau_1;
+  double tau_2;
+  bool turn_1;
+  bool turn_2;
+
+  if (!rapRay(0.0, 0.0, z0, r_1, 0.0, z, th_1, p_1, tau_1, turn_1))
+    return(false);
+  if (!rapRay(0.0, 0.0, z0, r_2, 0.0, z, th_2, p_2, tau_2, turn_2))
+    return(false);
+  double eps = fabs(tau - tau_2);
+  int count =0;
+  while (eps > 1e-5 && count < 5)
+    {
+      count++;
+      double slope = (tau_1 - tau_2)/(r_1 - r_2);
+      double r = r_2 - (tau_2-tau)/slope;
+      r_1 = r_2;
+      r_2 = r;
+      tau_1 = tau_2;
+      if (!rapRay(0.0, 0.0, z0, r_2, 0.0, z, th_2, p_2, tau_2, turn_2))
+	return(false);
+      eps = fabs(tau-tau_2);
+    } 
+  th0_deg = th_2;
+  r_rap = r_2;
+  return(true);
+
 }
 
 bool CRapRays::rapRange(double x0, double y0, double z0, 
