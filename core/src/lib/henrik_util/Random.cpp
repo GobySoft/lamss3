@@ -1,6 +1,16 @@
 #include "Random.h"
 
 using namespace std;
+CRandom::CRandom()
+{
+  phase = 0;
+  iseed = -123456;
+}
+
+CRandom::~CRandom()
+{
+}
+
 
 double CRandom::ran2(int & idum)
 {
@@ -48,5 +58,85 @@ double CRandom::ran2(int & idum)
     iy=iy+IMM1;
   return(min(AM*iy,RNMX));
 }
+
+double CRandom::gauss_dev(double mu, double sigma)
+{
+  //calculate Gaussian random deviates of complex variables.
+  // Consegutive calls yield real and imaginary parts.
+  //mu = mean of distribution
+  //sigma= standard deviation
+  //  static double V1,V2,S;
+  //  static int phase = 0;
+  double X;
+
+  if (phase ==0){
+    do{
+      double U1 = ran2(iseed);
+      double U2 = ran2(iseed);
+      
+      V1 = 2*U1-1;
+      V2 = 2*U2-1;
+      S = V1*V1 + V2*V2;
+    } while(S >=1 || S == 0);
+
+    X = mu + (V1*sqrt(-2*log(S)/S)) * sqrt(sigma);
+  }
+  else
+    X = mu + (V2*sqrt(-2*log(S)/S)) * sqrt(sigma);
+
+  phase = 1 - phase;
+
+  return X;
+
+}
+
+double CRandom::gauss_real(double mu, double sigma)
+{
+  //calculate Gaussian random deviates of a real variable.
+  //mu = mean of distribution
+  //sigma= standard deviation
+  //  static double V1,V2,S;
+  //  static int phase = 0;
+  double X;
+
+  double U = ran2(iseed);
+  
+  double V = 2*U-1;
+  double S = V*V;
+  X = mu + (V*sqrt(-2*log(S)/S)) * sqrt(sigma);
+  
+  return X;
+  
+}
+
+complex<double> CRandom::gauss_cmplx(double mu, double sigma)
+{
+  //calculate Gaussian random deviates of complex variables.
+  // Consegutive calls yield real and imaginary parts.
+  //mu = mean of distribution
+  //sigma= standard deviation
+  //  static double V1,V2,S;
+  //  static int phase = 0;
+  double Re, Im;
+
+
+  do
+    {
+      double U1 = ran2(iseed);
+      double U2 = ran2(iseed);
+      
+      V1 = 2*U1-1;
+      V2 = 2*U2-1;
+      S = V1*V1 + V2*V2;
+    } while(S >=1 || S == 0);
+
+    Re = mu + (V1*sqrt(-2*log(S)/S)) * sqrt(sigma);
+
+    Im = mu + (V2*sqrt(-2*log(S)/S)) * sqrt(sigma);
+
+    return(complex<double>(Re,Im));
+
+}
+
 
 
