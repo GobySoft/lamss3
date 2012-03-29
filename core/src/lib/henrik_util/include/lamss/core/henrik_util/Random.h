@@ -27,6 +27,7 @@ class CRandom
   double gauss_dev(double mu, double sigma);
   double gauss_real(double mu, double sigma);
   std::complex<double> gauss_cmplx(double mu, double sigma);
+  double rand();
 
  protected:
   

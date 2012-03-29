@@ -138,5 +138,10 @@ complex<double> CRandom::gauss_cmplx(double mu, double sigma)
 
 }
 
+double CRandom::rand()
+{
+  return(ran2(iseed));
+}
+
 
 
