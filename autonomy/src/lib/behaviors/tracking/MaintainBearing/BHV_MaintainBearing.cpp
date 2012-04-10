@@ -214,20 +214,22 @@ int BHV_MaintainBearing::decode(string status)
 
   // Parse the waypoint status string for "us"  
   svector = parseString(status, ',');
-  for(unsigned int i=0; i<svector.size(); i++) {
-    svector2 = parseString(svector[i], '=');
-    if(svector2.size() != 2) {
-      postEMessage("error,BHV_MaintainBearing: Invalid waypoint string");
-      return(0);
-    }
+  for(unsigned int i=0; i<svector.size(); i++) 
+    {
+      svector2 = parseString(svector[i], '=');
+      if(svector2.size() != 2) 
+	{
+	  postEMessage("error,BHV_MaintainBearing: Invalid waypoint string");
+	  return(0);
+	}
 
-    string left  = stripBlankEnds(svector2[0]);
-    string right = stripBlankEnds(svector2[1]);
-   
-    if(left == "bearing")   true_bearing  = atof(right.c_str());
-    
-  }
-    
+      string left  = stripBlankEnds(svector2[0]);
+      string right = stripBlankEnds(svector2[1]);
+      
+      if(left == "bearing")   true_bearing  = atof(right.c_str());
+      
+    }
+  
   return(1);
 }
 
