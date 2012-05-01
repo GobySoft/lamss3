@@ -43,6 +43,16 @@ CiBackSeatServer::CiBackSeatServer()
   MOOSTrace("Modified on 2/1/2012\n");
   MOOSTrace("====================================\n");
 
+  navx = "";
+  navy = "";
+  navz = "";
+  heading = "";
+  depth = "";
+  speed = "";
+  yaw = "";
+  pitch = "";
+  altitude_str = "";
+
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -54,15 +64,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 {
  
     CMOOSMsg Msg;
-    string navx;
-    string navy;
-    string navz;
-    string heading;
-    string depth;
-    string speed;
-    string yaw;
-    string pitch;
-    string altitude_str;
+
 
     double nav_x;
     double nav_y;

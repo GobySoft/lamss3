@@ -24,6 +24,8 @@ public:
 	bool OnConnectToServer();
 	bool OnStartUp();
 
+
+
 private:
 	CMOOSGeodesy m_Geodesy;
 	// insert local vars here
@@ -32,6 +34,16 @@ private:
 	void Translate(NMEAMessage Sentence);
 	std::string tcp_port;
   	std::auto_ptr<goby::util::TCPServer> tcp_server;
+
+    	std::string navx;
+    	std::string navy;
+    	std::string navz;
+    	std::string heading;
+    	std::string depth;
+    	std::string speed;
+    	std::string yaw;
+    	std::string pitch;
+    	std::string altitude_str;
       
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
