@@ -30,7 +30,7 @@ protected:
   double over_shoot;
   double desired_angle,true_bearing;
   int    width,pwidth;
-
+  int bearing_state;
   std::string heading_variable;
   std::string bearing_variable;
   std::string bearing_type;

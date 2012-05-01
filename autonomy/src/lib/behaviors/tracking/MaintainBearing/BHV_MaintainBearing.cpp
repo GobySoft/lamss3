@@ -118,12 +118,19 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   }
     
   int new_state = decode(tState);
-
-  double current_angle = (osCourse-true_bearing);
-  if (current_angle < 0.0)
-    current_angle = fabs(current_angle);
-  else if(current_angle >= 180.0)
-    current_angle = 360- current_angle;
+  double current_angle;
+  if (bearing_state == 2)
+    {
+      current_angle = (osCourse-true_bearing);
+      if (current_angle < 0.0)
+	current_angle = fabs(current_angle);
+      else if(current_angle >= 180.0)
+	current_angle = 360- current_angle;
+    }
+  else
+    {
+      return (0);
+    }
 
   //postMessage("ARRAY_ANGLE",current_angle);
 
@@ -223,13 +230,14 @@ int BHV_MaintainBearing::decode(string status)
 	  return(0);
 	}
 
-      string left  = stripBlankEnds(svector2[0]);
-      string right = stripBlankEnds(svector2[1]);
-      
-      if(left == "bearing")   true_bearing  = atof(right.c_str());
-      
+    string left  = stripBlankEnds(svector2[0]);
+    string right = stripBlankEnds(svector2[1]);
+   
+    if(left == "bearing")   true_bearing  = atof(right.c_str());
+    if(left == "state")   bearing_state  = atof(right.c_str());
+    
     }
-  
+
   return(1);
 }
 
