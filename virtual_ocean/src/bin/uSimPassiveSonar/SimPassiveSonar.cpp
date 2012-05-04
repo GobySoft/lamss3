@@ -585,8 +585,8 @@ bool CSimPassiveSonar::Iterate()
 	  MOOSTrace("writing data files\n");
 	  write_nas_file(t_now);
 	  write_hyd_file();
-	  m_Comms.Notify("VSA_DIR", base_dir_name);
-	  m_Comms.Notify("VSA_FRAME", double(frame_number));
+	  m_Comms.Notify("SONAR_DIR", base_dir_name);
+	  m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
 	  
 	  MOOSTrace("\n");
 	  frame_number++;
