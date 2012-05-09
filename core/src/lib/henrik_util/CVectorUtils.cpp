@@ -649,3 +649,57 @@ vector<complex<double> >  CmyVectorUtils::zzeros(int m, int n)
   return(values);
 }
 
+//Added by SDanesh
+
+vector<double> CmyVectorUtils::hann(int N) //creates hanning window of length N
+{
+  vector<double> window;
+  window.clear();
+  for (int n=0; n<N;n++)
+    {
+      window.push_back(pow(sin(PI*n/(N-1)),2));
+    }
+  return(window);
+}
+  
+int CmyVectorUtils::NN(double num, vector<double> myvec) //Find Nearest Neighbor 
+//myvec must be monotonically INCREASING
+{
+  double dif1, dif2;
+  int index;
+  int dflt = myvec.size();
+  //Nearester neighbor - resturns index in vector
+  for (unsigned int i=0; i<myvec.size()-1; i++)
+    {
+      if ((num>myvec[i]) && (num<=myvec[i+1]))
+	{
+	  dif1 = abs(num-myvec[i]);
+	  dif2 = abs(num-myvec[i+1]);
+	  index = i;
+	  break;
+	}
+    }
+  if (dif1<=dif2)
+    {return(index);}
+  if(dif2<dif1)
+    {return(index+1);}
+  else
+    return(dflt);
+}
+
+vector<vector<double> > CmyVectorUtils::zero_matrix(int n, int m)
+{
+  vector<vector<double> > my_matrix;
+  vector<double> myvals;
+  my_matrix.clear();
+  for (int i=0; i<n; i++)
+    {
+      myvals.clear();
+      for (int j=0; j<m; j++)
+	{
+	  myvals.push_back(0);
+	}
+      my_matrix.push_back(myvals);
+    }
+  return(my_matrix);
+}
