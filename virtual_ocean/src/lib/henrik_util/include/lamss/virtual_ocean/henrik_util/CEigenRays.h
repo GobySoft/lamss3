@@ -73,7 +73,7 @@ class CEigenRayTable
   bool putEigenRay(double sd, double rd, double f, double r, CRay ray);
   int getDepths(std::vector<double>& depths);
   int getRanges(std::vector<double>& ranges);
-
+  std::vector<CEigenRay> getEigenRayTable(std::string arr_file_path, int max_num_bounces);
  
 
   void clear();

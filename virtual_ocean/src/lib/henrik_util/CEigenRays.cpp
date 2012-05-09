@@ -199,3 +199,88 @@ void CEigenRay::clear()
 
 }
 
+
+std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, int max_num_bounces)
+{
+  // Returns the number of eigenrays and builds the ray table from the 
+  // results produced by Bellhop in a .arr file
+
+  eigenray_table.clear();
+
+  std::ifstream arr_file;
+  arr_file.open(arr_file_path.c_str());
+
+  if(arr_file.is_open())
+    {
+      
+      double freq;
+      arr_file >> freq;
+      int num_sources;
+      arr_file >> num_sources;
+      arr_file >> num_depths;
+      arr_file >> num_ranges;
+      if (num_sources != 1)
+	{
+	  MOOSTrace("readEigenRayTable: Error - Only one source  allowed \n");
+	}
+
+      arr_file >> source_depth;
+      depth.clear();
+      for (unsigned int i=0; i<num_depths; i++)
+	{
+	  double buf;
+	  arr_file >> buf;
+	  depth.push_back(buf);
+	}
+      range.clear();
+      for (unsigned int j=0; j<num_ranges; j++)
+	{
+	  double buf;
+	  arr_file >> buf;
+	  range.push_back(buf);
+	}
+
+      
+      double unused;
+      arr_file >> unused;
+
+      for (unsigned int i=0; i<num_depths; i++)
+	{
+	  for (unsigned int j=0; j<num_ranges; j++)
+	    {
+	      int num_rays_total;
+	      CEigenRay eigbuf;
+	      eigbuf.clear();
+	      eigbuf.source_depth = source_depth;
+	      eigbuf.receiver_depth = depth[i];
+	      eigbuf.freq = freq;
+	      eigbuf.range = range[j];
+
+	      arr_file >> num_rays_total;
+	      for(unsigned k = 0; k < num_rays_total; k++)
+		{
+		  CRay ray;
+		  double val;
+		  arr_file >> ray.amp;
+		  bool valid = !isnan(ray.amp);
+		  arr_file >> val;
+		  ray.phase = val * M_PI/180.0;
+		  arr_file >> ray.tau;
+		  arr_file >> val;
+		  ray.dip_source = val * M_PI/180.0;
+		  arr_file >> val;
+		  ray.dip_receiver = val * M_PI/180.0;
+		  arr_file >> ray.surface_bounces;
+		  arr_file >> ray.bottom_bounces;
+		  if (valid && ray.surface_bounces + ray.bottom_bounces <= max_num_bounces)
+		    eigbuf.bundle.push_back(ray);
+		}
+	      eigbuf.num_rays = eigbuf.bundle.size();
+	      eigenray_table.push_back(eigbuf);
+	    }
+	}
+    }
+
+  return(eigenray_table);
+  
+}
