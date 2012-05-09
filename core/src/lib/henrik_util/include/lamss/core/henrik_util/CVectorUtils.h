@@ -68,6 +68,12 @@ class CmyVectorUtils
 			     std::vector<std::complex<double> >& C);
   std::vector<std::complex<double> > zzeros(int m, int n);
 
+  //added by sdanesh
+  std:: vector<double> hann(int N);
+  int NN(double num, std::vector<double> myvec);
+  std::vector<std::vector<double> > zero_matrix(int n, int m);
+
+
  protected:
   int nrows;
   int ncols;
