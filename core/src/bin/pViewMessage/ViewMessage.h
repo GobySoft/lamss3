@@ -25,12 +25,12 @@
 
 #include <string>
 
-#include "lib_geometry/XYFormatUtilsPoint.h" 
-#include "lib_geometry/XYFormatUtilsPoly.h" 
-#include "lib_geometry/XYFormatUtilsSegl.h" 
-#include "lib_geometry/XYPoint.h"
-#include "lib_geometry/XYPolygon.h"
-#include "lib_geometry/XYSegList.h"
+#include "XYFormatUtilsPoint.h" 
+#include "XYFormatUtilsPoly.h" 
+#include "XYFormatUtilsSegl.h" 
+#include "XYPoint.h"
+#include "XYPolygon.h"
+#include "XYSegList.h"
 
 #include "goby/version.h"
 #if GOBY_VERSION_MAJOR >= 2 
