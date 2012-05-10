@@ -22,7 +22,7 @@
 #include "lamss/lib_anrp_util/CClientTCPSocket.h"
 #include "lamss/lib_anrp_util/CUDPSocket.h"
 #include "lamss/lib_anrp_util/CDatagramCtl.h"
-#include "lib_mbutil/MBUtils.h"
+#include "MBUtils.h"
 
 //#include <goby/util/liblinebasedcomms/tcp_server.h>
 
