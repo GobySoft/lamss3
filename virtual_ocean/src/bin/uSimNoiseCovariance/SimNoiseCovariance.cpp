@@ -403,6 +403,16 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
       else if(Msg.m_sKey == "COVARIANCE_REQUEST")
 	{
 	  covariance_requested = true;
+	  string bite;
+	  if (MOOSValFromString(bite,Msg.m_sVal,"nfft"))
+	    {
+	      nfft = atoi(bite.c_str());
+	      if (MOOSValFromString(bite,Msg.m_sVal,"sampling_frequency"))
+		sampling_frequency = atof(bite.c_str());
+	      num_freqs = nfft/2 + 1; 
+	      MOOSTrace("Noise covariance for %0.3f seconds of data\n", nfft/sampling_frequency);
+	    }
+
 	}
     }
   return(true);

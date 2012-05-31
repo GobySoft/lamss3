@@ -1791,7 +1791,8 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
       if ((noise_direct || ISOTROPIC) && fabs(array_avg_pitch-array_prev_pitch) 
 	  >= 5.0*M_PI/180.0 )
 	{    
-	  m_Comms.Notify("COVARIANCE_REQUEST","now");
+	  string req = "nfft=" + intToString(nfft) + ",sampling_frequency=" + doubleToString(sampling_frequency);   
+	  m_Comms.Notify("COVARIANCE_REQUEST",req);
 
 	  MOOSTrace("Requesting correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
 	  array_prev_pitch = array_avg_pitch;
