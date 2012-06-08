@@ -30,7 +30,12 @@ bool parse_tgt_stat(std::string val,
   MOOSValFromString(tgt_dep,val,"tgt_dep");
   MOOSValFromString(tgt_hdg,val,"tgt_hdg");
   MOOSValFromString(tgt_spd,val,"tgt_spd");
-  MOOSValFromString(tgt_utc,val,"tgt_utc");
+  //  MOOSValFromString(tgt_utc,val,"tgt_utc");
+  MOOSValFromString(bite,val,"tgt_utc");
+  if (isNumber(bite))
+    tgt_utc =  atoi(bite.c_str());
+  else
+    tgt_utc = MOOSTime();
   MOOSValFromString(tgt_frq,val,"tgt_freq");
   MOOSValFromString(tgt_bw,val,"tgt_bw");
   MOOSValFromString(tgt_spl,val,"tgt_spl");
