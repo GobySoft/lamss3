@@ -102,6 +102,8 @@ bool CMVSim::DoRegistrations()
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Y",0.0);
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Z",0.0);
 // 		  m_Comms.Register(pAUV->m_sInputPrefix+"TRIM_KG",1.0);
+ 		  m_Comms.Register("TRIM_CONTROL",1.0);
+ 		  m_Comms.Register("BUOYANCY_CONTROL",1.0);
 		}
 	}
 
@@ -174,6 +176,25 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 // 				pAUV->m_dfTrim = rMsg.m_dfVal;
 // 				continue;
 // 			}
+ 			else if(rMsg.m_sKey.find("BUOYANCY_CONTROL")!=string::npos)
+ 			{
+			  if (rMsg.m_dfVal > 0.5)
+			    {
+ 				pAUV->m_dfTrim = 0.0;
+				std::string buoyancy_status="status=2,error=0,buoyancy=0.0";
+				m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+			    }
+			  continue;
+ 			}
+ 			else if(rMsg.m_sKey.find("TRIM_CONTROL")!=string::npos)
+ 			{
+			  if (rMsg.m_dfVal > 0.5)
+			    {
+				std::string trim_status="status=2,error=0,trim_pitch=0.0,trim_roll=0.0";
+				m_Comms.Notify("TRIM_REPORT",trim_status);
+			    }
+			  continue;
+ 			}
 		}
 	
 		if(MOOSStrCmp(rMsg.m_sKey,"SIM_RESET"))
