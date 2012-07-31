@@ -1520,7 +1520,9 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       source_pos_y = Targets[i].target_y;
       source_dep = Targets[i].target_dep;
       source_bb_spl = Targets[i].target_spl;
-      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
+      // 1e-6 factor removed for compatibility with active simulator
+      //      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
+      source_bb_amp = pow(10.0,source_bb_spl/20.0);
       MOOSTrace("target %d spl = %f, amp = %e \n", Targets[i].target_number, source_bb_spl,source_bb_amp);
       source_bb_freq = Targets[i].target_freq;
       source_bb_bw = Targets[i].target_bw;
@@ -1534,7 +1536,9 @@ bool CSimPassiveSonar::getTargetInfo(int i)
 	  tone_freqs.push_back(Targets[i].tone_freq[j]);
 	  tone_amps.push_back(Targets[i].tone_dbl[j]);
 	  tone_ks.push_back(2*M_PI*Targets[i].tone_freq[j]/water_c);
-          tone_amps_Pa.push_back(pow(10.0, Targets[i].tone_dbl[j]/20.0)*pow(10.0, -6.0));
+	  // 1e-6 factor removed for compatibility with active simulator
+	  //          tone_amps_Pa.push_back(pow(10.0, Targets[i].tone_dbl[j]/20.0)*pow(10.0, -6.0));
+          tone_amps_Pa.push_back(pow(10.0, Targets[i].tone_dbl[j]/20.0));
 	}
       got_source_bb_info = true;
       got_source_loc = true;

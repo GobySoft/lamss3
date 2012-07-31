@@ -476,7 +476,9 @@ double CSimNoiseCovariance::computeNoiseCovariance(double depth,
 	ndim = num_array_elements;
       if (debug)
           MOOSTrace("nl=%lf, Fs=%lf, nfft=%d\n",nl,sampling_frequency,nfft);
-      double p_intens = 1e-12 * pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
+      // 1e-12 factor removed for compatibility with active simulator
+      //      double p_intens = 1e-12 * pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
+      double p_intens = pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
       double rho = 1000;
       // Compute correlated noise only for spectrum of 
       // interest
