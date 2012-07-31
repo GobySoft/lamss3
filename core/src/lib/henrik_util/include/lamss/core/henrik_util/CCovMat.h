@@ -53,7 +53,7 @@ class CovMat
   void realization(std::vector<std::complex<double> >& out);
   bool scaleCovMat(double fac);
   bool wnChol();
-
+  double normCholTrace();
  protected:
   int indx( int i, int j);
   int indx_tri(int i, int j);

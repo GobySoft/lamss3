@@ -146,6 +146,15 @@ bool CovMat::scaleCovMat(double factor)
       return(true);
 }
 
+double CovMat::normCholTrace()
+{
+  double sum = 0.0;
+  for (unsigned int i=1; i <= num_rcv; i++)
+      sum += pow(c[indx_tri(i,i)].real(),2) + pow(c[indx_tri(i,i)].imag(),2);  
+  sum /= num_rcv;
+  return(sum);
+}
+
 complex<double> CovMat::conjg(complex<double> a)
 {
   return(complex<double>(a.real(),-a.imag()));
