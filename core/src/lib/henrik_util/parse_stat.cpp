@@ -33,7 +33,11 @@ bool parse_tgt_stat(std::string val,
   //  MOOSValFromString(tgt_utc,val,"tgt_utc");
   MOOSValFromString(bite,val,"tgt_utc");
   if (isNumber(bite))
-    tgt_utc =  atoi(bite.c_str());
+    {
+      tgt_utc =  atoi(bite.c_str());
+      if (fabs(tgt_utc-MOOSTime()) > 10000)
+	tgt_utc = MOOSTime();
+    }
   else
     tgt_utc = MOOSTime();
   MOOSValFromString(tgt_frq,val,"tgt_freq");
