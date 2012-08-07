@@ -1,0 +1,214 @@
+import "header.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+package lamss.protobuf;
+
+message NodeStatus
+{
+  option (goby.msg).dccl.id = 20;
+  option (goby.msg).dccl.max_bytes = 32;
+
+  required LAMSSHeader header = 1;
+  required string name = 2 [(goby.field).dccl.codec = "_platform<->modem_id",
+                            (goby.field).queue.is_src = true];
+
+  // defined in goby/core/proto/config.proto
+  optional VehicleType type = 3;
+  
+  // lat, lon, depth
+  optional GeodeticCoordinate global_fix = 4;  
+  // x, y, z on local cartesian grid
+  optional CartesianCoordinate local_fix = 5;
+  
+  // roll, pitch, yaw
+  optional EulerAngles pose = 7;
+  
+  // speed over ground (not relative to water or surface)
+  optional double speed = 8 [(goby.field).dccl.max=20.0,
+                             (goby.field).dccl.min=-2.0,
+                             (goby.field).dccl.precision=1];
+
+  optional SourceSensor speed_source = 9 [(goby.field).dccl.omit=true];  
+  optional double speed_time_lag = 11 [(goby.field).dccl.omit=true];
+  
+  optional MissionState mission_state = 13;
+  enum MissionState{ 
+    MISSION_STATE_FALSE = 0; 
+    MISSION_STATE_DEPLOY = 1; 
+    MISSION_STATE_PROSECUTE = 2; 
+    MISSION_STATE_ABORT = 3; 
+    MISSION_STATE_UNKNOWN = -1;
+  } 
+  optional DeployMode deploy_mode = 14;
+  enum DeployMode{ 
+    DEPLOY_MODE_LOITER = 0; 
+    DEPLOY_MODE_RETURN = 1; 
+    DEPLOY_MODE_RACETRACK = 2; 
+    DEPLOY_MODE_ZIGZAG = 3; 
+    DEPLOY_MODE_BISTATIC = 4; 
+    DEPLOY_MODE_TRAIL = 5; 
+    DEPLOY_MODE_UNKNOWN = -1; 
+  }  
+  optional DepthMode depth_mode = 15;
+  enum DepthMode{ 
+    DEPTH_MODE_SINGLE = 0; 
+    DEPTH_MODE_DUAL = 1; 
+    DEPTH_MODE_YOYO = 2; 
+    DEPTH_MODE_ADAPTIVE_YOYO = 3; 
+    DEPTH_MODE_ADAPTIVE_ACOMMS = 4; 
+    DEPTH_MODE_UNKNOWN = -1; 
+  } 
+  optional ProsecuteMode prosecute_mode = 16;
+  enum ProsecuteMode{ 
+    PROSECUTE_MODE_DLT = 0; 
+    PROSECUTE_MODE_DCLT = 1; 
+    PROSECUTE_MODE_TMA = 2; 
+    PROSECUTE_MODE_POLYGON = 3; 
+    PROSECUTE_MODE_UNKNOWN = -1; 
+  } 
+  optional CollaborationMode collaboration_mode = 17;
+  enum CollaborationMode{ 
+    COLLABORATION_MODE_UNKNOWN = -1; 
+    COLLABORATION_MODE_OFF = 0; 
+    COLLABORATION_MODE_SYNCH = 1; 
+    COLLABORATION_MODE_COLLABORATING = 2; 
+  } 
+
+  optional SonarControl sonar_control = 18;
+  enum SonarControl{ 
+    SONAR_CONTROL_ON = 0; 
+    SONAR_CONTROL_OFF = 1; 
+  }
+
+  
+}
+
+// Type of vehicle for a given node
+enum VehicleType { AUV = 1;
+                   USV = 2;
+                   SHIP = 3;
+                   GLIDER = 4;
+                   TARGET = 5;
+                   BUOY = 6;
+                   OTHER = -1; }
+
+enum SourceSensor { GPS = 1;
+                    DEAD_RECKONING = 2;
+                    INERTIAL_MEASUREMENT_UNIT = 3;
+                    PRESSURE_SENSOR = 4;
+                    COMPASS = 5;
+                    SIMULATION = 6;}
+
+message GeodeticCoordinate
+{
+  required double lat = 1 [(goby.field).dccl.omit = true]; // dccl sends Cartesian Y
+  required double lon = 2 [(goby.field).dccl.omit = true]; // dccl sends Cartesian X
+  optional double depth = 3 [default = 0,
+                             (goby.field).dccl.max=6400.0,
+                             (goby.field).dccl.min=0.0,
+                             (goby.field).dccl.precision=1]; // negative of "height"
+  optional double altitude = 4 [(goby.field).dccl.max=5000.0,
+                                (goby.field).dccl.min=-10.0,
+                                (goby.field).dccl.precision=1];
+  
+  optional SourceSensor lat_source = 5 [(goby.field).dccl.omit = true];
+  optional SourceSensor lon_source = 6 [(goby.field).dccl.omit = true];
+  optional SourceSensor depth_source = 7 [(goby.field).dccl.omit = true];
+  optional SourceSensor altitude_source = 8 [(goby.field).dccl.omit = true];
+
+  // time lags (in seconds) from the message Header time
+  optional double lat_time_lag = 9 [(goby.field).dccl.omit = true];
+  optional double lon_time_lag = 10 [(goby.field).dccl.omit = true];
+  optional double depth_time_lag = 11 [(goby.field).dccl.omit = true];
+  optional double altitude_time_lag = 12 [(goby.field).dccl.omit = true];
+}
+
+// computed from GeodeticCoordinate
+message CartesianCoordinate
+{
+  required double x = 1 [(goby.field).dccl.max=100000,
+                         (goby.field).dccl.min=-100000,
+                         (goby.field).dccl.precision=0];
+  required double y = 2 [(goby.field).dccl.max=100000,
+                         (goby.field).dccl.min=-100000,
+                         (goby.field).dccl.precision=0];
+  optional double z = 3 [default = 0, (goby.field).dccl.omit = true]; // negative of "depth"  
+}
+
+// all in degrees
+message EulerAngles
+{
+  optional double roll = 1 [(goby.field).dccl.max=1.57,
+                            (goby.field).dccl.min=-1.57,
+                            (goby.field).dccl.precision=2];
+  optional double pitch = 2 [(goby.field).dccl.max=1.57,
+                             (goby.field).dccl.min=-1.57,
+                             (goby.field).dccl.precision=2];
+  optional double heading = 3 [(goby.field).dccl.max=360,
+                               (goby.field).dccl.min=0,
+                               (goby.field).dccl.precision=1]; 
+  
+  optional SourceSensor roll_source = 4 [(goby.field).dccl.omit = true];
+  optional SourceSensor pitch_source = 5 [(goby.field).dccl.omit = true];
+  optional SourceSensor yaw_source = 6 [(goby.field).dccl.omit = true];
+
+  // time lags (in seconds) from the message Header time
+  optional double roll_time_lag = 7 [(goby.field).dccl.omit = true];
+  optional double pitch_time_lag = 8 [(goby.field).dccl.omit = true];
+  optional double yaw_time_lag = 9 [(goby.field).dccl.omit = true]; 
+}
+
+
+message LegacyNodeReport
+{
+  // "NAME=%1%,type=%2%,UTC_TIME=%4%,X=%5%,Y=%6%,LAT=%7%,LON=%8%,SPD=%9%,HDG=%10%,DEPTH=%11%";
+  
+  optional string name = 1;
+  optional string type = 2;
+  optional double moosdb_time = 3;
+  optional double utc_time = 4;
+  optional double x = 5;
+  optional double y = 6;
+  optional double lat = 7;
+  optional double lon = 8;
+  optional double spd = 9;
+  optional double hdg = 10;
+  optional double depth = 11;
+}
+
+message MinimalNodeStatus
+{
+  option (goby.msg).dccl.id = 21;
+  option (goby.msg).dccl.max_bytes = 32;
+
+  required int32 t = 1 [(goby.field).dccl.codec = "_arithmetic",
+                        (goby.field).dccl.arithmetic.model = "lamss.time",
+                        (goby.field).dccl.arithmetic.debug_assert = true];
+  
+  required int32 x = 2 [(goby.field).dccl.codec = "_arithmetic",
+                        (goby.field).dccl.arithmetic.model = "lamss.dist.horizontal",
+                        (goby.field).dccl.arithmetic.debug_assert = true];
+  required int32 y = 3 [(goby.field).dccl.codec = "_arithmetic",
+                        (goby.field).dccl.arithmetic.model = "lamss.dist.horizontal",
+                        (goby.field).dccl.arithmetic.debug_assert = true];
+  required int32 z = 4 [(goby.field).dccl.codec = "_arithmetic",
+                        (goby.field).dccl.arithmetic.model = "lamss.dist.vertical",
+                        (goby.field).dccl.arithmetic.debug_assert = true];
+}
+
+
+message MinimalNodeStatusDifference
+{
+  option (goby.msg).dccl.id = 22;
+  option (goby.msg).dccl.max_bytes = 64;
+
+  repeated int32 dx = 1 [(goby.field).dccl.max_repeat = 10,
+                         (goby.field).dccl.codec = "_arithmetic",
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal"];
+  repeated int32 dy = 2 [(goby.field).dccl.max_repeat = 10,
+                         (goby.field).dccl.codec = "_arithmetic",
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal"];
+  repeated int32 dz = 3 [(goby.field).dccl.max_repeat = 10,
+                         (goby.field).dccl.codec = "_arithmetic",
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.vertical"];
+}

@@ -1,6 +1,10 @@
 import "option_extensions.proto";
+import "goby/common/protobuf/option_extensions.proto";
 
 message LAMSSHeader
 {
-  required double time = 1 [(lamss.field).description = "Seconds since 1970-01-01 00:00:00 UTC"];  
+  required double time = 1 [(lamss.field).description = "Seconds since 1970-01-01 00:00:00 UTC",
+                            (goby.field).dccl.codec = "_time",
+                            (goby.field).queue.is_time = true,
+                            (goby.field).dccl.in_head = true];  
 }
