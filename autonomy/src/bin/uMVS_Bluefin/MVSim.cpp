@@ -178,7 +178,7 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 // 			}
  			else if(rMsg.m_sKey.find("BUOYANCY_CONTROL")!=string::npos)
  			{
-			  if (rMsg.m_dfVal > 0.5)
+			  if (MOOSStrCmp(rMsg.m_sVal,"true"))
 			    {
  				pAUV->m_dfTrim = 0.0;
 				std::string buoyancy_status="status=2,error=0,buoyancy=0.0";
@@ -188,7 +188,7 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
  			}
  			else if(rMsg.m_sKey.find("TRIM_CONTROL")!=string::npos)
  			{
-			  if (rMsg.m_dfVal > 0.5)
+			  if (MOOSStrCmp(rMsg.m_sVal,"true"))
 			    {
 				std::string trim_status="status=2,error=0,trim_pitch=0.0,trim_roll=0.0";
 				m_Comms.Notify("TRIM_REPORT",trim_status);
