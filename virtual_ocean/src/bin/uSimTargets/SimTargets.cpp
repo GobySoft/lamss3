@@ -60,7 +60,7 @@ bool CSimTargets::OnConnectToServer()
   source_control = false;
 
   m_Comms.Register ("TARGET_CONTROL", 0);
-  m_Comms.Register ("TARGET_STATE", 0);
+  m_Comms.Register ("TARGET_CUE", 0);
   m_Comms.Register ("TARGET_FREQ", 0);
   m_Comms.Register ("TARGET_BW", 0);
   m_Comms.Register ("TARGET_SPL", 0);
@@ -86,11 +86,11 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &Msg = *p;
     
 
-    if(Msg.m_sKey == "TARGET_STATE")
+    if(Msg.m_sKey == "TARGET_CUE")
       {	
 	if (!source_control)
 	  {
-	    //MOOSTrace("Got TARGET_STATE message");
+	    //MOOSTrace("Got TARGET_CUE message");
 	    string val;
 	    val = Msg.m_sVal;
 
