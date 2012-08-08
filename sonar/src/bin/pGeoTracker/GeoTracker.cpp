@@ -233,7 +233,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 
     CMOOSMsg &Msg = *p;
     
-    if(Msg.m_sKey == "TARGET_STATE")
+    if(Msg.m_sKey == "TARGET_CUE")
       {	
 	string val;
 	val = Msg.m_sVal;
@@ -462,7 +462,7 @@ bool CGeoTracker::OnConnectToServer()
   m_Comms.Register("VEHICLE_ID",0);
   m_Comms.Register("TARGET_ID",0);
   m_Comms.Register("TRACKING_MODE",0);
-  m_Comms.Register("TARGET_STATE",0);
+  m_Comms.Register("TARGET_CUE",0);
   
   m_Comms.Notify("CLOSE_RANGE","FALSE");
  
