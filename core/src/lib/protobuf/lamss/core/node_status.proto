@@ -204,11 +204,14 @@ message MinimalNodeStatusDifference
 
   repeated int32 dx = 1 [(goby.field).dccl.max_repeat = 10,
                          (goby.field).dccl.codec = "_arithmetic",
-                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal"];
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal",
+                         (goby.field).dccl.arithmetic.debug_assert = true];
   repeated int32 dy = 2 [(goby.field).dccl.max_repeat = 10,
                          (goby.field).dccl.codec = "_arithmetic",
-                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal"];
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.horizontal",
+                         (goby.field).dccl.arithmetic.debug_assert = true];
   repeated int32 dz = 3 [(goby.field).dccl.max_repeat = 10,
                          (goby.field).dccl.codec = "_arithmetic",
-                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.vertical"];
+                         (goby.field).dccl.arithmetic.model = "lamss.dist.diff.vertical",
+                         (goby.field).dccl.arithmetic.debug_assert = true];
 }
