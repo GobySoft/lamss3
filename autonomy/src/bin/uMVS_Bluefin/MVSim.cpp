@@ -281,20 +281,34 @@ bool CMVSim::Iterate()
     double current_time = MOOSTime();
 
     // buoyancy and trim control
-    if (buoyancy_requested && (current_time-buoyancy_request_time >= buoyancy_delay) )
+    if (buoyancy_requested)
       {
-	std::string buoyancy_status="status=2,error=0,buoyancy=0.0";
-	m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
-	buoyancy_requested = false;
+	if (current_time-buoyancy_request_time >= buoyancy_delay) 
+	  {
+	    std::string buoyancy_status="status=2,error=0,buoyancy=0.0";
+	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+	    buoyancy_requested = false;
+	  }
+	else
+	  {
+	    std::string buoyancy_status="status=1,error=0,buoyancy=0.0";
+	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+	  }
       }
-
-    if (trim_requested && (current_time-trim_request_time >= trim_delay) )
+    if (trim_requested)
       {
-	std::string trim_status="status=2,error=0,trim_pitch=0.0,trim_roll=0.0";
-	m_Comms.Notify("TRIM_REPORT",trim_status);
-	trim_requested = false;
+	if (current_time-trim_request_time >= trim_delay) 
+	  {
+	    std::string trim_status="status=2,error=0,trim_pitch=0.0,trim_roll=0.0";
+	    m_Comms.Notify("TRIM_REPORT",trim_status);
+	    trim_requested = false;
+	  }
+	else
+	  {
+	    std::string trim_status="status=1,error=0,trim_pitch=0.0,trim_roll=0.0";
+	    m_Comms.Notify("TRIM_REPORT",trim_status);
+	  }
       }
-
     // update nav at gps and start drift
     // H. Schmidt 110212
     if (gps_update)
