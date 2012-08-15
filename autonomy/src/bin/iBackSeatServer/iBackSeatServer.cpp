@@ -135,11 +135,25 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     if(Msg.m_sKey == "BUOYANCY_REPORT")
     {
 	string buoy_report = Msg.m_sVal;
+
+	string buoy_data = "$BFBOY,"+SecondsSinceMidnight(3)+","+buoy_report+"*";
+
+   	string buoy_checksum=gen_NMEAchecksum(buoy_data.c_str());
+	buoy_data+=buoy_checksum+"\r\n";
+	std::cout <<"To clients:["<<buoy_data<<"]"<<std::endl;
+	tcp_server->write(buoy_data);
     }
 
     if(Msg.m_sKey == "TRIM_REPORT")
     {
 	string trim_report = Msg.m_sVal;
+	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+trim_report+"*";
+
+   	string trim_checksum=gen_NMEAchecksum(trim_data.c_str());
+	trim_data+=trim_checksum+"\r\n";
+	std::cout <<"To clients:["<<trim_data<<"]"<<std::endl;
+	tcp_server->write(trim_data);
+
     }
 
 
@@ -399,6 +413,7 @@ string usbl_msg = "BPNPU";
 
   }
 
+
   if(Sentence.Part(0) == "BPSIL")
   {
 	int frontseat_silent = atoi(Sentence.Part(2).c_str());
@@ -421,6 +436,7 @@ string usbl_msg = "BPNPU";
   {
 	m_Comms.Notify("TRIM_CONTROL","true");
   }
+
 
 }
 
