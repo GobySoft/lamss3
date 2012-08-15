@@ -132,6 +132,17 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
     }
 
+    if(Msg.m_sKey == "BUOYANCY_REPORT")
+    {
+	string buoy_report = Msg.m_sVal;
+    }
+
+    if(Msg.m_sKey == "TRIM_REPORT")
+    {
+	string trim_report = Msg.m_sVal;
+    }
+
+
   }
 
   
@@ -299,6 +310,8 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("FRONTSEAT_BODY_VEL_X",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
   m_Comms.Register("BATHY_Z",0);
+  m_Comms.Register("BUOYANCY_REPORT",0);
+  m_Comms.Register("TRIM_REPORT",0);
 
   return true;
 }
@@ -384,6 +397,29 @@ string usbl_msg = "BPNPU";
 
 	m_Comms.Notify("USBL_MESSAGE",usbl_msg);
 
+  }
+
+  if(Sentence.Part(0) == "BPSIL")
+  {
+	int frontseat_silent = atoi(Sentence.Part(2).c_str());
+	if(frontseat_silent)
+	{
+		m_Comms.Notify("FRONTSEAT_SILENT","true");
+	}
+	else
+	{
+		m_Comms.Notify("FRONTSEAT_SILENT","false");
+	}
+  }
+
+  if(Sentence.Part(0) == "BPBOY")
+  {
+	m_Comms.Notify("BUOYANCY_CONTROL","true");
+  }
+
+  if(Sentence.Part(0) == "BPTRM")
+  {
+	m_Comms.Notify("TRIM_CONTROL","true");
   }
 
 }
