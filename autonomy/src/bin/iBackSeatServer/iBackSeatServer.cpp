@@ -141,7 +141,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 	MOOSValFromString(error,buoy_report, "error");
 	MOOSValFromString(buoyancy,buoy_report,"buoyancy");
 
-	string buoy_data = "$BFBOY,"+SecondsSinceMidnight(3)+","+doubleToString(status,1)+","+doubleToString(error,1)+",report,"+doubleToString(buoyancy,2)+"*";
+	string buoy_data = "$BFBOY,"+SecondsSinceMidnight(3)+","+intToString(int(status))+","+intToString(int(error))+",report,"+doubleToString(buoyancy,2)+"*";
 
    	string buoy_checksum=gen_NMEAchecksum(buoy_data.c_str());
 	buoy_data+=buoy_checksum+"\r\n";
@@ -154,17 +154,19 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 	string trim_report = Msg.m_sVal;
 
 	double status,error,trm_pitch, trm_roll;
-
-	MOOSValFromString(status,trim_report,"status");
+   	MOOSValFromString(status,trim_report,"status");
 	MOOSValFromString(error,trim_report, "error");
 	MOOSValFromString(trm_pitch,trim_report,"trim_pitch");
-	MOOSValFromString(trm_roll,trim_report,"trim_roll");	
+	MOOSValFromString(trm_roll,trim_report,"trim_roll");
 
-	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+doubleToString(status,1)+","+doubleToString(error,1)+",report,"+doubleToString(trm_pitch,2)+","+doubleToString(trm_roll,2)+"*";
+
+	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+intToString(int(status))+","+intToString(int(error))+",report,"+doubleToString(trm_pitch,2)+","+doubleToString(trm_roll,2)+"*";
 
    	string trim_checksum=gen_NMEAchecksum(trim_data.c_str());
 	trim_data+=trim_checksum+"\r\n";
 	std::cout <<"To clients:["<<trim_data<<"]"<<std::endl;
+	m_Comms.Notify("NMEA_TO_BACKSEAT",trim_data);
+
 	tcp_server->write(trim_data);
 
     }
