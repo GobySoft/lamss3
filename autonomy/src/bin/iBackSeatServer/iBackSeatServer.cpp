@@ -136,7 +136,12 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     {
 	string buoy_report = Msg.m_sVal;
 
-	string buoy_data = "$BFBOY,"+SecondsSinceMidnight(3)+","+buoy_report+"*";
+	double status, error, buoyancy;
+   	MOOSValFromString(status,buoy_report,"status");
+	MOOSValFromString(error,buoy_report, "error");
+	MOOSValFromString(buoyancy,buoy_report,"buoyancy");
+
+	string buoy_data = "$BFBOY,"+SecondsSinceMidnight(3)+","+doubleToString(status,1)+","+doubleToString(error,1)+",report,"+doubleToString(buoyancy,2)+"*";
 
    	string buoy_checksum=gen_NMEAchecksum(buoy_data.c_str());
 	buoy_data+=buoy_checksum+"\r\n";
@@ -147,7 +152,11 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     if(Msg.m_sKey == "TRIM_REPORT")
     {
 	string trim_report = Msg.m_sVal;
-	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+trim_report+"*";
+
+	double status,error,trm_pitch, trm_roll;
+
+
+	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+doubleToString(status,1)+","+doubleToString(error,1)+",report,"+doubleToString(trm_pitch,2)+","+doubleToString(trm_roll,2)+"*";
 
    	string trim_checksum=gen_NMEAchecksum(trim_data.c_str());
 	trim_data+=trim_checksum+"\r\n";
