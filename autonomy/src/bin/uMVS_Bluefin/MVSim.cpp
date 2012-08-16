@@ -285,13 +285,13 @@ bool CMVSim::Iterate()
       {
 	if (current_time-buoyancy_request_time >= buoyancy_delay) 
 	  {
-	    std::string buoyancy_status="status=2,error=0,buoyancy=0.0";
+	    std::string buoyancy_status="status=2,error=0,completed,buoyancy=0.0";
 	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
 	    buoyancy_requested = false;
 	  }
 	else
 	  {
-	    std::string buoyancy_status="status=1,error=0,buoyancy=0.0";
+	    std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
 	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
 	  }
       }
@@ -299,13 +299,13 @@ bool CMVSim::Iterate()
       {
 	if (current_time-trim_request_time >= trim_delay) 
 	  {
-	    std::string trim_status="status=2,error=0,trim_pitch=0.0,trim_roll=0.0";
+	    std::string trim_status="status=2,error=0,completed,trim_pitch=0.0,trim_roll=0.0";
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
 	    trim_requested = false;
 	  }
 	else
 	  {
-	    std::string trim_status="status=1,error=0,trim_pitch=0.0,trim_roll=0.0";
+	    std::string trim_status="status=1,error=0,progressing,trim_pitch=0.0,trim_roll=0.0";
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
 	  }
       }
