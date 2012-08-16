@@ -111,9 +111,9 @@ protected:
 	double buoyancy_request_time;
 	double trim_request_time;
 	double buoyancy_delay;
-	double trim_delay;
-    
-	
+	double max_trim_delay;
+	double pitch_degrees;
+	double pitch_tolerance;
 
     bool Iterate();
 	bool OnNewMail(MOOSMSG_LIST & NewMail);

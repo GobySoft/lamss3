@@ -38,6 +38,9 @@
 #include "math.h"
 #include <iostream>
 #include <iomanip>
+#include <sstream>
+#include <cctype>
+#include "MBUtils.h"
 using namespace std;
 
 #include "AcousticIntersection.h"
@@ -73,7 +76,9 @@ CMVSim::CMVSim()
     buoyancy_requested = false;
     trim_requested = false;
     buoyancy_delay = 2;
-    trim_delay = 4;
+    max_trim_delay = 10;
+    // pitch tolerance in degrees
+    pitch_tolerance = 5;
 }
 
 CMVSim::~CMVSim()
@@ -297,15 +302,17 @@ bool CMVSim::Iterate()
       }
     if (trim_requested)
       {
-	if (current_time-trim_request_time >= trim_delay) 
+	if (fabs(pitch_degrees) <= pitch_tolerance || current_time-trim_request_time >= max_trim_delay) 
 	  {
-	    std::string trim_status="status=2,error=0,completed,trim_pitch=0.0,trim_roll=0.0";
+	    std::string trim_status="status=2,error=0,completed,trim_pitch=" 
+	      + doubleToString(pitch_degrees) + ",trim_roll=0.0";
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
 	    trim_requested = false;
 	  }
 	else
 	  {
-	    std::string trim_status="status=1,error=0,progressing,trim_pitch=0.0,trim_roll=0.0";
+	    std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
+	      + doubleToString(pitch_degrees) + ",trim_roll=0.0";
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
 	  }
       }
@@ -483,6 +490,17 @@ bool CMVSim::Initialise()
     if (m_MissionReader.GetConfigurationParam("dvl_lock",dvl_stat))
       dvl_lock = MOOSStrCmp(dvl_stat,"true");
 
+    double new_tol;
+    if (m_MissionReader.GetConfigurationParam("trim_tolerance",new_tol))
+      {
+	pitch_tolerance = new_tol;
+	MOOSTrace("Pitch tolerance: %f degrees\n", pitch_tolerance);
+      }
+    if (m_MissionReader.GetConfigurationParam("max_trim_delay",new_tol))
+      {
+	max_trim_delay = new_tol;
+	MOOSTrace("Max trim delay %f seconds\n", max_trim_delay);
+      }
     int  nCurrentElements=0;
 
     // populate with vehicles and beacons
@@ -606,6 +624,7 @@ void CMVSim::PostResults()
 				dfSpeed=hypot(dfBodyVelY,dfBodyVelX);
 
 			double dfPitch     = pAUV->GetPitch();
+			pitch_degrees = dfPitch*180.0/M_PI;
 			double dfPitchRate = pAUV->GetPitchRate();
 			double dfRudder    = pAUV->GetRudder();
 			double dfElevator  = pAUV->GetElevator();
