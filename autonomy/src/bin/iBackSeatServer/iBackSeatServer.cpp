@@ -155,6 +155,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
 	double status,error,trm_pitch, trm_roll;
 
+	MOOSValFromString(status,trim_report,"status");
+	MOOSValFromString(error,trim_report, "error");
+	MOOSValFromString(trm_pitch,trim_report,"trim_pitch");
+	MOOSValFromString(trm_roll,trim_report,"trim_roll");	
 
 	string trim_data = "$BFTRM,"+SecondsSinceMidnight(3)+","+doubleToString(status,1)+","+doubleToString(error,1)+",report,"+doubleToString(trm_pitch,2)+","+doubleToString(trm_roll,2)+"*";
 
