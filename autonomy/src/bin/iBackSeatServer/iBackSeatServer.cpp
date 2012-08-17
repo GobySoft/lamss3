@@ -204,6 +204,8 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   if(longi < 0.0) Long_b = "W";
   else Long_b = "E";
 
+  latti = fabs(latti);
+  longi = fabs(longi);
   //Convert Decimal Degrees to BF NMEA standard
   //Latitude llll.ll - first 2 digits are decimal degrees
   //Longitude yyyyy.yy - first 3 are decimal degrees
@@ -218,11 +220,11 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     int lat_minutes = std::floor((latti - lat_degrees)*60);
     int lat_ten_thousandth_minutes = std::floor(((latti-lat_degrees)*60 - lat_minutes)*10000);
 
-    double nmea_lat = abs(lat_degrees*100 + lat_minutes);
+    double nmea_lat = lat_degrees*100 + lat_minutes + 0.0001*lat_ten_thousandth_minutes;
 
-    double dfLatDecDeg = m_Geodesy.DMS2DecDeg(nmea_lat);
+    //    double dfLatDecDeg = m_Geodesy.DMS2DecDeg(nmea_lat);
 
-    std::cout<<" =============> Lat Dec Deg = "<<dfLatDecDeg<<std::endl;
+    //    std::cout<<" =============> Lat Dec Deg = "<<dfLatDecDeg<<std::endl;
  
     std::cout<<"lat_degrees = "<<lat_degrees<<" lat_minutes = "<<lat_minutes<< " lat_ten_thousandth_minutes = "<< lat_ten_thousandth_minutes<<" nmea_lat = "<<nmea_lat<<std::endl;
 
@@ -237,16 +239,24 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     int lon_minutes = std::floor((longi - lon_degrees)*60);
     int lon_ten_thousandth_minutes = std::floor(((longi - lon_degrees)*60 - lon_minutes)*10000);
 
-    double nmea_lon = abs(lon_degrees*100 + lon_minutes);
+    double nmea_lon = lon_degrees*100 + lon_minutes + 0.0001*lon_ten_thousandth_minutes;
     std::cout<<"nmea_lon = "<<nmea_lon<<std::endl;
 
-  string lattitude_str = doubleToString(nmea_lat,2);
-  string longitude_str = doubleToString(nmea_lon,2);
+  string lattitude_str = doubleToString(nmea_lat,4);
+    if (lat_degrees < 10)
+      lattitude_str = "0" + lattitude_str;
+
+  string longitude_str = doubleToString(nmea_lon,4);
+    if (lon_degrees < 10)
+      longitude_str = "00" + longitude_str;
+    else if (lon_degrees < 100)
+      longitude_str = "0" + longitude_str;
 
 
-//  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
 
-string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
+  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+
+  //string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
@@ -304,7 +314,7 @@ bool CiBackSeatServer::OnConnectToServer()
    if(m_MissionReader.GetValue("LongOrigin", sValu))
     {
 	dfLongOrigin = atof(sValu.c_str());
-	m_Comms.Notify("LON_ORIGIN",dfLongOrigin);
+	m_Comms.Notify("LONG_ORIGIN",dfLongOrigin);
     }
     else
     {
