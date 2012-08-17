@@ -44,7 +44,12 @@ private:
     	std::string yaw;
     	std::string pitch;
     	std::string altitude_str;
-      
+	std::string pitch_rate;
+	std::string yaw_rate;
+
+	double prev_pit;
+	double prev_yw;
+	double prev_time;      
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
 };

@@ -53,6 +53,9 @@ CiBackSeatServer::CiBackSeatServer()
   pitch = "";
   altitude_str = "";
 
+  prev_pit =0;
+  prev_yw = 0;
+  prev_time = 0;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -69,15 +72,18 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     double nav_x;
     double nav_y;
     double nav_z;
-    double direction;
+    double course;
     double dep;
     double spd;
     double yw;
     double pit;
     double last_bathy_z = 0.0;
     double altitude;
-
   
+    double curr_time = MOOSTime();
+    double delta_time = curr_time-prev_time;
+    prev_time = curr_time;
+
   //  MOOSMSG_LIST::iterator pp;
 
     for(MOOSMSG_LIST::iterator p = NewMail.begin(); p != NewMail.end(); p++)
@@ -103,8 +109,8 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     }
     if(Msg.m_sKey == "FRONTSEAT_HEADING")  
     {
-	direction  = Msg.GetDouble();
-	heading = doubleToString(direction, 1);
+	course  = Msg.GetDouble();
+	heading = doubleToString(course, 1);
     }
     if(Msg.m_sKey == "FRONTSEAT_DEPTH")  
     {
@@ -119,12 +125,20 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     if(Msg.m_sKey == "FRONTSEAT_YAW")  
     {
 	yw  = Msg.GetDouble();
-	yaw = doubleToString(yw, 1);
+      // BF NMEA in degrees
+	double yw_deg = yw*180/M_PI;
+	yaw = doubleToString(yw_deg, 1);
+	yaw_rate = doubleToString((yw_deg-prev_yw)/delta_time,1);
+	prev_yw = yw_deg;
     }
     if(Msg.m_sKey == "FRONTSEAT_PITCH")  
     {
 	pit  = Msg.GetDouble();
-	pitch = doubleToString(pit, 1);
+      // BF NMEA in degrees
+	double pit_deg = pit*180/M_PI;
+	pitch = doubleToString(pit_deg, 1);
+	pitch_rate = doubleToString((pit_deg-prev_pit)/delta_time,1);
+	prev_pit = pit_deg;
     }
     if(Msg.m_sKey == "BATHY_Z")
     {
@@ -243,18 +257,22 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     std::cout<<"nmea_lon = "<<nmea_lon<<std::endl;
 
   string lattitude_str = doubleToString(nmea_lat,4);
+    if (lat_degrees < 1)
+      lattitude_str = "00" + lattitude_str;
     if (lat_degrees < 10)
       lattitude_str = "0" + lattitude_str;
 
   string longitude_str = doubleToString(nmea_lon,4);
-    if (lon_degrees < 10)
+    if (lon_degrees < 1)
+      longitude_str = "000" + longitude_str;
+    else if (lon_degrees < 10)
       longitude_str = "00" + longitude_str;
     else if (lon_degrees < 100)
       longitude_str = "0" + longitude_str;
 
 
 
-  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,0,"+SecondsSinceMidnight(3)+"*";
+  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,"+pitch+","+SecondsSinceMidnight(3)+"*";
 
   //string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
 
@@ -264,6 +282,29 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
    std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
  //  tcp_server.write(data_packet);
+
+  tcp_server->write(data_packet);
+
+  // Now the navigation rate message
+
+  string vel_east = doubleToString(-spd * sin(yw));
+  string vel_north = doubleToString(spd * cos(yw));
+  string vel_down = doubleToString(-spd * sin(pit));
+
+  data_packet = "$BFNVR,"+SecondsSinceMidnight(3)+","
+    +vel_east+","
+    +vel_north+","
+    +vel_down+","
+    +pitch_rate+",1,"
+    +"0.0"+","
+    +yaw_rate+","
+    +SecondsSinceMidnight(3)+"*";
+
+  checksum=gen_NMEAchecksum(data_packet.c_str());
+
+  data_packet+=checksum+"\r\n";
+
+  std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
 
   tcp_server->write(data_packet);
 
