@@ -246,6 +246,33 @@ bool CRapRays::rapRange(double x0, double y0, double z0,
       return(false);
     }
 }
+
+bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,double beam_width, double &range_center, double& range_3db_inner, double& range_3db_outer)
+{
+  double range;
+
+  bool footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg, range);
+  if (!footprint)
+    return(false);
+  else
+    range_center = range;
+
+  // outer 3dB
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg-beam_width*0.25, range);
+  if (!footprint)
+    return(false);
+  else
+    range_3db_outer = range;
+  // inner 3dB
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg+beam_width*0.25, range);
+  if (!footprint)
+    return(false);
+  else
+    range_3db_inner = range;
+
+  return(true);
+
+}
 double CRapRays::logTerm(double c, double a)
 {
   return(log((1+sqrt(1.0 - pow(a*c,2)))/(a*c)));

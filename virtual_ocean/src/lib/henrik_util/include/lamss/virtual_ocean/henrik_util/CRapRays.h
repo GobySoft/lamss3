@@ -50,6 +50,13 @@ class CRapRays
 		   double r, double r_rate,
 		   double & x, double & y,
 		   double & hdg, double & spd);
+  bool rapFootprint(double elev_deg, 
+		    double my_depth, 
+		    double rap_depth,
+		    double beam_width, 
+		    double &range_center, 
+		    double& range_3db_inner, 
+		    double& range_3db_outer);
 
  protected:
 
