@@ -47,9 +47,23 @@ private:
 	std::string pitch_rate;
 	std::string yaw_rate;
 
+
+	double nav_x;
+	double nav_y;
+	double nav_z;
+	double course;
+	double dep;
+	double spd;
+	double yw;
+	double pit;
+	double last_bathy_z;
+	double altitude;
+	
 	double prev_pit;
 	double prev_yw;
-	double prev_time;      
+	double pit_time;      
+	double yw_time;
+      
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
 };

@@ -52,10 +52,11 @@ CiBackSeatServer::CiBackSeatServer()
   yaw = "";
   pitch = "";
   altitude_str = "";
-
+  last_bathy_z =0;
   prev_pit =0;
   prev_yw = 0;
-  prev_time = 0;
+  yw_time = 0;
+  pit_time = 0;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -69,20 +70,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg Msg;
 
 
-    double nav_x;
-    double nav_y;
-    double nav_z;
-    double course;
-    double dep;
-    double spd;
-    double yw;
-    double pit;
-    double last_bathy_z = 0.0;
-    double altitude;
-  
     double curr_time = MOOSTime();
-    double delta_time = curr_time-prev_time;
-    prev_time = curr_time;
 
   //  MOOSMSG_LIST::iterator pp;
 
@@ -128,8 +116,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
       // BF NMEA in degrees
 	double yw_deg = yw*180/M_PI;
 	yaw = doubleToString(yw_deg, 1);
+	double delta_time = curr_time-yw_time;
 	yaw_rate = doubleToString((yw_deg-prev_yw)/delta_time,1);
 	prev_yw = yw_deg;
+	yw_time = curr_time;
     }
     if(Msg.m_sKey == "FRONTSEAT_PITCH")  
     {
@@ -137,8 +127,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
       // BF NMEA in degrees
 	double pit_deg = pit*180/M_PI;
 	pitch = doubleToString(pit_deg, 1);
+	double delta_time = curr_time-pit_time;
 	pitch_rate = doubleToString((pit_deg-prev_pit)/delta_time,1);
 	prev_pit = pit_deg;
+	pit_time = curr_time;
     }
     if(Msg.m_sKey == "BATHY_Z")
     {
@@ -193,120 +185,6 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
  std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
  m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
   altitude_str = doubleToString(altitude,1);
-
-  double latti = 0;
-  double longi = 0;
-
-
-  if(!m_Geodesy.UTM2LatLong(nav_x, nav_y,latti, longi))
-// if(!m_Geodesy.LocalGrid2LatLong(nav_x, nav_y,latti, longi))
-  {
-	std::cout<<"Error in converting local coordinates to global"<<std::endl;
-  }
-
-  std::cout<<"Latitude = "<<latti<<", Longitude = "<<longi<<std::endl;
-  m_Comms.Notify("FRONTSEAT_LATITUDE",latti);
-  m_Comms.Notify("FRONTSEAT_LONGITUDE",longi);
-
-  //Hemisphere Lat_a (N/S) & Long_b (E/W)
-  string Lat_a;
-  string Long_b;
-
-  if(latti < 0.0) Lat_a = "S";
-  else Lat_a = "N";
-
-  if(longi < 0.0) Long_b = "W";
-  else Long_b = "E";
-
-  latti = fabs(latti);
-  longi = fabs(longi);
-  //Convert Decimal Degrees to BF NMEA standard
-  //Latitude llll.ll - first 2 digits are decimal degrees
-  //Longitude yyyyy.yy - first 3 are decimal degrees
-
-  //Latitude conversion
-//  double lat_degrees = abs(floor(latti));
-//  double lat_minutes = abs(latti - floor(latti))*60;
-
-//  double nmea_lat = lat_degrees*100 + lat_minutes;
-
-    int lat_degrees = std::floor(latti);
-    int lat_minutes = std::floor((latti - lat_degrees)*60);
-    int lat_ten_thousandth_minutes = std::floor(((latti-lat_degrees)*60 - lat_minutes)*10000);
-
-    double nmea_lat = lat_degrees*100 + lat_minutes + 0.0001*lat_ten_thousandth_minutes;
-
-    //    double dfLatDecDeg = m_Geodesy.DMS2DecDeg(nmea_lat);
-
-    //    std::cout<<" =============> Lat Dec Deg = "<<dfLatDecDeg<<std::endl;
- 
-    std::cout<<"lat_degrees = "<<lat_degrees<<" lat_minutes = "<<lat_minutes<< " lat_ten_thousandth_minutes = "<< lat_ten_thousandth_minutes<<" nmea_lat = "<<nmea_lat<<std::endl;
-
-  //Longitude conversion
-
-//  double lon_degrees = abs(floor(longi));
-//  double lon_minutes = abs(longi - floor(longi))*60;
-
-//  double nmea_lon = lon_degrees*100 + lon_minutes;
-
-    int lon_degrees = std::floor(longi);
-    int lon_minutes = std::floor((longi - lon_degrees)*60);
-    int lon_ten_thousandth_minutes = std::floor(((longi - lon_degrees)*60 - lon_minutes)*10000);
-
-    double nmea_lon = lon_degrees*100 + lon_minutes + 0.0001*lon_ten_thousandth_minutes;
-    std::cout<<"nmea_lon = "<<nmea_lon<<std::endl;
-
-  string lattitude_str = doubleToString(nmea_lat,4);
-    if (lat_degrees < 1)
-      lattitude_str = "00" + lattitude_str;
-    if (lat_degrees < 10)
-      lattitude_str = "0" + lattitude_str;
-
-  string longitude_str = doubleToString(nmea_lon,4);
-    if (lon_degrees < 1)
-      longitude_str = "000" + longitude_str;
-    else if (lon_degrees < 10)
-      longitude_str = "00" + longitude_str;
-    else if (lon_degrees < 100)
-      longitude_str = "0" + longitude_str;
-
-
-
-  string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,"+pitch+","+SecondsSinceMidnight(3)+"*";
-
-  //string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
-
-   string checksum=gen_NMEAchecksum(data_packet.c_str());
-
-   data_packet+=checksum+"\r\n";
-
-   std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
- //  tcp_server.write(data_packet);
-
-  tcp_server->write(data_packet);
-
-  // Now the navigation rate message
-
-  string vel_east = doubleToString(-spd * sin(yw));
-  string vel_north = doubleToString(spd * cos(yw));
-  string vel_down = doubleToString(-spd * sin(pit));
-
-  data_packet = "$BFNVR,"+SecondsSinceMidnight(3)+","
-    +vel_east+","
-    +vel_north+","
-    +vel_down+","
-    +pitch_rate+",1,"
-    +"0.0"+","
-    +yaw_rate+","
-    +SecondsSinceMidnight(3)+"*";
-
-  checksum=gen_NMEAchecksum(data_packet.c_str());
-
-  data_packet+=checksum+"\r\n";
-
-  std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
-
-  tcp_server->write(data_packet);
 
   UpdateMOOSVariables(NewMail);
   
@@ -427,7 +305,123 @@ string data_packet ="$BFMIS,"+SecondsSinceMidnight(3)+",file,Running*";
     }
 
     
-    return true;
+  double latti = 0;
+  double longi = 0;
+
+
+  if(!m_Geodesy.UTM2LatLong(nav_x, nav_y,latti, longi))
+  {
+	std::cout<<"Error in converting local coordinates to global"<<std::endl;
+  }
+  else
+    {
+      std::cout<<"Latitude = "<<latti<<", Longitude = "<<longi<<std::endl;
+      //  m_Comms.Notify("FRONTSEAT_LATITUDE",latti);
+      //  m_Comms.Notify("FRONTSEAT_LONGITUDE",longi);
+      m_Comms.Notify("NAV_LAT",latti);
+      m_Comms.Notify("NAV_LONG",longi);
+      
+      //Hemisphere Lat_a (N/S) & Long_b (E/W)
+      string Lat_a;
+      string Long_b;
+      
+      if(latti < 0.0) Lat_a = "S";
+      else Lat_a = "N";
+      
+      if(longi < 0.0) Long_b = "W";
+      else Long_b = "E";
+      
+      latti = fabs(latti);
+      longi = fabs(longi);
+      //Convert Decimal Degrees to BF NMEA standard
+      //Latitude llll.ll - first 2 digits are decimal degrees
+      //Longitude yyyyy.yy - first 3 are decimal degrees
+      
+      //Latitude conversion
+      //  double lat_degrees = abs(floor(latti));
+      //  double lat_minutes = abs(latti - floor(latti))*60;
+      
+      //  double nmea_lat = lat_degrees*100 + lat_minutes;
+      
+      int lat_degrees = std::floor(latti);
+      int lat_minutes = std::floor((latti - lat_degrees)*60);
+      int lat_ten_thousandth_minutes = std::floor(((latti-lat_degrees)*60 - lat_minutes)*10000);
+      
+      double nmea_lat = lat_degrees*100 + lat_minutes + 0.0001*lat_ten_thousandth_minutes;
+      
+      //    double dfLatDecDeg = m_Geodesy.DMS2DecDeg(nmea_lat);
+      
+      //    std::cout<<" =============> Lat Dec Deg = "<<dfLatDecDeg<<std::endl;
+      
+      std::cout<<"lat_degrees = "<<lat_degrees<<" lat_minutes = "<<lat_minutes<< " lat_ten_thousandth_minutes = "<< lat_ten_thousandth_minutes<<" nmea_lat = "<<nmea_lat<<std::endl;
+      
+      //Longitude conversion
+      
+      //  double lon_degrees = abs(floor(longi));
+      //  double lon_minutes = abs(longi - floor(longi))*60;
+      
+      //  double nmea_lon = lon_degrees*100 + lon_minutes;
+      
+      int lon_degrees = std::floor(longi);
+      int lon_minutes = std::floor((longi - lon_degrees)*60);
+      int lon_ten_thousandth_minutes = std::floor(((longi - lon_degrees)*60 - lon_minutes)*10000);
+      
+      double nmea_lon = lon_degrees*100 + lon_minutes + 0.0001*lon_ten_thousandth_minutes;
+      std::cout<<"nmea_lon = "<<nmea_lon<<std::endl;
+      
+      string lattitude_str = doubleToString(nmea_lat,4);
+      if (lat_degrees < 1)
+	lattitude_str = "00" + lattitude_str;
+      if (lat_degrees < 10)
+	lattitude_str = "0" + lattitude_str;
+      
+      string longitude_str = doubleToString(nmea_lon,4);
+      if (lon_degrees < 1)
+	longitude_str = "000" + longitude_str;
+      else if (lon_degrees < 10)
+	longitude_str = "00" + longitude_str;
+      else if (lon_degrees < 100)
+	longitude_str = "0" + longitude_str;
+      
+      
+      
+      string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,"+pitch+","+SecondsSinceMidnight(3)+"*";
+      
+      //string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
+      
+      string checksum=gen_NMEAchecksum(data_packet.c_str());
+      
+      data_packet+=checksum+"\r\n";
+      
+      std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
+      //  tcp_server.write(data_packet);
+      
+      tcp_server->write(data_packet);
+      
+      // Now the navigation rate message
+      
+      string vel_east = doubleToString(-spd * sin(yw));
+      string vel_north = doubleToString(spd * cos(yw));
+      string vel_down = doubleToString(-spd * sin(pit));
+      
+      data_packet = "$BFNVR,"+SecondsSinceMidnight(3)+","
+	+vel_east+","
+	+vel_north+","
+	+vel_down+","
+	+pitch_rate+",1,"
+	+"0.0"+","
+	+yaw_rate+","
+	+SecondsSinceMidnight(3)+"*";
+      
+      checksum=gen_NMEAchecksum(data_packet.c_str());
+      
+      data_packet+=checksum+"\r\n";
+      
+      std::cout <<"To clients:["<<data_packet<<"]"<<std::endl;
+      
+      tcp_server->write(data_packet);
+    }
+  return true;
 }
 
 
