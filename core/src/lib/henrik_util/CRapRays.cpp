@@ -118,15 +118,15 @@ bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, doubl
 	  // travel time
 	  double c_turn = c_0 + c_grad*z_turn;
 	  tau = fabs((logTerm(c_s,a) + logTerm(c_r,a))/c_grad);
-	  MOOSTrace("ray turning depth, z_turn = %f \n",z_turn);
+	  //MOOSTrace("ray turning depth, z_turn = %f \n",z_turn);
 	}
       else
 	tau = fabs((logTerm(c_s,a) - logTerm(c_r,a))/c_grad);
 
       p_tl = sqrt(fabs(c_r * cth0/(c_s * J_s))); 
       theta0 = th0_1*180.0/M_PI;
-      MOOSTrace("eigenray: th0 = %f, s = %f m, p * s = %f, tau = %f \n",
-		theta0,s,p_tl*s,tau);
+      //MOOSTrace("eigenray: th0 = %f, s = %f m, p * s = %f, tau = %f \n",
+      //		theta0,s,p_tl*s,tau);
       return(true);
     }
 }
@@ -155,7 +155,7 @@ bool CRapRays::rapDepth(double x, double y, double z,
 	  double cth = sqrt(1.0-pow(sth,2));
 	  z_rap =  R*cth - c_0 /c_grad;
 	}
-      MOOSTrace("r_rap = %f, z_rap = %f \n", r_rap,z_rap);
+      //MOOSTrace("r_rap = %f, z_rap = %f \n", r_rap,z_rap);
       return(true);
     }
 }
@@ -245,6 +245,16 @@ bool CRapRays::rapRange(double x0, double y0, double z0,
       // no crossing ray
       return(false);
     }
+}
+
+bool CRapRays::maxRapRange(double sonar_depth, double target_depth, double& range)
+{
+
+  double ran1,ran2;
+  bool ok = rapRange(0.0,0.0,z_max,target_depth,0.0,ran1);
+  ok = ok&& rapRange(0.0,0.0,z_max,sonar_depth,0.0,ran2);
+  range = ran1+ran2;
+  return(ok);
 }
 
 bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,double beam_width, double &range_center, double& range_3db_inner, double& range_3db_outer)
