@@ -61,6 +61,7 @@ bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, doubl
     }
   else
     {
+#if 0
       double th0_0 = 0.1;
       double cth0 = cos(th0_0);
       double sth0 = sin(th0_0);
@@ -95,6 +96,19 @@ bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, doubl
 	  //	  MOOSTrace("eigenray: i = %d,  z = %f, th = %f \n",i,z_1,th0_1*180.0/M_PI);
 	  i++;
 	}
+#else
+      double th0 = atan2(z0-z,r);
+      double zeta =  (z0+z)*0.5+c_0/c_grad;
+      double xi = zeta*tan(th0);
+      double r_c=r/2-xi;
+      double th0_1 = atan2(r_c,z0+c_0/c_grad);
+      double cth0 = cos(th0_1);
+      double sth0 = sin(th0_1);
+      double R = c_s / (c_grad * cth0);
+      double sth = (R * sth0 -r)/R;
+      double cth = sqrt(1.0-pow(sth,2));
+
+#endif
       // pressure of eigenray      
       double th = atan2(sth,cth);
       double s = R*(th0_1 - th);
@@ -251,8 +265,8 @@ bool CRapRays::maxRapRange(double sonar_depth, double target_depth, double& rang
 {
 
   double ran1,ran2;
-  bool ok = rapRange(0.0,0.0,z_max,target_depth,0.0,ran1);
-  ok = ok&& rapRange(0.0,0.0,z_max,sonar_depth,0.0,ran2);
+  bool ok = rapRange(0.0,0.0,w_depth,target_depth,0.0,ran1);
+  ok = ok && rapRange(0.0,0.0,w_depth,sonar_depth,0.0,ran2);
   range = ran1+ran2;
   return(ok);
 }
