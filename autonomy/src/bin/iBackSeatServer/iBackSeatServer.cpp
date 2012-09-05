@@ -302,6 +302,9 @@ string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",Running*";
     
     std::cout <<"<==From client :" << in_final << std::endl;
     Sentence.Set(in_final.c_str());
+
+    m_Comms.Notify("RAW_MSG_FROM_BACKSEAT",in_final.c_str());
+
     Translate(Sentence);
     }
 
