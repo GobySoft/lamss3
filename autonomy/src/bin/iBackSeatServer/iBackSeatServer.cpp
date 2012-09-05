@@ -282,7 +282,8 @@ bool CiBackSeatServer::Iterate()
     NMEAMessage Sentence;
 
 //Tell the client that front seat is ready to receive commands
-string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",file,Running*";
+//string data_packet ="$BFMIS,"+SecondsSinceMidnight(3)+",file,Running*";
+string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",Running*";
 
    string checksum=gen_NMEAchecksum(data_packet.c_str());
 
