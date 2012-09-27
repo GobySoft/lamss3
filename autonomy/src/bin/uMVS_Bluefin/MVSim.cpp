@@ -76,7 +76,7 @@ CMVSim::CMVSim()
     buoyancy_requested = false;
     trim_requested = false;
     buoyancy_delay = 2;
-    max_trim_delay = 10;
+    max_trim_delay = 5;
     // pitch tolerance in degrees
     pitch_tolerance = 5;
 }
@@ -192,6 +192,8 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			    {
  				pAUV->m_dfTrim = 0.0;
 				buoyancy_request_time = MOOSTime();
+				std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
+				m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
 				buoyancy_requested = true;
 			    }
 			  continue;
@@ -201,6 +203,9 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			  if (MOOSStrCmp(rMsg.m_sVal,"true"))
 			    {
 			      trim_request_time = MOOSTime();
+			      std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
+				+ doubleToString(pitch_degrees) + ",trim_roll=0.0";
+			      m_Comms.Notify("TRIM_REPORT",trim_status);
 			      trim_requested = true;
 			    }
 			  continue;
