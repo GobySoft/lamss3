@@ -307,7 +307,9 @@ bool CMVSim::Iterate()
       }
     if (trim_requested)
       {
-	if (fabs(pitch_degrees) <= pitch_tolerance || current_time-trim_request_time >= max_trim_delay) 
+	if ((fabs(pitch_degrees) <= pitch_tolerance 
+	     && current_time-trim_request_time >= buoyancy_delay) 
+	    || current_time-trim_request_time >= max_trim_delay) 
 	  {
 	    std::string trim_status="status=2,error=0,completed,trim_pitch=" 
 	      + doubleToString(pitch_degrees) + ",trim_roll=0.0";
