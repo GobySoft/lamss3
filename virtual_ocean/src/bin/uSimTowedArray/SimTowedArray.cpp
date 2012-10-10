@@ -179,7 +179,9 @@ bool CSimTowedArray::OnStartUp()
 
     if(m_MissionReader.GetConfigurationParam("array_type",sVal))
     {
-      if (MOOSStrCmp(sVal,"fixed"))
+      if (MOOSStrCmp(sVal,"fixed") || MOOSStrCmp(sVal,"hla"))
+	array_type = sVal;
+      else if (MOOSStrCmp(sVal,"vla"))
 	array_type = sVal;
       else
 	array_type = "towed";
@@ -693,6 +695,34 @@ bool CSimTowedArray::Iterate()
 		MOOSTrace("\nCable Tension is out of bounds: %f\n", cable_tension);
 		m_Comms.Notify("CABLE_TENSION",0.0);
 	      }
+	  }
+	else if (array_type == "vla")
+	  {
+	    ael_pitch = nav_pitch - 0.5*M_PI;
+ 
+	    Array.straight_array(tow_pos_x, tow_pos_y, tow_pos_z, 
+				 tow_vel_x, tow_vel_y, tow_vel_z, nav_yaw,  
+				 ael_heading, ael_pitch );
+
+	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
+	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);  
+	    m_Comms.Notify("CABLE_SHAPE_X",Array.x_array);
+	    m_Comms.Notify("CABLE_SHAPE_Y",Array.y_array);
+	    m_Comms.Notify("CABLE_SHAPE_Z",Array.z_array);
+	    m_Comms.Notify("ARRAY_X", Array.ac_array_x);
+	    m_Comms.Notify("ARRAY_Y", Array.ac_array_y);
+	    m_Comms.Notify("ARRAY_Z", Array.ac_array_z);
+	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);  
+	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);
+	    m_Comms.Notify("AEL_PITCH",ael_pitch);
+	    m_Comms.Notify("AEL_HEADING",ael_heading);
+	    m_Comms.Notify("AEL_X_OFFSET",Array.ael_x_offset);
+	    m_Comms.Notify("AEL_Y_OFFSET",Array.ael_y_offset);
+	    m_Comms.Notify("AEL_X",Array.ael_x);
+	    m_Comms.Notify("AEL_Y",Array.ael_y);
+	    Array_init=false;
+	    Array.count =0;
+	    if (pp > hist_length) pp = 0;
 	  }
 	else
 	  {
