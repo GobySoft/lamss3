@@ -452,6 +452,7 @@ bool CSimTowedArray::OnStartUp()
     ////END: LOAD ARRAY DEFINITION PARAMETERS								////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     
+    m_Comms.Notify("ARRAY_TYPE",array_type);
     return(true);
 }
 
