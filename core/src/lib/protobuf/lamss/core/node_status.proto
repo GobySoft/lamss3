@@ -1,6 +1,7 @@
 import "header.proto";
 import "goby/common/protobuf/option_extensions.proto";
 import "goby/acomms/protobuf/dccl_option_extensions.proto";
+import "goby/acomms/protobuf/arithmetic_extensions.proto";
 
 package lamss.protobuf;
 
@@ -183,18 +184,18 @@ message MinimalNodeStatus
   option (dccl.msg).max_bytes = 32;
 
   required int32 t = 1 [(dccl.field).codec = "_arithmetic",
-                        (dccl.field).arithmetic.model = "lamss.time",
-                        (dccl.field).arithmetic.debug_assert = true];
+                        (dccl.field).(arithmetic).model = "lamss.time",
+                        (dccl.field).(arithmetic).debug_assert = true];
   
   required int32 x = 2 [(dccl.field).codec = "_arithmetic",
-                        (dccl.field).arithmetic.model = "lamss.dist.horizontal",
-                        (dccl.field).arithmetic.debug_assert = true];
+                        (dccl.field).(arithmetic).model = "lamss.dist.horizontal",
+                        (dccl.field).(arithmetic).debug_assert = true];
   required int32 y = 3 [(dccl.field).codec = "_arithmetic",
-                        (dccl.field).arithmetic.model = "lamss.dist.horizontal",
-                        (dccl.field).arithmetic.debug_assert = true];
+                        (dccl.field).(arithmetic).model = "lamss.dist.horizontal",
+                        (dccl.field).(arithmetic).debug_assert = true];
   required int32 z = 4 [(dccl.field).codec = "_arithmetic",
-                        (dccl.field).arithmetic.model = "lamss.dist.vertical",
-                        (dccl.field).arithmetic.debug_assert = true];
+                        (dccl.field).(arithmetic).model = "lamss.dist.vertical",
+                        (dccl.field).(arithmetic).debug_assert = true];
 }
 
 
@@ -205,14 +206,14 @@ message MinimalNodeStatusDifference
 
   repeated int32 dx = 1 [(dccl.field).max_repeat = 10,
                          (dccl.field).codec = "_arithmetic",
-                         (dccl.field).arithmetic.model = "lamss.dist.diff.horizontal",
-                         (dccl.field).arithmetic.debug_assert = true];
+                         (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal",
+                         (dccl.field).(arithmetic).debug_assert = true];
   repeated int32 dy = 2 [(dccl.field).max_repeat = 10,
                          (dccl.field).codec = "_arithmetic",
-                         (dccl.field).arithmetic.model = "lamss.dist.diff.horizontal",
-                         (dccl.field).arithmetic.debug_assert = true];
+                         (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal",
+                         (dccl.field).(arithmetic).debug_assert = true];
   repeated int32 dz = 3 [(dccl.field).max_repeat = 10,
                          (dccl.field).codec = "_arithmetic",
-                         (dccl.field).arithmetic.model = "lamss.dist.diff.vertical",
-                         (dccl.field).arithmetic.debug_assert = true];
+                         (dccl.field).(arithmetic).model = "lamss.dist.diff.vertical",
+                         (dccl.field).(arithmetic).debug_assert = true];
 }
