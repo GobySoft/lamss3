@@ -11,8 +11,7 @@ message NodeStatus
   option (dccl.msg).max_bytes = 32;
 
   required LAMSSHeader header = 1;
-  required string name = 2 [(dccl.field).codec = "_platform<->modem_id",
-                            (goby.field).queue.is_src = true];
+  required string name = 2 [(dccl.field).codec = "_platform<->modem_id"];
 
   // defined in goby/core/proto/config.proto
   optional VehicleType type = 3;

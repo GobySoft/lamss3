@@ -6,6 +6,5 @@ message LAMSSHeader
 {
   required double time = 1 [(lamss.field).description = "Seconds since 1970-01-01 00:00:00 UTC",
                             (dccl.field).codec = "_time",
-                            (goby.field).queue.is_time = true,
                             (dccl.field).in_head = true];  
 }
