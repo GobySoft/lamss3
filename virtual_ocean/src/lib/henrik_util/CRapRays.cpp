@@ -282,13 +282,13 @@ bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,do
     range_center = range;
 
   // outer 3dB
-  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg-beam_width*0.25, range);
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg-beam_width*0.5, range);
   if (!footprint)
     return(false);
   else
     range_3db_outer = range;
   // inner 3dB
-  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg+beam_width*0.25, range);
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg+beam_width*0.5, range);
   if (!footprint)
     return(false);
   else
