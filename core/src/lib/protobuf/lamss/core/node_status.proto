@@ -202,15 +202,15 @@ message MinimalNodeStatusDifference
   option (dccl.msg).id = 22;
   option (dccl.msg).max_bytes = 60;
 
-  repeated int32 dx = 1 [(dccl.field).max_repeat = 10,
+  repeated int32 dx = 1 [(dccl.field).max_repeat = 15,
                          (dccl.field).codec = "_arithmetic",
                          (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal"];
   //                         (dccl.field).(arithmetic).debug_assert = true];
-  repeated int32 dy = 2 [(dccl.field).max_repeat = 10,
+  repeated int32 dy = 2 [(dccl.field).max_repeat = 15,
                          (dccl.field).codec = "_arithmetic",
                          (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal"];
   //                         (dccl.field).(arithmetic).debug_assert = true];
-  repeated int32 dz = 3 [(dccl.field).max_repeat = 10,
+  repeated int32 dz = 3 [(dccl.field).max_repeat = 15,
                          (dccl.field).codec = "_arithmetic",
                          (dccl.field).(arithmetic).model = "lamss.dist.diff.vertical"];
   //                         (dccl.field).(arithmetic).debug_assert = true];
