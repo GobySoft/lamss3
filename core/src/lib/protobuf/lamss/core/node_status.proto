@@ -194,6 +194,10 @@ message MinimalNodeStatus
   required int32 z = 4 [(dccl.field).codec = "_arithmetic",
                         (dccl.field).(arithmetic).model = "lamss.dist.vertical"];
   //(dccl.field).(arithmetic).debug_assert = true];
+
+  optional double u = 5 [default = nan, (dccl.field).omit = true];
+  optional double v = 6 [default = nan, (dccl.field).omit = true];
+  optional double w = 7 [default = nan, (dccl.field).omit = true];
 }
 
 
