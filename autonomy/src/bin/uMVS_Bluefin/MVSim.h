@@ -114,8 +114,10 @@ protected:
 	double max_trim_delay;
 	double pitch_degrees;
 	double pitch_tolerance;
+	double last_report;
+	double report_interval;
 
-    bool Iterate();
+	bool Iterate();
 	bool OnNewMail(MOOSMSG_LIST & NewMail);
 };
 

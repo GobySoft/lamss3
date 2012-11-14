@@ -75,8 +75,10 @@ CMVSim::CMVSim()
 
     buoyancy_requested = false;
     trim_requested = false;
-    buoyancy_delay = 2;
-    max_trim_delay = 5;
+    buoyancy_delay = 5;
+    max_trim_delay = 10;
+    last_report = 0;
+    report_interval = 5; 
     // pitch tolerance in degrees
     pitch_tolerance = 5;
 }
@@ -186,32 +188,35 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 // 				pAUV->m_dfTrim = rMsg.m_dfVal;
 // 				continue;
 // 			}
- 			else if(rMsg.m_sKey.find("BUOYANCY_CONTROL")!=string::npos)
- 			{
-			  if (MOOSStrCmp(rMsg.m_sVal,"true"))
-			    {
- 				pAUV->m_dfTrim = 0.0;
-				buoyancy_request_time = MOOSTime();
-				std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
-				m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
-				buoyancy_requested = true;
-			    }
-			  continue;
- 			}
- 			else if(rMsg.m_sKey.find("TRIM_CONTROL")!=string::npos)
- 			{
-			  if (MOOSStrCmp(rMsg.m_sVal,"true"))
-			    {
-			      trim_request_time = MOOSTime();
-			      std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
-				+ doubleToString(pitch_degrees) + ",trim_roll=0.0";
-			      m_Comms.Notify("TRIM_REPORT",trim_status);
-			      trim_requested = true;
-			    }
-			  continue;
- 			}
 		}
 	
+		if(MOOSStrCmp(rMsg.m_sKey,"BUOYANCY_CONTROL"))
+		  {
+		    if (MOOSStrCmp(rMsg.m_sVal,"true"))
+		      {
+			pAUV->m_dfTrim = 0.0;
+			buoyancy_request_time = MOOSTime();
+			std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
+			m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+			buoyancy_requested = true;
+			last_report = buoyancy_request_time;
+
+		      }
+		    continue;
+		  }
+		if(MOOSStrCmp(rMsg.m_sKey,"TRIM_CONTROL"))
+		  {
+		    if (MOOSStrCmp(rMsg.m_sVal,"true"))
+		      {
+			trim_request_time = MOOSTime();
+			std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
+			  + doubleToString(pitch_degrees) + ",trim_roll=0.0";
+			m_Comms.Notify("TRIM_REPORT",trim_status);
+			trim_requested = true;
+			last_report = trim_request_time;
+		      }
+		    continue;
+		  }
 		if(MOOSStrCmp(rMsg.m_sKey,"SIM_RESET"))
 		  {
 		    Initialise();
@@ -299,10 +304,11 @@ bool CMVSim::Iterate()
 	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
 	    buoyancy_requested = false;
 	  }
-	else
+	else if (current_time - last_report >= report_interval)
 	  {
 	    std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
 	    m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+	    last_report = current_time; 
 	  }
       }
     if (trim_requested)
@@ -316,11 +322,12 @@ bool CMVSim::Iterate()
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
 	    trim_requested = false;
 	  }
-	else
+	else if (current_time - last_report >= report_interval) 
 	  {
 	    std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
 	      + doubleToString(pitch_degrees) + ",trim_roll=0.0";
 	    m_Comms.Notify("TRIM_REPORT",trim_status);
+	    last_report = current_time; 
 	  }
       }
     // update nav at gps and start drift
