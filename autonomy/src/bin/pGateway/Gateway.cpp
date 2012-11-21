@@ -167,7 +167,7 @@ bool CGateway::OnNewMail(MOOSMSG_LIST &NewMail)
   return(true);
 }
 
-
+/*
 bool CGateway::UTM2LatLong(double x_in, double y_in, double& new_lat, double& new_lon)
 {
   double lat, lon, new_x, new_y ;
@@ -213,4 +213,4 @@ bool CGateway::UTM2LatLong(double x_in, double y_in, double& new_lat, double& ne
   
   return(true);
 }
-  
+*/

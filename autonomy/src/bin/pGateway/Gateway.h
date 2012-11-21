@@ -48,7 +48,7 @@ class CGateway : public CMOOSApp
   double deploy_lat,deploy_lon;
   int dest_addr;
 
-  bool UTM2LatLong(double, double, double&, double& );
+  //  bool UTM2LatLong(double, double, double&, double& );
   double latitude, longitude;
 
 };
