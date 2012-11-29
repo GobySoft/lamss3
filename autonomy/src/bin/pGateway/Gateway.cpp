@@ -76,7 +76,7 @@ bool CGateway::OnStartUp()
   //Done initializaing m_Geodesy
   
   double d_x;
-  if(m_MissionReader.GetValue("deploy_x",d_x))
+  if(m_MissionReader.GetConfigurationParam("deploy_x",d_x))
     {
       deploy_x = d_x;
       // m_Geodesy.UTM2LatLong(deploy_x,deploy_y,deploy_lat,deploy_lon);
@@ -86,7 +86,7 @@ bool CGateway::OnStartUp()
     }     
   
   double d_y;
-  if(m_MissionReader.GetValue("deploy_y",d_y))
+  if(m_MissionReader.GetConfigurationParam("deploy_y",d_y))
     {
       deploy_y = d_y;
       // m_Geodesy.UTM2LatLong(deploy_x,deploy_y,deploy_lat,deploy_lon);    
@@ -95,19 +95,19 @@ bool CGateway::OnStartUp()
       deploy_lon = longitude;
     }
 
-  if(m_MissionReader.GetValue("deploy_longitude",d_x))
+  if(m_MissionReader.GetConfigurationParam("deploy_longitude",d_x))
     {
       deploy_lon = d_x;
     }     
   
-  if(m_MissionReader.GetValue("deploy_latitude",d_y))
+  if(m_MissionReader.GetConfigurationParam("deploy_latitude",d_y))
     {
       deploy_lat = d_y;
     }     
   
   double d_depth;
   
-  if(m_MissionReader.GetValue("deploy_depth",d_depth))
+  if(m_MissionReader.GetConfigurationParam("deploy_depth",d_depth))
     {
       deploy_depth = d_depth;
     }
