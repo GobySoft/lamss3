@@ -72,7 +72,7 @@ CMVSim::CMVSim()
     north_current_est = 0;
     previous_gps = MOOSTime();
     dvl_lock = true;
-
+    drift_update = MOOSTime(); 
     buoyancy_requested = false;
     trim_requested = false;
     buoyancy_delay = 5;
@@ -336,11 +336,15 @@ bool CMVSim::Iterate()
       {
 	GPSUpdate();
 	gps_update = false;
+	drift_x = 0;
+	drift_y = 0;
+	drift_update = MOOSTime();
       }
     else
       {
-	drift_x = (current_time - previous_gps)*east_current_est;
-	drift_y = (current_time - previous_gps)*north_current_est;
+	drift_x += (current_time - drift_update)*east_current_est;
+	drift_y += (current_time - drift_update)*north_current_est;
+	drift_update = MOOSTime();
       }
 
     ///////////////////////////////////////

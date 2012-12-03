@@ -99,6 +99,7 @@ protected:
 	double north_current_est;
 	bool gps_update;
 	bool dvl_lock;
+	double drift_update;
 
 	bool   NeedToMail();
 	double m_dfLastMailed;
