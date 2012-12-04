@@ -1,0 +1,29 @@
+import "goby/acomms/protobuf/dccl_option_extensions.proto";
+import "goby/common/protobuf/option_extensions.proto";
+message LAMSS_PROSECUTE { 
+	option (dccl.msg).id = 19;
+	option (dccl.msg).max_bytes = 32;
+	optional double Target_Timestamp = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional string MessageType = 4 [default="LAMSS_PROSECUTE", (dccl.field).static_value="LAMSS_PROSECUTE", (dccl.field).codec="_static"];
+	optional Prosecute_TypeEnum Prosecute_Type = 5;
+	enum Prosecute_TypeEnum{ 
+		 PROSECUTE_TYPE_ADAPTIVE = 0; 
+		 PROSECUTE_TYPE_TMA_ZIGZAG = 1; 
+		 PROSECUTE_TYPE_POLYGON = 2; 
+	} 
+	optional double Prosecute_Duration = 6 [(dccl.field).max=20470.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+	optional int32 Target_Number = 7 [(dccl.field).max=255, (dccl.field).min=0];
+	optional double Target_X = 8 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Target_Y = 9 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional int32 Target_Depth = 10 [(dccl.field).max=255, (dccl.field).min=0];
+	optional double Target_Heading = 11 [(dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Target_Speed = 12 [(dccl.field).max=12.8, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Array_Angle = 13 [(dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional Array_Angle_ModeEnum Array_Angle_Mode = 14;
+	enum Array_Angle_ModeEnum{ 
+		 ARRAY_ANGLE_MODE_dual = 0; 
+		 ARRAY_ANGLE_MODE_quad = 1; 
+	} 
+} 

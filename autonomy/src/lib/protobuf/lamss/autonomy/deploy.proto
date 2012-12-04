@@ -1,0 +1,70 @@
+import "goby/acomms/protobuf/dccl_option_extensions.proto";
+import "goby/common/protobuf/option_extensions.proto";
+message LAMSS_DEPLOY { 
+	option (dccl.msg).id = 18;
+	option (dccl.msg).max_bytes = 32;
+	optional double Timestamp = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional string MessageType = 4 [default="LAMSS_DEPLOY", (dccl.field).static_value="LAMSS_DEPLOY", (dccl.field).codec="_static"];
+	optional Deploy_ModeEnum Deploy_Mode = 5;
+	enum Deploy_ModeEnum{ 
+		 DEPLOY_MODE_LOITER = 0; 
+		 DEPLOY_MODE_RETURN = 1; 
+		 DEPLOY_MODE_RACETRACK = 2; 
+		 DEPLOY_MODE_ZIGZAG = 3; 
+		 DEPLOY_MODE_LAWNMOWER = 4; 
+		 DEPLOY_MODE_TRAIL = 5; 
+		 DEPLOY_MODE_STATION_KEEP = 6; 
+	} 
+	optional Depth_ModeEnum Depth_Mode = 6;
+	enum Depth_ModeEnum{ 
+		 DEPTH_MODE_SINGLE = 0; 
+		 DEPTH_MODE_DUAL = 1; 
+		 DEPTH_MODE_YOYO = 2; 
+		 DEPTH_MODE_ADAPTIVE_YOYO = 3; 
+		 DEPTH_MODE_TOGGLE_DEPTH_YOYO = 4; 
+		 DEPTH_MODE_ADAPTIVE_SINGLE = 5; 
+		 DEPTH_MODE_ADAPTIVE_ACOMMS = 6; 
+		 DEPTH_MODE_BOTTOM_FOLLOWING = 7; 
+	} 
+	optional Sonar_ControlEnum Sonar_Control = 7;
+	enum Sonar_ControlEnum{ 
+		 SONAR_CONTROL_ON = 0; 
+		 SONAR_CONTROL_OFF = 1; 
+	} 
+	optional Sonar_ProcessEnum Sonar_Process = 8;
+	enum Sonar_ProcessEnum{ 
+		 SONAR_PROCESS_ON = 0; 
+		 SONAR_PROCESS_OFF = 1; 
+	} 
+	optional double Deploy_Duration = 9 [(dccl.field).max=204700.000000, (dccl.field).min=0.000000, (dccl.field).precision=-2];
+	optional double Deploy_X = 10 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Y = 11 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Speed = 12 [(dccl.field).max=2.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Upper_Depth = 13 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Lower_Depth = 14 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Altitude = 15 [(dccl.field).max=100.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Loiter_Radius = 16 [(dccl.field).max=1023, (dccl.field).min=0, (dccl.field).precision=0];
+	optional int32 Loiter_Segments = 17 [(dccl.field).max=31, (dccl.field).min=0];
+	optional double Survey_Heading = 18 [(dccl.field).max=360, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Survey_Length = 19 [(dccl.field).max=40950.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+	optional double Survey_Width = 20 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Survey_Period = 21 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+	optional bool Clockwise = 22;
+	optional Trail_ContactEnum Trail_Contact = 23;
+	enum Trail_ContactEnum{ 
+		 TRAIL_CONTACT_resolution = 0; 
+		 TRAIL_CONTACT_unicorn = 1; 
+		 TRAIL_CONTACT_macrura = 2; 
+		 TRAIL_CONTACT_discovery = 3; 
+	} 
+	optional double Trail_Range = 24 [(dccl.field).max=1023, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Trail_Angle = 25 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
+	optional Trail_Angle_TypeEnum Trail_Angle_Type = 26;
+	enum Trail_Angle_TypeEnum{ 
+		 TRAIL_ANGLE_TYPE_relative = 0; 
+		 TRAIL_ANGLE_TYPE_absolute = 1; 
+	} 
+	optional double GPS_Interval = 27 [(dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+} 
