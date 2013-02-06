@@ -53,6 +53,11 @@ CSimTowedArray::CSimTowedArray()
 
     m_dummy.push_back(0.0);
 
+    ok_local_x =  false;
+    ok_local_y =  false;
+    ok_local_z =  false;
+    nelm = 0;
+
     // ======================================================================
     // Towed array simulation.
     //======================================================================
@@ -183,6 +188,8 @@ bool CSimTowedArray::OnStartUp()
 	array_type = sVal;
       else if (MOOSStrCmp(sVal,"vla"))
 	array_type = sVal;
+      else if (MOOSStrCmp(sVal,"volume"))
+	array_type = sVal;
       else
 	array_type = "towed";
 
@@ -192,6 +199,52 @@ bool CSimTowedArray::OnStartUp()
     {
       MOOSTrace("Array is %s\n",array_type.c_str());
     }
+
+    if(m_MissionReader.GetConfigurationParam("local_array_x",sVal))
+	{
+	  string s_hydrophone_x = sVal;
+	  int nx=str2dbl_vec(s_hydrophone_x, local_x);
+	  if (nelm == 0)
+	    nelm = nx;
+	  else if (nx != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_x = true;
+	}
+
+    if(m_MissionReader.GetConfigurationParam("local_array_y",sVal))
+	{
+	  string s_hydrophone_y = sVal;
+	  int ny=str2dbl_vec(s_hydrophone_y, local_y);
+	  if (nelm == 0)
+	    nelm = ny;
+	  else if (ny != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_y = true;
+	}
+
+    if(m_MissionReader.GetConfigurationParam("local_array_z",sVal))
+	{
+	  string s_hydrophone_z = sVal;
+	  int nz=str2dbl_vec(s_hydrophone_z, local_z);
+	  if (nelm == 0)
+	    nelm = nz;
+	  else if (nz != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_z = true;
+	}
+
 
     if(m_MissionReader.GetConfigurationParam("tow_point_x",sVal))
     {
@@ -465,6 +518,9 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "NAV_SPEED",0);
     m_Comms.Register( "NAV_YAW",0);
     m_Comms.Register( "NAV_PITCH",0);
+    m_Comms.Register( "LOCAL_ARRAY_X",0);
+    m_Comms.Register( "LOCAL_ARRAY_Y",0);
+    m_Comms.Register( "LOCAL_ARRAY_Z",0);
     return(true);
 }
 
@@ -725,6 +781,49 @@ bool CSimTowedArray::Iterate()
 	    Array.count =0;
 	    if (pp > hist_length) pp = 0;
 	  }
+	else if (array_type == "volume")
+	  {
+	    bool ok_volume = ok_local_x & ok_local_y & ok_local_z;
+	    if (!ok_volume)
+	      {
+		MOOSTrace("No x,y,z specified for volumetric array\n");
+		return(0);
+	      }
+
+	    ael_pitch = nav_pitch;
+	    MOOSTrace("Calling volumetric_array(...)\n");
+	    MOOSTrace("towpoint: x =%f ,  y=%f,  z=%f \n", 
+		      tow_pos_x,tow_pos_y,tow_pos_z);
+	    MOOSTrace("towpoint: vx=%f , vy=%f, vz=%f, heading=%f\n", 
+		      tow_vel_x,tow_vel_y,tow_vel_z, ael_heading);
+	    cout << local_x.size() << endl;
+
+	    Array.volumetric_array(tow_pos_x, tow_pos_y, tow_pos_z, 
+				   tow_vel_x, tow_vel_y, tow_vel_z, 
+				   local_x,local_y,local_z,
+				   nav_yaw,  
+				   ael_heading, ael_pitch );
+	    cout << "z_array =" << Array.z_array << endl;
+	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
+	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);  
+	    m_Comms.Notify("CABLE_SHAPE_X",Array.x_array);
+	    m_Comms.Notify("CABLE_SHAPE_Y",Array.y_array);
+	    m_Comms.Notify("CABLE_SHAPE_Z",Array.z_array);
+	    m_Comms.Notify("ARRAY_X", Array.ac_array_x);
+	    m_Comms.Notify("ARRAY_Y", Array.ac_array_y);
+	    m_Comms.Notify("ARRAY_Z", Array.ac_array_z);
+	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);  
+	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);
+	    m_Comms.Notify("AEL_PITCH",ael_pitch);
+	    m_Comms.Notify("AEL_HEADING",ael_heading);
+	    m_Comms.Notify("AEL_X_OFFSET",Array.ael_x_offset);
+	    m_Comms.Notify("AEL_Y_OFFSET",Array.ael_y_offset);
+	    m_Comms.Notify("AEL_X",Array.ael_x);
+	    m_Comms.Notify("AEL_Y",Array.ael_y);
+	    Array_init=false;
+	    Array.count =0;
+	    if (pp > hist_length) pp = 0;
+	  }
 	else
 	  {
             if (array_type == "towed")
@@ -833,6 +932,51 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 	got_pitch = true;
       }
 
+      if(Msg.m_sKey == "LOCAL_ARRAY_X") 
+	{
+	  string s_hydrophone_x = Msg.m_sVal;
+	  int nx=str2dbl_vec(s_hydrophone_x, local_x);
+	  if (nelm == 0)
+	    nelm = nx;
+	  else if (nx != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_x = true;
+	}
+
+      if(Msg.m_sKey == "LOCAL_ARRAY_Y") 
+	{
+	  string s_hydrophone_y = Msg.m_sVal;
+	  int ny=str2dbl_vec(s_hydrophone_y, local_y);
+	  if (nelm == 0)
+	    nelm = ny;
+	  else if (ny != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_y = true;
+	}
+
+      if(Msg.m_sKey == "LOCAL_ARRAY_Z") 
+	{
+	  string s_hydrophone_z = Msg.m_sVal;
+	  int nz=str2dbl_vec(s_hydrophone_z, local_z);
+	  if (nelm == 0)
+	    nelm = nz;
+	  else if (nz != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_z = true;
+	}
+
 
    }
   
@@ -907,6 +1051,7 @@ CArrayModel::CArrayModel()
   array_pitch.clear();
   dtfilt_length = 20;
 
+  m_nelm = 0;
 
 }
 
@@ -4335,5 +4480,83 @@ bool CArrayModel::find_configf(vector<double> yold, vector<double> y, int nt, do
   vecUtils.vmov(y,ynew);
   return(true);
 }  
+
+bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y, 
+				   double tow_pos_z, double tow_vel_x, 
+				   double tow_vel_y, double tow_vel_z, 
+				   vector<double> local_x,
+				   vector<double> local_y,
+				   vector<double> local_z,
+				   double nav_yaw, 
+				   double & ael_heading, 
+				   double & ael_pitch )
+{
+  // This function is a simple model that assumes the array straight behind the vehicle at a prescribed pitch angle.
+
+
+  //****************************************************************************
+  // 		DEFINE THE CABLE SECTION DISCRETIZATION (length and material)
+  //****************************************************************************
+  
+
+  // Array locations along array
+  
+
+  double array_angle;
+  if (pow(tow_vel_x,2)+pow(tow_vel_y,2) < 1e-6)
+      array_angle = nav_yaw+0.5*M_PI;
+  else
+      array_angle = atan2(tow_vel_y, tow_vel_x);
+  ael_heading = angleUtils.angle360(90.0-array_angle*180/PI);
+  MOOSTrace("ael_heading = %f\n");
+
+  array_head.clear();
+  array_pitch.clear();
+  m_nelm = local_x.size();
+
+  for (int i=0; i<m_nelm ; i++)
+    {
+      array_head.push_back(ael_heading);
+      array_pitch.push_back(ael_pitch);
+    }
+
+  std::vector<double> x1;
+  std::vector<double> y1;
+  std::vector<double> z1;
+
+  // Transform to absolute coordinates. 
+
+  double cy = cos(array_angle);
+  double sy = sin(array_angle);
+  double cp = cos(ael_pitch);
+  double sp = sin(ael_pitch);
+
+  for (int i=0; i<m_nelm; i++)
+    {
+      x1.push_back(tow_pos_x+(local_x[i]*cy - local_y[i]*sy)*cp);
+      y1.push_back(tow_pos_y+(local_x[i]*sy + local_y[i]*cy)*cp);
+      z1.push_back(tow_pos_z+local_z[i]*cp+local_y[i]*sp);
+    }
+
+  vecUtils.dbl_vec2str(x1, x_array);
+  vecUtils.dbl_vec2str(y1, y_array);
+  vecUtils.dbl_vec2str(z1, z_array);
+
+  vecUtils.dbl_vec2str(x1, ac_array_x);
+  vecUtils.dbl_vec2str(y1, ac_array_y);
+  vecUtils.dbl_vec2str(z1, ac_array_z);
+
+  ael_x = vecUtils.mean(x1);
+  ael_y = vecUtils.mean(y1);
+  ael_x_offset = ael_x - tow_pos_x;
+  ael_y_offset = ael_y - tow_pos_y;
+
+  vecUtils.dbl_vec2str(array_head, arr_heading);
+  MOOSTrace("arr_heading = %s\n",arr_heading.c_str());
+  vecUtils.dbl_vec2str(array_pitch, arr_pitch);
+
+  return(true);
+}
+
 // >>>>>>>>>>>>>>>>>> End Array dynamic model <<<<<<<<<<<<<<<<<
 
