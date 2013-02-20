@@ -1,5 +1,5 @@
 import "header.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "option_extensions.proto";
 import "goby/acomms/protobuf/dccl_option_extensions.proto";
 import "goby/acomms/protobuf/arithmetic_extensions.proto";
 
