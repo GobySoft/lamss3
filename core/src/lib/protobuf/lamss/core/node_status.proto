@@ -31,57 +31,6 @@ message NodeStatus
 
   optional SourceSensor speed_source = 9 [(dccl.field).omit=true];  
   optional double speed_time_lag = 11 [(dccl.field).omit=true];
-  
-  optional MissionState mission_state = 13;
-  enum MissionState{ 
-    MISSION_STATE_FALSE = 0; 
-    MISSION_STATE_DEPLOY = 1; 
-    MISSION_STATE_PROSECUTE = 2; 
-    MISSION_STATE_ABORT = 3; 
-    MISSION_STATE_UNKNOWN = -1;
-  } 
-  optional DeployMode deploy_mode = 14;
-  enum DeployMode{ 
-    DEPLOY_MODE_LOITER = 0; 
-    DEPLOY_MODE_RETURN = 1; 
-    DEPLOY_MODE_RACETRACK = 2; 
-    DEPLOY_MODE_ZIGZAG = 3; 
-    DEPLOY_MODE_BISTATIC = 4; 
-    DEPLOY_MODE_TRAIL = 5; 
-    DEPLOY_MODE_UNKNOWN = -1; 
-  }  
-  optional DepthMode depth_mode = 15;
-  enum DepthMode{ 
-    DEPTH_MODE_SINGLE = 0; 
-    DEPTH_MODE_DUAL = 1; 
-    DEPTH_MODE_YOYO = 2; 
-    DEPTH_MODE_ADAPTIVE_YOYO = 3; 
-    DEPTH_MODE_ADAPTIVE_ACOMMS = 4; 
-    DEPTH_MODE_UNKNOWN = -1; 
-  } 
-  optional ProsecuteMode prosecute_mode = 16;
-  enum ProsecuteMode{ 
-    PROSECUTE_MODE_DLT = 0; 
-    PROSECUTE_MODE_DCLT = 1; 
-    PROSECUTE_MODE_TMA = 2; 
-    PROSECUTE_MODE_POLYGON = 3; 
-    PROSECUTE_MODE_UNKNOWN = -1; 
-  } 
-  optional CollaborationMode collaboration_mode = 17;
-  enum CollaborationMode{ 
-    COLLABORATION_MODE_UNKNOWN = -1; 
-    COLLABORATION_MODE_OFF = 0; 
-    COLLABORATION_MODE_SYNCH = 1; 
-    COLLABORATION_MODE_COLLABORATING = 2; 
-  } 
-
-  optional SonarControl sonar_control = 18;
-  enum SonarControl{ 
-    SONAR_CONTROL_ON = 0; 
-    SONAR_CONTROL_OFF = 1; 
-  }
-
-  
 }
 
 // Type of vehicle for a given node
