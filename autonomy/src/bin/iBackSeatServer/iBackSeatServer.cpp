@@ -320,10 +320,10 @@ string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",Running*";
   else
     {
       std::cout<<"Latitude = "<<latti<<", Longitude = "<<longi<<std::endl;
-      //  m_Comms.Notify("FRONTSEAT_LATITUDE",latti);
-      //  m_Comms.Notify("FRONTSEAT_LONGITUDE",longi);
-      m_Comms.Notify("NAV_LAT",latti);
-      m_Comms.Notify("NAV_LONG",longi);
+      m_Comms.Notify("FRONTSEAT_LATITUDE",latti);
+      m_Comms.Notify("FRONTSEAT_LONGITUDE",longi);
+      //  m_Comms.Notify("NAV_LAT",latti);
+      //  m_Comms.Notify("NAV_LONG",longi);
       
       //Hemisphere Lat_a (N/S) & Long_b (E/W)
       string Lat_a;
