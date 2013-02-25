@@ -695,7 +695,8 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
       }
     else if(Msg.m_sKey == "COVARIANCE_FILE")
       {
-	if (noise_profile && noise_direct && noise_cov_built)
+	//	if (noise_profile && noise_direct && noise_cov_built)
+	if (noise_direct && noise_cov_built)
 	  {
 	    string covmat_file = Msg.m_sVal;
 	    double t_req;
