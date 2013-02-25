@@ -667,19 +667,28 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
 					  vector<double>& dom_nl,
 					  vector<double>& noise_db)
 {
+  bool elev;
   // read the ambient noise profile
   dom_nl.clear();
   noise_db.clear();
 
   std::string depths_nl, nls;    
-  val_from_string(depths_nl, noise_in, "theta");
-  val_from_string(nls, noise_in, "S");
+  if ( val_from_string(depths_nl, noise_in, "theta") )
+    elev = false;
+  else if ( val_from_string(depths_nl, noise_in, "elevation") )
+      elev=true;
+  else
+    return(false);
+
+  if ( !val_from_string(nls, noise_in, "S"))
+    return(false);
   
   std::vector<std::string> depth_nl_vec;
   std::vector<std::string> nl_vec;
   boost::split(depth_nl_vec, depths_nl, boost::is_any_of(","));
   boost::split(nl_vec, nls, boost::is_any_of(","));
-  
+
+
   try
     {
       
@@ -714,6 +723,13 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
     }
   catch (boost::bad_lexical_cast&)
     { return false; }
+
+  // If directionality specified in elevation, convert to polar angle
+  if (elev)
+    {
+      for (unsigned int i=0; i<dom_nl.size(); i++)
+	dom_nl[i] = 90 - dom_nl[i];
+    }
   return(true);
 }    
 
