@@ -562,15 +562,22 @@ bool CmyVectorUtils::interp(vector<double> x, vector<double> y, vector<double> x
   y_int = zeros(x_int.size(),1);
   for (int i=0; i<x_int.size(); i++)
     {
-      if ((x_int[i] < x[0]) || (x_int[i] > x[x.size()-1]))
-	return(false);
-      bool done =  false; 
-      for (int j=1; j<x.size() && !done; j++)
+      if (x_int[i] <= x[0]) 
+	y_int[i] = y[0];
+      else if (x_int[i] >= x[x.size()-1])
+	y_int[i] = y[x.size()-1];
+
+      //	return(false);
+      else
 	{
-	  if (x_int[i] < x[j])
+	  bool done =  false; 
+	  for (int j=1; j<x.size() && !done; j++)
 	    {
-	      y_int[i] = y[j-1] + (x_int[i]-x[j-1])*(y[j]-y[j-1])/(x[j]-x[j-1]);
-	      done =true;
+	      if (x_int[i] < x[j])
+		{
+		  y_int[i] = y[j-1] + (x_int[i]-x[j-1])*(y[j]-y[j-1])/(x[j]-x[j-1]);
+		  done =true;
+		}
 	    }
 	}
     }
