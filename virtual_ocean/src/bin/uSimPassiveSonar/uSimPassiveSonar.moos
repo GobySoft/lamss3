@@ -22,8 +22,10 @@ ProcessConfig = uSimPassiveSonar
   minimum_frequency = 800       // Minimum frequency of processing
   maximum_frequency = 1000      // Maximum frequency of processing
   isotropic_noise = true        // Use isotropic noise model  
-
-    // note that noise is spatially and temporally white (flat spectrum)  
+  ray_acoustics   = true        // Use Bellhop for propagation modeling
+  rap_acoustics   = false       // RAP raytracing (c(z) linear)
+                                // If ray_ and rap_acoustics == false
+                                // code uses simple cylindrical spreading+bottom loss
 
   // Array and sampling parameters
   array_type = DURIP                 // DURIP or VSA
