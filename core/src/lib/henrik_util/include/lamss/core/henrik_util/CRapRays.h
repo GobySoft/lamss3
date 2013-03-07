@@ -60,7 +60,10 @@ class CRapRays
 		    double& range_3db_outer,
 		    double& tau_center, 
 		    double& tau_inner, 
-		    double& tau_outer);
+		    double& tau_outer,
+		    double& tl_center, 
+		    double& tl_inner, 
+		    double& tl_outer );
 
  protected:
 
