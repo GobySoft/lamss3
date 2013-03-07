@@ -271,7 +271,12 @@ bool CRapRays::maxRapRange(double sonar_depth, double target_depth, double& rang
   return(ok);
 }
 
-bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,double beam_width, double &range_center, double& range_3db_inner, double& range_3db_outer, double& tau_center, double& tau_inner, double& tau_outer)
+bool CRapRays::rapFootprint(double dip_deg, double my_depth, 
+			    double rap_depth,double beam_width, 
+			    double &range_center, double& range_3db_inner, 
+			    double& range_3db_outer, 
+			    double& tau_center, double& tau_inner, double& tau_outer,
+			    double& tl_center, double& tl_inner, double& tl_outer)
 {
   double range;
 
@@ -296,10 +301,11 @@ bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,do
 
   bool turn;
   double th;
-  double tl;
-  rapRay(0.0, 0.0, my_depth, range_3db_outer,0.0,rap_depth, th, tl,
+  rapRay(0.0, 0.0, my_depth, range_center,0.0,rap_depth, th, tl_center,
+	 tau_center , turn);
+  rapRay(0.0, 0.0, my_depth, range_3db_outer,0.0,rap_depth, th, tl_outer,
 	 tau_outer , turn);
-  rapRay(0.0, 0.0, my_depth, range_3db_inner,0.0,rap_depth, th, tl,
+  rapRay(0.0, 0.0, my_depth, range_3db_inner,0.0,rap_depth, th, tl_inner,
 	 tau_inner , turn);
   return(true);
 
