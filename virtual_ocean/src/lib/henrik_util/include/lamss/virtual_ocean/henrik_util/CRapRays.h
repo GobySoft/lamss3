@@ -61,9 +61,9 @@ class CRapRays
 		    double& tau_center, 
 		    double& tau_inner, 
 		    double& tau_outer,
-		    double& tl_center, 
-		    double& tl_inner, 
-		    double& tl_outer );
+		    double& amp_center, 
+		    double& amp_inner, 
+		    double& amp_outer );
 
  protected:
 

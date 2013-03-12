@@ -276,8 +276,15 @@ bool CRapRays::rapFootprint(double dip_deg, double my_depth,
 			    double &range_center, double& range_3db_inner, 
 			    double& range_3db_outer, 
 			    double& tau_center, double& tau_inner, double& tau_outer,
-			    double& tl_center, double& tl_inner, double& tl_outer)
+			    double& amp_center, double& amp_inner, double& amp_outer)
 {
+  tau_center = 0.0;
+  tau_inner = 0.0;
+  tau_outer = 0.0;
+  amp_center = 0.0;
+  amp_inner = 0.0;
+  amp_outer = 0.0;
+
   double range;
 
   bool footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg, range);
@@ -301,13 +308,17 @@ bool CRapRays::rapFootprint(double dip_deg, double my_depth,
 
   bool turn;
   double th;
-  rapRay(0.0, 0.0, my_depth, range_center,0.0,rap_depth, th, tl_center,
+  footprint = rapRay(0.0, 0.0, my_depth, range_center,0.0,rap_depth, th, amp_center,
 	 tau_center , turn);
-  rapRay(0.0, 0.0, my_depth, range_3db_outer,0.0,rap_depth, th, tl_outer,
-	 tau_outer , turn);
-  rapRay(0.0, 0.0, my_depth, range_3db_inner,0.0,rap_depth, th, tl_inner,
+  footprint = rapRay(0.0, 0.0, my_depth, range_3db_inner,0.0,rap_depth, th, amp_inner,
 	 tau_inner , turn);
-  return(true);
+  footprint = rapRay(0.0, 0.0, my_depth, range_3db_outer,0.0,
+			     rap_depth, th, amp_outer,
+			     tau_outer , turn);
+  if (!footprint)
+    return(false);
+  else
+    return(true);
 
 }
 double CRapRays::logTerm(double c, double a)
