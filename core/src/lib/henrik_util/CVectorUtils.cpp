@@ -51,7 +51,7 @@ bool CmyVectorUtils::dbl_vec2str(vector<double> numbers, string& output)
     {
       if(i > 0)
 	output += ",";
-      string istr = doubleToString(numbers[i], 2); // 2 is the precision 123.45
+      string istr = doubleToString(numbers[i], 4); // 4 is the precision 123.45
       output += istr;
     }
   return(true);
