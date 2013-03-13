@@ -4503,11 +4503,7 @@ bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y,
   
 
   double array_angle;
-  if (pow(tow_vel_x,2)+pow(tow_vel_y,2) < 1e-6)
-      array_angle = nav_yaw+0.5*M_PI;
-  else
-      array_angle = atan2(tow_vel_y, tow_vel_x);
-  ael_heading = angleUtils.angle360(90.0-array_angle*180/PI);
+  ael_heading = angleUtils.angle360(-nav_yaw*180/PI);
   MOOSTrace("ael_heading = %f\n");
 
   array_head.clear();
@@ -4526,15 +4522,15 @@ bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y,
 
   // Transform to absolute coordinates. 
 
-  double cy = cos(array_angle);
-  double sy = sin(array_angle);
+  double cy = cos(nav_yaw);
+  double sy = sin(nav_yaw);
   double cp = cos(ael_pitch);
   double sp = sin(ael_pitch);
 
   for (int i=0; i<m_nelm; i++)
     {
-      x1.push_back(tow_pos_x+(local_x[i]*cy - local_y[i]*sy)*cp);
-      y1.push_back(tow_pos_y+(local_x[i]*sy + local_y[i]*cy)*cp);
+      x1.push_back(tow_pos_x+( local_x[i]*cy - local_y[i]*sy)*cp);
+      y1.push_back(tow_pos_y+( local_x[i]*sy + local_y[i]*cy)*cp);
       z1.push_back(tow_pos_z+local_z[i]*cp+local_y[i]*sp);
     }
 
