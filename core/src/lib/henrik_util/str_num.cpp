@@ -5,18 +5,25 @@ using namespace std;
 int str2int_vec(string msg, vector<int>& values)
 {
   string bite;
-  
+  vector<int> buf;  
   // MOOSTrace("string = %s\n",msg.c_str());
-  values.clear();
+  buf.clear();
   int nz = 0;
   while (msg.length() > 0)
     {
       bite = MOOSChomp(msg,",");
-      values.push_back(atoi(bite.c_str()));
+      buf.push_back(atoi(bite.c_str()));
       nz++;
     }
   // MOOSTrace("number of values = %d\n",nz);
-  
+  if (nz == values.size())
+    values=buf;
+  else
+    {
+      values.clear();
+      for (unsigned int i=0; i<buf.size(); i++)
+	values.push_back(buf[i]);
+    }
   return(nz);
 }
 
@@ -36,17 +43,25 @@ bool int_vec2str(vector<int> numbers, string& output)
 int str2dbl_vec(string msg, vector<double>& values)
 {
   string bite;
-  
+  vector<double> buf;
   // MOOSTrace("string = %s\n",msg.c_str());
-  values.clear();
+  buf.clear();
   int nz = 0;
   while (msg.length() > 0)
     {
       bite = MOOSChomp(msg,",");
-      values.push_back(atof(bite.c_str()));
+      buf.push_back(atof(bite.c_str()));
       nz++;
     }
   // MOOSTrace("number of values = %d\n",nz);
+  if (nz == values.size())
+    values=buf;
+  else
+    {
+      values.clear();
+      for (unsigned int i=0; i<buf.size(); i++)
+	values.push_back(buf[i]);
+    }
   
   return(nz);
 }
