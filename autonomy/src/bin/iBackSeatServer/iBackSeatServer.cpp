@@ -57,6 +57,8 @@ CiBackSeatServer::CiBackSeatServer()
   prev_yw = 0;
   yw_time = 0;
   pit_time = 0;
+
+  msgack = false;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -440,6 +442,22 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 
   std::cout<<"In the Translate with "<<Sentence.Part(0).c_str()<<std::endl;
 
+  if(Sentence.Part(0)=="BPLOG")
+  {
+	//Message requests from frontseat
+	//BFACK request
+	if(Sentence.Part(1) == "ACK")
+	{
+	   if(Sentence.Part(2) == "ON")
+	   {
+		msgack = true;
+	   }
+	   else
+		msgack = false;
+	}
+  }
+
+
   if (Sentence.Part(0)=="BPRMB")
   {
 
@@ -456,6 +474,13 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 	m_Comms.Notify("DESIRED_HEADING",desired_heading);
 	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
 	m_Comms.Notify("DESIRED_SPEED",desired_speed);
+
+	string rmb_ack = "$BFACK,"+SecondsSinceMidnight(3)+",RMB,"+Sentence.Part(1)+",1,2,0,rmb ack"+"*";
+       	string rmbchecksum=gen_NMEAchecksum(rmb_ack.c_str());
+      	rmb_ack+=rmbchecksum+"\r\n";
+      	std::cout <<"To clients:["<<rmb_ack<<"]"<<std::endl;
+      	tcp_server->write(rmb_ack);
+
   }
   if (Sentence.Part(0) == "BPNPU")
   {
@@ -474,6 +499,12 @@ string usbl_msg = "BPNPU";
 	usbl_msg = usbl_msg+","+backseat_time+","+backseat_latitude+","+backseat_lathemisphere+","+backseat_longitude+","+backseat_lonhemisphere+","+backseat_errorprob+","+backseat_depth+","+backseat_forceupdate+","+backseat_timestamp;
 
 	m_Comms.Notify("USBL_MESSAGE",usbl_msg);
+
+	string npu_ack = "$BFACK,"+SecondsSinceMidnight(3)+",NPU,"+Sentence.Part(1)+",1,2,0,npu ack"+"*";
+       	string npuchecksum=gen_NMEAchecksum(npu_ack.c_str());
+      	npu_ack+=npuchecksum+"\r\n";
+      	std::cout <<"To clients:["<<npu_ack<<"]"<<std::endl;
+      	tcp_server->write(npu_ack);
 
   }
 
