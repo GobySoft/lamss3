@@ -457,6 +457,15 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 	}
   }
 
+  //Send an ack for any msg from backseat
+  
+  string messg = Sentence.Part(0);
+  string msgtype = messg.substr(2);
+  string general_ack = "$BFACK,"+SecondsSinceMidnight(3)+","+msgtype+","+Sentence.Part(1)+",1,2,0,general ack"+"*";
+  string genchecksum=gen_NMEAchecksum(general_ack.c_str());
+  general_ack+=genchecksum+"\r\n";
+  std::cout <<"To clients:["<<general_ack<<"]"<<std::endl;
+  tcp_server->write(general_ack);
 
   if (Sentence.Part(0)=="BPRMB")
   {
@@ -469,18 +478,17 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
    	double depth_mode = atof(Sentence.Part(4).c_str());
    	double desired_speed = atof(Sentence.Part(5).c_str());
 
-	
-
 	m_Comms.Notify("DESIRED_HEADING",desired_heading);
 	m_Comms.Notify("DESIRED_DEPTH",desired_depth);
 	m_Comms.Notify("DESIRED_SPEED",desired_speed);
 
+/*
 	string rmb_ack = "$BFACK,"+SecondsSinceMidnight(3)+",RMB,"+Sentence.Part(1)+",1,2,0,rmb ack"+"*";
        	string rmbchecksum=gen_NMEAchecksum(rmb_ack.c_str());
       	rmb_ack+=rmbchecksum+"\r\n";
       	std::cout <<"To clients:["<<rmb_ack<<"]"<<std::endl;
       	tcp_server->write(rmb_ack);
-
+*/
   }
   if (Sentence.Part(0) == "BPNPU")
   {
@@ -499,13 +507,13 @@ string usbl_msg = "BPNPU";
 	usbl_msg = usbl_msg+","+backseat_time+","+backseat_latitude+","+backseat_lathemisphere+","+backseat_longitude+","+backseat_lonhemisphere+","+backseat_errorprob+","+backseat_depth+","+backseat_forceupdate+","+backseat_timestamp;
 
 	m_Comms.Notify("USBL_MESSAGE",usbl_msg);
-
+/*
 	string npu_ack = "$BFACK,"+SecondsSinceMidnight(3)+",NPU,"+Sentence.Part(1)+",1,2,0,npu ack"+"*";
        	string npuchecksum=gen_NMEAchecksum(npu_ack.c_str());
       	npu_ack+=npuchecksum+"\r\n";
       	std::cout <<"To clients:["<<npu_ack<<"]"<<std::endl;
       	tcp_server->write(npu_ack);
-
+*/
   }
 
 
@@ -521,34 +529,39 @@ string usbl_msg = "BPNPU";
 		m_Comms.Notify("FRONTSEAT_SILENT","false");
 	}
 
+/*
 	string sil_ack = "$BFACK,"+SecondsSinceMidnight(3)+",SIL,"+Sentence.Part(1)+",1,2,0,silent ack"+"*";
        	string silchecksum=gen_NMEAchecksum(sil_ack.c_str());
       	sil_ack+=silchecksum+"\r\n";
       	std::cout <<"To clients:["<<sil_ack<<"]"<<std::endl;
       	tcp_server->write(sil_ack);
+*/
   }
 
   if(Sentence.Part(0) == "BPBOY")
   {
 	m_Comms.Notify("BUOYANCY_CONTROL","true");
 
+/*
 	string boy_ack = "$BFACK,"+SecondsSinceMidnight(3)+",BOY,"+Sentence.Part(1)+",1,2,0,buoyancy ack"+"*";
        	string boychecksum=gen_NMEAchecksum(boy_ack.c_str());
       	boy_ack+=boychecksum+"\r\n";
       	std::cout <<"To clients:["<<boy_ack<<"]"<<std::endl;
       	tcp_server->write(boy_ack);
-	
+*/	
   }
 
   if(Sentence.Part(0) == "BPTRM")
   {
 	m_Comms.Notify("TRIM_CONTROL","true");
 
+/*
 	string trm_ack = "$BFACK,"+SecondsSinceMidnight(3)+",TRM,"+Sentence.Part(1)+",1,2,0,trim ack"+"*";
        	string trimchecksum=gen_NMEAchecksum(trm_ack.c_str());
       	trm_ack+=trimchecksum+"\r\n";
       	std::cout <<"To clients:["<<trm_ack<<"]"<<std::endl;
       	tcp_server->write(trm_ack);
+*/
   }
 
 
