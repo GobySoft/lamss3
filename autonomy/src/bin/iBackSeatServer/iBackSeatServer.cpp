@@ -179,6 +179,12 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 
     }
 
+    if(Msg.m_sKey == "INJECT_TO_BACKSEAT")
+    {
+	tcp_server->write(Msg.GetString() + "\r\n");
+    }
+    
+    
 
   }
 
@@ -272,6 +278,7 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("BATHY_Z",0);
   m_Comms.Register("BUOYANCY_REPORT",0);
   m_Comms.Register("TRIM_REPORT",0);
+  m_Comms.Register("INJECT_TO_BACKSEAT",0);
 
   return true;
 }
