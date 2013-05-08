@@ -8,6 +8,8 @@
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CVectorUtils.h>
+#include <lamss/lib_henrik_util/str_num.h>
+
 
 #ifndef SIMTOWEDARRAY_HEADER
 #define SIMTOWEDARRAY_HEADER
@@ -55,8 +57,18 @@ class CArrayModel
 
   int indx(int n_rows, int row, int col);
 
-  bool straight_array(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz, 
-		      double nav_yaw, double& ael_heading, double& ael_pitch);
+  bool straight_array(double xtowp, double ytowp, double ztowp, 
+		      double vx, double vy, double vz, 
+		      double nav_yaw, 
+		      double& ael_heading, double& ael_pitch);
+
+  bool volumetric_array(double xtowp, double ytowp, double ztowp, 
+			double vx, double vy, double vz,
+			std::vector<double> local_x,
+			std::vector<double> local_y,
+			std::vector<double> local_z,
+			double nav_yaw, 
+			double& ael_heading, double& ael_pitch);
 
   bool function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy, double vz);
 
@@ -79,7 +91,6 @@ class CArrayModel
   int m_nelm;
   int array_section_number;
   double first_phone_offset;
-
  
   int dtfilt_length;
   std::vector<double> dt_hist;
@@ -234,6 +245,15 @@ class CSimTowedArray : public CMOOSApp
   double start_speed;
   double start_time;
   int nt;
+
+  int nelm;
+  std::vector<double> local_x;
+  std::vector<double> local_y;
+  std::vector<double> local_z;
+  bool ok_local_x;
+  bool ok_local_y;
+  bool ok_local_z;
+  bool ok_local;
 
   double history_time;
   double prev_time;
