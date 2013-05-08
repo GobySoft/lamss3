@@ -271,8 +271,20 @@ bool CRapRays::maxRapRange(double sonar_depth, double target_depth, double& rang
   return(ok);
 }
 
-bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,double beam_width, double &range_center, double& range_3db_inner, double& range_3db_outer)
+bool CRapRays::rapFootprint(double dip_deg, double my_depth, 
+			    double rap_depth,double beam_width, 
+			    double &range_center, double& range_3db_inner, 
+			    double& range_3db_outer, 
+			    double& tau_center, double& tau_inner, double& tau_outer,
+			    double& amp_center, double& amp_inner, double& amp_outer)
 {
+  tau_center = 0.0;
+  tau_inner = 0.0;
+  tau_outer = 0.0;
+  amp_center = 0.0;
+  amp_inner = 0.0;
+  amp_outer = 0.0;
+
   double range;
 
   bool footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg, range);
@@ -282,19 +294,31 @@ bool CRapRays::rapFootprint(double dip_deg, double my_depth, double rap_depth,do
     range_center = range;
 
   // outer 3dB
-  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg-beam_width*0.5, range);
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg+beam_width*0.5, range);
   if (!footprint)
     return(false);
   else
     range_3db_outer = range;
   // inner 3dB
-  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg+beam_width*0.5, range);
+  footprint = rapRange(0.0,0.0,my_depth,rap_depth,dip_deg-beam_width*0.5, range);
   if (!footprint)
     return(false);
   else
     range_3db_inner = range;
 
-  return(true);
+  bool turn;
+  double th;
+  footprint = rapRay(0.0, 0.0, my_depth, range_center,0.0,rap_depth, th, amp_center,
+	 tau_center , turn);
+  footprint = rapRay(0.0, 0.0, my_depth, range_3db_inner,0.0,rap_depth, th, amp_inner,
+	 tau_inner , turn);
+  footprint = rapRay(0.0, 0.0, my_depth, range_3db_outer,0.0,
+			     rap_depth, th, amp_outer,
+			     tau_outer , turn);
+  if (!footprint)
+    return(false);
+  else
+    return(true);
 
 }
 double CRapRays::logTerm(double c, double a)
