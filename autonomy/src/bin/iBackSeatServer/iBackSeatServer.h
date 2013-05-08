@@ -63,6 +63,8 @@ private:
 	double prev_yw;
 	double pit_time;      
 	double yw_time;
+
+	bool msgack;
       
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
