@@ -57,7 +57,13 @@ class CRapRays
 		    double beam_width, 
 		    double &range_center, 
 		    double& range_3db_inner, 
-		    double& range_3db_outer);
+		    double& range_3db_outer,
+		    double& tau_center, 
+		    double& tau_inner, 
+		    double& tau_outer,
+		    double& amp_center, 
+		    double& amp_inner, 
+		    double& amp_outer );
 
  protected:
 
