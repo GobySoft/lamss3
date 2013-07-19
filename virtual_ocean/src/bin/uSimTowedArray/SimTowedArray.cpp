@@ -244,6 +244,49 @@ bool CSimTowedArray::OnStartUp()
 
 	    ok_local_z = true;
 	}
+    if(m_MissionReader.GetConfigurationParam("local_dir_x",sVal))
+	{
+	  string s_dir_x = sVal;
+	  int nx=str2dbl_vec(s_dir_x, local_dir_x);
+	  if (nelm == 0)
+	    nelm = nx;
+	  else if (nx != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_x = true;
+	}
+    if(m_MissionReader.GetConfigurationParam("local_dir_y",sVal))
+	{
+	  string s_dir_y = sVal;
+	  int ny=str2dbl_vec(s_dir_y, local_dir_y);
+	  if (nelm == 0)
+	    nelm = ny;
+	  else if (ny != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_y = true;
+	}
+    if(m_MissionReader.GetConfigurationParam("local_dir_z",sVal))
+	{
+	  string s_dir_z = sVal;
+	  int nz=str2dbl_vec(s_dir_z, local_dir_z);
+	  if (nelm == 0)
+	    nelm = nz;
+	  else if (nz != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_z = true;
+	}
+
 
 
     if(m_MissionReader.GetConfigurationParam("tow_point_x",sVal))
@@ -521,6 +564,9 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "LOCAL_ARRAY_X",0);
     m_Comms.Register( "LOCAL_ARRAY_Y",0);
     m_Comms.Register( "LOCAL_ARRAY_Z",0);
+    m_Comms.Register( "LOCAL_DIR_X",0);
+    m_Comms.Register( "LOCAL_DIR_Y",0);
+    m_Comms.Register( "LOCAL_DIR_Z",0);
     return(true);
 }
 
@@ -789,6 +835,21 @@ bool CSimTowedArray::Iterate()
 		MOOSTrace("No x,y,z specified for volumetric array\n");
 		return(0);
 	      }
+	    bool ok_dir = ok_local_dir_x & ok_local_dir_y & ok_local_dir_z;
+	    if (!ok_dir)
+	      {
+		MOOSTrace("No x,y,z directionality specified for volumetric array\n");
+		MOOSTrace("All elements assumed to be omni-directional\n");
+		local_dir_x.clear();
+		local_dir_y.clear();
+		local_dir_z.clear();
+		for (unsigned int i=0; i<nelm; i++)
+		  {
+		    local_dir_x.push_back(0.0);
+		    local_dir_y.push_back(0.0);
+		    local_dir_z.push_back(0.0);
+		  }
+	      }
 
 	    ael_pitch = nav_pitch;
 	    MOOSTrace("Calling volumetric_array(...)\n");
@@ -801,6 +862,7 @@ bool CSimTowedArray::Iterate()
 	    Array.volumetric_array(tow_pos_x, tow_pos_y, tow_pos_z, 
 				   tow_vel_x, tow_vel_y, tow_vel_z, 
 				   local_x,local_y,local_z,
+				   local_dir_x,local_dir_y,local_dir_z,
 				   nav_yaw,  
 				   ael_heading, ael_pitch );
 	    cout << "z_array =" << Array.z_array << endl;
@@ -812,6 +874,9 @@ bool CSimTowedArray::Iterate()
 	    m_Comms.Notify("ARRAY_X", Array.ac_array_x);
 	    m_Comms.Notify("ARRAY_Y", Array.ac_array_y);
 	    m_Comms.Notify("ARRAY_Z", Array.ac_array_z);
+	    m_Comms.Notify("ARRAY_DIR_X", Array.ac_array_dir_x);
+	    m_Comms.Notify("ARRAY_DIR_Y", Array.ac_array_dir_y);
+	    m_Comms.Notify("ARRAY_DIR_Z", Array.ac_array_dir_z);
 	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);  
 	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);
 	    m_Comms.Notify("AEL_PITCH",ael_pitch);
@@ -976,6 +1041,49 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 
 	    ok_local_z = true;
 	}
+      if(Msg.m_sKey == "LOCAL_DIR_X") 
+	{
+	  string s_dir_x = Msg.m_sVal;
+	  int nx=str2dbl_vec(s_dir_x, local_dir_x);
+	  if (nelm == 0)
+	    nelm = nx;
+	  else if (nx != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_x = true;
+	}
+      if(Msg.m_sKey == "LOCAL_DIR_Y") 
+	{
+	  string s_dir_y = Msg.m_sVal;
+	  int ny=str2dbl_vec(s_dir_y, local_dir_y);
+	  if (nelm == 0)
+	    nelm = ny;
+	  else if (ny != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_y = true;
+	}
+      if(Msg.m_sKey == "LOCAL_DIR_Z") 
+	{
+	  string s_dir_z = Msg.m_sVal;
+	  int nz=str2dbl_vec(s_dir_z, local_dir_z);
+	  if (nelm == 0)
+	    nelm = nz;
+	  else if (nz != nelm) 
+	    {
+	      MOOSTrace("Array inconsistency - FAIL\n");
+	      exit(EXIT_FAILURE); 
+	    }	
+
+	    ok_local_dir_z = true;
+	}
+
 
 
    }
@@ -4487,6 +4595,9 @@ bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y,
 				   vector<double> local_x,
 				   vector<double> local_y,
 				   vector<double> local_z,
+				   vector<double> local_dir_x,
+				   vector<double> local_dir_y,
+				   vector<double> local_dir_z,
 				   double nav_yaw, 
 				   double & ael_heading, 
 				   double & ael_pitch )
@@ -4546,6 +4657,22 @@ bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y,
   ael_y = vecUtils.mean(y1);
   ael_x_offset = ael_x - tow_pos_x;
   ael_y_offset = ael_y - tow_pos_y;
+
+  // Array element directionalities
+
+  x1.clear();
+  y1.clear();
+  z1.clear();
+  for (int i=0; i<m_nelm; i++)
+    {
+      x1.push_back( (local_dir_x[i]*cy - local_dir_y[i]*sy)*cp );
+      y1.push_back( (local_dir_x[i]*sy + local_dir_y[i]*cy)*cp );
+      z1.push_back( local_dir_z[i]*cp+local_dir_y[i]*sp);
+    }
+
+  vecUtils.dbl_vec2str(x1, ac_array_dir_x);
+  vecUtils.dbl_vec2str(y1, ac_array_dir_y);
+  vecUtils.dbl_vec2str(z1, ac_array_dir_z);
 
   vecUtils.dbl_vec2str(array_head, arr_heading);
   MOOSTrace("arr_heading = %s\n",arr_heading.c_str());

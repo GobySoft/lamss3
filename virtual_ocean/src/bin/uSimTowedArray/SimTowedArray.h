@@ -67,6 +67,9 @@ class CArrayModel
 			std::vector<double> local_x,
 			std::vector<double> local_y,
 			std::vector<double> local_z,
+			std::vector<double> local_dir_x,
+			std::vector<double> local_dir_y,
+			std::vector<double> local_dir_z,
 			double nav_yaw, 
 			double& ael_heading, double& ael_pitch);
 
@@ -129,6 +132,10 @@ class CArrayModel
   std::string ac_array_x;
   std::string ac_array_y;
   std::string ac_array_z;
+  // Array element directionalities
+  std::string ac_array_dir_x;
+  std::string ac_array_dir_y;
+  std::string ac_array_dir_z;
   std::string x_array;
   std::string y_array;
   std::string z_array;
@@ -254,6 +261,14 @@ class CSimTowedArray : public CMOOSApp
   bool ok_local_y;
   bool ok_local_z;
   bool ok_local;
+  // Directional array element orientation
+  std::vector<double> local_dir_x;
+  std::vector<double> local_dir_y;
+  std::vector<double> local_dir_z;
+  bool ok_local_dir_x;
+  bool ok_local_dir_y;
+  bool ok_local_dir_z;
+  bool ok_local_dir;
 
   double history_time;
   double prev_time;
