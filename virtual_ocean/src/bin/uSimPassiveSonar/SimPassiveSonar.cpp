@@ -90,6 +90,11 @@ CSimPassiveSonar::CSimPassiveSonar()
   ok_hydy = false;
   ok_hydz = false;
   got_array_info = false;
+  ok_dir_x = false;
+  ok_dir_y = false;
+  ok_dir_z = false;
+  got_array_dir_info = false;
+
   hydrophone_gain = 1;
   accel_gain = 1;
   
@@ -401,6 +406,9 @@ bool CSimPassiveSonar::OnConnectToServer()
   m_Comms.Register( "ARRAY_X",0);
   m_Comms.Register( "ARRAY_Y",0);
   m_Comms.Register( "ARRAY_Z",0);
+  m_Comms.Register( "ARRAY_DIR_X",0);
+  m_Comms.Register( "ARRAY_DIR_Y",0);
+  m_Comms.Register( "ARRAY_DIR_Z",0);
   m_Comms.Register( "ARRAY_HEADING",0);
   m_Comms.Register( "ARRAY_PITCH",0);
 
@@ -420,6 +428,24 @@ bool CSimPassiveSonar::Iterate()
   //  MOOSTrace("Iterate \n ");
   got_array_info = (ok_hydx && ok_hydy 
       && ok_hydz);
+
+  got_array_dir_info = (ok_dir_x && ok_dir_y && ok_dir_z);
+
+  if (got_array_dir_info)
+    {
+      array_dir.resize(num_array_elements);
+      // set directionality logic
+      for (unsigned int i = 0; i < num_array_elements; i++)
+	array_dir[i] = (pow(array_dir_x[i],2)
+			+pow(array_dir_y[i],2)
+			+pow(array_dir_x[i],2) > 1e-6);
+    }  
+  else
+    {
+      array_dir.resize(num_array_elements);
+      for (unsigned int i = 0; i < num_array_elements; i++)
+	array_dir[i] = false;
+    }
 
   // MOOSTrace("Iterate: got target info\n");
 
@@ -499,7 +525,7 @@ bool CSimPassiveSonar::Iterate()
 	      double range_y = (ael_y - source_pos_y);
 	      double range_req = sqrt(range_x*range_x + range_y*range_y);
 	      double depth_req = -ael_z;
-	      
+
 	      if (!ray_acoustics)
 		{
 		  range_ref = range_req;
@@ -556,7 +582,9 @@ bool CSimPassiveSonar::Iterate()
 		      MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
 		      tl_est = 1e-30;
 		      for (int iray = 0; iray < eig.num_rays; iray++)
-			tl_est += pow(eig.bundle[iray].amp,2);
+			{
+			  tl_est += pow(eig.bundle[iray].amp,2);
+			}
 		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
 		      MOOSTrace("Incoherent TL = %f\n", tl_est);
 		      
@@ -643,6 +671,33 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
       ok_hydz = true;
     }
 
+       else if(Msg.m_sKey == "ARRAY_DIR_X") 
+	 {
+	   string s_dir_x = Msg.m_sVal;
+	   int nx=str2dbl_vec(s_dir_x, array_dir_x);
+	   if (nx != num_array_elements) {
+	     MOOSTrace("Array inconsistency - FAIL\n");
+	     exit(EXIT_FAILURE); }	
+	   ok_dir_x = true;
+	 }
+       else if(Msg.m_sKey == "ARRAY_DIR_Y") 
+	 {
+	   string s_dir_y = Msg.m_sVal;
+	   int ny=str2dbl_vec(s_dir_y, array_dir_y);
+	   if (ny != num_array_elements) {
+	     MOOSTrace("Array inconsistency - FAIL\n");
+	     exit(EXIT_FAILURE); }	
+	   ok_dir_y = true;
+	 }
+       else if(Msg.m_sKey == "ARRAY_DIR_Z") 
+	 {
+	   string s_dir_z = Msg.m_sVal;
+	   int nz=str2dbl_vec(s_dir_z, array_dir_z);
+	   if (nz != num_array_elements) {
+	     MOOSTrace("Array inconsistency - FAIL\n");
+	     exit(EXIT_FAILURE); }	
+	   ok_dir_z = true;
+	 }
     else if(Msg.m_sKey == "ARRAY_HEADING")
     {
       string s_array_heading = Msg.m_sVal;
@@ -926,6 +981,15 @@ bool CSimPassiveSonar::generate_signal_spectrum()
 	      double rhow = 1000;
 	      // double g = 9.806; //Removed g. AJP 11/16/2010
 	      
+	      double fac_dir = 1;
+	      if (array_dir[phone_iter])
+		{
+		  fac_dir = costh*array_dir_x[phone_iter] 
+		    + sinth*array_dir_y[phone_iter] 
+		    + sinel*array_dir_z[phone_iter];
+		  if (fac_dir < 0)
+		    fac_dir = 0;
+		}
 	      // frequency loop
 	      for (int f_iter=f_lo; f_iter <= f_up; f_iter++)
 		{
