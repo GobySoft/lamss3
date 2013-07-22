@@ -1022,8 +1022,8 @@ bool CSimPassiveSonar::generate_signal_spectrum()
 		  double z_pha = source_spect_phase.at(f_iter) -phase_vec;
 		  
 		  
-		  hyd.spectrum[f_iter]        += p_mag * cos(p_pha);
-		  hyd.spectrum[nfft-f_iter]   += p_mag * sin(p_pha);
+		  hyd.spectrum[f_iter]        += fac_dir * p_mag * cos(p_pha);
+		  hyd.spectrum[nfft-f_iter]   += fac_dir * p_mag * sin(p_pha);
 		  if (vsa)
 		    {
 		      // vector components
