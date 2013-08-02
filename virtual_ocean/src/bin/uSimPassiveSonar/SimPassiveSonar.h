@@ -212,6 +212,8 @@ class CSimPassiveSonar : public CMOOSApp
  
     // --- Declare other variables ---
     bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, ok_array_pitch, ok_array_heading, ok_sourcex, ok_sourcey, got_array_info, got_source_loc, ok_source_bb_spl, ok_source_bb_freq, ok_source_bb_bw, got_source_bb_info;
+    bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
+
     double noise_std;
     std::vector<double> tone_amps_Pa; 
     std::vector<double> tone_ks; 
@@ -220,6 +222,12 @@ class CSimPassiveSonar : public CMOOSApp
     // relative to (0,0) -- origina of coordinate system. 
     std::vector<double> array_y;
     std::vector<double> array_z;
+    std::vector<double> array_dir_x;
+    std::vector<double> array_dir_y;
+    std::vector<double> array_dir_z;
+
+    std::vector<bool> array_dir;
+
     std::vector<double> array_heading;
     std::vector<double> array_pitch;
     double array_avg_pitch;
