@@ -224,7 +224,7 @@ bool CRapRays::rapDipRange(double z0, double z,
   th0_deg = th_2;
   r_rap = r_2;
   if (r_rap < 0.0)
-    return(true);
+    return(false);
   else
     return(true);
 
