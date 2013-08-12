@@ -223,7 +223,10 @@ bool CRapRays::rapDipRange(double z0, double z,
     } 
   th0_deg = th_2;
   r_rap = r_2;
-  return(true);
+  if (r_rap < 0.0)
+    return(true);
+  else
+    return(true);
 
 }
 
