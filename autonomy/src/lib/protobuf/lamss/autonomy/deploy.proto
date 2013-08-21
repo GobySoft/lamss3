@@ -16,6 +16,8 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_LAWNMOWER = 4; 
 		 DEPLOY_MODE_TRAIL = 5; 
 		 DEPLOY_MODE_STATION_KEEP = 6; 
+		 DEPLOY_MODE_SPIRAL = 7;
+		 DEPLOY_MODE_TRACK_FRONT = 8;
 	} 
 	optional Depth_ModeEnum Depth_Mode = 6;
 	enum Depth_ModeEnum{ 
@@ -39,13 +41,13 @@ message LAMSS_DEPLOY {
 		 SONAR_PROCESS_OFF = 1; 
 	} 
 	optional double Deploy_Duration = 9 [(dccl.field).max=204700.000000, (dccl.field).min=0.000000, (dccl.field).precision=-2];
-	optional double Deploy_X = 10 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Deploy_Y = 11 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_X = 10 [(dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Y = 11 [(dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
 	optional double Deploy_Speed = 12 [(dccl.field).max=2.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Upper_Depth = 13 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Lower_Depth = 14 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Altitude = 15 [(dccl.field).max=100.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Loiter_Radius = 16 [(dccl.field).max=1023, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Deploy_Upper_Depth = 13 [(dccl.field).max=2047.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Lower_Depth = 14 [(dccl.field).max=2047.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Altitude = 15 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Loiter_Radius = 16 [(dccl.field).max=8191, (dccl.field).min=0, (dccl.field).precision=0];
 	optional int32 Loiter_Segments = 17 [(dccl.field).max=31, (dccl.field).min=0];
 	optional double Survey_Heading = 18 [(dccl.field).max=360, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double Survey_Length = 19 [(dccl.field).max=40950.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
@@ -67,4 +69,6 @@ message LAMSS_DEPLOY {
 		 TRAIL_ANGLE_TYPE_absolute = 1; 
 	} 
 	optional double GPS_Interval = 27 [(dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+//	optional double Yoyo_Period = 28 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+//	optional double Yoyo_Period_Segments = 29 [(dccl.field).max=63, (dccl.field).min=0, (dccl.field).precision=0];
 } 
