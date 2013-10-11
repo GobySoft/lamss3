@@ -1,7 +1,7 @@
 #include <string>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+#include "ivp/MOOSGeodesy.h"
 
 #ifndef SIMGPS_HEADER
 #define SIMGPS_HEADER

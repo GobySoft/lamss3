@@ -8,8 +8,8 @@
 
 #define LARGEVAL 1000000
 
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 //#include <string>
 //#include <iostream>
