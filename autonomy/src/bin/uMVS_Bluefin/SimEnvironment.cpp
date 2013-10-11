@@ -31,8 +31,8 @@
 // SimEnvironment.cpp: implementation of the CSimEnvironment class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <MOOSLIB/MOOSLib.h>
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/MOOSLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 
 #include "SimEnvironment.h"
 

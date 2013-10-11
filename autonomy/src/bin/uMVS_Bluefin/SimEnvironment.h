@@ -40,9 +40,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <MOOSGenLib/MOOSGenLib.h>
-#include <MOOSLIB/MOOSLib.h>
-#include <MOOSUtilityLib/MOOSTerrain.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
+#include <MOOS/libMOOS/MOOSLib.h>
+#include "MOOSTerrain.h"
 
 #include "AcousticSignal.h"
 typedef std::list<CAcousticSignal>	ACOUSTIC_SIGNAL_LIST;

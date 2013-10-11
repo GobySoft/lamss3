@@ -44,7 +44,7 @@
 
 //using namespace NEWMAT;
 
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 
 #include "AcousticNode.h"
 #include "AcousticSignal.h"

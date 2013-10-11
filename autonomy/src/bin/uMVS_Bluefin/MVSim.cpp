@@ -31,8 +31,8 @@
 // SimpleAUVSim.cpp: implementation of the CMVSim class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <MOOSLIB/MOOSLib.h>
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/MOOSLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 #include "AcousticResponder.h"
 #include "MVSim.h"
 #include "math.h"
