@@ -1,9 +1,9 @@
 #ifndef __str_num_h__
 #define __str_num_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <stdlib.h>
 #include <string.h>
