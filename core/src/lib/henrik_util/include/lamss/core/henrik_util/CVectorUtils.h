@@ -23,9 +23,9 @@
 #ifndef __CVECTORUTILS_HEADER
 #define __CVECTORUTILS_HEADER
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <iostream>
 #include <string>
