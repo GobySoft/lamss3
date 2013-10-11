@@ -913,7 +913,7 @@ bool CSimTowedArray::Iterate()
 				 tow_vel_x, tow_vel_y, tow_vel_z, nav_yaw,  
 				 ael_heading, ael_pitch );
 
-	    m_Comms.Notify("CABLE_TENSION",0);
+	    m_Comms.Notify("CABLE_TENSION",0.0);
 	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
 	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);  
 	    m_Comms.Notify("CABLE_SHAPE_X",Array.x_array);
