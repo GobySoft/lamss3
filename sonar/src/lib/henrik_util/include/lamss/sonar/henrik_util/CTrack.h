@@ -23,9 +23,9 @@
 #ifndef __CTRACK_h__
 #define __CTRACK_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <math.h>
 #include <time.h>
