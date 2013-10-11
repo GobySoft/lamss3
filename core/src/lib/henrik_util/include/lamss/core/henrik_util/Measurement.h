@@ -1,9 +1,9 @@
 #ifndef __MEASUREMENT_h__
 #define __MEASUREMENT_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <math.h>
 #include <string.h>
