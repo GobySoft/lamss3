@@ -42,6 +42,7 @@ message iSerialNMEAConfig
   // required if connection_type == CONNECTION_TCP_AS_CLIENT or CONNECTION_TCP_AS_SERVER
   optional uint32 tcp_port = 24 [@GOBY_FIELD_DESCRIPTION@="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", @GOBY_FIELD_EXAMPLE@="50010"];
 
+  optional bool require_checksum = 30 [default = true];
   
 }
 
