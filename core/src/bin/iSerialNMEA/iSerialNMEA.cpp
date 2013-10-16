@@ -108,7 +108,11 @@ void CiSerialNMEA::handleNMEA(const std::string& s)
     glogger() << group("serial") << s << std::endl;
     try
     {    
-        goby::util::NMEASentence nmea(s, goby::util::NMEASentence::REQUIRE);
+      goby::util::NMEASentence::strategy strat = cfg_.require_checksum() ? 
+	goby::util::NMEASentence::REQUIRE :	
+	goby::util::NMEASentence::IGNORE;
+
+      goby::util::NMEASentence nmea(s, strat);
         parseNMEA(nmea);
     }
     catch(std::runtime_error& e)
