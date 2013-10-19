@@ -51,8 +51,13 @@ class CiLineBasedComms :
     
     void loop();
     void handle_out(const CMOOSMsg& msg);
+    void handle_bridge(const CMOOSMsg& msg);
     
     goby::util::LineBasedInterface* modem_;
+
+    typedef std::string LocalVar;
+    typedef std::string RemoteVar;
+    std::multimap<LocalVar, RemoteVar> bridge_;
 
     static iLineBasedCommsConfig cfg_;
     static CiLineBasedComms* inst_;
