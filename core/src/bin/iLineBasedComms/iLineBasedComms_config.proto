@@ -5,8 +5,8 @@ message iLineBasedCommsConfig
 {
   optional @GOBY_MOOS_APP_NAME@Config common = 1 [@GOBY_FIELD_DESCRIPTION@="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 
-  required string write_to_var = 2 [@GOBY_FIELD_DESCRIPTION@="Variable to write incoming message"];
-  required string read_from_var = 3 [@GOBY_FIELD_DESCRIPTION@="Variable to read outgoing messages from"];
+  optional string write_to_var = 2 [@GOBY_FIELD_DESCRIPTION@="Variable to write incoming message"];
+  optional string read_from_var = 3 [@GOBY_FIELD_DESCRIPTION@="Variable to read outgoing messages from"];
   
   enum ConnectionType { CONNECTION_SERIAL = 1; // Modem is connected by a tty serial line (e.g. RS-232)
                         CONNECTION_TCP_AS_CLIENT = 2; // Modem is connected by ethernet and is serving clients
@@ -26,4 +26,12 @@ message iLineBasedCommsConfig
   // required if connection_type == CONNECTION_TCP_AS_CLIENT or CONNECTION_TCP_AS_SERVER
   optional uint32 tcp_port = 24 [@GOBY_FIELD_DESCRIPTION@="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", @GOBY_FIELD_EXAMPLE@="50010"];
 
+  message BridgePair 
+  { 
+    required string local_var = 1;
+    optional string remote_var = 2;
+  }
+  
+  repeated BridgePair bridge = 30;
+ 
 }
