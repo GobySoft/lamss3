@@ -27,8 +27,10 @@ CSimTowedArray::CSimTowedArray()
 
   // Tow point offset default for Unicorn
   tow_off_x = 0;
-  tow_off_y = -2.1;
-  tow_off_z = -0.25;
+  //  tow_off_y = -2.1;
+  //  tow_off_z = -0.25;
+  tow_off_y = 0;
+  tow_off_z = 0;
 
     tow_pos_x = 0;
     tow_pos_y = 0;
