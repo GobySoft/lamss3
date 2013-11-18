@@ -68,6 +68,8 @@ bool CpMOOSLink::ReadConfiguration()
 {
     std::string remote_server;
     int remote_port;
+    std::string community;
+    
 
     if(!m_MissionReader.GetConfigurationParam("remote_server", remote_server))
     {
@@ -82,7 +84,7 @@ bool CpMOOSLink::ReadConfiguration()
 
     if(!m_MissionReader.GetValue("community", community))
     {
-        std::cerr << "Must specify community" << std::end;
+        std::cerr << "Must specify community" << std::endl;
         exit(EXIT_FAILURE);
     }
     
