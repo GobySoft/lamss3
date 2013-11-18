@@ -24,7 +24,7 @@
 #ifndef pMOOSLinkH
 #define pMOOSLinkH
 
-#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOSLIB/MOOSLib.h"
 
 class CpMOOSLink : public CMOOSApp  
 {
