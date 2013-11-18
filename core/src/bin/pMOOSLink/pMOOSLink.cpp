@@ -88,8 +88,9 @@ bool CpMOOSLink::ReadConfiguration()
         exit(EXIT_FAILURE);
     }
     
+    std::string app_name = std::string(GetAppName()+"@"+community);
     
-    remote_client_.Run(remote_server, remote_port, std::string(GetAppName()+"@"+community), m_nCommsFreq);
+    remote_client_.Run(remote_server.c_str(), remote_port, app_name.c_str() , m_nCommsFreq);
 
     std::cout << "Started remote comms client ... " << std::endl;
     while(!remote_client_.IsConnected())
