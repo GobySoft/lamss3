@@ -80,7 +80,14 @@ bool CpMOOSLink::ReadConfiguration()
         exit(EXIT_FAILURE);
     }    
 
-    remote_client_.Run(remote_server, remote_port, std::string(GetAppName()+"@"+local_client_.GetCommunityName()), GetCommsFreq());
+    if(!m_MissionReader.GetValue("community", community))
+    {
+        std::cerr << "Must specify community" << std::end;
+        exit(EXIT_FAILURE);
+    }
+    
+    
+    remote_client_.Run(remote_server, remote_port, std::string(GetAppName()+"@"+community), m_nCommsFreq);
 
     std::cout << "Started remote comms client ... " << std::endl;
     while(!remote_client_.IsConnected())
