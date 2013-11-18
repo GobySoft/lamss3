@@ -31,8 +31,12 @@ bool CpMOOSLink::OnNewMail(MOOSMSG_LIST &local_mail)
 
 bool CpMOOSLink::OnConnectToServer()
 {
-    if (!ReadConfiguration())
-	return false;
+    if (!config_read_)
+    {
+      if(!ReadConfiguration())
+          return false;
+      config_read_ = true;
+    }
  
     RegisterVariables();   
 
@@ -119,7 +123,7 @@ bool CpMOOSLink::ReadConfiguration()
                     parse_request(value, &request);
 
                     std::cout << "Mapping pull (in) request: remote: " << request.first << ", local: " << request.second << std::endl;
-
+		    
                     in_map_.insert(request);
                 }
                 else if(MOOSStrCmp(key, "out"))

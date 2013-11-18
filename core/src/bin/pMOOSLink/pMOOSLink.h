@@ -29,7 +29,7 @@
 class CpMOOSLink : public CMOOSApp  
 {
   public:
-    CpMOOSLink(): local_client_(m_Comms) { }    
+ CpMOOSLink(): config_read_(false), local_client_(m_Comms) { }    
     ~CpMOOSLink() { }
     
 
@@ -49,6 +49,8 @@ class CpMOOSLink : public CMOOSApp
     void repost(MOOSMSG_LIST& mail, Direction dir);
 
   private:
+    bool config_read_;
+
     CMOOSCommClient remote_client_;
     CMOOSCommClient& local_client_;
 
