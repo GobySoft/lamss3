@@ -26,6 +26,8 @@
 
 #include "MOOSLIB/MOOSLib.h"
 
+bool on_connect_to_server(void* mooslink);
+
 class CpMOOSLink : public CMOOSApp  
 {
   public:
@@ -37,6 +39,7 @@ class CpMOOSLink : public CMOOSApp
     bool OnNewMail(MOOSMSG_LIST &NewMail);
     bool Iterate();
     bool OnConnectToServer();
+    bool OnRemoteConnectToServer();
 
     void RegisterVariables();
     bool ReadConfiguration();
@@ -47,6 +50,8 @@ class CpMOOSLink : public CMOOSApp
     enum Direction { IN, OUT };
         
     void repost(MOOSMSG_LIST& mail, Direction dir);
+
+    friend bool on_connect_to_server(void* mooslink);
 
   private:
     bool config_read_;
