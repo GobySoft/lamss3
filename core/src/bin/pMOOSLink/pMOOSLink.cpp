@@ -23,16 +23,35 @@
 
 #include "pMOOSLink.h"
 
+
+bool on_connect_to_server(void* mooslink)
+{ return reinterpret_cast<CpMOOSLink*>(mooslink)->OnRemoteConnectToServer(); }
+
 bool CpMOOSLink::OnNewMail(MOOSMSG_LIST &local_mail)
 {
     repost(local_mail, OUT);
     return true;
 }
 
+bool CpMOOSLink::OnRemoteConnectToServer()
+{
+    std::cout << "=== Remote connect ===" << std::endl;
+    for(std::multimap<MOOSVar, MOOSVar>::const_iterator it = in_map_.begin(),
+            end = in_map_.end(); it != end; ++it)
+    {
+        remote_client_.Register(it->first, 0);
+    }
+    return true;
+}
+
 bool CpMOOSLink::OnConnectToServer()
 {
-    if (!ReadConfiguration())
-	return false;
+    if (!config_read_)
+    {
+      if(!ReadConfiguration())
+          return false;
+      config_read_ = true;
+    }
  
     RegisterVariables();   
 
@@ -56,11 +75,6 @@ void CpMOOSLink::RegisterVariables()
         local_client_.Register(it->first, 0);
     }
     
-    for(std::multimap<MOOSVar, MOOSVar>::const_iterator it = in_map_.begin(),
-            end = in_map_.end(); it != end; ++it)
-    {
-        remote_client_.Register(it->first, 0);
-    }
 
 }
 
@@ -89,17 +103,7 @@ bool CpMOOSLink::ReadConfiguration()
     }
     
     std::string app_name = std::string(GetAppName()+"@"+community);
-    
-    remote_client_.Run(remote_server.c_str(), remote_port, app_name.c_str() , m_nCommsFreq);
 
-    std::cout << "Started remote comms client ... " << std::endl;
-    while(!remote_client_.IsConnected())
-    {
-        std::cout << "Waiting for connection to " << remote_server << ":" << remote_port << " ... " << std::endl;
-        sleep(1);
-    }
-    std::cout << "Connected!" << std::endl;
-    
     std::list<std::string> params;
     if(m_MissionReader.GetConfiguration(GetAppName(), params))
     {
@@ -119,7 +123,7 @@ bool CpMOOSLink::ReadConfiguration()
                     parse_request(value, &request);
 
                     std::cout << "Mapping pull (in) request: remote: " << request.first << ", local: " << request.second << std::endl;
-
+		    
                     in_map_.insert(request);
                 }
                 else if(MOOSStrCmp(key, "out"))
@@ -134,6 +138,18 @@ bool CpMOOSLink::ReadConfiguration()
             }
         }
     }
+    remote_client_.SetOnConnectCallBack(on_connect_to_server, this);
+    remote_client_.Run(remote_server.c_str(), remote_port, app_name.c_str() , m_nCommsFreq);
+
+    std::cout << "Started remote comms client ... " << std::endl;
+    while(!remote_client_.IsConnected())
+    {
+        std::cout << "Waiting for connection to " << remote_server << ":" << remote_port << " ... " << std::endl;
+        sleep(1);
+    }
+    std::cout << "Connected!" << std::endl;
+   
+
     return true;
 }
 
