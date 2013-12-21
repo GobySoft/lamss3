@@ -561,7 +561,8 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "NAV_Y",0);
     m_Comms.Register( "NAV_Z",0);
     m_Comms.Register( "NAV_SPEED",0);
-    m_Comms.Register( "NAV_YAW",0);
+    //    m_Comms.Register( "NAV_YAW",0);
+    m_Comms.Register( "NAV_HEADING",0);
     m_Comms.Register( "NAV_PITCH",0);
     m_Comms.Register( "LOCAL_ARRAY_X",0);
     m_Comms.Register( "LOCAL_ARRAY_Y",0);
@@ -977,9 +978,18 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 	ok_z = true;
       }
 
+      /*
       if(Msg.m_sKey == "NAV_YAW")
       {
 	nav_yaw = Msg.m_dfVal; 
+	ok_yaw = true;
+	got_yaw = true;
+      }
+      */
+
+      if(Msg.m_sKey == "NAV_HEADING")
+      {
+	nav_yaw = -Msg.m_dfVal*M_PI/180.0; 
 	ok_yaw = true;
 	got_yaw = true;
       }
