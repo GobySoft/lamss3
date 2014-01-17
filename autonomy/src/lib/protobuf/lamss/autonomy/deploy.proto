@@ -18,6 +18,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_STATION_KEEP = 6; 
 		 DEPLOY_MODE_SPIRAL = 7;
 		 DEPLOY_MODE_TRACK_FRONT = 8;
+		 DEPLOY_MODE_SAMPLETARFIELD=9;
 	} 
 	optional Depth_ModeEnum Depth_Mode = 6;
 	enum Depth_ModeEnum{ 
