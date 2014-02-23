@@ -65,7 +65,7 @@ class CTarget
   std::vector<double> tone_dbl;
   
 
-  double target_amp() {pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
+  double target_amp() {return pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
 
 };
 
