@@ -62,7 +62,7 @@ double CBessel::bessel_J(int m, double x)
 	{
 	  vector<double> besfun;
 	  bessjn(bes_table.size(),ix*bes_table[0].dx,besfun);
-	  for (int m=0; m <= bes_table.size(); m++)
+	  for (int m=0; m < bes_table.size(); m++)
 	    {
 	      bes_table[m].x_max = nx*bes_table[0].dx;
 	      bes_table[m].value.push_back(besfun[m]);
