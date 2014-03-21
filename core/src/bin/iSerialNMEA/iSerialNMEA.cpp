@@ -581,13 +581,8 @@ boost::posix_time::ptime CiSerialNMEA::GPStime2ptime(const std::string& mt)
             int min = boost::lexical_cast<int>(s_min);
             int sec = boost::lexical_cast<int>(s_sec);
             int micro_sec = boost::lexical_cast<int>(s_fs)*pow(10, 6-s_fs.size());
-
-            boost::gregorian::date d = cfg_.has_fix_date() ?
-                date(cfg_.fix_date().year(), cfg_.fix_date().month(), cfg_.fix_date().day()) :
-                date(day_clock::universal_day());
             
-            
-            return ptime(d, boost::posix_time::time_duration(hour, min, sec, 0)) + microseconds(micro_sec);
+            return ptime(date(day_clock::universal_day()), boost::posix_time::time_duration(hour, min, sec, 0)) + microseconds(micro_sec);
         }
         catch (boost::bad_lexical_cast&)
         {

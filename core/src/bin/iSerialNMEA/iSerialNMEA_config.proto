@@ -43,15 +43,6 @@ message iSerialNMEAConfig
   optional uint32 tcp_port = 24 [@GOBY_FIELD_DESCRIPTION@="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", @GOBY_FIELD_EXAMPLE@="50010"];
 
   optional bool require_checksum = 30 [default = true];
-
-  optional Date fix_date = 31;
-
-  message Date
-  {    
-    optional int32 year = 1;
-    optional int32 month = 2;
-    optional int32 day = 3;
-  }
   
 }
 
