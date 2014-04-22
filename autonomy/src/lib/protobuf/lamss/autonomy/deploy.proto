@@ -19,6 +19,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_SPIRAL = 7;
 		 DEPLOY_MODE_TRACK_FRONT = 8;
 		 DEPLOY_MODE_SAMPLETARFIELD=9;
+		 DEPLOY_MODE_HELIX = 10;
 	} 
 	optional Depth_ModeEnum Depth_Mode = 6;
 	enum Depth_ModeEnum{ 
@@ -30,6 +31,7 @@ message LAMSS_DEPLOY {
 		 DEPTH_MODE_ADAPTIVE_SINGLE = 5; 
 		 DEPTH_MODE_ADAPTIVE_ACOMMS = 6; 
 		 DEPTH_MODE_BOTTOM_FOLLOWING = 7; 
+		 DEPTH_MODE_HELIX = 8;
 	} 
 	optional Sonar_ControlEnum Sonar_Control = 7;
 	enum Sonar_ControlEnum{ 
