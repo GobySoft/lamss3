@@ -668,7 +668,39 @@ vector<double> CmyVectorUtils::hann(int N) //creates hanning window of length N
     }
   return(window);
 }
-  
+
+//Added by Andrew Poulsen
+vector<double> CmyVectorUtils::tukey(int N, double r) //creates tukey window of length N
+{
+  vector<double> window;
+  window.clear();
+  double dx=1.0/(N-1);
+  int k1 = floor(0.5*r*(N-1))+1;
+  int k2 = N-k1+1;
+  if (r<=0.0)
+  {
+    for (int k=0; k<N;k++)
+      window.push_back(1.0);
+  }  
+  else if (r>=1.0)
+  {  
+    window = hann(N);
+  }
+  else
+  {
+    for (int k=0; k<N;k++)
+    {
+      if (k<k1)
+	window.push_back(0.5*(1+cos((2*PI/r)*(dx*k - r*0.5))));
+      else if (k<(k2-1))
+	window.push_back(1.0);
+      else
+	window.push_back(0.5*(1+cos((2*PI/r)*(dx*k - 1 + r*0.5))));
+    }
+  }
+  return(window);
+}
+
 int CmyVectorUtils::NN(double num, vector<double> myvec) //Find Nearest Neighbor 
 //myvec must be monotonically INCREASING
 {
