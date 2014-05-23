@@ -70,6 +70,8 @@ class CmyVectorUtils
 
   //added by sdanesh
   std:: vector<double> hann(int N);
+
+  std:: vector<double> tukey(int N,double r);
   int NN(double num, std::vector<double> myvec);
   std::vector<std::vector<double> > zero_matrix(int n, int m);
 
