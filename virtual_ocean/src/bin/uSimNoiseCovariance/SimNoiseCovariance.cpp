@@ -373,6 +373,7 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
       else if(Msg.m_sKey == "AMBIENT_NL_DEPTH")
 	{
 	  // noise profile
+	  // Changed to relative noise profile 2014-07-23
 	  noise_profile = parseNoiseProfile(Msg.m_sVal, 
 					    depth_nl,
 					    noise_db);
@@ -447,11 +448,12 @@ double CSimNoiseCovariance::computeNoiseCovariance(double depth,
   if (noise_profile)
     {
       int m = dom_nl.size();
-      
+      // Changed to relative noise profile 2014-07-23
+
       if (depth <= dom_nl[0]) 
-	nl = noise_db[0];
+	nl = noise_db[0] + noise_level;
       else if (depth >= dom_nl[m-1]) 
-	nl= noise_db[m-1];
+	nl= noise_db[m-1] + noise_level;
       else
 	{
 	  for (int j = 1; j < m; j++)
@@ -459,7 +461,7 @@ double CSimNoiseCovariance::computeNoiseCovariance(double depth,
 	      if (depth <= dom_nl[j] && depth > dom_nl[j-1])
 		nl = noise_db[j-1] 
 		  + (depth - dom_nl[j-1])/(dom_nl[j]-dom_nl[j-1])
-		  *(noise_db[j] - noise_db[j-1]); 
+		  *(noise_db[j] - noise_db[j-1]) + noise_level; 
 	    }
 	}
     }
