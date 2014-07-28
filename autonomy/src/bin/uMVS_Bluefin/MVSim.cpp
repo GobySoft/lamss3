@@ -68,8 +68,10 @@ CMVSim::CMVSim()
     gps_update = false;
     drift_x =0;
     drift_y = 0;
+    drift_z = 0;
     east_current_est = 0;
     north_current_est = 0;
+    down_current_est = 0;
     previous_gps = MOOSTime();
     dvl_lock = true;
     drift_update = MOOSTime(); 
@@ -131,6 +133,7 @@ bool CMVSim::DoRegistrations()
 	
     m_Comms.Register("CURRENT_X",0);
     m_Comms.Register("CURRENT_Y",0);
+    m_Comms.Register("CURRENT_Z",0);
 
     return true;
 }
@@ -229,6 +232,10 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 		  {
 		    north_current_est = rMsg.m_dfVal;
 		  }
+                if(rMsg.m_sKey == "CURRENT_Z")
+		  {
+		    down_current_est = rMsg.m_dfVal;
+		  }
                 if(rMsg.m_sKey == "GPS_X")
 		  {
 		    gps_x = rMsg.m_dfVal;
@@ -250,6 +257,7 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			previous_gps = dummy;
 			drift_x = 0;
 			drift_y = 0;
+			drift_z = 0;
 		      }
 		  }
     }
@@ -338,12 +346,14 @@ bool CMVSim::Iterate()
 	gps_update = false;
 	drift_x = 0;
 	drift_y = 0;
+	drift_z = 0;
 	drift_update = MOOSTime();
       }
     else
       {
 	drift_x += (current_time - drift_update)*east_current_est;
 	drift_y += (current_time - drift_update)*north_current_est;
+	drift_z += (current_time - drift_update)*down_current_est;
 	drift_update = MOOSTime();
       }
 
@@ -670,27 +680,33 @@ void CMVSim::PostResults()
 			// HS 091009 for gps and lbl simulator
 			double nav_x_true = dfX + drift_x;
 			double nav_y_true = dfY + drift_y;
+			double nav_z_true = dfZ + drift_z;
 
 			m_Comms.Notify("TRUE_X",nav_x_true);
 			m_Comms.Notify("TRUE_Y",nav_y_true);
+			m_Comms.Notify("TRUE_Z",nav_z_true);
 
 			// by default the dvl detect current drift
 			if (dvl_lock)
 			  {
 			    m_Comms.Notify(sP+"X",nav_x_true);
 			    m_Comms.Notify(sP+"Y",nav_y_true);
+			    m_Comms.Notify(sP+"Z",nav_z_true);
 			    m_Comms.Notify(sP+"TOW_POS_X",dfTowPosX+drift_x);
 			    m_Comms.Notify(sP+"TOW_POS_Y",dfTowPosY+drift_y);
+			    m_Comms.Notify(sP+"TOW_POS_Z",dfTowPosZ+drift_z);
 			  }
 			else
 			  {
 			    m_Comms.Notify(sP+"X",dfX);
 			    m_Comms.Notify(sP+"Y",dfY);
+			    m_Comms.Notify(sP+"Z",dfZ);
 			    m_Comms.Notify(sP+"TOW_POS_X",dfTowPosX);
 			    m_Comms.Notify(sP+"TOW_POS_Y",dfTowPosY);
+			    m_Comms.Notify(sP+"TOW_POS_Z",dfTowPosZ);
 			  }
 
-			m_Comms.Notify(sP+"Z",dfZ);
+			// m_Comms.Notify(sP+"Z",dfZ);
 			m_Comms.Notify(sP+"YAW",dfYaw);
 			m_Comms.Notify(sP+"YAW_RATE",dfYawRate);
 			m_Comms.Notify(sP+"DEPTH",dfDepth);
