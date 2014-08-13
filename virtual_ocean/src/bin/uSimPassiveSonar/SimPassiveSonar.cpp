@@ -1343,6 +1343,8 @@ bool CSimPassiveSonar::write_hyd_file()
 	  acoustic_filename_suffix.c_str()); 
   sprintf(hydrophone_filename_buff,"%s/HYD%09d%s",base_dir_name.c_str(),
 	  frame_number, acoustic_filename_suffix.c_str()); 
+  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
+
   // Got this filename stuff from CpBearingTrack
   
   FILE * data_file;
