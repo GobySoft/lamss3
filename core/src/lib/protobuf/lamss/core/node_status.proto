@@ -1,6 +1,6 @@
 import "option_extensions.proto";
 import "dccl/protobuf/option_extensions.proto";
-import "goby/acomms/protobuf/arithmetic_extensions.proto";
+import "dccl/arithmetic/protobuf/arithmetic_extensions.proto";
 
 package lamss.protobuf;
 
