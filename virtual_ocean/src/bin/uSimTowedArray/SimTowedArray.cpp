@@ -118,6 +118,10 @@ bool CSimTowedArray::OnStartUp()
     double dfLatOrigin;
     double dfLongOrigin;
     
+    ok_local_dir_x = false;
+    ok_local_dir_y = false;
+    ok_local_dir_z = false;
+    
     if(m_MissionReader.GetValue("LatOrigin",sVal))
     {
         dfLatOrigin = atof(sVal.c_str());
@@ -1167,12 +1171,11 @@ CArrayModel::CArrayModel()
     old_InvJacob.clear();
     old_Jacobo.clear();
 
-  array_head.clear();
-  array_pitch.clear();
-  dtfilt_length = 20;
+    array_head.clear();
+    array_pitch.clear();
+    dtfilt_length = 20;
 
-  m_nelm = 0;
-
+    m_nelm = 0;
 }
 
 CArrayModel::~CArrayModel()
