@@ -110,11 +110,11 @@ bool CmyVectorUtils::vshift(vector<double> in, int indx_in, vector<double>& out,
 bool CmyVectorUtils::cumsum(vector<double> in, vector<double>& out)
 {
   double sum = 0.0;  
-  out.clear();
+  out.resize(in.size());
   for (int i=0; i < in.size(); i++)
     {
       sum += in[i];
-      out.push_back(sum);
+      out[i] = sum;
     }
   
   return(true);
@@ -122,19 +122,19 @@ bool CmyVectorUtils::cumsum(vector<double> in, vector<double>& out)
 
 bool CmyVectorUtils::cumtrapz(vector<double> x, vector<double> y, vector<double>& out)
 {
+  out.resize(y.size());
   double sum = 0.5*y[0]*(x[1]-x[0]);  
-  out.clear();
-  out.push_back(sum);
+  out[0] = sum;
 
   int last = y.size()-1;
   for (int i=1; i < last-1 ; i++)
     {
       sum += y[i]*0.5*(x[i+1]-x[i-1]);
-      out.push_back(sum);
+      out[i] = sum;
     }
 
   sum += 0.5*y[last]*(x[last]-x[last-1]);;
-  out.push_back(sum);
+  out[last-1] = sum;
   
   return(true);
 }
@@ -164,14 +164,14 @@ int CmyVectorUtils::intsum(vector<int> in)
 bool CmyVectorUtils::mmul(vector<double> A, int rows_A, int cols_A, vector<double> B, int cols_B, vector<double>& C)
 {
   // performs matrix product C(rows_A,cols_B) = A(rows_A,cols_A) * B(cols_A,cols_B), assuming matrices are stored columnwize, FORTRAN style
-  C.clear();
+  C.resize(rows_A*cols_B);
   for (int j=0; j<cols_B; j++)
     for (int i=0; i<rows_A; i++)
       {
 	double sum =0.0;
 	for (int k=0; k<cols_A; k++)
 	  sum += A[i+k*rows_A] * B[k+j*cols_A];
-	C.push_back(sum);
+	C[i+j*rows_A] = sum;
       }
   return(true);
 }
@@ -181,17 +181,10 @@ bool CmyVectorUtils::vmul(vector<double> a, vector<double> b, vector<double>& c)
   if (a.size() != b.size())
     return(false);
 
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
-	c[i] = a[i] * b[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(a[i]*b[i]);
-    }
+  c.resize(a.size());
+  for (int i=0; i<a.size(); i++)
+    c[i] = a[i]*b[i];
+
   return(true);
 }
 
@@ -200,17 +193,10 @@ bool CmyVectorUtils::vadd(vector<double> a, vector<double> b, vector<double>& c)
   if (a.size() != b.size())
     return(false);
 
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
-	c[i] = a[i] + b[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(a[i]+b[i]);
-    }
+  c.resize(a.size());
+  for (int i=0; i<a.size(); i++)
+    c[i] = a[i] + b[i];
+
   return(true);
 }
 
@@ -219,65 +205,38 @@ bool CmyVectorUtils::vsub(vector<double> a, vector<double> b,  vector<double>& c
   if (a.size() != b.size())
     return(false);
 
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
-	c[i] = a[i] - b[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(a[i]-b[i]);
-    }
+  c.resize(a.size());
+  for (int i=0; i<a.size(); i++)
+    c[i] = a[i] - b[i];
+
   return(true);
 }
 
 bool CmyVectorUtils::vneg(vector<double> a, vector<double>& c)
 {
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
+  c.resize(a.size());
+  for (int i=0; i<a.size(); i++)
 	c[i] = -a[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(-a[i]);
-    }
+
   return(true);
 }
 
 bool CmyVectorUtils::vsmul(vector<double> a, double b, vector<double>& c)
 {
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
-	c[i] = b*a[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(b*a[i]);
-    }
+  c.resize(a.size());
+
+  for (int i=0; i<a.size(); i++)
+    c[i] = b*a[i];
+
   return(true);
 }
 
 bool CmyVectorUtils::vmov(vector<double> a, vector<double>& c)
 {
-  if(a.size() == c.size())
-    {
-      for (int i=0; i<a.size(); i++)
-	c[i] = a[i];
-    }
-  else
-    {
-      c.clear();
-      for (int i=0; i<a.size(); i++)
-	c.push_back(a[i]);
-    }
+  c.resize(a.size());
+  for (int i=0; i<a.size(); i++)
+    c[i] = a[i];
+
   return(true);
 }
 
@@ -605,7 +564,7 @@ bool CmyVectorUtils::cholesky(vector<complex<double> > a, int dim, vector<comple
   nrows = dim;
   ncols = dim;
   // cholesky returns only lower triangular
-  c.clear();
+  c.resize(dim*dim);
   c = zzeros(dim,dim);
   double arg = a[indx(1,1)].real();
   c[indx(1,1)]=sqrt(arg);
@@ -633,14 +592,14 @@ bool CmyVectorUtils::cholesky(vector<complex<double> > a, int dim, vector<comple
 bool CmyVectorUtils::mmul(vector<complex<double> > A, int rows_A, int cols_A, vector<complex<double> > B, int cols_B, vector<complex<double> >& C)
 {
   // performs complex matrix product C(rows_A,cols_B) = A(rows_A,cols_A) * B(cols_A,cols_B), assuming matrices are stored columnwize, FORTRAN style
-  C.clear();
+  C.resize(rows_A*cols_B);
   for (int j=0; j<cols_B; j++)
     for (int i=0; i<rows_A; i++)
       {
 	complex<double> sum = 0.0;
 	for (int k=0; k<cols_A; k++)
 	  sum += A[i+k*rows_A] * B[k+j*cols_A];
-	C.push_back(sum);
+	C[i+j*rows_A] = sum;
       }
   return(true);
 }
