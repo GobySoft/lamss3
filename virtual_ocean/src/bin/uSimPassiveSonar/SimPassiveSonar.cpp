@@ -1543,6 +1543,15 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
 	  fprintf (nas_data_file, "%8.4f %8.4f 0.0 %8.4f\n", array_heading.at(0), array_pitch.at(0), fabs(array_z.at(0)));
 	  fprintf (nas_data_file, "%8.4f %8.4f 0.0 %8.4f\n", array_heading.at(num_array_elements-1), 
 		   array_pitch.at(num_array_elements-1), fabs(array_z.at(num_array_elements-1)));
+
+
+	  // Also, print out the uptime, and the x,y,z positions of the sensors
+	  fprintf (nas_data_file, "%f\n", (t_now-start_time));
+	  for (int jj=0; jj < num_array_elements; jj++)
+	    {
+	      fprintf(nas_data_file, "%8.4f %8.4f %8.4f\n",
+		      array_x.at(jj), array_y.at(jj), fabs(array_z.at(jj)));
+	    }
 	}
       
       fclose (nas_data_file);
