@@ -1598,7 +1598,7 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       source_bb_spl = Targets[i].target_spl;
       // 1e-6 factor removed for compatibility with active simulator
       //      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
-      source_bb_amp = pow(10.0,source_bb_spl/20.0);
+      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
       MOOSTrace("target %d spl = %f, amp = %e \n", Targets[i].target_number, source_bb_spl,source_bb_amp);
       source_bb_freq = Targets[i].target_freq;
       source_bb_bw = Targets[i].target_bw;
