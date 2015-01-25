@@ -7,6 +7,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
+#include "ivp/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
 #include <lamss/lib_henrik_util/CEigenRays.h>
@@ -15,6 +16,7 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
+#include "lamss/lib_bellhop/svp_request_response.pb.h"
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -72,6 +74,9 @@ class CSimPassiveSonar : public CMOOSApp
     std::vector<CSensor> z_accelerometers;
 
 
+    CMOOSGeodesy m_Geodesy;
+    bool mseas;
+
     CmyVectorUtils vecUtils;
     // noise covariances
     std::vector<CovMat> noise_covar;
@@ -93,7 +98,8 @@ class CSimPassiveSonar : public CMOOSApp
     bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
     bool readyAcousticContact(std::string cn);
-    bool requestRayTrace(std::string cn, double range, double depth, double freq);
+    bool requestRayTrace(std::string cn, double range, double depth, 
+			 double freq, int target_number);
     double getAmbientNoise(double depth, 
 			   std::vector<double> dom_nl,
 			   std::vector<double> noise_db);
@@ -177,6 +183,8 @@ class CSimPassiveSonar : public CMOOSApp
     double ael_x;
     double ael_y;
     double ael_z;
+    double ael_lat;
+    double ael_lon;
 
     std::vector<double> array_x_rel; // x coordinates of array elements
     // relative to tow position (what's in the MOOSDB)

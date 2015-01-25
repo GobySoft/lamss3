@@ -24,6 +24,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/math/special_functions.hpp>
+#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "goby/moos/moos_protobuf_helpers.h"
+
 
 #include "goby/version.h"
 #if GOBY_VERSION_MAJOR >= 2
@@ -120,6 +123,7 @@ CSimPassiveSonar::CSimPassiveSonar()
   debug = false;
   debug2 = false;
 
+  mseas =false;
   // setup the random number generator
   gsl_rng_type_1 = gsl_rng_default;
   gsl_rng_1 = gsl_rng_alloc (gsl_rng_type_1);
@@ -149,6 +153,45 @@ CSimPassiveSonar::~CSimPassiveSonar()
 bool CSimPassiveSonar::OnStartUp()
 {
   string sVal;
+  
+  //Initialize m_Geodesy from lat lon origin in .moos file
+  double dfLatOrigin;
+  double dfLongOrigin;
+  
+  if(m_MissionReader.GetValue("LatOrigin",sVal))
+    {
+      dfLatOrigin = atof(sVal.c_str());
+      //IF_ASC_MOOSTRACE MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
+    }
+  else
+    {
+      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  
+  if(m_MissionReader.GetValue("LongOrigin",sVal))
+    {
+      dfLongOrigin = atof(sVal.c_str());
+      //IF_ASC_MOOSTRACE MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
+    }
+  else
+    {
+      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  
+  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+    {
+      MOOSTrace("Geodesy Init inside pActiveSonarControl failed - FAIL\n");
+      return false;
+    }
+  //Done initializaing m_Geodesy
+  
+
+  if(m_MissionReader.GetConfigurationParam("mseas",sVal))
+   {
+     mseas = MOOSStrCmp(tolower(sVal),"true");
+   }
 
   if(m_MissionReader.GetConfigurationParam("minimum_frequency",sVal))
   {
@@ -589,7 +632,8 @@ bool CSimPassiveSonar::Iterate()
 		      MOOSTrace("Incoherent TL = %f\n", tl_est);
 		      
 		      if (fabs(range_req - eig.range) > raytracing_interval)
-			requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+			requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
+					source_bb_freq, m_target_number[i]);
 		    }
 
 		  generate_signal_spectrum();
@@ -605,7 +649,8 @@ bool CSimPassiveSonar::Iterate()
 		    }
 		}
 	      else if (ray_acoustics)
-		requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+		requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
+				source_bb_freq, m_target_number[i]);
 	    }
 	  
 	  generate_spectral_timeseries();
@@ -1681,7 +1726,8 @@ bool CSimPassiveSonar::readyAcousticContact(std::string cn)
 }
 
 bool CSimPassiveSonar::requestRayTrace(std::string cn, 
-					double range, double depth, double freq)
+				       double range, double depth, 
+				       double freq, int target_number)
 {
 
   for (int i = 0; i < acoustic_contacts.size(); i++)
@@ -1706,7 +1752,37 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      if (direct_theta > 0.5*theta_max)
 		theta_max = 0.5*(direct_theta+90.0);
 
+	      iBellhopRequest request;
 
+	      bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info = request.mutable_env()->mutable_adaptive_info();
+	      adaptive_info->set_contact(acoustic_contact);
+	      //  adaptive_info->set_ownship(receiver);
+	      adaptive_info->set_ownship(acoustic_contact);
+	      adaptive_info->set_look_ahead_seconds(1);
+	      adaptive_info->set_read_shd(false);
+	      adaptive_info->set_auto_receiver_ranges(false);
+	      adaptive_info->set_auto_source_depth(true);
+	      bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
+	      output->set_type(bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+	      bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
+	      receivers->set_number_in_depth(2);
+	      receivers->set_number_in_range(2);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
+	      first->set_range(range1);
+	      first->set_depth(depth1);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
+	      last->set_range(range2);
+	      last->set_depth(depth2);
+	      bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
+	      beams->set_theta_min(int(-theta_max));
+	      beams->set_theta_max(int(theta_max));
+	      beams->set_number(3500);
+	      //	      request.set_freq(freq);
+	      request.set_request_number(target_number);
+	      std::string noutput;
+	      serialize_for_moos(&noutput,request);
+	      m_Comms.Notify("BELLHOP_REQUEST",noutput);
+	      /*
 	      std::stringstream ss;
 
 	      ss << "env { \n" 
@@ -1742,6 +1818,7 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      m_Comms.Notify("BELLHOP_REQUEST", ss.str());                 
 	      string str = ss.str();
 	      MOOSTrace("Requesting raytracing: %s\n",str.c_str());
+	      */
 	      // Wait for Bellhop before making next request
 	      
 	      acoustic_contacts[i].ready = false;
