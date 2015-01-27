@@ -141,9 +141,9 @@ CSimPassiveSonar::CSimPassiveSonar()
   maximum_frequency = 1e20;
   noise_cov_built = false;
 
-  mseas =false;
+  mseas_svp_updates =false;
   svp_range_resolution = 100;
-  svp_depth_resolution = 10;
+  svp_depth_resolution = 20;
 }
 
 CSimPassiveSonar::~CSimPassiveSonar()
@@ -188,17 +188,17 @@ bool CSimPassiveSonar::OnStartUp()
   //Done initializaing m_Geodesy
   
 
-  if(m_MissionReader.GetConfigurationParam("mseas",sVal))
+  if(m_MissionReader.GetConfigurationParam("mseas_svp_updates",sVal))
    {
-     mseas = MOOSStrCmp(tolower(sVal),"true");
+     mseas_svp_updates = MOOSStrCmp(tolower(sVal),"true");
    }
 
-  if(m_MissionReader.GetConfigurationParam("mseas_range_resolution",sVal))
+  if(m_MissionReader.GetConfigurationParam("svp_range_resolution",sVal))
    {
      svp_range_resolution = atof(sVal.c_str());
    }
 
-  if(m_MissionReader.GetConfigurationParam("mseas_depth_resolution",sVal))
+  if(m_MissionReader.GetConfigurationParam("svp_depth_resolution",sVal))
    {
      svp_depth_resolution = atof(sVal.c_str());
    }
@@ -646,6 +646,12 @@ bool CSimPassiveSonar::Iterate()
 		      if (fabs(range_req - eig.range) > raytracing_interval)
 			requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
 					source_bb_freq, m_target_number[i]);
+		    // if mseas_svp_updates, request SVP
+		      if (mseas_svp_updates)
+			{
+			  requestSVPUpdate(Targets[i].target_id(),
+				       m_target_number[i]);
+			}
 		    }
 
 		  generate_signal_spectrum();
@@ -661,8 +667,16 @@ bool CSimPassiveSonar::Iterate()
 		    }
 		}
 	      else if (ray_acoustics)
-		requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
-				source_bb_freq, m_target_number[i]);
+		{
+		  requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
+				  source_bb_freq, m_target_number[i]);
+		  // if mseas_svp_updates, request SVP
+		  if (mseas_svp_updates)
+		    {
+		      requestSVPUpdate(Targets[i].target_id(),
+				       m_target_number[i]);
+		    }
+		}
 	    }
 	  
 	  generate_spectral_timeseries();
@@ -913,8 +927,14 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 		values.pop_back();
 		Targets[i].setTargetValues(tgt_num, tgt_on, values);
 		// Targets[i].printTargetValues();
-		ok_target_info[i] = true;
 		//MOOSTrace("got %s\n", Msg.m_sKey.c_str());
+		// if first target info request svp from mseas
+		if (mseas_svp_updates && !ok_target_info[i])
+		  {
+		    requestSVPUpdate(target_id,
+				     m_target_number[i]);
+		  }
+		ok_target_info[i] = true;
 	      }
 	    else if (Msg.m_sKey == arr_file)
 	      {
@@ -1706,6 +1726,8 @@ bool CSimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_tab
   new_contact.contact = cn;
   new_contact.ready = true;
   new_contact.ray_table = eig_table;
+  new_contact.svp_ready = false;
+  new_contact.last_svp_request = 0;
   acoustic_contacts.push_back(new_contact);
   MOOSTrace("Contact %s eigenrays updated\n",cn.c_str());
   MOOSTrace("Number of ranges: %d\n",eig_table.num_ranges);
@@ -1838,8 +1860,16 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      beams->set_theta_min(int(-theta_max));
 	      beams->set_theta_max(int(theta_max));
 	      beams->set_number(3500);
-	      //	      request.set_freq(freq);
+	      bellhop::protobuf::Environment* env = request.mutable_env();
+	      env->set_freq(freq);
 	      request.set_request_number(target_number);
+	      // mseas svp updates
+	      if (mseas_svp_updates && acoustic_contacts[i].svp_ready)
+		{
+		  request.mutable_env()->mutable_water_column()->
+		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
+		  request.set_water_column_action(iBellhopRequest::OVERWRITE);
+		}
 	      std::string noutput;
 	      serialize_for_moos(&noutput,request);
 	      m_Comms.Notify("BELLHOP_REQUEST",noutput);
@@ -1899,8 +1929,8 @@ bool CSimPassiveSonar::requestSVPUpdate(std::string cn,
     {
       if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
 	{
-	  // if we waited more than 30 secs, iBellhop must have missed request
-	  if (readyAcousticContactSVP(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 30.0 )
+	  // if we waited more than 60 secs, iBellhop must have missed request
+	  if (readyAcousticContactSVP(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 60.0 )
 	    {
 	      SVP::Request svp_request;
 	      std::string serialized_svp_request;
@@ -1922,7 +1952,8 @@ bool CSimPassiveSonar::requestSVPUpdate(std::string cn,
 	      
 	      serialize_for_moos(&serialized_svp_request, svp_request);
 	      m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
-	      acoustic_contacts[i].svp_ready = false;
+	      // if not ready use old one
+	      // acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
 	    }
 	  return(true);
