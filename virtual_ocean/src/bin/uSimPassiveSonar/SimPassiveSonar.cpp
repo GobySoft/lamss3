@@ -929,7 +929,9 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 		// Targets[i].printTargetValues();
 		//MOOSTrace("got %s\n", Msg.m_sKey.c_str());
 		// if first target info request svp from mseas
-		if (mseas_svp_updates && !ok_target_info[i])
+		if ( mseas_svp_updates && 
+		     (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		      file_interval_time ))
 		  {
 		    requestSVPUpdate(target_id,
 				     m_target_number[i]);
@@ -1873,43 +1875,6 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      std::string noutput;
 	      serialize_for_moos(&noutput,request);
 	      m_Comms.Notify("BELLHOP_REQUEST",noutput);
-	      /*
-	      std::stringstream ss;
-
-	      ss << "env { \n" 
-		 << " adaptive_info { \n"
-		 << "   contact: \"" << acoustic_contact << "\"\n"
-		 << "   look_ahead_seconds: " << 1.0 << "\n"
-		 << "   read_shd: false \n"
-		 << "   auto_receiver_ranges: false \n"
-		 << "   auto_source_depth: true\n"
-		 << "  } \n"
-		 << " output { \n"
-		 << "  type: ARRIVAL_TIMES \n"
-		 << "  } \n"
-		 << " freq: " << freq
-		 << " receivers { \n"
-		 << "   number_in_depth:" << 2 << "\n"
-		 << "   number_in_range:" << 2 << "\n"
-		 << "   first {\n"
-		 << "     range:" << range1 << "\n"
-		 << "     depth:" << depth1 << "\n"
-		 << "    } \n"
-		 << "   last {\n"
-		 << "     range:"  << range2 << "\n" 
-		 << "     depth:"  << depth2 << "\n"
-		 << "    } \n"
-		 << "  }\n"  
-		 << " beams { \n"
-		 << "   theta_max:"      << int(theta_max) << "\n" 
-		 << "   theta_min:"      << int(-theta_max) << "\n"
-		 << "  } \n"
-		 << " } \n";
-
-	      m_Comms.Notify("BELLHOP_REQUEST", ss.str());                 
-	      string str = ss.str();
-	      MOOSTrace("Requesting raytracing: %s\n",str.c_str());
-	      */
 	      // Wait for Bellhop before making next request
 	      
 	      acoustic_contacts[i].ready = false;
