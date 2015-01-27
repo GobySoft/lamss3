@@ -17,6 +17,8 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
 #include "lamss/lib_bellhop/svp_request_response.pb.h"
+#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "goby/moos/moos_protobuf_helpers.h"
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -48,7 +50,11 @@ class CAcousticContact
   std::string contact;
   bool ready;
   double last_request;
+  bool svp_ready;
+  int svp_request_id;
+  double last_svp_request;
   CEigenRayTable  ray_table;
+  SVP::Response svp_response;
 };
 
 class CSimPassiveSonar : public CMOOSApp
@@ -76,6 +82,8 @@ class CSimPassiveSonar : public CMOOSApp
 
     CMOOSGeodesy m_Geodesy;
     bool mseas;
+    double svp_range_resolution;
+    double svp_depth_resolution;
 
     CmyVectorUtils vecUtils;
     // noise covariances
@@ -109,6 +117,13 @@ class CSimPassiveSonar : public CMOOSApp
     bool parseNoiseDirectionality( std::string noise_in, 
 			   std::vector<double>& theta_deg,
 			   std::vector<double>& S_dB);
+    bool requestSVPUpdate(std::string cn, 
+			  int target_number);
+    bool readyAcousticContactSVP(std::string cn);
+    bool putAcousticContactSVP(SVP::Response svp_response);
+    bool getAcousticContactSVP(std::string cn, 
+			       SVP::Response& svp_response );
+    bool handleSVPResponse(const CMOOSMsg& msg);
 
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -183,8 +198,6 @@ class CSimPassiveSonar : public CMOOSApp
     double ael_x;
     double ael_y;
     double ael_z;
-    double ael_lat;
-    double ael_lon;
 
     std::vector<double> array_x_rel; // x coordinates of array elements
     // relative to tow position (what's in the MOOSDB)
