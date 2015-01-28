@@ -142,6 +142,7 @@ CSimPassiveSonar::CSimPassiveSonar()
   noise_cov_built = false;
 
   mseas_svp_updates =false;
+  mseas_update_interval = 30;
   svp_range_resolution = 100;
   svp_depth_resolution = 20;
 }
@@ -191,6 +192,11 @@ bool CSimPassiveSonar::OnStartUp()
   if(m_MissionReader.GetConfigurationParam("mseas_svp_updates",sVal))
    {
      mseas_svp_updates = MOOSStrCmp(tolower(sVal),"true");
+   }
+
+  if(m_MissionReader.GetConfigurationParam("mseas_update_interval",sVal))
+   {
+     mseas_update_interval = atof(sVal.c_str());
    }
 
   if(m_MissionReader.GetConfigurationParam("svp_range_resolution",sVal))
@@ -647,7 +653,9 @@ bool CSimPassiveSonar::Iterate()
 			requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
 					source_bb_freq, m_target_number[i]);
 		    // if mseas_svp_updates, request SVP
-		      if (mseas_svp_updates)
+		      if ( mseas_svp_updates && 
+			   (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+			    mseas_update_interval ) )
 			{
 			  requestSVPUpdate(Targets[i].target_id(),
 				       m_target_number[i]);
@@ -671,7 +679,9 @@ bool CSimPassiveSonar::Iterate()
 		  requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
 				  source_bb_freq, m_target_number[i]);
 		  // if mseas_svp_updates, request SVP
-		  if (mseas_svp_updates)
+		  if (mseas_svp_updates &&
+		      (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		       mseas_update_interval) )
 		    {
 		      requestSVPUpdate(Targets[i].target_id(),
 				       m_target_number[i]);
@@ -931,7 +941,7 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 		// if first target info request svp from mseas
 		if ( mseas_svp_updates && 
 		     (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
-		      file_interval_time ))
+		      mseas_update_interval ))
 		  {
 		    requestSVPUpdate(target_id,
 				     m_target_number[i]);
@@ -1681,7 +1691,7 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       source_bb_spl = Targets[i].target_spl;
       // 1e-6 factor removed for compatibility with active simulator
       //      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
-      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
+      source_bb_amp = pow(10.0,source_bb_spl/20.0);
       MOOSTrace("target %d spl = %f, amp = %e \n", Targets[i].target_number, source_bb_spl,source_bb_amp);
       source_bb_freq = Targets[i].target_freq;
       source_bb_bw = Targets[i].target_bw;
@@ -1919,7 +1929,7 @@ bool CSimPassiveSonar::requestSVPUpdate(std::string cn,
 	      serialize_for_moos(&serialized_svp_request, svp_request);
 	      m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
 	      // if not ready use old one
-	      // acoustic_contacts[i].svp_ready = false;
+	      acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
 	    }
 	  return(true);
