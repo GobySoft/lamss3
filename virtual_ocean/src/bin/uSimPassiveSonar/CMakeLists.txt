@@ -15,6 +15,7 @@
   ${IVP_GEOMETRY_LIBRARY} 
   ${LAMSS_BELLHOP_TOOLS_LIBRARY}
   ${PROTOBUF_LIBRARIES}
+  ${Boost_LIBRARIES}
     gsl
     gslcblas
     )
