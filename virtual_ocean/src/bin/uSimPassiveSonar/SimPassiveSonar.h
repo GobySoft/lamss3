@@ -82,6 +82,7 @@ class CSimPassiveSonar : public CMOOSApp
 
     CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
+    double mseas_update_interval;
     double svp_range_resolution;
     double svp_depth_resolution;
 
