@@ -24,6 +24,4 @@ message LAMSS_SIMULATE_TARGET {
 	optional int32 tn3_dbl = 19 [(dccl.field).max=200, (dccl.field).min=0];
 	optional int32 tn4_freq = 20 [(dccl.field).max=5000, (dccl.field).min=0];
 	optional int32 tn4_dbl = 21 [(dccl.field).max=200, (dccl.field).min=0];
-	optional int32 tn5_freq = 22 [(dccl.field).max=5000, (dccl.field).min=0];
-	optional int32 tn5_dbl = 23 [(dccl.field).max=200, (dccl.field).min=0];
 } 
