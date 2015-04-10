@@ -24,7 +24,7 @@
 #ifndef pMOOSLinkH
 #define pMOOSLinkH
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 
 bool on_connect_to_server(void* mooslink);
 
