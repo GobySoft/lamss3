@@ -25,6 +25,7 @@
 #include <boost/foreach.hpp>
 #include <boost/math/special_functions.hpp>
 
+
 #include "goby/version.h"
 #if GOBY_VERSION_MAJOR >= 2
 #include "goby/moos/moos_string.h"
@@ -140,6 +141,10 @@ CSimPassiveSonar::CSimPassiveSonar()
   maximum_frequency = 1e20;
   noise_cov_built = false;
 
+  mseas_svp_updates =false;
+  mseas_update_interval = 30;
+  svp_range_resolution = 100;
+  svp_depth_resolution = 20;
 }
 
 CSimPassiveSonar::~CSimPassiveSonar()
@@ -149,6 +154,60 @@ CSimPassiveSonar::~CSimPassiveSonar()
 bool CSimPassiveSonar::OnStartUp()
 {
   string sVal;
+  
+  //Initialize m_Geodesy from lat lon origin in .moos file
+  double dfLatOrigin;
+  double dfLongOrigin;
+  
+  if(m_MissionReader.GetValue("LatOrigin",sVal))
+    {
+      dfLatOrigin = atof(sVal.c_str());
+      //IF_ASC_MOOSTRACE MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
+    }
+  else
+    {
+      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  
+  if(m_MissionReader.GetValue("LongOrigin",sVal))
+    {
+      dfLongOrigin = atof(sVal.c_str());
+      //IF_ASC_MOOSTRACE MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
+    }
+  else
+    {
+      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  
+  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+    {
+      MOOSTrace("Geodesy Init inside pActiveSonarControl failed - FAIL\n");
+      return false;
+    }
+  //Done initializaing m_Geodesy
+  
+
+  if(m_MissionReader.GetConfigurationParam("mseas_svp_updates",sVal))
+   {
+     mseas_svp_updates = MOOSStrCmp(tolower(sVal),"true");
+   }
+
+  if(m_MissionReader.GetConfigurationParam("mseas_update_interval",sVal))
+   {
+     mseas_update_interval = atof(sVal.c_str());
+   }
+
+  if(m_MissionReader.GetConfigurationParam("svp_range_resolution",sVal))
+   {
+     svp_range_resolution = atof(sVal.c_str());
+   }
+
+  if(m_MissionReader.GetConfigurationParam("svp_depth_resolution",sVal))
+   {
+     svp_depth_resolution = atof(sVal.c_str());
+   }
 
   if(m_MissionReader.GetConfigurationParam("minimum_frequency",sVal))
   {
@@ -417,6 +476,8 @@ bool CSimPassiveSonar::OnConnectToServer()
   m_Comms.Register( "NOISE_VERT_DIR",0);
   m_Comms.Register( "COVARIANCE_FILE",0);
 
+  m_Comms.Register( "SVP_RESPONSE",0);
+
 
 
   return(true);
@@ -589,7 +650,16 @@ bool CSimPassiveSonar::Iterate()
 		      MOOSTrace("Incoherent TL = %f\n", tl_est);
 		      
 		      if (fabs(range_req - eig.range) > raytracing_interval)
-			requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+			requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
+					source_bb_freq, m_target_number[i]);
+		    // if mseas_svp_updates, request SVP
+		      if ( mseas_svp_updates && 
+			   (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+			    mseas_update_interval ) )
+			{
+			  requestSVPUpdate(Targets[i].target_id(),
+				       m_target_number[i]);
+			}
 		    }
 
 		  generate_signal_spectrum();
@@ -605,7 +675,18 @@ bool CSimPassiveSonar::Iterate()
 		    }
 		}
 	      else if (ray_acoustics)
-		requestRayTrace(Targets[i].target_id(), range_req, depth_req, source_bb_freq);
+		{
+		  requestRayTrace(Targets[i].target_id(), range_req, depth_req, 
+				  source_bb_freq, m_target_number[i]);
+		  // if mseas_svp_updates, request SVP
+		  if (mseas_svp_updates &&
+		      (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		       mseas_update_interval) )
+		    {
+		      requestSVPUpdate(Targets[i].target_id(),
+				       m_target_number[i]);
+		    }
+		}
 	    }
 	  
 	  generate_spectral_timeseries();
@@ -762,6 +843,10 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 	else
 	  MOOSTrace("Noise covariance received, but not used\n"); 
       }
+    else if(Msg.m_sKey == "SVP_RESPONSE" )
+      {
+	handleSVPResponse(Msg);
+      }
     else if(Msg.m_sKey == "TARGET_SIM_LIST" )
       {
 	multi_target = true;
@@ -852,8 +937,16 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 		values.pop_back();
 		Targets[i].setTargetValues(tgt_num, tgt_on, values);
 		// Targets[i].printTargetValues();
-		ok_target_info[i] = true;
 		//MOOSTrace("got %s\n", Msg.m_sKey.c_str());
+		// if first target info request svp from mseas
+		if ( mseas_svp_updates && 
+		     (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		      mseas_update_interval ))
+		  {
+		    requestSVPUpdate(target_id,
+				     m_target_number[i]);
+		  }
+		ok_target_info[i] = true;
 	      }
 	    else if (Msg.m_sKey == arr_file)
 	      {
@@ -1343,6 +1436,8 @@ bool CSimPassiveSonar::write_hyd_file()
 	  acoustic_filename_suffix.c_str()); 
   sprintf(hydrophone_filename_buff,"%s/HYD%09d%s",base_dir_name.c_str(),
 	  frame_number, acoustic_filename_suffix.c_str()); 
+  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
+
   // Got this filename stuff from CpBearingTrack
   
   FILE * data_file;
@@ -1541,6 +1636,15 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
 	  fprintf (nas_data_file, "%8.4f %8.4f 0.0 %8.4f\n", array_heading.at(0), array_pitch.at(0), fabs(array_z.at(0)));
 	  fprintf (nas_data_file, "%8.4f %8.4f 0.0 %8.4f\n", array_heading.at(num_array_elements-1), 
 		   array_pitch.at(num_array_elements-1), fabs(array_z.at(num_array_elements-1)));
+
+
+	  // Also, print out the uptime, and the x,y,z positions of the sensors
+	  fprintf (nas_data_file, "%f\n", (t_now-start_time));
+	  for (int jj=0; jj < num_array_elements; jj++)
+	    {
+	      fprintf(nas_data_file, "%8.4f %8.4f %8.4f\n",
+		      array_x.at(jj), array_y.at(jj), fabs(array_z.at(jj)));
+	    }
 	}
       
       fclose (nas_data_file);
@@ -1634,11 +1738,27 @@ bool CSimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_tab
   new_contact.contact = cn;
   new_contact.ready = true;
   new_contact.ray_table = eig_table;
+  new_contact.svp_ready = false;
+  new_contact.last_svp_request = 0;
   acoustic_contacts.push_back(new_contact);
   MOOSTrace("Contact %s eigenrays updated\n",cn.c_str());
   MOOSTrace("Number of ranges: %d\n",eig_table.num_ranges);
   MOOSTrace("Number of depths: %d\n",eig_table.num_depths);
   return(true);
+}
+
+bool CSimPassiveSonar::putAcousticContactSVP(SVP::Response svp_response)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (svp_response.request_id() == acoustic_contacts[i].svp_request_id)
+	{
+	  acoustic_contacts[i].svp_response = svp_response;
+	  acoustic_contacts[i].svp_ready = true;
+	  return(true); 
+	}
+    }
+  return(false);
 }
 
 bool CSimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_table )
@@ -1650,6 +1770,25 @@ bool CSimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_ta
 	  eig_table = acoustic_contacts[i].ray_table;
 	  if (eig_table.num_ranges > 0 && eig_table.num_depths > 0)
 	    return(true);
+	  else
+	    return(false);
+	}
+    }
+  return(false);
+}
+
+bool CSimPassiveSonar::getAcousticContactSVP(std::string cn, 
+					     SVP::Response& svp_response )
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  if(acoustic_contacts[i].svp_ready)
+	    {
+	      svp_response = acoustic_contacts[i].svp_response;
+	      return(true);
+	    }
 	  else
 	    return(false);
 	}
@@ -1669,8 +1808,21 @@ bool CSimPassiveSonar::readyAcousticContact(std::string cn)
   return(false);
 }
 
+bool CSimPassiveSonar::readyAcousticContactSVP(std::string cn)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  return(acoustic_contacts[i].svp_ready);
+	}
+    }
+  return(false);
+}
+
 bool CSimPassiveSonar::requestRayTrace(std::string cn, 
-					double range, double depth, double freq)
+				       double range, double depth, 
+				       double freq, int target_number)
 {
 
   for (int i = 0; i < acoustic_contacts.size(); i++)
@@ -1695,42 +1847,44 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      if (direct_theta > 0.5*theta_max)
 		theta_max = 0.5*(direct_theta+90.0);
 
+	      iBellhopRequest request;
 
-	      std::stringstream ss;
-
-	      ss << "env { \n" 
-		 << " adaptive_info { \n"
-		 << "   contact: \"" << acoustic_contact << "\"\n"
-		 << "   look_ahead_seconds: " << 1.0 << "\n"
-		 << "   read_shd: false \n"
-		 << "   auto_receiver_ranges: false \n"
-		 << "   auto_source_depth: true\n"
-		 << "  } \n"
-		 << " output { \n"
-		 << "  type: ARRIVAL_TIMES \n"
-		 << "  } \n"
-		 << " freq: " << freq
-		 << " receivers { \n"
-		 << "   number_in_depth:" << 2 << "\n"
-		 << "   number_in_range:" << 2 << "\n"
-		 << "   first {\n"
-		 << "     range:" << range1 << "\n"
-		 << "     depth:" << depth1 << "\n"
-		 << "    } \n"
-		 << "   last {\n"
-		 << "     range:"  << range2 << "\n" 
-		 << "     depth:"  << depth2 << "\n"
-		 << "    } \n"
-		 << "  }\n"  
-		 << " beams { \n"
-		 << "   theta_max:"      << int(theta_max) << "\n" 
-		 << "   theta_min:"      << int(-theta_max) << "\n"
-		 << "  } \n"
-		 << " } \n";
-
-	      m_Comms.Notify("BELLHOP_REQUEST", ss.str());                 
-	      string str = ss.str();
-	      MOOSTrace("Requesting raytracing: %s\n",str.c_str());
+	      bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info = request.mutable_env()->mutable_adaptive_info();
+	      adaptive_info->set_contact(acoustic_contact);
+	      //  adaptive_info->set_ownship(receiver);
+	      adaptive_info->set_ownship(acoustic_contact);
+	      adaptive_info->set_look_ahead_seconds(1);
+	      adaptive_info->set_read_shd(false);
+	      adaptive_info->set_auto_receiver_ranges(false);
+	      adaptive_info->set_auto_source_depth(true);
+	      bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
+	      output->set_type(bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+	      bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
+	      receivers->set_number_in_depth(2);
+	      receivers->set_number_in_range(2);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
+	      first->set_range(range1);
+	      first->set_depth(depth1);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
+	      last->set_range(range2);
+	      last->set_depth(depth2);
+	      bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
+	      beams->set_theta_min(int(-theta_max));
+	      beams->set_theta_max(int(theta_max));
+	      beams->set_number(3500);
+	      bellhop::protobuf::Environment* env = request.mutable_env();
+	      env->set_freq(freq);
+	      request.set_request_number(target_number);
+	      // mseas svp updates
+	      if (mseas_svp_updates && acoustic_contacts[i].svp_ready)
+		{
+		  request.mutable_env()->mutable_water_column()->
+		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
+		  request.set_water_column_action(iBellhopRequest::OVERWRITE);
+		}
+	      std::string noutput;
+	      serialize_for_moos(&noutput,request);
+	      m_Comms.Notify("BELLHOP_REQUEST",noutput);
 	      // Wait for Bellhop before making next request
 	      
 	      acoustic_contacts[i].ready = false;
@@ -1740,6 +1894,64 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	}
     }
   return(false);
+}
+
+bool CSimPassiveSonar::requestSVPUpdate(std::string cn, 
+					int target_number)
+{
+
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  // if we waited more than 60 secs, iBellhop must have missed request
+	  if (readyAcousticContactSVP(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 60.0 )
+	    {
+
+	      SVP::Request svp_request;
+	      std::string serialized_svp_request;
+	      double ael_lat, ael_lon, source_pos_lat, source_pos_lon;
+	      acoustic_contacts[i].svp_request_id = target_number;
+	      svp_request.set_request_id(target_number);
+	      svp_request.set_utc_time(MOOSTime());
+	      m_Geodesy.UTM2LatLong(ael_x,ael_y,ael_lat,ael_lon); 
+	      m_Geodesy.UTM2LatLong(Targets[i].target_x,Targets[i].target_y,
+				    source_pos_lat,source_pos_lon); 
+	      
+	      svp_request.set_receiver_lat(ael_lat);
+	      svp_request.set_receiver_lon(ael_lon);
+	      svp_request.set_source_lat(source_pos_lat);
+	      svp_request.set_source_lon(source_pos_lon);
+	      svp_request.set_delta_range(svp_range_resolution);
+	      svp_request.set_delta_depth(svp_depth_resolution);
+	      
+	      
+	      serialize_for_moos(&serialized_svp_request, svp_request);
+	      m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
+	      // if not ready use old one
+	      acoustic_contacts[i].svp_ready = false;
+	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
+	    }
+	  return(true);
+	}
+    }
+  return(false);
+}
+
+bool CSimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
+{
+  std::string serialized_svp_response = msg.GetString();
+  SVP::Response svp_response;
+  parse_for_moos(serialized_svp_response, &svp_response);
+  if (putAcousticContactSVP(svp_response))
+    {
+      cout << "Got SVP update for source id " << svp_response.request_id() 
+	   << endl; 
+      return(true);
+    }
+  else
+    return(false);
+  
 }
 
 double CSimPassiveSonar::getAmbientNoise(double depth, 

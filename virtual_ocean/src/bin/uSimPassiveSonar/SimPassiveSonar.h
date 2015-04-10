@@ -4,9 +4,10 @@
 #include <string>
 #include <vector>
 #include <math.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
+#include "ivp/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
 #include <lamss/lib_henrik_util/CEigenRays.h>
@@ -15,6 +16,9 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
+#include "lamss/lib_bellhop/svp_request_response.pb.h"
+#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "goby/moos/moos_protobuf_helpers.h"
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -46,7 +50,11 @@ class CAcousticContact
   std::string contact;
   bool ready;
   double last_request;
+  bool svp_ready;
+  int svp_request_id;
+  double last_svp_request;
   CEigenRayTable  ray_table;
+  SVP::Response svp_response;
 };
 
 class CSimPassiveSonar : public CMOOSApp
@@ -72,6 +80,12 @@ class CSimPassiveSonar : public CMOOSApp
     std::vector<CSensor> z_accelerometers;
 
 
+    CMOOSGeodesy m_Geodesy;
+    bool mseas_svp_updates;
+    double mseas_update_interval;
+    double svp_range_resolution;
+    double svp_depth_resolution;
+
     CmyVectorUtils vecUtils;
     // noise covariances
     std::vector<CovMat> noise_covar;
@@ -93,7 +107,8 @@ class CSimPassiveSonar : public CMOOSApp
     bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
     bool readyAcousticContact(std::string cn);
-    bool requestRayTrace(std::string cn, double range, double depth, double freq);
+    bool requestRayTrace(std::string cn, double range, double depth, 
+			 double freq, int target_number);
     double getAmbientNoise(double depth, 
 			   std::vector<double> dom_nl,
 			   std::vector<double> noise_db);
@@ -103,6 +118,13 @@ class CSimPassiveSonar : public CMOOSApp
     bool parseNoiseDirectionality( std::string noise_in, 
 			   std::vector<double>& theta_deg,
 			   std::vector<double>& S_dB);
+    bool requestSVPUpdate(std::string cn, 
+			  int target_number);
+    bool readyAcousticContactSVP(std::string cn);
+    bool putAcousticContactSVP(SVP::Response svp_response);
+    bool getAcousticContactSVP(std::string cn, 
+			       SVP::Response& svp_response );
+    bool handleSVPResponse(const CMOOSMsg& msg);
 
     bool noise_profile;
     std::vector<double> depth_nl;
