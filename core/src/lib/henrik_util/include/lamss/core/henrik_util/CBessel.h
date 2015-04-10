@@ -23,7 +23,7 @@
 #ifndef __CBESSEL_h__
 #define __CBESSEL_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include <math.h>
 #include <vector>
 
