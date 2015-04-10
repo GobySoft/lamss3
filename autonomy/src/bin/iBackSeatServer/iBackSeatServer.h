@@ -4,8 +4,8 @@
 #define __CiBackSeatServer_h__
 
 #include <memory>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "ivp/MOOSGeodesy.h"
 #include <string>
 #include "lamss/lib_anrp_util/NMEAMessage.h"
 #include "goby/util/linebasedcomms.h"

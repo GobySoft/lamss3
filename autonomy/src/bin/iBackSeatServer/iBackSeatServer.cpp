@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <list>
 #include <sys/time.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+#include "ivp/MOOSGeodesy.h"
 #include "iBackSeatServer.h"
 #include "lamss/lib_anrp_util/CommServer.h"
 #include "lamss/lib_anrp_util/NMEAMessage.h"
