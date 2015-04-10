@@ -44,7 +44,7 @@
 
 //using namespace NEWMAT;
 
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 
 #include "AcousticNode.h"
 #include "AcousticSignal.h"
@@ -92,11 +92,13 @@ protected:
 	void GPSUpdate();
 	double drift_x;
 	double drift_y;
+	double drift_z;
 	double previous_gps;
 	double gps_x;
 	double gps_y;
 	double east_current_est;
 	double north_current_est;
+	double down_current_est;
 	bool gps_update;
 	bool dvl_lock;
 	double drift_update;
