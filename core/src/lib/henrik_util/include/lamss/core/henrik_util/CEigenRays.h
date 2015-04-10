@@ -23,7 +23,7 @@
 #ifndef __CEIGENRAYS_h__
 #define __CEIGENRAYS_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 // #include "AngleUtils.h"
 
 #include <math.h>
