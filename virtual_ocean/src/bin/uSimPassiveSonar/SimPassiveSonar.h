@@ -282,6 +282,7 @@ class CSimPassiveSonar : public CMOOSApp
 
     bool write_hyd_file();
     bool write_nas_file(double t_now);
+    bool write_nas_file_verbose(double t_now);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
 
 };
