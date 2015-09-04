@@ -107,7 +107,9 @@ class CSimPassiveSonar : public CMOOSApp
     bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
     bool readyAcousticContact(std::string cn);
-    bool requestRayTrace(std::string cn, double range, double depth, 
+    bool requestRayTrace(std::string cn, 
+			 double r_min, double r_max, int num_r, 
+			 double dep_min, double dep_max, int num_dep,
 			 double freq, int target_number);
     double getAmbientNoise(double depth, 
 			   std::vector<double> dom_nl,
@@ -125,6 +127,12 @@ class CSimPassiveSonar : public CMOOSApp
     bool getAcousticContactSVP(std::string cn, 
 			       SVP::Response& svp_response );
     bool handleSVPResponse(const CMOOSMsg& msg);
+    bool defineRayTracingBox(double& r_min,
+			     double& r_max,
+			     double& dep_min,
+			     double& dep_max,
+			     int& num_r,
+			     int& num_dep);
 
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -269,13 +277,14 @@ class CSimPassiveSonar : public CMOOSApp
     // gsl random number generator
     const gsl_rng_type * gsl_rng_type_1;
     gsl_rng * gsl_rng_1;
+    std::vector<gsl_rng *> gsl_rng_tgt;
 
     // --- Functions ---
     //    int get_values(std::string, std::vector<double>& values);
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
 
-    bool generate_signal_spectrum();
+    bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
     bool generate_spectral_timeseries();
     bool initialize_spectrum();
@@ -283,7 +292,7 @@ class CSimPassiveSonar : public CMOOSApp
     bool write_hyd_file();
     bool write_nas_file(double t_now);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
-
+      
 };
 
 #endif 
