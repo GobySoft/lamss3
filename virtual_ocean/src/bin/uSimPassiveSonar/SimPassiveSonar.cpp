@@ -637,6 +637,7 @@ bool CSimPassiveSonar::Iterate()
 	      // first get the ray table for this contact
 	      if (getAcousticContact(Targets[i].target_id(),eigenray_table))
 		{
+		  CEigenRay eig;
 		  // Get the closest eigenray bundle
 		  eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
 		  if (ray_acoustics)
@@ -652,7 +653,7 @@ bool CSimPassiveSonar::Iterate()
 		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
 		      MOOSTrace("Incoherent TL = %f\n", tl_est);
 		      
-		      if (fabs(range_req - eig.range) > raytracing_interval)
+		      if (fabs(range_req - eig.range) > 0.5*raytracing_interval)
 			{
 			  double range_min;
 			  double range_max;
@@ -1024,11 +1025,11 @@ bool CSimPassiveSonar::defineRayTracingBox(double& r_min,
 				 spacing);
 	    }
 	}
-      r_min -= 0.5 * raytracing_interval; 
-      r_max += 0.5 * raytracing_interval;
+      r_min -= 2*raytracing_interval; 
+      r_max += 2*raytracing_interval;
       // Raytracing resolution less critical for horizontal variability 
-      num_r = int((r_max-r_min)/(10*spacing)) + 2;
-      num_dep = int((dep_max-dep_min)/spacing) + 1;
+      num_r = int((r_max-r_min)/(20*spacing)) + 3;
+      num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 1;
       return(true);
     }
   return(false);
@@ -1118,12 +1119,18 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double range_ref, depth_ref;
 	  CEigenRay eig;
 
-	  eigenray_table.getEigenRays(range, -array_z.at(phone_iter), 
+	  double depth_req = -array_z.at(phone_iter);
+	  eigenray_table.getEigenRays(range, depth_req, 
 				      range_ref, depth_ref, eig);
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-
+	  
+	  MOOSTrace("Receiver %d \n", phone_iter);
+	  MOOSTrace("Target range= %f, Raytracing range = %f\n", range,eig.range);
+	  MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
+	  MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
+	  
 	  double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
 	  double delta_z = - delta_dep;
