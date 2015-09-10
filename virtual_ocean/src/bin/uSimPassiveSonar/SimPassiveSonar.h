@@ -50,6 +50,9 @@ class CAcousticContact
   std::string contact;
   bool ready;
   double last_request;
+  double last_range;
+  double last_rate;
+  double last_rate_update;
   bool svp_ready;
   int svp_request_id;
   double last_svp_request;
@@ -127,7 +130,8 @@ class CSimPassiveSonar : public CMOOSApp
     bool getAcousticContactSVP(std::string cn, 
 			       SVP::Response& svp_response );
     bool handleSVPResponse(const CMOOSMsg& msg);
-    bool defineRayTracingBox(double& r_min,
+    bool defineRayTracingBox(CAcousticContact& target,
+			     double& r_min,
 			     double& r_max,
 			     double& dep_min,
 			     double& dep_max,

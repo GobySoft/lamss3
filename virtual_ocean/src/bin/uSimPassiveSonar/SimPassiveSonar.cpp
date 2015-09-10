@@ -62,7 +62,7 @@ CSimPassiveSonar::CSimPassiveSonar()
   number_of_targets = 0;
   max_number_bounces = 1;
   // range change forcing new raytrace
-  raytracing_interval = 20;
+  raytracing_interval = 30;
   vsa = false;
   // linear svp, default isovelocity
   c_0 = 1500;
@@ -637,6 +637,7 @@ bool CSimPassiveSonar::Iterate()
 	      // first get the ray table for this contact
 	      if (getAcousticContact(Targets[i].target_id(),eigenray_table))
 		{
+		  CEigenRay eig;
 		  // Get the closest eigenray bundle
 		  eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
 		  if (ray_acoustics)
@@ -652,7 +653,8 @@ bool CSimPassiveSonar::Iterate()
 		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
 		      MOOSTrace("Incoherent TL = %f\n", tl_est);
 		      
-		      if (fabs(range_req - eig.range) > raytracing_interval)
+		      //		      if (fabs(range_req - eig.range) > 0.5*raytracing_interval)
+		      if (fabs(range_req - acoustic_contacts[i].last_range) > raytracing_interval)
 			{
 			  double range_min;
 			  double range_max;
@@ -660,8 +662,10 @@ bool CSimPassiveSonar::Iterate()
 			  double depth_max;
 			  int num_ranges;
 			  int num_depths;
-			  defineRayTracingBox(range_min,range_max,depth_min,depth_max,
-					   num_ranges,num_depths);
+			  defineRayTracingBox(acoustic_contacts[i],
+					      range_min,range_max,
+					      depth_min,depth_max,
+					      num_ranges,num_depths);
 			  requestRayTrace(Targets[i].target_id(), 
 					  range_min, range_max, num_ranges, 
 					  depth_min, depth_max, num_depths,
@@ -690,7 +694,7 @@ bool CSimPassiveSonar::Iterate()
 		      m_Comms.Notify("TARGET_YPOS",source_pos_y);
 		    }
 		}
-	      else if (ray_acoustics)
+	      else if (ray_acoustics && acoustic_contacts[i].last_request <= 0 )
 		{
 		  double range_min;
 		  double range_max;
@@ -698,8 +702,10 @@ bool CSimPassiveSonar::Iterate()
 		  double depth_max;
 		  int num_ranges;
 		  int num_depths;
-		  defineRayTracingBox(range_min,range_max,depth_min,depth_max,
-			  num_ranges,num_depths);
+		  defineRayTracingBox(acoustic_contacts[i],
+				      range_min,range_max,
+				      depth_min,depth_max,
+				      num_ranges,num_depths);
 		  requestRayTrace(Targets[i].target_id(), 
 				  range_min, range_max, num_ranges, 
 				  depth_min, depth_max, num_depths,
@@ -889,7 +895,6 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
 	MOOSTrace("Number of targets = %d\n",number_of_targets);
 
 	CTarget Empty;
-	
 	if (number_of_targets != old_number_of_targets )
 	  {
 	    Targets.clear();
@@ -991,12 +996,13 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
   return(true);
 }
 
-bool CSimPassiveSonar::defineRayTracingBox(double& r_min,
-					double& r_max,
-					double& dep_min,
-					double& dep_max,
-					int& num_r,
-					int& num_dep)
+bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
+					   double& r_min,
+					   double& r_max,
+					   double& dep_min,
+					   double& dep_max,
+					   int& num_r,
+					   int& num_dep)
 {
   if (got_source_loc && got_array_info)
     {
@@ -1010,7 +1016,7 @@ bool CSimPassiveSonar::defineRayTracingBox(double& r_min,
 	{
 	  double range_x = (array_x.at(i) - source_pos_x);
 	  double range_y = (array_y.at(i) - source_pos_y);
-	  double range = sqrt(range_x*range_x + range_y*range_y);
+	  double range = sqrt(range_x*range_x + range_y*range_y) ;
 	  double depth = - array_z.at(i); 
 	  r_min = std::min(range,r_min);
 	  r_max = std::max(range,r_max);
@@ -1024,11 +1030,29 @@ bool CSimPassiveSonar::defineRayTracingBox(double& r_min,
 				 spacing);
 	    }
 	}
-      r_min -= 0.5 * raytracing_interval; 
-      r_max += 0.5 * raytracing_interval;
+      double range = 0.5*(r_min+r_max);
+      if (target.last_rate <= 0)
+	r_min -= 2*raytracing_interval;
+      if (target.last_rate >= 0)
+	r_max += 2*raytracing_interval;
+      //      r_min += target.last_rate * (MOOSTime()-target.last_rate_update);
+      //      r_max += target.last_rate * (MOOSTime()-target.last_rate_update);
+
       // Raytracing resolution less critical for horizontal variability 
-      num_r = int((r_max-r_min)/(10*spacing)) + 2;
-      num_dep = int((dep_max-dep_min)/spacing) + 1;
+      num_r = int((r_max-r_min)/(10*spacing)) + 3;
+      num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 1;
+
+      double delta_t = MOOSTime() - target.last_rate_update; 
+      if (target.last_rate_update > 0)
+	{
+	  target.last_rate = (range-target.last_range)/delta_t;	    
+	  cout << endl << ">>> rate_update= " << target.last_rate << endl; 
+	  cout << ">>> delta_t = " << delta_t << endl << endl ;
+	}
+      else
+	target.last_rate = 0;
+      target.last_range = range;
+      target.last_rate_update = MOOSTime();
       return(true);
     }
   return(false);
@@ -1118,12 +1142,18 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double range_ref, depth_ref;
 	  CEigenRay eig;
 
-	  eigenray_table.getEigenRays(range, -array_z.at(phone_iter), 
+	  double depth_req = -array_z.at(phone_iter);
+	  eigenray_table.getEigenRays(range, depth_req, 
 				      range_ref, depth_ref, eig);
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-
+	  
+	  MOOSTrace("Receiver %d \n", phone_iter);
+	  MOOSTrace("Target range= %f, Raytracing range = %f\n", range,eig.range);
+	  MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
+	  MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
+	  
 	  double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
 	  double delta_z = - delta_dep;
@@ -1820,10 +1850,14 @@ bool CSimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_tab
   // make new contact
   CAcousticContact new_contact;
   new_contact.contact = cn;
-  new_contact.ready = true;
+  new_contact.ready = false;
   new_contact.ray_table = eig_table;
   new_contact.svp_ready = false;
-  new_contact.last_svp_request = 0;
+  new_contact.last_svp_request = -1;
+  new_contact.last_request = -1;
+  new_contact.last_range = 0;
+  new_contact.last_rate = 0;
+  new_contact.last_rate_update = -1;
   acoustic_contacts.push_back(new_contact);
   MOOSTrace("Contact %s eigenrays updated\n",cn.c_str());
   MOOSTrace("Number of ranges: %d\n",eig_table.num_ranges);
@@ -1915,7 +1949,8 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
       if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
 	{
 	  // if we waited more than 30 secs, iBellhop must have missed request
-	  if (readyAcousticContact(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 30.0 )
+	  //	  if (readyAcousticContact(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 30.0 )
+	  if (readyAcousticContact(cn) || acoustic_contacts[i].last_request <= 0 )
 	    {
 	      // Request raytracing
 	      string acoustic_contact = cn + "_SIM";
@@ -1966,7 +2001,7 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      // Wait for Bellhop before making next request
 	      
 	      acoustic_contacts[i].ready = false;
-	      acoustic_contacts[i].last_request = MOOSTime();	    
+	      acoustic_contacts[i].last_request = MOOSTime();
 	    } 
 	  return(true);
 	}
@@ -1982,8 +2017,7 @@ bool CSimPassiveSonar::requestSVPUpdate(std::string cn,
     {
       if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
 	{
-	  // if we waited more than 60 secs, iBellhop must have missed request
-	  if (readyAcousticContactSVP(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 60.0 )
+	  if (readyAcousticContactSVP(cn) || acoustic_contacts[i].last_svp_request <= 0 )
 	    {
 
 	      SVP::Request svp_request;
