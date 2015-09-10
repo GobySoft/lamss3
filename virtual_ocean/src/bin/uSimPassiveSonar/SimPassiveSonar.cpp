@@ -694,7 +694,7 @@ bool CSimPassiveSonar::Iterate()
 		      m_Comms.Notify("TARGET_YPOS",source_pos_y);
 		    }
 		}
-	      else if (ray_acoustics && acoustic_contacts[i].last_request <= 0 )
+	      else if (ray_acoustics && (MOOSTime() - acoustic_contacts[i].last_request > 30.0))
 		{
 		  double range_min;
 		  double range_max;
