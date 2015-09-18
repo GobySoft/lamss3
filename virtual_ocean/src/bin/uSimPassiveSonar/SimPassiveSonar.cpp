@@ -684,7 +684,7 @@ bool CSimPassiveSonar::Iterate()
 
 		  generate_signal_spectrum(i);
 
-		  MOOSTrace("BB signal done -  target %d\n",i);
+		  MOOSTrace("Target signal spectrum done -  target %s\n",Targets[i].target_id().c_str());
 
 		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
 		  if(got_source_loc && i == icnt_rot)
@@ -1041,7 +1041,7 @@ bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 
       // Raytracing resolution less critical for horizontal variability 
       num_r = int((r_max-r_min)/(10*spacing)) + 3;
-      num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 1;
+      num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 3;
 
       double delta_t = MOOSTime() - target.last_rate_update; 
       if (target.last_rate_update > 0)
@@ -1061,7 +1061,7 @@ bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 
 bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 {
-  
+  bool debug = false;
   if (got_source_loc && source_status && got_source_bb_info)
     {
       double f_upper = source_bb_freq + source_bb_bw/2;
@@ -1149,12 +1149,13 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-	  
-	  MOOSTrace("Receiver %d \n", phone_iter);
-	  MOOSTrace("Target range= %f, Raytracing range = %f\n", range,eig.range);
-	  MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
-	  MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
-	  
+	  if (debug)
+	    {
+	      MOOSTrace("Receiver %d \n", phone_iter);
+	      MOOSTrace("Target range= %f, Raytracing range = %f\n", range,eig.range);
+	      MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
+	      MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
+	    }
 	  double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
 	  double delta_z = - delta_dep;
@@ -1251,7 +1252,8 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 			  p_pha = - (omega * t0) - phase_pres;
 			  if (phone_iter == 0 && i_ray == 0)
 			    {
-			      MOOSTrace("adding tone f=%f,mag=%f\n",tone_freqs[tone_iter],p_mag);
+			      MOOSTrace("adding tone f=%f, level=%f dB\n",
+					tone_freqs[tone_iter],20*log10(p_mag));
 			    }
 			  if (vsa)
 			    {
