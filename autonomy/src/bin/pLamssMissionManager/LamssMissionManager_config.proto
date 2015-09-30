@@ -1,0 +1,16 @@
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+message LamssMissionManagerConfig
+{
+  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+
+  optional double min_opbox_distance = 2 [default = 500];
+  optional double operation_radius   = 3 [default = 10000];
+  optional double operation_radius_percent   = 4 [default = 95];
+  optional double blackout_duration = 5 [default = 1200];
+  optional double prosecute_duration = 6 [default = 1800];
+  optional string deploy_location = 7 [default = "station"];
+}
+

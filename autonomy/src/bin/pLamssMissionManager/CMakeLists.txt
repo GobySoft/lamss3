@@ -1,0 +1,23 @@
+#--------------------------------------------------------
+# The CMakeLists.txt for:                  pLamssMissionManager
+# Author(s):                               Henrik Schmidt
+#                                          Toby Schneider 
+#--------------------------------------------------------
+
+set (CMAKE_CXX_FLAGS_RELEASE "-g")
+
+file(GLOB PROTOS_CONFIGURED ${CMAKE_CURRENT_BINARY_DIR}/*.proto)  
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} ${PROTOS_CONFIGURED})
+
+set(SRC LamssMissionManager.cpp  LamssMissionManager_fsm.cpp)
+
+ADD_EXECUTABLE(pLamssMissionManager ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
+      
+TARGET_LINK_LIBRARIES(pLamssMissionManager
+  ${Boost_LIBRARIES}
+  ${MOOS_LIBRARIES}
+  ${GOBY_LIBRARIES}
+  ${PROTOBUF_LIBRARIES}
+  ${IVP_MBUTIL_LIBRARY}
+  ${LAMSS_HENRIK_UTIL_LIBRARY}
+  )
