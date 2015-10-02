@@ -78,6 +78,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 void LamssMissionManager::loop()
 {
     double curr_time = MOOSTime();
+    if (last_acomms_ < 1)
+      last_acomms_ = curr_time;
 
     try_publish(); // publish messages queued from state machine
 
@@ -107,17 +109,75 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  serialize_for_moos(&serialized,last_deploy_cmd_);    
 	  publish("LAMSS_DEPLOY_IN", serialized);
-	  MOOSTrace("Prosecute duration exceeded - commanding Deploy\n");
+	  glog.is(DEBUG1) && glog 
+	    << "Prosecute duration exceeded - commanding Deploy" 
+	    << std::endl;
 	}
       else 
 	{
-	  MOOSTrace("Prosecute time remaining: %f sec\n",remaining );
+	  glog.is(DEBUG1) && glog 
+	    << "Prosecute time remaining: " << remaining
+	    << std::endl;
 	  publish("PROSECUTE_REMAINING",remaining);
 	}
     }
-  
+  if ( mission_active_ )
+    {
+      if ( !abort_mode_active_ )
+	{
+	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
+	  if (remaining <= 0.0)
+	    {
+	      glog.is(DEBUG1) && glog 
+		<< "Deploy duration exceeded - initiating Abort" 
+		<< std::endl;
+	      abort_requested_ = true;
+	      abort_time_ = curr_time;
+	      queue_event<EvNewMission>();
+	    }
+	  else 
+	    {
+	      glog.is(DEBUG1) && glog 
+		<< "Deploy time remaining: " << remaining
+		<< std::endl;
+	      publish("DEPLOY_REMAINING",remaining);
+	      abort_requested_ = false;
+	      abort_mode_active_ = false;
+	    }
+	  update_abort_mission();
+	}
+      else
+	{
+	  double remaining =  abort_duration_ - (curr_time - abort_time_);
+	  glog.is(DEBUG1) && glog 
+	    << "Abort time remaining: " << remaining
+	    << std::endl;
+	  publish("ABORT_REMAINING",remaining);
+	}
+    }
+
   last_slow_loop_t_ = curr_time;
 }
+
+void  LamssMissionManager::update_abort_mission()
+{
+  double range = sqrt(pow(last_nav_.local_fix().x() - cfg_.abort_x(),2)  +
+		      pow(last_nav_.local_fix().y() - cfg_.abort_y(),2));
+  double heading = atan2(cfg_.abort_x() - last_nav_.local_fix().x(),  
+			 cfg_.abort_y() - last_nav_.local_fix().y()) * 180./M_PI;
+  double duration = range/cfg_.abort_speed();
+  std::stringstream ss;
+  ss << "heading=" << heading << "#duration=" << duration ;; 
+  publish("ABORT_HEADING", ss.str());
+  std::stringstream ss1;
+  ss1 << "speed=" << cfg_.abort_speed() ;
+  publish("ABORT_SPEED", ss1.str());
+  std::stringstream ss2;
+  ss2 << "depth=" << cfg_.abort_depth() ;
+  publish("ABORT_DEPTH", ss2.str());
+
+  abort_duration_ = duration;
+}  
 
 void LamssMissionManager::try_publish()
 {
@@ -146,35 +206,42 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 {
-  //    LAMSS_DEPLOY deploy_cmd;
-    parse_for_moos(msg.GetString(), &last_deploy_cmd_);
+  LAMSS_DEPLOY deploy_cmd;
+  parse_for_moos(msg.GetString(), &deploy_cmd);
+  last_deploy_cmd_ = deploy_cmd;
+  deploy_received_ = true;
 
-    deploy_received_ = true;
-    if (mission_active_)
-      queue_event<EvNewMission>();
-    else
-      queue_event<EvStartMission>();
+  if (deploy_cmd._src_id() == cfg_.topside_id())
+    last_acomms_ = MOOSTime();
+
+  if (mission_active_)
+    queue_event<EvNewMission>();
+  else
+    queue_event<EvStartMission>();
 
 }
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 {
-  //    LAMSS_PROSECUTE prosecute_cmd;
-    parse_for_moos(msg.GetString(), &last_prosecute_cmd_);
+  LAMSS_PROSECUTE prosecute_cmd;
+  parse_for_moos(msg.GetString(), &prosecute_cmd);
+  last_prosecute_cmd_ = prosecute_cmd;
 
-    // prosecute only accepted if already in active mission
-        if (mission_active_)
-	  {
-	    prosecute_received_ = true;
-	    queue_event<EvNewMission>();
-	  }
-	else
-	  {
-	    goby::glog << group("fsm") 
-		       << "Not in actictive mission -  Prosecute ignored"
-		       << std::endl;
-	  }
-
+  if (prosecute_cmd._src_id() == cfg_.topside_id())
+    last_acomms_ = MOOSTime();
+  // prosecute only accepted if already in active mission
+  if (mission_active_)
+    {
+      prosecute_received_ = true;
+      queue_event<EvNewMission>();
+    }
+  else
+    {
+      goby::glog << group("fsm") 
+		 << "Not in actictive mission -  Prosecute ignored"
+		 << std::endl;
+    }
+  
 }
 
 

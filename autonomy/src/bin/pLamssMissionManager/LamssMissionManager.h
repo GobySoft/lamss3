@@ -39,7 +39,7 @@ class LamssMissionManager : public GobyMOOSApp
     // synchronous event
     void loop();    
     void slow_loop(double curr_time);
-
+    void update_abort_mission();
     void try_publish();
     
     // mail handlers

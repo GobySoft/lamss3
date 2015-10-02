@@ -9,8 +9,14 @@ message LamssMissionManagerConfig
   optional double min_opbox_distance = 2 [default = 500];
   optional double operation_radius   = 3 [default = 10000];
   optional double operation_radius_percent   = 4 [default = 95];
-  optional double blackout_duration = 5 [default = 1200];
+  optional double deploy_duration = 5 [default = 1200];
   optional double prosecute_duration = 6 [default = 1800];
   optional string deploy_location = 7 [default = "station"];
+  optional int32  topside_id = 8      [default = 1];
+  optional double abort_x = 9 [default = 0];
+  optional double abort_y = 10[default = 0];
+  optional double abort_depth = 11 [default = 30];
+  optional double abort_speed = 12 [default = 1.5];
+
 }
 

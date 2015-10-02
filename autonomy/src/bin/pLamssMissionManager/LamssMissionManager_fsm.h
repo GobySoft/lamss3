@@ -67,6 +67,8 @@ namespace lamss
             struct EvProsecuteTmazigzag : boost::statechart::event< EvProsecuteTmazigzag > { };
             struct EvProsecutePolygon : boost::statechart::event< EvProsecutePolygon > { };
             struct EvProsecuteUnknown : boost::statechart::event< EvProsecuteUnknown > { };
+	    // Abort event
+            struct EvStartAbort : boost::statechart::event< EvStartAbort > { };
 
             struct Idle;
             struct Mission;
@@ -97,15 +99,18 @@ namespace lamss
             struct Polygon;
 	    struct UnknownProsecute;
 
+	    // Abort State
+            struct Abort;
+
             extern std::deque<CMOOSMsg> publish_queue_;
       
-            extern Mission_StateEnum state_;
+            extern Lamss_StateEnum state_;
 
             extern boost::mutex moos_mutex_;
 
-            extern boost::condition_variable blackout_cond_;
-            extern boost::condition_variable operation_radius_cond_;
-            extern boost::condition_variable operation_box_cond_;
+	    //            extern boost::condition_variable blackout_cond_;
+	    //            extern boost::condition_variable operation_radius_cond_;
+	    //            extern boost::condition_variable operation_box_cond_;
       
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
@@ -118,25 +123,29 @@ namespace lamss
 	    extern bool prosecute_received_;
 	    extern bool prosecute_mode_active_;
 	    extern bool surfacing_mode_active_;
+	    extern bool abort_requested_;
+	    extern bool abort_mode_active_;
 
             extern double last_acomms_;
-	    extern double prosecute_time_;
+            extern double prosecute_time_;
+	    extern double abort_time_;
+	    extern double abort_duration_;
 
             extern boost::shared_ptr<LamssMissionManagerConfig> cfg_;
             
             // publish to the MOOSDB and the glog each time we change states
-            template<Mission_StateEnum state>
+            template<Lamss_StateEnum state>
                 struct StateNotify
                 {
                 StateNotify() :
-                    prefix_(std::string("MISSION_STATE_").length()),
-                        state_str_(Mission_StateEnum_Name(state).substr(prefix_))
+                    prefix_(std::string("LAMSS_STATE_").length()),
+                        state_str_(Lamss_StateEnum_Name(state).substr(prefix_))
                         {
                             boost::mutex::scoped_lock lock(moos_mutex_);
                             goby::glog.is(goby::common::logger::VERBOSE) && goby::glog << group("fsm") <<  state_str_ << std::endl;
                             state_ = state;
                             
-                            publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "MISSION_STATE", state_str_));   
+			    //                            publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "LAMSS_STATE", state_str_));   
                         }
                     virtual ~StateNotify()
                         {
@@ -153,19 +162,21 @@ namespace lamss
               LamssMissionManagerFSM(my_context ctx) : my_base( ctx )
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  // publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "SONAR_CONTROL","OFF"));
                 }
 	      };
 	    
             // Idle
-            struct Idle: boost::statechart::simple_state<Idle, LamssMissionManagerFSM>,
-	      StateNotify<MISSION_STATE_IDLE>
+            struct Idle: boost::statechart::state<Idle, LamssMissionManagerFSM>,
+	      StateNotify<LAMSS_STATE_IDLE>
 		{
-		  //		Idle(my_context ctx) : my_base(ctx)
-		  Idle()
-		    {
-		      mission_active_ = false; 
-		    }
+		  Idle(my_context ctx) : my_base(ctx)
+		  {		   
+		    boost::mutex::scoped_lock lock(moos_mutex_);
+		    mission_active_ = false; 
+		    if (abort_requested_ || deploy_received_ || prosecute_received_)
+		      post_event(EvStartMission());
+		    
+		  }
 		  ~Idle() 
 		    { 
 		    }
@@ -179,7 +190,7 @@ namespace lamss
 	    
             // Mission
             struct Mission: boost::statechart::simple_state<Mission, LamssMissionManagerFSM, StartMission>,
-	      StateNotify<MISSION_STATE_ACTIVE>
+	      StateNotify<LAMSS_STATE_ACTIVE>
 		{
 		  Mission() 
 		    {
@@ -202,10 +213,10 @@ namespace lamss
 
             // /Mission/StartMission
             struct StartMission: boost::statechart::state<StartMission, Mission>,
-                StateNotify<MISSION_STATE_STARTING> 
-            {
-                StartMission(my_context ctx) : my_base(ctx)
-                {
+                StateNotify<LAMSS_STATE_STARTING> 
+		  {
+		  StartMission(my_context ctx) : my_base(ctx)
+		    {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  if (deploy_received_)
 		    {
@@ -217,6 +228,11 @@ namespace lamss
 		      post_event(EvStartProsecute());
 		      prosecute_received_ = false;
 		    }
+		  else if (abort_requested_)
+		    {
+		      post_event(EvStartAbort());
+		      abort_requested_ = false;
+		    }
 		  else
 		    {
 		      goby::glog << group("fsm") 
@@ -225,6 +241,7 @@ namespace lamss
 		      post_event(EvAbortMission());
 		      deploy_received_ = false;
 		      prosecute_received_ = false;
+		      abort_requested_ = true;
 		    }
 
                 }
@@ -232,14 +249,15 @@ namespace lamss
 
                 typedef boost::mpl::list<
 		  boost::statechart::transition< EvStartDeploy, Deploy  >,
-		  boost::statechart::transition< EvStartProsecute, Prosecute >
+		  boost::statechart::transition< EvStartProsecute, Prosecute >,
+		  boost::statechart::transition< EvStartAbort, Abort >
                     > reactions;
        
             };
 
             // /Mission/Deploy
             struct Deploy : boost::statechart::simple_state<Deploy, Mission, StartDeploy>,
-                StateNotify<MISSION_STATE_DEPLOY> 
+                StateNotify<LAMSS_STATE_DEPLOY> 
             {
 	      Deploy() 
                 {
@@ -250,7 +268,7 @@ namespace lamss
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Mode..."
-			       << "blackout_duration=" << cfg_->blackout_duration() 
+			       << "deploy_duration=" << last_deploy_cmd_.deploy_duration() 
 			       << std::endl;
 		  
 		  std::string serialized;
@@ -271,7 +289,7 @@ namespace lamss
 	    
             // /Mission/Deploy/StartDeploy
             struct StartDeploy: boost::statechart::state<StartDeploy, Deploy>,
-                StateNotify<MISSION_STATE_START_DEPLOY> 
+                StateNotify<LAMSS_STATE_START_DEPLOY> 
             {
                 StartDeploy(my_context ctx) : my_base(ctx)
                 {
@@ -349,7 +367,7 @@ namespace lamss
 
             // /Mission/Deploy/Loiter
             struct Loiter: boost::statechart::simple_state<Loiter, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_LOITER>  
+                StateNotify<LAMSS_STATE_DEPLOY_LOITER>  
             {
 	      Loiter()
                 {
@@ -359,8 +377,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Loiter Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -377,7 +395,7 @@ namespace lamss
 
             // /Mission/Deploy/Return
             struct Return: boost::statechart::simple_state<Return, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_RETURN>  
+                StateNotify<LAMSS_STATE_DEPLOY_RETURN>  
             {
 	      Return()
                 {
@@ -387,8 +405,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Return Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -406,7 +424,7 @@ namespace lamss
 
             // /Mission/Deploy/Racetrack
             struct Racetrack: boost::statechart::simple_state<Racetrack, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_RACETRACK>  
+                StateNotify<LAMSS_STATE_DEPLOY_RACETRACK>  
             {
 	      Racetrack()
                 {
@@ -416,8 +434,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Racetrack Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -434,7 +452,7 @@ namespace lamss
 
             // /Mission/Deploy/Zigzag
             struct Zigzag: boost::statechart::simple_state<Zigzag, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_ZIGZAG>  
+                StateNotify<LAMSS_STATE_DEPLOY_ZIGZAG>  
             {
 	      Zigzag()
                 {
@@ -444,8 +462,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Zigzag Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -462,7 +480,7 @@ namespace lamss
 
             // /Mission/Deploy/Lawnmower
             struct Lawnmower: boost::statechart::simple_state<Lawnmower, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_LAWNMOWER>  
+                StateNotify<LAMSS_STATE_DEPLOY_LAWNMOWER>  
             {
 	      Lawnmower()
                 {
@@ -472,8 +490,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Lawnmower Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -490,7 +508,7 @@ namespace lamss
 
             // /Mission/Deploy/Trail
             struct Trail: boost::statechart::simple_state<Trail, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_TRAIL>  
+                StateNotify<LAMSS_STATE_DEPLOY_TRAIL>  
             {
 	      Trail()
                 {
@@ -500,8 +518,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Trail Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -518,7 +536,7 @@ namespace lamss
 
             // /Mission/Deploy/Stationkeep
             struct Stationkeep: boost::statechart::simple_state<Stationkeep, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_STATIONKEEP>  
+                StateNotify<LAMSS_STATE_DEPLOY_STATIONKEEP>  
             {
 	      Stationkeep()
                 {
@@ -528,8 +546,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Stationkeep Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -546,7 +564,7 @@ namespace lamss
 
             // /Mission/Deploy/Spiral
             struct Spiral: boost::statechart::simple_state<Spiral, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_SPIRAL>  
+                StateNotify<LAMSS_STATE_DEPLOY_SPIRAL>  
             {
 	      Spiral()
                 {
@@ -556,8 +574,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Spiral Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -574,7 +592,7 @@ namespace lamss
 
             // /Mission/Deploy/Trackfront
             struct Trackfront: boost::statechart::simple_state<Trackfront, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_TRACKFRONT>  
+                StateNotify<LAMSS_STATE_DEPLOY_TRACKFRONT>  
             {
 	      Trackfront()
                 {
@@ -584,8 +602,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Trackfront Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -602,7 +620,7 @@ namespace lamss
 
             // /Mission/Deploy/Sampletarfield
             struct Sampletarfield: boost::statechart::simple_state<Sampletarfield, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_SAMPLETARFIELD>  
+                StateNotify<LAMSS_STATE_DEPLOY_SAMPLETARFIELD>  
             {
 	      Sampletarfield()
                 {
@@ -612,8 +630,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Sampletarfield Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -630,7 +648,7 @@ namespace lamss
 
             // /Mission/Deploy/Helix
             struct Helix: boost::statechart::simple_state<Helix, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_HELIX>  
+                StateNotify<LAMSS_STATE_DEPLOY_HELIX>  
             {
 	      Helix()
                 {
@@ -640,8 +658,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Helix Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -658,7 +676,7 @@ namespace lamss
 
             // /Mission/Deploy/UnknownDeploy
             struct UnknownDeploy: boost::statechart::simple_state<UnknownDeploy, Deploy>,
-                StateNotify<MISSION_STATE_DEPLOY_UNKNOWN>  
+                StateNotify<LAMSS_STATE_DEPLOY_UNKNOWN>  
             {
 	      UnknownDeploy()
                 {
@@ -668,8 +686,8 @@ namespace lamss
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Unknown Mode..." 
 			       << "Deploy mode=" << last_deploy_cmd_.deploy_mode()
-			       << "Deploy_x = " << last_deploy_cmd_.deploy_x() 
-			       << "Deploy_y = " << last_deploy_cmd_.deploy_y() 
+			       << ", Deploy_x = " << last_deploy_cmd_.deploy_x() 
+			       << ", Deploy_y = " << last_deploy_cmd_.deploy_y() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -688,7 +706,7 @@ namespace lamss
 
             // /Mission/Prosecute
             struct Prosecute : boost::statechart::simple_state<Prosecute, Mission, StartProsecute>,
-                StateNotify<MISSION_STATE_PROSECUTE> 
+                StateNotify<LAMSS_STATE_PROSECUTE> 
             {
 	      Prosecute() 
                 {
@@ -700,7 +718,7 @@ namespace lamss
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Mode..."
-			       << "blackout_duration=" << cfg_->blackout_duration() 
+			       << "deploy_duration=" << cfg_->deploy_duration() 
 			       << "prosecute_duration=" << last_prosecute_cmd_.prosecute_duration() 
 			       << std::endl;
 		  
@@ -723,7 +741,7 @@ namespace lamss
 	    
             // /Mission/Prosecute/StartProsecute
             struct StartProsecute: boost::statechart::state<StartProsecute, Prosecute>,
-                StateNotify<MISSION_STATE_START_PROSECUTE> 
+                StateNotify<LAMSS_STATE_START_PROSECUTE> 
             {
                 StartProsecute(my_context ctx) : my_base(ctx)
                 {
@@ -760,12 +778,12 @@ namespace lamss
 
             // /Mission/Prosecute/Adaptive
             struct Adaptive: boost::statechart::simple_state<Adaptive, Prosecute>,
-                StateNotify<MISSION_STATE_PROSECUTE_ADAPTIVE>  
+                StateNotify<LAMSS_STATE_PROSECUTE_ADAPTIVE>  
             {
 	      Adaptive()
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_MISSION", "ADAPTIVE"));
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_TYPE", "ADAPTIVE"));
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Adaptive Mode..." 
@@ -790,12 +808,12 @@ namespace lamss
 
             // /Mission/Prosecute/Tmazigzag
             struct Tmazigzag: boost::statechart::simple_state<Tmazigzag, Prosecute>,
-                StateNotify<MISSION_STATE_PROSECUTE_TMAZIGZAG>  
+                StateNotify<LAMSS_STATE_PROSECUTE_TMAZIGZAG>  
             {
 	      Tmazigzag()
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_MISSION", "TMAZIGZAG"));
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_TYPE", "TMAZIGZAG"));
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Tmazigzag Mode..." 
@@ -820,12 +838,12 @@ namespace lamss
 
             // /Mission/Prosecute/Polygon
             struct Polygon: boost::statechart::simple_state<Polygon, Prosecute>,
-                StateNotify<MISSION_STATE_PROSECUTE_POLYGON>  
+                StateNotify<LAMSS_STATE_PROSECUTE_POLYGON>  
             {
 	      Polygon()
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_MISSION", "POLYGON"));
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_TYPE", "POLYGON"));
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Polygon Mode..." 
@@ -850,7 +868,7 @@ namespace lamss
 
             // /Mission/Prosecute/UnknownProsecute
             struct UnknownProsecute: boost::statechart::simple_state<UnknownProsecute, Prosecute>,
-                StateNotify<MISSION_STATE_PROSECUTE_UNKNOWN>  
+                StateNotify<LAMSS_STATE_PROSECUTE_UNKNOWN>  
             {
 	      UnknownProsecute()
                 {
@@ -878,6 +896,38 @@ namespace lamss
 
             };
 
+            // /Mission/Abort
+            struct Abort : boost::statechart::simple_state<Abort, Mission >,
+                StateNotify<LAMSS_STATE_ABORT> 
+            {
+	      Abort() 
+                {
+
+		  boost::mutex::scoped_lock lock(moos_mutex_);		  
+		  abort_mode_active_ = true;
+
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "Entering Abort Mode..."
+			       << "deploy_duration=" << cfg_->deploy_duration() 
+			       << std::endl;
+		  
+		  std::string serialized;
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, 
+						    "MISSION_STATE", "ABORT"));
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "success..." 
+			       << std::endl;
+                }
+	      ~Abort() 
+		{
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  deploy_mode_active_ = false;
+		}
+	      
+            };
+	    
 
         }
     }
