@@ -72,6 +72,7 @@ message LAMSS_DEPLOY {
 		 TRAIL_ANGLE_TYPE_absolute = 1; 
 	} 
 	optional double GPS_Interval = 27 [(dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, default = 0];
-//	optional double Yoyo_Period = 28 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
-//	optional double Yoyo_Period_Segments = 29 [(dccl.field).max=63, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Deploy_Duration = 28 [(dccl.field).max=25500.000000, (dccl.field).min=0.000000, (dccl.field).precision=-2, default = 1800];
+//	optional double Yoyo_Period = 29 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+//	optional double Yoyo_Period_Segments = 30  [(dccl.field).max=63, (dccl.field).min=0, (dccl.field).precision=0];
 } 
