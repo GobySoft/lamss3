@@ -1,6 +1,6 @@
 import "dccl/protobuf/option_extensions.proto";
 import "goby/common/protobuf/option_extensions.proto";
-message LamssStatus { 
+message LAMSS_STATUS { 
 	option (dccl.msg).id = 20;
 	option (dccl.msg).max_bytes = 32;
 	optional double Timestamp = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
@@ -64,3 +64,31 @@ message LamssStatus {
 	optional int32 Min_Cline_Depth = 21 [(dccl.field).max=255, (dccl.field).min=0];
 	optional int32 Ctr_Cline_Depth = 22 [(dccl.field).max=255, (dccl.field).min=0];
 } 
+
+enum Mission_StateEnum
+{
+  MISSION_STATE_IDLE = 1;
+  MISSION_STATE_ACTIVE = 2;
+  MISSION_STATE_STARTING = 3;
+  MISSION_STATE_DEPLOY = 4;
+  MISSION_STATE_START_DEPLOY = 5;
+  MISSION_STATE_DEPLOY_LOITER = 6;
+  MISSION_STATE_DEPLOY_RETURN = 7;
+  MISSION_STATE_DEPLOY_RACETRACK = 8;
+  MISSION_STATE_DEPLOY_ZIGZAG = 9;
+  MISSION_STATE_DEPLOY_LAWNMOWER = 10;
+  MISSION_STATE_DEPLOY_TRAIL = 11;		   
+  MISSION_STATE_DEPLOY_STATIONKEEP = 12;
+  MISSION_STATE_DEPLOY_SPIRAL = 13;
+  MISSION_STATE_DEPLOY_TRACKFRONT = 14;
+  MISSION_STATE_DEPLOY_SAMPLETARFIELD = 15;
+  MISSION_STATE_DEPLOY_HELIX = 16;
+  MISSION_STATE_DEPLOY_UNKNOWN = 17;
+  MISSION_STATE_PROSECUTE = 18;
+  MISSION_STATE_START_PROSECUTE = 19;
+  MISSION_STATE_PROSECUTE_ADAPTIVE = 20;
+  MISSION_STATE_PROSECUTE_TMAZIGZAG = 21;
+  MISSION_STATE_PROSECUTE_POLYGON = 22;
+  MISSION_STATE_PROSECUTE_UNKNOWN = 23;
+}
+
