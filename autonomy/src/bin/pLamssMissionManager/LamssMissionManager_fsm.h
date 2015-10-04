@@ -923,7 +923,7 @@ namespace lamss
 	      ~Abort() 
 		{
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  deploy_mode_active_ = false;
+		  abort_mode_active_ = false;
 		}
 	      
             };
