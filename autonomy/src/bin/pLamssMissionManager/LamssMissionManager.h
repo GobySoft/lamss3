@@ -48,6 +48,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
+    void handle_mission_state(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>

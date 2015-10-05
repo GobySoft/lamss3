@@ -27,13 +27,19 @@ boost::mutex lamss::shared::fsm::moos_mutex_;
 
 int lamss::shared::fsm::vehicle_id_ = 0;
 bool lamss::shared::fsm::mission_active_ = false;
+bool lamss::shared::fsm::mission_requested_ = false;
+bool lamss::shared::fsm::diving_active_ = false;
+bool lamss::shared::fsm::diving_requested_ = false;
 bool lamss::shared::fsm::deploy_mode_active_ = false;
 bool lamss::shared::fsm::deploy_received_ = false;
 bool lamss::shared::fsm::prosecute_mode_active_ = false;
 bool lamss::shared::fsm::prosecute_received_ = false;
 bool lamss::shared::fsm::surfacing_mode_active_ = false;
+bool lamss::shared::fsm::surfacing_requested_ = false;
 bool lamss::shared::fsm::abort_requested_ = false;
 bool lamss::shared::fsm::abort_mode_active_ = false;
+bool lamss::shared::fsm::drifting_requested_ = false;
+bool lamss::shared::fsm::drifting_mode_active_ = false;
 
 double lamss::shared::fsm::last_acomms_ = 0;
 double lamss::shared::fsm::prosecute_time_ = 0;

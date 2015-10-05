@@ -60,6 +60,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // set up subscriptions before starting separate thread
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
+    //    subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
 
@@ -80,6 +81,7 @@ void LamssMissionManager::loop()
     double curr_time = MOOSTime();
     if (last_acomms_ < 1)
       last_acomms_ = curr_time;
+
 
     try_publish(); // publish messages queued from state machine
 
@@ -123,7 +125,7 @@ void LamssMissionManager::slow_loop(double curr_time)
     }
   if ( mission_active_ )
     {
-      if ( !abort_mode_active_ )
+      if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
 	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
 	  if (remaining <= 0.0)
@@ -146,13 +148,21 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  update_abort_mission();
 	}
-      else
+      else if (abort_mode_active_)
 	{
 	  double remaining =  abort_duration_ - (curr_time - abort_time_);
-	  glog.is(DEBUG1) && glog 
-	    << "Abort time remaining: " << remaining
-	    << std::endl;
-	  publish("ABORT_REMAINING",remaining);
+	  if (remaining > 0.0)
+	    {
+	      glog.is(DEBUG1) && glog 
+		<< "Abort time remaining: " << remaining
+		<< std::endl;
+	      publish("ABORT_REMAINING",remaining);
+	    }
+	  else
+	    {
+	      abort_requested_ = false;
+	      drifting_requested_ = true;
+	    }
 	}
     }
 
@@ -249,5 +259,18 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+}
+
+void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
+{
+  std::string mission_state = msg.GetString();
+  if (MOOSStrCmp(mission_state,"DRIFTING"))
+    {
+      if (mission_active_)
+	{
+	  drifting_requested_ = true;
+	  queue_event<EvNewMission>();
+	}
+    }
 }
 
