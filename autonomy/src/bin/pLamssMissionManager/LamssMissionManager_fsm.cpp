@@ -15,7 +15,7 @@
 
 boost::shared_ptr<LamssMissionManagerConfig> lamss::shared::fsm::cfg_;
 
-Lamss_StateEnum lamss::shared::fsm::state_ = LAMSS_STATE_IDLE;
+Mission_StateEnum lamss::shared::fsm::state_ = MISSION_STATE_ALLSTOP;
 
 
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
