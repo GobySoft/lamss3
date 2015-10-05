@@ -43,7 +43,7 @@ namespace lamss
             // events
     
             struct EvAbortMission : boost::statechart::event< EvAbortMission > { };
-            struct EvStartMission : boost::statechart::event< EvStartMission > { };
+            struct EvStartDiving : boost::statechart::event< EvStartDiving > { };
             struct EvStartDive : boost::statechart::event< EvStartDive > { };
 	    // Deploy events
             struct EvStartDeploy : boost::statechart::event< EvStartDeploy > { };
@@ -55,7 +55,7 @@ namespace lamss
 
             struct Idle;
             struct Mission;
-            struct StartMission;
+            struct Diving;
 	    // Deploy States
             struct Deploy;
 
@@ -140,7 +140,7 @@ namespace lamss
 		    boost::mutex::scoped_lock lock(moos_mutex_);
 		    mission_active_ = false; 
 		    if (abort_requested_ || deploy_received_ || prosecute_received_)
-		      post_event(EvStartMission());
+		      post_event(EvStartDiving());
 		    
 		  }
 		  ~Idle() 
@@ -148,15 +148,15 @@ namespace lamss
 		    }
 		  
 		  typedef boost::mpl::list<
-		    boost::statechart::transition< EvStartMission, Mission >
+		    boost::statechart::transition< EvStartDiving, Mission >
 		    > reactions;
 		  
 		  
 		};
 	    
             // Mission
-            struct Mission: boost::statechart::simple_state<Mission, LamssMissionManagerFSM, StartMission>,
-	      StateNotify<MISSION_STATE_ACTIVE>
+            struct Mission: boost::statechart::simple_state<Mission, LamssMissionManagerFSM, Diving>,
+	      StateNotify<MISSION_STATE_MISSION>
 		{
 		  Mission() 
 		    {
@@ -177,11 +177,11 @@ namespace lamss
 		  
 		};
 
-            // /Mission/StartMission
-            struct StartMission: boost::statechart::state<StartMission, Mission>,
-                StateNotify<MISSION_STATE_STARTING> 
+            // /Mission/Diving
+            struct Diving: boost::statechart::state<Diving, Mission>,
+                StateNotify<MISSION_STATE_DIVING> 
 		  {
-		  StartMission(my_context ctx) : my_base(ctx)
+		  Diving(my_context ctx) : my_base(ctx)
 		    {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  if (deploy_received_)
@@ -211,7 +211,7 @@ namespace lamss
 		    }
 
                 }
-                ~StartMission() { }
+                ~Diving() { }
 
                 typedef boost::mpl::list<
 		  boost::statechart::transition< EvStartDeploy, Deploy  >,

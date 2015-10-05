@@ -217,7 +217,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
   if (mission_active_)
     queue_event<EvNewMission>();
   else
-    queue_event<EvStartMission>();
+    queue_event<EvStartDiving>();
 
 }
 
