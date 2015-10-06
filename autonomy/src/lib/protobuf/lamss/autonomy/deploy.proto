@@ -20,6 +20,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_TRACK_FRONT = 8;
 		 DEPLOY_MODE_SAMPLETARFIELD=9;
 		 DEPLOY_MODE_HELIX = 10;
+		 DEPLOY_MODE_DRIFT = 11;
 	} 
 	optional Depth_ModeEnum Depth_Mode = 6;
 	enum Depth_ModeEnum{ 
