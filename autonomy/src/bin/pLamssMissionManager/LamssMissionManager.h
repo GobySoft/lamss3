@@ -41,7 +41,8 @@ class LamssMissionManager : public GobyMOOSApp
     void slow_loop(double curr_time);
     void update_abort_mission();
     void try_publish();
-    
+    void send_deploy();
+
     // mail handlers
 
     void handle_ifs_data(const CMOOSMsg& msg);
@@ -49,6 +50,9 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
     void handle_mission_state(const CMOOSMsg& msg);
+    void handle_opbox_distance(const CMOOSMsg& msg);
+    void handle_transit_route(const CMOOSMsg& msg);
+    void handle_desired_depth(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>

@@ -60,9 +60,12 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // set up subscriptions before starting separate thread
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
-    //    subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
+    subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
+    subscribe("TRANSIT_ROUTE_IN", &LamssMissionManager::handle_transit_route, this);    
+    subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
+    subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
 
     // intialize MOOSGeodesy
 
@@ -99,25 +102,33 @@ void LamssMissionManager::slow_loop(double curr_time)
 
   if (prosecute_mode_active_)
     {
-      double remaining = (prosecute_time_ + last_prosecute_cmd_.prosecute_duration()) - curr_time;
+    double station_range = 
+      sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
+	   pow(last_nav_.local_fix().y() - last_deploy_cmd_.deploy_y(),2));
+    if (cfg_.operation_radius() > 0 && 
+	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
+	  {
+	    send_deploy();
+	    goby::glog << group("helm") 
+		       << "DEPLOY Executed: Approaching op_radius during prosecute"
+		       <<"station_range = " << station_range 
+		       <<", operation_radius = "<< cfg_.operation_radius()
+		       << std::endl;
+	  }
+
+    double remaining = (prosecute_time_ + last_prosecute_cmd_.prosecute_duration()) - 
+      curr_time;
       if (remaining <= 0.0)
 	{
 	  //	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
-	  std::string serialized;
-	  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
-	    {
-	      last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
-	      last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
-	    }
-	  serialize_for_moos(&serialized,last_deploy_cmd_);    
-	  publish("LAMSS_DEPLOY_IN", serialized);
-	  glog.is(DEBUG1) && glog 
+	  send_deploy();
+	  goby::glog << group("helm") 
 	    << "Prosecute duration exceeded - commanding Deploy" 
 	    << std::endl;
 	}
       else 
 	{
-	  glog.is(DEBUG1) && glog 
+	  goby::glog << group("helm") 
 	    << "Prosecute time remaining: " << remaining
 	    << std::endl;
 	  publish("PROSECUTE_REMAINING",remaining);
@@ -129,19 +140,19 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
 	  if (remaining <= 0.0)
-	    {
-	      glog.is(DEBUG1) && glog 
-		<< "Deploy duration exceeded - initiating Abort" 
-		<< std::endl;
+	    { 
+	      goby::glog << group("helm") 
+			 << "Deploy duration exceeded - initiating Abort" 
+			 << std::endl;
 	      abort_requested_ = true;
 	      abort_time_ = curr_time;
 	      queue_event<EvNewMission>();
 	    }
 	  else 
 	    {
-	      glog.is(DEBUG1) && glog 
-		<< "Deploy time remaining: " << remaining
-		<< std::endl;
+	      goby::glog << group("helm") 
+			 << "Deploy time remaining: " << remaining
+			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
 	      abort_requested_ = false;
 	      abort_mode_active_ = false;
@@ -153,7 +164,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  double remaining =  abort_duration_ - (curr_time - abort_time_);
 	  if (remaining > 0.0)
 	    {
-	      glog.is(DEBUG1) && glog 
+	      goby::glog << group("helm") 
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
@@ -167,6 +178,18 @@ void LamssMissionManager::slow_loop(double curr_time)
     }
 
   last_slow_loop_t_ = curr_time;
+}
+
+void LamssMissionManager::send_deploy()
+{
+  std::string serialized;
+  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+    {
+      last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
+      last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
+    }
+  serialize_for_moos(&serialized,last_deploy_cmd_);    
+  publish("LAMSS_DEPLOY_IN", serialized);
 }
 
 void  LamssMissionManager::update_abort_mission()
@@ -248,7 +271,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
   else
     {
       goby::glog << group("fsm") 
-		 << "Not in actictive mission -  Prosecute ignored"
+		 << "Not in active mission -  Prosecute ignored"
 		 << std::endl;
     }
   
@@ -266,7 +289,7 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
   std::string mission_state = msg.GetString();
   if (MOOSStrCmp(mission_state,"DRIFTING"))
     {
-      if (mission_active_)
+      if (mission_active_ && !drifting_mode_active_)
 	{
 	  drifting_requested_ = true;
 	  queue_event<EvNewMission>();
@@ -274,3 +297,57 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
     }
 }
 
+void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
+{ 
+  double opreg_perimeter_distance = msg.GetDouble();
+  if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
+    {
+      send_deploy();
+      goby::glog << group("helm") 
+	<< "DEPLOY Executed: Too close to Opregion Perimeter"
+	<< std::endl;
+    }
+}
+
+void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
+{
+  // remove trailing zero waypoints from transit route
+  std::string transit_route_in =  msg.GetString();
+  MOOSChomp(transit_route_in,"speed=");
+  std::stringstream transit_route;
+  transit_route << "speed=";
+  
+  std::string sd_v = MOOSChomp(transit_route_in,"#");
+  double v = atof(sd_v.c_str());
+  
+  transit_route << v  << "#";
+
+  MOOSChomp(transit_route_in,"points=");
+  transit_route << "points=";
+  bool first = true;
+  for (int i=1; i<=5; i++)
+    {
+      std::string sd_x = MOOSChomp(transit_route_in,",");
+      double x = atof(sd_x.c_str());
+      
+      std::string sd_y = MOOSChomp(transit_route_in,":");
+      double y = atof(sd_y.c_str());
+      
+      if (fabs(x) >= 10.0 || fabs(y) >= 10.0)
+	{
+	  if (!first)
+	    {
+	      transit_route << ":";
+	    }
+	  transit_route << x << "," << y;
+	  first=false;
+	}
+    } 
+  publish("TRANSIT_ROUTE",transit_route.str());
+}
+
+void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)
+{
+  double depth_mismatch =  fabs(last_nav_.global_fix().depth()-msg.GetDouble());
+  publish("DEPTH_MISMATCH",depth_mismatch);
+}
