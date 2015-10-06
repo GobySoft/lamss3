@@ -42,7 +42,6 @@ bool lamss::shared::fsm::drifting_requested_ = false;
 bool lamss::shared::fsm::drifting_mode_active_ = false;
 
 double lamss::shared::fsm::last_acomms_ = 0;
-double lamss::shared::fsm::prosecute_time_ = 0;
 double lamss::shared::fsm::abort_time_ = 0;
 double lamss::shared::fsm::abort_duration_ = 0;
 

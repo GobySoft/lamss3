@@ -100,7 +100,6 @@ namespace lamss
 	    extern bool drifting_mode_active_;
 
             extern double last_acomms_;
-            extern double prosecute_time_;
 	    extern double abort_time_;
 	    extern double abort_duration_;
 

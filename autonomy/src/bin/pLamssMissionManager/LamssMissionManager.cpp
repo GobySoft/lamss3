@@ -116,23 +116,24 @@ void LamssMissionManager::slow_loop(double curr_time)
 		       << std::endl;
 	  }
 
-    double remaining = (prosecute_time_ + last_prosecute_cmd_.prosecute_duration()) - 
+    double remaining = last_prosecute_cmd_.target_timestamp() + 
+      last_prosecute_cmd_.prosecute_duration() - 
       curr_time;
-      if (remaining <= 0.0)
-	{
-	  //	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
-	  send_deploy();
-	  goby::glog << group("helm") 
-	    << "Prosecute duration exceeded - commanding Deploy" 
-	    << std::endl;
-	}
-      else 
-	{
-	  goby::glog << group("helm") 
-	    << "Prosecute time remaining: " << remaining
-	    << std::endl;
-	  publish("PROSECUTE_REMAINING",remaining);
-	}
+    if (remaining <= 0.0)
+      {
+	//	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
+	send_deploy();
+	goby::glog << group("helm") 
+		   << "Prosecute duration exceeded - commanding Deploy" 
+		   << std::endl;
+      }
+    else 
+      {
+	goby::glog << group("helm") 
+		   << "Prosecute time remaining: " << remaining
+		   << std::endl;
+	publish("PROSECUTE_REMAINING",remaining);
+      }
     }
   if ( mission_active_ )
     {
