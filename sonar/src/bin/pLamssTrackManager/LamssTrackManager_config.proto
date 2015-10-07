@@ -8,5 +8,7 @@ message LamssTrackManagerConfig
 
   optional int32  priority_threshold = 2 [default = 5];
   optional int32  filter_length   = 3 [default = 1];
+  optional bool   auto_prosecute  = 4 [default = false];
+  optional double track_delay  = 5 [default = 30];
 }
 

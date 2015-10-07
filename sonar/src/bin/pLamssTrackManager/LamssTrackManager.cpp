@@ -47,6 +47,15 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       cfg_(cfg),
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssTrackManagerFSM>()),
+      num_tracks(0),
+      collab_num_tracks(0),
+      filt_set(true),
+      detect_mode_(false),
+      trk_beamno(0),
+      track_delay(cfg_.track_delay()),
+      prev_highest(-1),
+      collaborator_id(-1),
+      collaborator_name(""),
       last_slow_loop_t_(0)
 {
 
@@ -54,7 +63,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     goby::glog.add_group("fsm", goby::common::Colors::lt_magenta);
     goby::glog.add_group("helm", goby::common::Colors::lt_green);
     goby::glog.add_group("mac", goby::common::Colors::lt_blue);
-    goby::glog.add_group("gram", goby::common::Colors::yellow);
+    goby::glog.add_group("track", goby::common::Colors::yellow);
 
     // set up subscriptions before starting separate thread
     subscribe("LAMSS_DEPLOY_IN", &LamssTrackManager::handle_deploy, this);
@@ -62,7 +71,18 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     subscribe("MISSION_STATE", &LamssTrackManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssTrackManager::handle_vehicle_id, this);
     subscribe("IFS_DATA_IN", &LamssTrackManager::handle_ifs_data, this);    
+    subscribe("COLLABORATOR_ID", &LamssTrackManager::handle_collaborator_id, this);    
+    subscribe("COLLABORATOR_NAME", &LamssTrackManager::handle_collaborator_name, this);  
+    subscribe("BEARING_TRACKS", &LamssTrackManager::handle_bearing_tracks, this);    
+    subscribe("PROSECUTE_HEADING", &LamssTrackManager::handle_prosecute_heading, this);    
 
+    heading_filter = new Mavg(cfg_.filter_length());
+    // reset collaborator tracks
+    collab_new_track.clear();
+    collab_Tracks.clear();
+  
+    Empty.setTrack( 0, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, class_features);
+    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -81,7 +101,31 @@ void LamssTrackManager::loop()
 
     try_publish(); // publish messages queued from state machine
 
-    // process some events at a slower rate
+    bool prev_mode = detect_mode_;
+    detect_mode_ = prosecute_mode_active_ || 
+      (deploy_mode_active_ && sonar_on_);
+    if (detect_mode_)
+      {
+	if (dclt_idle_)
+	  {
+	    publish("TRACKER_COMMAND","ON");
+	    queue_event<EvDcltStart>();
+	  }
+      }
+    else
+      {
+	publish("TRACKER_COMMAND","OFF");
+	if (dclt_active_)
+	  queue_event<EvDcltOff>();
+      }
+
+  if (detect_mode_)
+    {
+      heading = angle360(heading_filter->get_FVal());
+      postStateVars();
+    }
+
+   // process some events at a slower rate
     const int slow_loop_period = 10;
     if(curr_time > last_slow_loop_t_ + slow_loop_period)
         slow_loop(curr_time);
@@ -126,7 +170,7 @@ void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
   last_deploy_cmd_ = deploy_cmd;
-
+  sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
 }
 
 void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
@@ -135,8 +179,6 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   last_prosecute_cmd_ = prosecute_cmd;
 
-  //      queue_event<EvNewMission>();
-  
 }
 
 
@@ -146,13 +188,597 @@ void LamssTrackManager::handle_vehicle_id(const CMOOSMsg& msg)
     vehicle_id_ = msg.GetDouble();
 }
 
+void LamssTrackManager::handle_collaborator_id(const CMOOSMsg& msg)
+{
+    collaborator_id = msg.GetDouble();
+}
+
+void LamssTrackManager::handle_collaborator_name(const CMOOSMsg& msg)
+{
+    collaborator_name = msg.GetString();
+    subscribe(collaborator_name+"BEARING_TRACKS", 
+	      &LamssTrackManager::handle_collaborator_bearing_tracks, this);  
+}
+
 void LamssTrackManager::handle_mission_state(const CMOOSMsg& msg)
 {
   std::string mission_state = msg.GetString();
-  if (MOOSStrCmp(mission_state,"DEPLOY") || 
-      MOOSStrCmp(mission_state,"PROSECUTE"))
+  deploy_mode_active_ = MOOSStrCmp(mission_state,"DEPLOY"); 
+  prosecute_mode_active_ = MOOSStrCmp(mission_state,"PROSECUTE");
+  mission_active_ = deploy_mode_active_ || prosecute_mode_active_;
+  if (mission_active_)
+    reset_tracking();
+}
+
+void LamssTrackManager::handle_ael_heading(const CMOOSMsg& msg)
+	      {
+		raw_heading = msg.GetDouble();
+		raw_heading = angle360(raw_heading);
+		heading = raw_heading;
+		if (filt_set)
+		  {
+		    heading_filter->set_RawVal(raw_heading);
+		    heading = angle360(heading_filter->get_FVal());     //HS 2007/07/12
+		  }
+	      }
+
+void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
+{
+  std::string sval = msg.GetString();
+  CTrack TrackBuf;
+  TrackBuf.decodeTrack(sval);
+  int in_trk= TrackBuf.trk_num;
+  if ( in_trk > num_tracks )
     {
-      mission_active_ = true; 
+      glog.is(DEBUG1) && glog 
+	<< "Non-existing track number " << in_trk
+	<< ". Adding new track" << std::endl;
+      for (int i=num_tracks; i< in_trk; i++)
+	{
+	  Tracks.push_back(Empty);
+	  new_track.push_back(false);
+	}
+      num_tracks = in_trk;
     }
+  Tracks[in_trk-1]=TrackBuf;
+  new_track[in_trk-1] = true;
+  std::string moosvar;
+  Tracks[in_trk-1].postTrack(moosvar,sval);
+  // goby::glog << group("track") 
+    glog.is(VERBOSE) && glog 
+	     << "New track: " << sval << std::endl;
+}
+
+void LamssTrackManager::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
+{
+  std::string sval = msg.GetString();
+  CTrack TrackBuf;
+  TrackBuf.decodeTrack(sval);
+  int in_trk= TrackBuf.trk_num;
+  if (in_trk > 0)
+    {
+      if ( in_trk > collab_num_tracks)
+	{
+	  glog.is(DEBUG1) && glog 
+	    << "Non-existing collaborator track number " << in_trk
+	    << ". Adding new track" << std::endl;
+	  for (int i=collab_num_tracks; i< in_trk; i++)
+	    {
+	      collab_Tracks.push_back(Empty);
+	      collab_new_track.push_back(false);
+	    }
+	  collab_num_tracks = in_trk;
+	}
+      collab_Tracks[in_trk-1]=TrackBuf;
+      collab_new_track[in_trk-1] = true;
+      std::string moosvar;
+      collab_Tracks[in_trk-1].postTrack(moosvar,sval);
+      // goby::glog << group("track") 
+      glog.is(DEBUG1) && glog 
+	<< "New collaborator track: " << sval << std::endl;
+      postStateCollab();
+    }	      
+}
+
+void LamssTrackManager::handle_prosecute_heading(const CMOOSMsg& msg)
+{
+  MOOSValFromString(prosecute_heading,msg.GetString(),"heading");
+}
+
+void LamssTrackManager::reset_tracking()
+{
+  //	m_Comms.Notify   ("TRACKING","NO_TRACK");  
+  if (dclt_active_)
+    queue_event<EvDcltReset>();
+  //  	MOOSTrace("RESETTING!!!!!!!!!!!!!!\n");
+  publish("TRACKER_COMMAND","RESET");
+  
+  for (int i=0; i<num_tracks; i++)
+    { 
+      Tracks[i].clrTrack();
+    }
+  
+  for (int i=0; i<collab_num_tracks; i++)
+    { 
+      collab_Tracks[i].clrTrack();
+    }
+  
+  std::string msg;
+  char buff[200];
+  sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+  msg = buff;
+  publish("BEARING_STAT",msg);
+  
+  if (collaborator_id > 0)
+    {
+      sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",collaborator_id,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+      msg = buff;
+      publish(collaborator_name+"_BEARING_STAT" ,msg);
+    }
+  return;
+}
+
+bool LamssTrackManager::postStateVars()
+{
+
+  char buff[200];
+  std::string msg;
+  double current =  MOOSTime();
+
+
+  int track_count = 0;
+
+  int highest_prio = 0;
+  int highest_index = -1;
+
+  // If prosecuting, concentrate on cued template (tgt_track_id)
+  for (int i=0; i<num_tracks; i++)
+    { 
+      Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+			 trk_ips, trk_x, trk_y, 
+			 trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+			 trk_snr, trk_utc, class_features);
+      if (current -  trk_utc < track_delay) 
+	{
+	  bool interest = ( (prosecute_mode_active_ && 
+			     ((trk_template == tgt_track_id) || 
+			      (trk_template == 0) || 
+			      (tgt_track_id == 0))) || 
+			    !prosecute_mode_active_);
+	  //goby::glog << group("track") 
+	  glog.is(DEBUG1) && glog 
+	    << "trk_template_=" << trk_template 
+	    << ", tgt_track_id =" << tgt_track_id
+	    << ", track_=" << trk_num 
+	    << ", priority =" << trk_prio << std::endl;
+	  if ( interest && ( trk_prio > highest_prio) )
+	    {
+	      highest_prio = trk_prio;
+	      highest_index = i;
+	    }
+	}
+      else
+	{
+	  Tracks[i].clrTrack();
+	  new_track[i] = false;
+	  if (i == prev_highest)
+	    {
+	      char buff[200];
+	      sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.6f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());  
+	      msg = buff;
+	      publish("BEARING_STAT",msg);
+	    }
+	}
+    }
+  
+    if (dclt_active_ && highest_index != prev_highest)
+      queue_event<EvDcltReset>();
+  //    tracking_published = false;
+  
+  //goby::glog << group("track") 
+    glog.is(DEBUG1) && glog 
+      << "Highest=" << highest_index
+      << ",priority=" << highest_prio << std::endl;
+ 
+  // For now we do the highest priority track only
+  if (highest_index >= 0 && highest_prio >= priority_threshold)
+    if (new_track[highest_index] )
+      {
+	Tracks[highest_index].getTrack(trk_num, trk_prio, trk_template, 
+				       trk_state, trk_ips, trk_x, trk_y, 
+				       trk_bearing, trk_sigma, trk_rate, 
+				       trk_rate_sigma, trk_snr, trk_utc, 
+				       class_features);
+	// goby::glog << group("track") 
+	glog.is(DEBUG1) && glog 
+	  << "Highest=" << highest_index
+	  << ", trk=" << trk_num 
+	  << ", prio=" << trk_prio
+	  << ", state=" << trk_state
+	  << ", ips=" << trk_ips
+	  << ", bearing=" << trk_bearing << std::endl;
+	// If ambiguity is broken, go to Tracking	  
+	if (trk_state == ABSOLUTE)
+	  {
+	    if (localization_active_)
+	      {
+		// Publish broadside heading
+		double broadside_heading = angle360(trk_bearing + 90.0);
+		if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
+		    fabs(broadside_heading - prosecute_heading) >= 270.0)
+		  publish("BROADSIDE_HEADING","heading="+
+			  doubleToString(broadside_heading,1));
+		else
+		  publish("BROADSIDE_HEADING","heading="+
+			  doubleToString(angle360(broadside_heading + 180.0)));
+		
+		// set tracking depth to current depth for non-adaptive tracking
+		std::string tracking_depth_update = "depth=" 
+		  + doubleToString(last_nav_.global_fix().depth());
+		publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
+		queue_event<EvToTracking>();
+		// m_Comms.Notify ("TRACKING","TRACKING");
+	      }
+	  }
+	else if (trk_state == RELATIVE)
+	  {
+	    if (trk_ips == 0)
+	      {
+		// When detection is made switch to breaking ambiguity
+		// set tracking depth to current depth for non-adaptive tracking
+		if (detection_active_)
+		  {
+		    std::string tracking_depth_update = "depth=" 
+		      + doubleToString(last_nav_.global_fix().depth());
+		    publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
+		    queue_event<EvToLocalization>();
+		  }		// m_Comms.Notify ("TRACKING","AMBIGUOUS");
+	      } 
+	    else
+	      {
+		double absolute = angle360(heading + trk_ips*trk_bearing);
+		if (!tracking_active_)
+		  {
+		    // Publish broadside heading
+		    double broadside_heading = angle360(absolute + 90.0);
+		    if (fabs(broadside_heading - heading) <= 90.0 || 
+			fabs(broadside_heading - heading) >= 270.0)
+		      publish("BROADSIDE_HEADING","heading="+
+			      doubleToString(broadside_heading,1));
+		    else
+		      publish("BROADSIDE_HEADING","heading="+
+			      doubleToString(angle360(broadside_heading + 180.0)));
+		    
+		    queue_event<EvToTracking>();
+		    // m_Comms.Notify ("TRACKING","TRACKING");
+		  }
+		Tracks[highest_index].setTrack(trk_num, trk_prio, trk_template, 
+					       ABSOLUTE, trk_ips, trk_x, trk_y, 
+					       absolute, trk_sigma, trk_rate, 
+					       trk_rate_sigma, trk_snr, class_features);
+	      }
+	  }
+	else
+	  {
+	    queue_event<EvDcltReset>();
+	    // m_Comms.Notify ("TRACKING","NO_TRACK");
+	    // tracking_published = false;
+	  }
+	
+	if (current -  trk_utc > track_delay) 
+	  new_track[highest_index] = false;
+	
+	// set BEARING_STATE
+	if (highest_index >= 0)
+	  msg = Tracks[highest_index].bearingState(node,trk_x, trk_y);
+	else
+	  {
+	    char buff[200];
+	    sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+	    msg = buff;
+	  }
+	
+	publish("BEARING_STAT",msg);
+	prev_highest = highest_index;
+      }
+  
+  for (int i=0; i<num_tracks; i++)
+    {
+      Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+			 trk_ips, trk_x, trk_y, 
+			 trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+			 trk_snr, trk_utc, class_features);
+      if (new_track[i]) 
+	{
+	  if (trk_state == ABSOLUTE)
+	    {
+	      if (track_count == 0)
+		BearingTrack.initReport(node, trk_x,trk_y, last_nav_.speed(), 
+					heading, trk_utc);
+	      track_count = BearingTrack.reportTrack(trk_num,trk_prio,trk_template,
+						     trk_bearing, trk_sigma, 
+						     trk_rate, trk_rate_sigma, trk_snr);
+	      if (track_count >= 1)
+		{
+		  msg = BearingTrack.createContactReport(); 
+		  publish("CONTACT_REPORT",msg);
+		  track_count = 0;
+		}
+	    }
+	  new_track[i] = false;
+	} 
+    }
+  if (track_count > 0)
+    {
+      msg = BearingTrack.createContactReport(); 
+      publish("CONTACT_REPORT",msg);
+      track_count = 0;
+    }
+  
+  return(true);
+}
+
+bool LamssTrackManager::postStateCollab()
+{
+
+  char buff[200];
+  std::string msg;
+  double current =  MOOSTime();
+
+  int trk_num;
+  int trk_prio; // 1-10, 10 highest.
+  int trk_template;
+  int trk_state; // 0: Invalid, 1: Relative, 2: Bbsolute.
+  int trk_ips;   // -1: Port, 1: Starboard, 0: Ambiguous
+  double trk_x; // array x corresponding to track
+  double trk_y; // array y corresponding to track
+  double trk_bearing;
+  double trk_sigma;
+  double trk_utc;
+  double trk_rate;
+  double trk_rate_sigma;
+  double trk_snr;
+  int trk_nfeat;
+  int trk_beamno;
+  std::vector<double> class_features;
+
+  int track_count = 0;
+
+  int highest_prio = 0;
+  int highest_index = -1;
+
+  for (int i=0; i<collab_num_tracks; i++)
+    { 
+      collab_Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+				trk_ips, trk_x, trk_y, 
+				trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+				trk_snr, trk_utc, class_features);
+      if (current -  trk_utc < track_delay) 
+	{
+	  if (trk_prio > highest_prio)
+	    {
+	      highest_prio = trk_prio;
+	      highest_index = i;
+	    }
+	}
+      else
+	{
+	  collab_Tracks[i].clrTrack();
+	  collab_new_track[i] = false;
+	}
+      
+    }
+  
+  //goby::glog << group("track") 
+  glog.is(DEBUG1) && glog 
+    << "Collaborator: Highest=" << highest_index
+    << ", priority=" << highest_prio << std::endl;
+  
+  if (highest_index >= 0 && highest_prio >= priority_threshold)
+    if (collab_new_track[highest_index] )
+      {
+	collab_Tracks[highest_index].getTrack(trk_num, trk_prio, trk_template, 
+					      trk_state, trk_ips, trk_x, trk_y, 
+					      trk_bearing, trk_sigma, trk_rate, 
+					      trk_rate_sigma, 
+					      trk_snr, trk_utc, class_features);
+	//goby::glog << group("track") 
+	glog.is(DEBUG1) && glog 
+	     << "Highest=" << highest_index
+	     << ", trk=" << trk_num
+	     << ", prio=" << trk_prio
+	     << ", state=" << trk_state
+	     << ", ips=" << trk_ips
+	     << ", bearing=" << trk_bearing << std::endl;
+
+	if (current -  trk_utc > track_delay) 
+	  collab_new_track[highest_index] = false;
+
+	// set BEARING_STATE
+	msg = collab_Tracks[highest_index].bearingState(collaborator_id,trk_x, trk_y);
+	publish(collaborator_name+"_BEARING_STAT" ,msg);
+      }
+
+  return(true);
+}
+
+double LamssTrackManager::angle360(double angle)
+{
+  double res = angle;
+  //  unwrap angles
+  while (res >= 360.0)
+    res -= 360.0;
+  while (res < 0.0)
+    res += 360.0;
+  
+  return(res);
+  
+}
+
+// >>>>>>>>>>>>>>> vector utility methods <<<<<<<<<<<<
+int LamssTrackManager::str2dbl_vec(std::string msg, std::vector<double>& values)
+{
+  std::string bite;
+  
+  values.clear();
+  int nz = 0;
+  while (msg.length() > 0)
+    {
+      bite = MOOSChomp(msg,",");
+      values.push_back(atof(bite.c_str()));
+      nz++;
+    }
+  
+  return(nz);
+}
+
+bool LamssTrackManager::dbl_vec2str(std::vector<double> numbers, std::string& output)
+{
+  output = "";
+  for(int i=0; i<numbers.size(); i++) 
+    {
+      if(i > 0)
+	output += ",";
+      std::string istr = doubleToString(numbers[i], 2); // 2 is the precision 123.45
+      output += istr;
+    }
+  return(true);
+}
+
+//***************************************************************************
+//*  Mavg::set_RawVal()                                                     *
+//*                                                                         *
+//*  This method calculates the moving average of a sequence of angles.     *
+//*                                                                         *
+//*************************************************************************** 
+
+Mavg::Mavg(int length)
+{
+
+	len = length;
+	num_measurements = 0;
+}
+
+Mavg::~Mavg()
+{
+}
+
+void Mavg::set_RawVal(double val)
+{
+	int avg_len;
+	double csum,ssum,s,c;
+
+	if (num_measurements < len)
+	{	  
+		s = sin(val*M_PI/180.0);
+		c = cos(val*M_PI/180.0);
+		svals.push_back(s);
+		cvals.push_back(c);
+		avg_len = num_measurements + 1;
+		num_measurements += 1;
+	}
+	else
+	{
+		s = sin(val*M_PI/180);
+		c = cos(val*M_PI/180.0);
+		svals.push_back(s);
+		cvals.push_back(c);
+		svals.pop_front();
+		cvals.pop_front();
+		avg_len = len;      
+	}
+
+	csum = 0.0;
+	ssum = 0.0;
+
+	for (int kk = 0; kk < avg_len; kk++)
+	{   
+		csum +=cvals[kk];
+		ssum +=svals[kk];
+	}
+
+	avg = atan2(ssum,csum)*180.0/M_PI;
+
+//MOOSTrace("ssum = %f, csum = %f, average angle = %f\n",ssum,csum,avg);
+}
+
+
+//***************************************************************************
+//*  Mavg::get_FVal()                                                       *
+//*                                                                         *
+//*  This method returns the value of the moving average                    *
+//*                                                                         *
+//*************************************************************************** 
+double Mavg::get_FVal()  
+{
+  if (num_measurements > 0)
+    return (avg);
+  else
+    return(0.0);
+}
+
+
+bool CReport::initReport(int node, double x, double y, double spd, double hdg, double utc)
+{
+
+  trk_node = node;
+  ael_x = x;
+  ael_y = y;
+  nav_spd = spd;
+  nav_hdg = hdg;
+  nav_utc = utc;
+
+  num_trk = 0;
+
+  trk_id.clear();
+  trk_priority.clear();
+  trk_template.clear();
+  trk_bearing.clear();
+  trk_sigma.clear();
+  trk_rate.clear();
+  trk_rate_sigma.clear();
+  trk_snr.clear();
+
+  return(true);
+}
+  
+int CReport::reportTrack(int id, int prio, int templ, double bearing, double sigma, 
+			 double rate, double rate_sigma, double snr)
+{
+
+  trk_id.push_back(id);
+  trk_priority.push_back(prio);
+  trk_template.push_back(templ);
+  trk_bearing.push_back(bearing);
+  trk_sigma.push_back(sigma);
+  trk_rate.push_back(rate);
+  trk_rate_sigma.push_back(rate_sigma);
+  trk_snr.push_back(snr);
+
+  num_trk++;
+
+  return(num_trk);
+}
+
+std::string CReport::createContactReport()
+{
+  std::string msg = "MessageType=CONTACT_REPORT";
+  msg += ",node=" + intToString(trk_node) ;
+  msg += ",time=" + doubleToString(nav_utc) ;
+
+  for (int i=0; i<num_trk; i++)
+    {
+      msg += ",track=" + intToString(trk_id[i]);
+      msg += ",priority=" + intToString(trk_priority[i]);
+      msg += ",template=" + intToString(trk_template[i]);
+      msg += ",ael_x=" + doubleToString(ael_x) ;
+      msg += ",ael_y=" + doubleToString(ael_y) ;
+      msg += ",bearing=" + doubleToString(trk_bearing[i],2);
+      msg += ",bearing_error=" + doubleToString(trk_sigma[i],2);
+      msg += ",rate=" + doubleToString(trk_rate[i],3);
+      msg += ",rate_error=" + doubleToString(trk_rate_sigma[i],3);
+      msg += ",snr=" + doubleToString(trk_snr[i],2);
+    }
+  return(msg);
 }
 

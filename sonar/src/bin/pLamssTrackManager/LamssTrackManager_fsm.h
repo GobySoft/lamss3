@@ -164,8 +164,8 @@ namespace lamss
 		    }
 		    
 		    typedef boost::mpl::list<
-		      boost::statechart::transition< EvDcltOff, Idle  >,
-		      boost::statechart::transition< EvDcltReset, Detection >
+		      //		      boost::statechart::transition< EvDcltOff, Idle  >,
+		      boost::statechart::transition< EvDcltReset, Idle >
 		      > reactions;
        
 		  };
@@ -192,7 +192,7 @@ namespace lamss
 
             // /Dclt/Localization
             struct Localization: boost::statechart::simple_state<Localization, Dclt>,
-	      StateNotify<TRACKING_NO_TRACK>
+	      StateNotify<TRACKING_AMBIGUOUS>
 		{
 		  Localization() 
 		    {
