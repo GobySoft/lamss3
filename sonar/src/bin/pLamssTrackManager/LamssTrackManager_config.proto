@@ -10,5 +10,13 @@ message LamssTrackManagerConfig
   optional int32  filter_length   = 3 [default = 1];
   optional bool   auto_prosecute  = 4 [default = false];
   optional double track_delay  = 5 [default = 30];
+  optional double track_report_time  = 6 [default = 30];
+  optional double bearing_rate_threshold  = 7 [default = 20];
+  optional double max_tracking_time  = 8 [default = 600];
+  optional double max_classify_time  = 9 [default = 400];
+  optional int32  buffer_length_single  = 10 [default = 20];
+  optional int32  buffer_length_multiple  = 11 [default = 5];
+  optional string deploy_location = 12 [default = "station"];
+
 }
 

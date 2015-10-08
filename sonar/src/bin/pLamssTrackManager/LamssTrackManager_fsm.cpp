@@ -26,15 +26,24 @@ boost::mutex lamss::shared::fsm::moos_mutex_;
 //boost::condition_variable lamss::shared::fsm::operation_box_cond_;  
 
 int lamss::shared::fsm::vehicle_id_ = 0;
+double lamss::shared::fsm::current_time_ = 0;
 bool lamss::shared::fsm::mission_active_ = false;
 int lamss::shared::fsm::track_state_ = 0;
 
 bool lamss::shared::fsm::dclt_idle_ = false;
 bool lamss::shared::fsm::dclt_active_ = false;
 bool lamss::shared::fsm::detection_active_ = false;
+double lamss::shared::fsm::detection_start_ = 0;
 bool lamss::shared::fsm::localization_active_ = false;
+double lamss::shared::fsm::localization_start_ = 0;
 bool lamss::shared::fsm::tracking_active_ = false;
+double lamss::shared::fsm::tracking_start_ = 0;
+double lamss::shared::fsm::tracking_duration_ = 0;
+int lamss::shared::fsm::bearing_track_count_ = 0;
+int lamss::shared::fsm::geo_track_count_ = 0;
+int lamss::shared::fsm::track_report_count_ = 0;
 bool lamss::shared::fsm::classifying_active_ = false;
+double lamss::shared::fsm::classifying_start_ = 0;
 
 bool lamss::shared::fsm::deploy_mode_active_ = false;
 bool lamss::shared::fsm::deploy_received_ = false;

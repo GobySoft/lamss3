@@ -15,6 +15,7 @@
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CTrack.h>
+#include <lamss/lib_henrik_util/Measurement.h>
 
 #define NO_TRACK     0
 #define RELATIVE     1
@@ -113,6 +114,10 @@ class LamssTrackManager : public GobyMOOSApp
     void handle_bearing_tracks(const CMOOSMsg& msg);
     void handle_collaborator_bearing_tracks(const CMOOSMsg& msg);
     void handle_prosecute_heading(const CMOOSMsg& msg);
+    void handle_track_stat(const CMOOSMsg& msg);
+    void handle_bearing_stat(const CMOOSMsg& msg);
+    void handle_close_range(const CMOOSMsg& msg);
+    void handle_class_done(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -131,71 +136,109 @@ class LamssTrackManager : public GobyMOOSApp
     static LamssTrackManager* inst_;    
 
     // Adopted from pTrackMonitor
-		CReport BearingTrack;
-		CTrack Empty;
+    CReport BearingTrack;
+    CTrack Empty;
+    
+    std::vector<CTrack> Tracks;
+    std::vector<bool> new_track;
+    
+    int tgt_track_id;
+    
+    int collaborator_id;
+    std::string collaborator_name;
+    
+    std::string sId;
+    std::vector<CTrack> collab_Tracks;
+    std::vector<bool> collab_new_track;
+    int collab_num_tracks;
+    
+    int trk_num;
+    int trk_prio; // 1-10, 10 highest.
+    int trk_template;
+    int trk_state; // 0: Invalid, 1: Relative, 2: Bbsolute.
+    int trk_ips;   // -1: Port, 1: Starboard, 0: Ambiguous
+    double trk_x; // array x corresponding to track
+    double trk_y; // array y corresponding to track
+    double trk_bearing;
+    double trk_sigma;
+    double trk_utc;
+    double trk_rate;
+    double trk_rate_sigma;
+    double trk_snr;
+    int trk_nfeat;
+    int trk_beamno;
+    
+    double prosecute_heading;
+    bool auto_prosecute;
+    
+    bool dclt_enable_;
+    std::vector<double> class_features;
+    
+    int num_tracks;
+    
+    Mavg *pitch_filter;
+    Mavg *heading_filter;
+    bool filt_set;
+    int priority_threshold;
+    int filt_len;
+    double track_delay;
+    int prev_highest;
+    
+    //vehicle and position
+    double xp,yp,auv_depth,ael_x_offset,ael_y_offset,ael_x,ael_y;
+    double heading,raw_heading,pitch,raw_pitch;
+    
+    //prosecute mode stuff
+    bool sonar_on_;
+    
+    //local node number
+    int node;
+    
+    void reset_tracking();
+    int str2dbl_vec(std::string, std::vector<double>& values);
+    bool dbl_vec2str(std::vector<double> numbers, std::string& str);
+    double angle360(double hdg);
+    bool postStateVars();
+    bool postStateCollab();
+    
+    // From pTrackQuality
+    bool close_range_;
+    double prev_bearing_;
+    double prev_bearing_time_;
+    double bearing_rate_max_;
+    bool bearing_neg_trend_;
+    double bearing_rate_threshold_;
 
-		std::vector<CTrack> Tracks;
-		std::vector<bool> new_track;
-
-		int tgt_track_id;
-
-		int collaborator_id;
-		std::string collaborator_name;
-
-		std::string sId;
-		std::vector<CTrack> collab_Tracks;
-		std::vector<bool> collab_new_track;
-		int collab_num_tracks;
-
-		int trk_num;
-		int trk_prio; // 1-10, 10 highest.
-                int trk_template;
-		int trk_state; // 0: Invalid, 1: Relative, 2: Bbsolute.
-		int trk_ips;   // -1: Port, 1: Starboard, 0: Ambiguous
-		double trk_x; // array x corresponding to track
-		double trk_y; // array y corresponding to track
-		double trk_bearing;
-		double trk_sigma;
-		double trk_utc;
-                double trk_rate;
-                double trk_rate_sigma;
-                double trk_snr;
-		int trk_nfeat;
-		int trk_beamno;
-
-		double prosecute_heading;
-		int prosecute_mission;
-		bool auto_prosecute;
-
-		bool detect_mode_;
-		std::vector<double> class_features;
-
-		int num_tracks;
-
-		Mavg *pitch_filter;
-		Mavg *heading_filter;
-		bool filt_set;
-		int priority_threshold;
-		int filt_len;
-		double track_delay;
-		int prev_highest;
-
-//vehicle and position
-		double xp,yp,auv_depth,ael_x_offset,ael_y_offset,ael_x,ael_y;
-		double heading,raw_heading,pitch,raw_pitch;
-
-//prosecute mode stuff
-		bool sonar_on_;
-		
-//local node number
-		int node;
-
-		void reset_tracking();
-		int str2dbl_vec(std::string, std::vector<double>& values);
-		bool dbl_vec2str(std::vector<double> numbers, std::string& str);
-		double angle360(double hdg);
-		bool postStateVars();
-		bool postStateCollab();
+    // Geo Track solution buffer
+    int m_buffer_length;
+    int m_buffer_length_mult, m_buffer_length_single;
+    
+    std::vector<double>      m_track_utc;
+    std::vector<double>      m_track_x;
+    std::vector<double>      m_track_y;
+    std::vector<double>      m_track_xdot;
+    std::vector<double>      m_track_ydot;
+    
+    std::string trackNodeReport(double trk_x, double trk_y, double trk_spd, 
+				double trk_hdg, double trk_dep );
+    int updateTrackBuffer(double,double,double,double,double);
+    double computeSigma();
+    void clearTrackBuffer();
+    
+    double m_utc_mean;
+    double m_x_mean;
+    double m_y_mean;
+    double m_xdot_mean;
+    double m_ydot_mean;
+    double m_heading_mean;
+    double m_speed_mean;
+    
+    double m_xy_sigma;
+    double m_xy_sigma_mult, m_xy_sigma_single;
+    bool multiple;
+    
+    double m_track_report_time, m_report_start;
+    int report_count;
 
 };
 

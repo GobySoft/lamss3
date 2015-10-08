@@ -70,15 +70,25 @@ namespace lamss
             
             extern int vehicle_id_;
 
+	    extern double current_time_;
 	    extern bool mission_active_;
 	    extern int  track_state_;
 
 	    extern bool dclt_idle_;
 	    extern bool dclt_active_;
 	    extern bool detection_active_;
+	    extern double detection_start_;
 	    extern bool localization_active_;
+	    extern double localization_start_;
 	    extern bool tracking_active_;
+	    extern double tracking_start_;
+	    extern double tracking_duration_;
+	    extern int bearing_track_count_;
+
+	    extern int geo_track_count_;
+	    extern int track_report_count_;
 	    extern bool classifying_active_;
+	    extern double classifying_start_;
 
 	    extern bool deploy_received_;
 	    extern bool deploy_mode_active_;
@@ -178,6 +188,7 @@ namespace lamss
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = true;
+		      detection_start_ = current_time_;
 		    }
 		  ~Detection()
 		    {
@@ -198,6 +209,7 @@ namespace lamss
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      localization_active_ = true;
+		      localization_start_ = current_time_;
 		    }
 		  ~Localization()
 		    {
@@ -219,7 +231,9 @@ namespace lamss
 
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  tracking_active_ = true;
-
+		  tracking_start_ = current_time_;
+		  geo_track_count_= 0;
+		  track_report_count_= 0;
                 }
 	      ~Tracking() 
 		{
@@ -242,6 +256,7 @@ namespace lamss
 		  
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  classifying_active_ = true;
+		  classifying_start_ = current_time_;
                 }
 	      ~Classifying() 
 		{
