@@ -57,7 +57,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     goby::glog.add_group("mac", goby::common::Colors::lt_blue);
     goby::glog.add_group("gram", goby::common::Colors::yellow);
 
+    set_ignore_stale(false);
+
     // set up subscriptions before starting separate thread
+    subscribe("LAMSS_STATUS_IN", &LamssMissionManager::handle_status, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
@@ -242,42 +245,56 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 {
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
-  last_deploy_cmd_ = deploy_cmd;
-  deploy_received_ = true;
+  // Only handle messages for me
+  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+    {
+      last_deploy_cmd_ = deploy_cmd;
+      deploy_received_ = true;
 
-  if (deploy_cmd._src_id() == cfg_.topside_id())
-    last_acomms_ = MOOSTime();
-
-  if (mission_active_)
-    queue_event<EvNewMission>();
-  else
-    queue_event<EvStartDiving>();
-
+      if (deploy_cmd._src_id() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+      
+      if (mission_active_)
+	queue_event<EvNewMission>();
+      else
+	queue_event<EvStartDiving>();
+    }
 }
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 {
   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
-  last_prosecute_cmd_ = prosecute_cmd;
-
-  if (prosecute_cmd._src_id() == cfg_.topside_id())
-    last_acomms_ = MOOSTime();
-  // prosecute only accepted if already in active mission
-  if (mission_active_)
+  // Only handle messages for me
+  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
     {
-      prosecute_received_ = true;
-      queue_event<EvNewMission>();
-    }
-  else
-    {
-      goby::glog << group("fsm") 
-		 << "Not in active mission -  Prosecute ignored"
-		 << std::endl;
-    }
-  
+      last_prosecute_cmd_ = prosecute_cmd;
+      
+      if (prosecute_cmd._src_id() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+      // prosecute only accepted if already in active mission
+      if (mission_active_)
+	{
+	  prosecute_received_ = true;
+	  queue_event<EvNewMission>();
+	}
+      else
+	{
+	  goby::glog << group("fsm") 
+		     << "Not in active mission -  Prosecute ignored"
+		     << std::endl;
+	}
+    }  
 }
 
+void LamssMissionManager::handle_status(const CMOOSMsg& msg)
+{
+  LAMSS_STATUS status_msg;
+  parse_for_moos(msg.GetString(), &status_msg);
+  // If coming from topside count as being connected
+  if (status_msg.node() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+}
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
