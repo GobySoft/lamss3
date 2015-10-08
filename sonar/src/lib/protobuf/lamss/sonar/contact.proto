@@ -34,3 +34,4 @@ message LAMSS_CONTACT {
 	optional double rate_error = 20 [(dccl.field).max=7.00, (dccl.field).min=0.00, (dccl.field).precision=2];
 	optional double snr = 21 [(dccl.field).max=50.00, (dccl.field).min=-50.00, (dccl.field).precision=2];
 } 
+

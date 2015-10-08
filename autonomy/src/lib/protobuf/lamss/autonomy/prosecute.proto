@@ -7,6 +7,11 @@ message LAMSS_PROSECUTE {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PROSECUTE", (dccl.field).static_value="LAMSS_PROSECUTE", (dccl.field).codec="_static"];
+	optional Prosecute_MissionEnum Prosecute_Mission = 15;
+	enum Prosecute_MissionEnum{ 
+		 PROSECUTE_MISSION_TRACK_ONLY = 0; 
+		 PROSECUTE_MISSION_TRACK_CLASSIFY = 1; 
+	} 
 	optional Prosecute_TypeEnum Prosecute_Type = 5;
 	enum Prosecute_TypeEnum{ 
 		 PROSECUTE_TYPE_ADAPTIVE = 0; 
