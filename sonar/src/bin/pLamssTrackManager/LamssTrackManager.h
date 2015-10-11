@@ -193,7 +193,8 @@ class LamssTrackManager : public GobyMOOSApp
     
     //local node number
     int node;
-    
+
+    bool checkOpportunity();    
     void reset_tracking();
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
@@ -208,6 +209,13 @@ class LamssTrackManager : public GobyMOOSApp
     double bearing_rate_max_;
     bool bearing_neg_trend_;
     double bearing_rate_threshold_;
+
+    // Target cue from pSearch
+    double cue_utc_;
+    double cue_x_;
+    double cue_y_;
+    double cue_speed_;
+    double cue_heading_;
 
     // Geo Track solution buffer
     int m_buffer_length;

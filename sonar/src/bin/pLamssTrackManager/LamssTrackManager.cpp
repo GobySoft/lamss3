@@ -66,6 +66,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     goby::glog.add_group("mac", goby::common::Colors::lt_blue);
     goby::glog.add_group("track", goby::common::Colors::yellow);
 
+    set_ignore_stale(false);
+
     // set up subscriptions before starting separate thread
     subscribe("LAMSS_DEPLOY_IN", &LamssTrackManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
@@ -173,7 +175,7 @@ void LamssTrackManager::try_publish()
     {
         while(!publish_queue_.empty())
 	{
-            glog.is(DEBUG1) && glog << "Publishing: " << publish_queue_.front().GetKey() << ": " << publish_queue_.front().GetAsString()  << std::endl;
+            glog.is(DEBUG2) && glog << "Publishing: " << publish_queue_.front().GetKey() << ": " << publish_queue_.front().GetAsString()  << std::endl;
             publish(publish_queue_.front());
             publish_queue_.pop_front();
 	}
@@ -208,6 +210,48 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   if (prosecute_cmd.destinationplatformid() == vehicle_id_)
     last_prosecute_cmd_ = prosecute_cmd;
+
+  // set up  search parameters from target cue
+
+  cue_utc_ = last_prosecute_cmd_.target_timestamp();
+  cue_x_ = last_prosecute_cmd_.target_x();
+  cue_y_ = last_prosecute_cmd_.target_y();
+  cue_heading_= last_prosecute_cmd_.target_heading();
+  cue_speed_ = last_prosecute_cmd_.target_speed();
+
+  double auv_x =last_nav_.local_fix().x();
+  double auv_y =last_nav_.local_fix().y();
+  //bearing to target 
+  double cue_bearing = atan2(cue_x_ - auv_x,
+			 cue_y_ - auv_y)*180.0/M_PI;
+	        
+  //vector addition
+  double res_vector = 180.0/M_PI*
+    atan2((sin(cue_bearing*M_PI/180.0)+sin(cue_heading_*M_PI/180.0)),
+	  (cos(cue_bearing*M_PI/180.0)+cos(cue_heading_*M_PI/180.0)));
+  
+  res_vector= angle360(res_vector);
+  
+  double new_heading;
+  double h_diff = fabs(cue_bearing-res_vector);
+  if(h_diff <= 45.0)    
+    {
+      //pass behind target   
+      if((sin(cue_bearing*M_PI/180)*cos(cue_bearing*M_PI/180)) < 0.0)
+	new_heading = angle360(cue_bearing - h_diff);
+      else
+	new_heading = angle360(cue_bearing + h_diff);
+    }
+  else
+    //pass in front
+    new_heading = res_vector;
+
+  std::string buff = "heading=" + doubleToString(new_heading,1);
+  publish("INIT_TRACK_HEADING",buff);   
+  
+  buff = "heading=" + doubleToString(cue_heading_,1);
+  publish("PROSECUTE_HEADING",buff);
+  
 }
 
 
@@ -259,7 +303,7 @@ void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
   int in_trk= TrackBuf.trk_num;
   if ( in_trk > num_tracks )
     {
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "Non-existing track number " << in_trk
 	<< ". Adding new track" << std::endl;
       for (int i=num_tracks; i< in_trk; i++)
@@ -288,7 +332,7 @@ void LamssTrackManager::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
     {
       if ( in_trk > collab_num_tracks)
 	{
-	  glog.is(DEBUG1) && glog 
+	  glog.is(DEBUG2) && glog 
 	    << "Non-existing collaborator track number " << in_trk
 	    << ". Adding new track" << std::endl;
 	  for (int i=collab_num_tracks; i< in_trk; i++)
@@ -303,7 +347,7 @@ void LamssTrackManager::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
       std::string moosvar;
       collab_Tracks[in_trk-1].postTrack(moosvar,sval);
       // goby::glog << group("track") 
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "New collaborator track: " << sval << std::endl;
       postStateCollab();
     }	      
@@ -367,12 +411,12 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
       // Update track buffer and compute uncertainty
       int buf_len = updateTrackBuffer(track_utc,track_x,track_y,
 				      track_spd,track_hdg);
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "Current buffer length =" << buf_len << std::endl;
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "Max buffer length =" << m_buffer_length << std::endl;
       double xy_std = computeSigma();
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "xy_std =" << xy_std << ", xy_sigma =" << m_xy_sigma << std::endl;
       bool good_track = (xy_std < m_xy_sigma) && (buf_len >= m_buffer_length);
       if (good_track)
@@ -380,7 +424,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  if (track_report_count_ == 0)
 	    m_report_start = current_time_;
 	  
-	  glog.is(DEBUG1) && glog 
+	  glog.is(DEBUG2) && glog 
 	    << "Time since first report " << current_time_-m_report_start 
 	    << std::endl;
       track_report_count_++;
@@ -513,6 +557,55 @@ void LamssTrackManager::handle_bearing_stat(const CMOOSMsg& msg)
     }
 }
 
+bool LamssTrackManager::checkOpportunity()
+// This function checks whether target will ever be getting inside the 
+// giveup/detection range
+{
+  double h_ang = (90.0-cue_heading_)*M_PI/180.0;
+  if (h_ang <= -M_PI)
+    h_ang = h_ang + 2*M_PI;
+  else if (h_ang > M_PI)
+    h_ang = h_ang - 2*M_PI;
+  
+  double auv_x =last_nav_.local_fix().x();
+  double auv_y =last_nav_.local_fix().y();
+  double auv_speed =last_nav_.speed();
+
+  double b_ang =atan2(cue_y_- auv_y,
+		      cue_x_- auv_x);
+  double t_range=sqrt(pow(cue_x_-auv_x,2)+pow(cue_y_-auv_y,2));
+
+  if (t_range < cfg_.max_search_range())
+    return(true);
+
+  double dif_ang = h_ang-b_ang;
+  if (dif_ang <= -M_PI)
+    dif_ang = dif_ang + 2*M_PI;
+  else if (dif_ang > M_PI)
+    dif_ang = dif_ang - 2*M_PI;
+
+  double cos_ang = cos(dif_ang);  
+  if (cos_ang <  0)
+    {
+      //	         coming this way - check if close enough
+      // time to CPA 
+      double time_to_cpa = -cos_ang*t_range/cue_speed_;
+      double my_dist = time_to_cpa * auv_speed;
+      if (fabs(t_range*sin(dif_ang))- my_dist <= cfg_.max_search_range())
+	return(true);
+    }
+  else
+    {
+      // Closing range ?
+      // Relative target speed
+      double closing_speed = auv_speed - cue_speed_ * cos_ang;
+      if (closing_speed > 0 && (t_range <= cfg_.max_search_range()))
+	return(true);
+    }
+
+    return(false);
+}
+
 void LamssTrackManager::handle_close_range(const CMOOSMsg& msg)
 {
   std::string close_state = msg.GetString();
@@ -521,7 +614,7 @@ void LamssTrackManager::handle_close_range(const CMOOSMsg& msg)
       if( !close_range_)
 	{
 	  close_range_ = true;
-	  glog.is(DEBUG1) && glog 
+	  glog.is(DEBUG2) && glog 
 	    << "In tracking range" << std::endl;
 	}
     }
@@ -601,7 +694,7 @@ bool LamssTrackManager::postStateVars()
 			      (tgt_track_id == 0))) || 
 			    !prosecute_mode_active_);
 	  //goby::glog << group("track") 
-	  glog.is(DEBUG1) && glog 
+	  glog.is(DEBUG2) && glog 
 	    << "trk_template_=" << trk_template 
 	    << ", tgt_track_id =" << tgt_track_id
 	    << ", track_=" << trk_num 
@@ -631,7 +724,7 @@ bool LamssTrackManager::postStateVars()
   //    tracking_published = false;
   
   //goby::glog << group("track") 
-    glog.is(DEBUG1) && glog 
+    glog.is(DEBUG2) && glog 
       << "Highest=" << highest_index
       << ",priority=" << highest_prio << std::endl;
  
@@ -645,7 +738,7 @@ bool LamssTrackManager::postStateVars()
 				       trk_rate_sigma, trk_snr, trk_utc, 
 				       class_features);
 	// goby::glog << group("track") 
-	glog.is(DEBUG1) && glog 
+	glog.is(DEBUG2) && glog 
 	  << "Highest=" << highest_index
 	  << ", trk=" << trk_num 
 	  << ", prio=" << trk_prio
@@ -825,7 +918,7 @@ bool LamssTrackManager::postStateCollab()
     }
   
   //goby::glog << group("track") 
-  glog.is(DEBUG1) && glog 
+  glog.is(DEBUG2) && glog 
     << "Collaborator: Highest=" << highest_index
     << ", priority=" << highest_prio << std::endl;
   
@@ -838,7 +931,7 @@ bool LamssTrackManager::postStateCollab()
 					      trk_rate_sigma, 
 					      trk_snr, trk_utc, class_features);
 	//goby::glog << group("track") 
-	glog.is(DEBUG1) && glog 
+	glog.is(DEBUG2) && glog 
 	     << "Highest=" << highest_index
 	     << ", trk=" << trk_num
 	     << ", prio=" << trk_prio
@@ -1073,14 +1166,14 @@ int LamssTrackManager::updateTrackBuffer(double track_utc,
       m_track_xdot.push_back(track_xdot);
       m_track_ydot.push_back(track_ydot);
     }
-  glog.is(DEBUG1) && glog 
+  glog.is(DEBUG2) && glog 
     << "Updating track buffer, length = " << m_track_utc.size() << std::endl;
   return(m_track_utc.size());
 }
 
  void LamssTrackManager::clearTrackBuffer()
  {
-   glog.is(DEBUG1) && glog 
+   glog.is(DEBUG2) && glog 
      << "Clearing track buffer, length = " << m_track_utc.size() << std::endl;
    m_track_utc.clear();
    m_track_x.clear();
@@ -1145,7 +1238,7 @@ std::string LamssTrackManager::trackNodeReport(double trk_x, double trk_y, doubl
 
   if (!m_Geodesy.UTM2LatLong(trk_x,trk_y,trk_lat,trk_lon))
     {
-      glog.is(DEBUG1) && glog 
+      glog.is(DEBUG2) && glog 
 	<< "Error in UTM2LatLong conversion" << std::endl;
       return("Error in UTM2LatLong conversion\n");	  
     }
