@@ -45,6 +45,8 @@ namespace lamss
             struct EvDcltOff : boost::statechart::event< EvDcltOff > { };
             struct EvDcltReset : boost::statechart::event< EvDcltReset > { };
 	    struct EvDcltStart : boost::statechart::event< EvDcltStart > { };
+	    struct EvCueInRange : boost::statechart::event< EvCueInRange > { };
+	    struct EvSearchOrbit : boost::statechart::event< EvSearchOrbit > { };
 	    struct EvToLocalization : boost::statechart::event< EvToLocalization > { };
 	    // Tracking Sequence Events
             struct EvToTracking : boost::statechart::event< EvToTracking > { };
@@ -55,6 +57,11 @@ namespace lamss
 	    // DCLT States
 	    struct Dclt;
             struct Detection;
+	    // detection search substates
+	    struct Search;
+	    struct CueInRange;
+	    struct SearchOrbit;
+
             struct Localization;
             struct Tracking;
             struct Classifying;
@@ -76,20 +83,25 @@ namespace lamss
 
 	    extern bool dclt_idle_;
 	    extern bool dclt_active_;
+	    // Detection/Search state vars
 	    extern bool detection_active_;
 	    extern double detection_start_;
+	    extern bool cue_in_range_;
+	    extern bool cue_too_close_;
+	    // Localization State vars
 	    extern bool localization_active_;
 	    extern double localization_start_;
+	    // Tracking State vars
 	    extern bool tracking_active_;
 	    extern double tracking_start_;
 	    extern double tracking_duration_;
 	    extern int bearing_track_count_;
-
 	    extern int geo_track_count_;
 	    extern int track_report_count_;
+	    // Classifying State vars
 	    extern bool classifying_active_;
 	    extern double classifying_start_;
-
+	    // Mission state vars
 	    extern bool deploy_received_;
 	    extern bool deploy_mode_active_;
 	    extern bool prosecute_received_;
@@ -181,24 +193,77 @@ namespace lamss
 		  };
 
             // /Dclt/Detection
-            struct Detection: boost::statechart::simple_state<Detection, Dclt>,
+            struct Detection: boost::statechart::simple_state<Detection, Dclt, Search>,
 	      StateNotify<TRACKING_NO_TRACK>
 		{
 		  Detection() 
 		    {
-		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = true;
 		      detection_start_ = current_time_;
+		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","FALSE"));
 		    }
 		  ~Detection()
 		    {
-		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = false;
 		    }
 		  
 		  typedef boost::mpl::list<
                     boost::statechart::transition< EvToLocalization, Localization >
                     > reactions;
+		};
+
+            // /Dclt/Detection/Search
+            struct Search: boost::statechart::simple_state<Search, Detection>
+		{
+		  Search() 
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      cue_in_range_ = false;
+		    }
+		  ~Search()
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		    }
+		  typedef boost::mpl::list<
+		    boost::statechart::transition< EvCueInRange, CueInRange >
+                    > reactions;
+		};
+		 
+            // /Dclt/Detection/CueInRange
+            struct CueInRange: boost::statechart::simple_state<CueInRange, Detection>
+		{
+		  CueInRange() 
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      cue_in_range_ = true;
+		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			<< group("fsm") << "Target Cue is inside range" << std::endl;
+		    }
+		  ~CueInRange()
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      cue_in_range_ = false;
+		    }
+		  typedef boost::mpl::list<
+		    boost::statechart::transition< EvSearchOrbit, SearchOrbit >
+                    > reactions;
+		};
+		 
+            // /Dclt/Detection/SearchOrbit
+            struct SearchOrbit: boost::statechart::simple_state<SearchOrbit, Detection>
+		{
+		  SearchOrbit() 
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      cue_too_close_ = true;
+		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","TRUE"));
+		    }
+		  ~SearchOrbit()
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      cue_too_close_ = false;
+		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","FALSE"));
+		    }
 		};
 
             // /Dclt/Localization

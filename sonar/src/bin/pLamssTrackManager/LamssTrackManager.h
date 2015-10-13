@@ -216,6 +216,7 @@ class LamssTrackManager : public GobyMOOSApp
     double cue_y_;
     double cue_speed_;
     double cue_heading_;
+    double cue_depth_;
 
     // Geo Track solution buffer
     int m_buffer_length;
@@ -227,7 +228,7 @@ class LamssTrackManager : public GobyMOOSApp
     std::vector<double>      m_track_xdot;
     std::vector<double>      m_track_ydot;
     
-    std::string trackNodeReport(double trk_x, double trk_y, double trk_spd, 
+    std::string trackNodeReport(std::string, double trk_x, double trk_y, double trk_spd, 
 				double trk_hdg, double trk_dep );
     int updateTrackBuffer(double,double,double,double,double);
     double computeSigma();

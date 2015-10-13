@@ -57,6 +57,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       collaborator_id(-1),
       collaborator_name(""),
       close_range_(false),
+      m_buffer_length(cfg_.buffer_length_single()),
       last_slow_loop_t_(0)
 {
 
@@ -141,7 +142,81 @@ void LamssTrackManager::loop()
       heading = angle360(heading_filter->get_FVal());
       postStateVars();
     }
+  //
+  // update search mode
+  //
+  if ( prosecute_mode_active_ && detection_active_ )
+    {
+      //update time since contact was seen
+      double elapsed = current_time_ - detection_start_;;
+     
+      //update target cue estimates
+      double curr_cue_x = cue_x_+ elapsed*cue_speed_* sin(cue_heading_*M_PI/180.);
+      double curr_cue_y = cue_y_+ elapsed*cue_speed_* cos(cue_heading_*M_PI/180.);
+      double auv_x = last_nav_.local_fix().x();
+      double auv_y = last_nav_.local_fix().y();
+      //update target range
+      double curr_cue_range = sqrt(pow(curr_cue_x-auv_x,2) + pow(curr_cue_y-auv_y,2));
+      // Check whether target is reachable
+      bool opportunity = checkOpportunity();   
 
+      std::string node_report = trackNodeReport("target_cue",curr_cue_x, 
+					      curr_cue_y, 
+					      cue_speed_, 
+					      cue_heading_, 
+					      cue_depth_ );
+      publish("NODE_REPORT",node_report);
+      publish("MY_TARGET","contact=TARGET_CUE");
+
+      glog.is(DEBUG2) && glog << "Current cue range =" << curr_cue_range
+			      << ", Giveup_range =" << cfg_.max_search_range()
+			      << std::endl;
+
+      if (!cue_in_range_ && curr_cue_range <= cfg_.max_search_range())
+	{
+	  queue_event<EvCueInRange>();
+	}
+
+      if ( !opportunity )
+	{
+	  glog.is(DEBUG1) && glog << "Cannot reach target - Deploy Commanded" 
+				  << std::endl;
+	  send_deploy();
+	}
+      else if (cue_in_range_)
+	{
+	  if  (curr_cue_range > cfg_.max_search_range())
+	    {
+	      glog.is(DEBUG1) && glog << 
+		"Target running out of range, giving up - Deploy Commanded" 
+				      << std::endl;
+	      send_deploy();
+	    }
+      // No detect yet and close to target. 
+      //if((!cue_too_close_ && curr_cue_range <= cfg_.min_search_range()) )
+	  if((curr_cue_range <= cfg_.min_search_range()) )
+	    {
+	      std::string buff = "polygon=radial:" + 
+		doubleToString(auv_x,1) +
+		"," + doubleToString(auv_y,1) + 
+		"," + doubleToString(cfg_.orbit_radius(),1);
+	      publish("PROSECUTE_LOITER",buff);
+	      queue_event<EvSearchOrbit>();
+	    }
+	}
+      //send info to CloseRange behavior
+      std::string buff = "node=" + intToString(vehicle_id_) +
+	",state=4" +
+	",x=" + doubleToString(curr_cue_x,2) +
+	",y=" + doubleToString(curr_cue_y,2) +
+	",heading=" + doubleToString(cue_heading_,1) +
+	",speed=" + doubleToString(cue_speed_,2) +
+	",time=" + doubleToString(current_time_,2);
+      m_Comms.Notify("TRACK_STAT",buff); 
+    }
+  // 
+  // Update classify mode
+  
   if ( prosecute_mode_active_ && classifying_active_ )
     {
       glog.is(DEBUG1) && glog << "Classifying time: " << curr_time-classifying_start_ 
@@ -218,6 +293,7 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   cue_y_ = last_prosecute_cmd_.target_y();
   cue_heading_= last_prosecute_cmd_.target_heading();
   cue_speed_ = last_prosecute_cmd_.target_speed();
+  cue_depth_ = last_prosecute_cmd_.target_depth();
 
   double auv_x =last_nav_.local_fix().x();
   double auv_y =last_nav_.local_fix().y();
@@ -441,7 +517,8 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
       glog.is(DEBUG1) && glog 
 	<< "Good tracks reported: " << track_report_count_ << std::endl;
       // Post node report for adaptive behaviors
-      std::string node_report = trackNodeReport(track_x, track_y, track_spd, 
+      std::string node_report = trackNodeReport("priority_trk",track_x, track_y, 
+						track_spd, 
 						track_hdg, 0.0 );
       publish("NODE_REPORT",node_report);
       publish("PRIORITY_TRK","contact=priority_trk");
@@ -1226,15 +1303,13 @@ double LamssTrackManager::computeSigma()
   return(xy_std);
 }
 
-std::string LamssTrackManager::trackNodeReport(double trk_x, double trk_y, double trk_spd, double trk_hdg, double trk_dep )
+std::string LamssTrackManager::trackNodeReport(std::string trk_name, double trk_x, double trk_y, double trk_spd, double trk_hdg, double trk_dep )
 {
 
   double trk_lat;
   double trk_lon;
 
-  double time_now = MOOSTime();
-
-  std::string output="NAME=priority_trk,TYPE=track,";
+  std::string output="NAME=" + trk_name +",TYPE=track,";
 
   if (!m_Geodesy.UTM2LatLong(trk_x,trk_y,trk_lat,trk_lon))
     {
@@ -1243,7 +1318,7 @@ std::string LamssTrackManager::trackNodeReport(double trk_x, double trk_y, doubl
       return("Error in UTM2LatLong conversion\n");	  
     }
 
-  output += "UTC_TIME=" + doubleToString(time_now,1);
+  output += "UTC_TIME=" + doubleToString(current_time_,1);
   output += ",";
 
   output += "X=" + doubleToString(trk_x,2);

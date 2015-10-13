@@ -48,7 +48,8 @@ double lamss::shared::fsm::classifying_start_ = 0;
 bool lamss::shared::fsm::deploy_mode_active_ = false;
 bool lamss::shared::fsm::deploy_received_ = false;
 bool lamss::shared::fsm::prosecute_mode_active_ = false;
-bool lamss::shared::fsm::prosecute_received_ = false;
+bool lamss::shared::fsm::cue_in_range_ = false;
+bool lamss::shared::fsm::cue_too_close_ = false;
 
 LAMSS_DEPLOY lamss::shared::fsm::last_deploy_cmd_;
 LAMSS_PROSECUTE lamss::shared::fsm::last_prosecute_cmd_;
