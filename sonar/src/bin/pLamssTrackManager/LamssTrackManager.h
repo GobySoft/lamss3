@@ -118,6 +118,7 @@ class LamssTrackManager : public GobyMOOSApp
     void handle_bearing_stat(const CMOOSMsg& msg);
     void handle_close_range(const CMOOSMsg& msg);
     void handle_class_done(const CMOOSMsg& msg);
+    void handle_tracking_mode(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -219,8 +220,6 @@ class LamssTrackManager : public GobyMOOSApp
     double cue_depth_;
 
     // Geo Track solution buffer
-    int m_buffer_length;
-    int m_buffer_length_mult, m_buffer_length_single;
     
     std::vector<double>      m_track_utc;
     std::vector<double>      m_track_x;
@@ -242,12 +241,9 @@ class LamssTrackManager : public GobyMOOSApp
     double m_heading_mean;
     double m_speed_mean;
     
-    double m_xy_sigma;
-    double m_xy_sigma_mult, m_xy_sigma_single;
     bool multiple;
     
     double m_track_report_time, m_report_start;
-    int report_count;
 
 };
 

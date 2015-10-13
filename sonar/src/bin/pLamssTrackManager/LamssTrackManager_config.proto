@@ -17,8 +17,10 @@ message LamssTrackManagerConfig
   optional double max_tracking_time  = 10 [default = 600];
   optional double max_classify_time  = 11 [default = 400];
   optional int32  buffer_length_single  = 12 [default = 20];
-  optional int32  buffer_length_multiple  = 13 [default = 5];
-  optional string deploy_location = 14 [default = "station"];
-  optional double orbit_radius = 15 [default = 500];
+  optional double xy_sigma_single  = 13 [default = 100];
+  optional int32  buffer_length_multiple  = 14 [default = 5];
+  optional double xy_sigma_multiple  = 15 [default = 50];
+  optional string deploy_location = 16 [default = "station"];
+  optional double orbit_radius = 17 [default = 500];
 }
 

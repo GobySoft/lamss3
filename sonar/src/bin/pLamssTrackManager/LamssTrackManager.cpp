@@ -57,7 +57,6 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       collaborator_id(-1),
       collaborator_name(""),
       close_range_(false),
-      m_buffer_length(cfg_.buffer_length_single()),
       last_slow_loop_t_(0)
 {
 
@@ -91,6 +90,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_close_range, this);    
     subscribe("CLASS_DONE", 
 	      &LamssTrackManager::handle_class_done, this);    
+    subscribe("TRACKING_MODE", 
+	      &LamssTrackManager::handle_tracking_mode, this);    
 
     heading_filter = new Mavg(cfg_.filter_length());
     // reset collaborator tracks
@@ -490,20 +491,20 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
       glog.is(DEBUG2) && glog 
 	<< "Current buffer length =" << buf_len << std::endl;
       glog.is(DEBUG2) && glog 
-	<< "Max buffer length =" << m_buffer_length << std::endl;
+	<< "Max buffer length =" << m_buffer_length_ << std::endl;
       double xy_std = computeSigma();
       glog.is(DEBUG2) && glog 
-	<< "xy_std =" << xy_std << ", xy_sigma =" << m_xy_sigma << std::endl;
-      bool good_track = (xy_std < m_xy_sigma) && (buf_len >= m_buffer_length);
+	<< "xy_std =" << xy_std << ", xy_sigma =" << m_xy_sigma_ << std::endl;
+      bool good_track = (xy_std < m_xy_sigma_) && (buf_len >= m_buffer_length_);
       if (good_track)
 	{
-	  if (track_report_count_ == 0)
+	  if (geo_track_report_count_ == 0)
 	    m_report_start = current_time_;
 	  
 	  glog.is(DEBUG2) && glog 
 	    << "Time since first report " << current_time_-m_report_start 
 	    << std::endl;
-      track_report_count_++;
+      geo_track_report_count_++;
       
       std::string track_report = msg.GetString();
       double track_lat,track_lon;
@@ -515,7 +516,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	}
       publish("TRACK_REPORT",track_report);
       glog.is(DEBUG1) && glog 
-	<< "Good tracks reported: " << track_report_count_ << std::endl;
+	<< "Good tracks reported: " << geo_track_report_count_ << std::endl;
       // Post node report for adaptive behaviors
       std::string node_report = trackNodeReport("priority_trk",track_x, track_y, 
 						track_spd, 
@@ -549,7 +550,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	}
       else if ( tracking_duration_ > cfg_.max_tracking_time() )
 	{		// Tracking only, send deploy
-	  track_report_count_ = 0;
+	  geo_track_report_count_ = 0;
 	  if (prosecute_mode_active_)
 	    {
 	      glog.is(DEBUG1) && glog 
@@ -709,6 +710,18 @@ void LamssTrackManager::handle_class_done(const CMOOSMsg& msg)
 	<< "DEPLOY Executed: Classification done " << std::endl;
     }
   
+}
+
+void LamssTrackManager::handle_tracking_mode(const CMOOSMsg& msg)
+{
+  std::string tracking_mode = msg.GetString();
+  if (tracking_active_)
+    {
+      if (tracking_single_active_ && MOOSStrCmp(tracking_mode,"MULTIPLE"))
+	queue_event<EvToMultiple>();
+      else if (tracking_multiple_active_ && MOOSStrCmp(tracking_mode,"SINGLE"))
+	queue_event<EvToSingle>();
+    }
 }
 
 void LamssTrackManager::reset_tracking()
@@ -1219,9 +1232,9 @@ int LamssTrackManager::updateTrackBuffer(double track_utc,
   double track_xdot = track_spd * cos(rhead);
   double track_ydot = track_spd * sin(rhead);
  
-  if (m_track_utc.size() >= m_buffer_length)
+  if (m_track_utc.size() >= m_buffer_length_)
     {
-      for(i=1; i<m_buffer_length; i++) 
+      for(i=1; i<m_buffer_length_; i++) 
 	{
 	  m_track_utc[i-1] = m_track_utc[i]; 
 	  m_track_x[i-1]   = m_track_x[i] ;
@@ -1229,11 +1242,11 @@ int LamssTrackManager::updateTrackBuffer(double track_utc,
 	  m_track_xdot[i-1] = m_track_xdot[i] ;
 	  m_track_ydot[i-1] = m_track_ydot[i] ;
 	}
-      m_track_utc[m_buffer_length] = track_utc;
-      m_track_x[m_buffer_length]   = track_x;
-      m_track_y[m_buffer_length]   = track_y;
-      m_track_xdot[m_buffer_length] = track_xdot;
-      m_track_ydot[m_buffer_length] = track_ydot;
+      m_track_utc[m_buffer_length_] = track_utc;
+      m_track_x[m_buffer_length_]   = track_x;
+      m_track_y[m_buffer_length_]   = track_y;
+      m_track_xdot[m_buffer_length_] = track_xdot;
+      m_track_ydot[m_buffer_length_] = track_ydot;
     }
   else
     {

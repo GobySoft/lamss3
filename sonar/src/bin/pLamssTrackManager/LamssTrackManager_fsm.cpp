@@ -39,11 +39,16 @@ double lamss::shared::fsm::localization_start_ = 0;
 bool lamss::shared::fsm::tracking_active_ = false;
 double lamss::shared::fsm::tracking_start_ = 0;
 double lamss::shared::fsm::tracking_duration_ = 0;
+bool lamss::shared::fsm::tracking_single_active_ = false;
+bool lamss::shared::fsm::tracking_multiple_active_ = false;
 int lamss::shared::fsm::bearing_track_count_ = 0;
 int lamss::shared::fsm::geo_track_count_ = 0;
-int lamss::shared::fsm::track_report_count_ = 0;
+int lamss::shared::fsm::geo_track_report_count_ = 0;
 bool lamss::shared::fsm::classifying_active_ = false;
 double lamss::shared::fsm::classifying_start_ = 0;
+// pTrackQuality variables
+int lamss::shared::fsm::m_buffer_length_ = 20;
+double lamss::shared::fsm::m_xy_sigma_ = 100;
 
 bool lamss::shared::fsm::deploy_mode_active_ = false;
 bool lamss::shared::fsm::deploy_received_ = false;

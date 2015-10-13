@@ -50,6 +50,8 @@ namespace lamss
 	    struct EvToLocalization : boost::statechart::event< EvToLocalization > { };
 	    // Tracking Sequence Events
             struct EvToTracking : boost::statechart::event< EvToTracking > { };
+            struct EvToSingle : boost::statechart::event< EvToSingle > { };
+            struct EvToMultiple : boost::statechart::event< EvToMultiple > { };
  	    // Prosecute events
             struct EvToClassifying : boost::statechart::event< EvToClassifying > { };
 
@@ -64,6 +66,8 @@ namespace lamss
 
             struct Localization;
             struct Tracking;
+            struct Single;
+            struct Multiple;
             struct Classifying;
 
             extern std::deque<CMOOSMsg> publish_queue_;
@@ -93,11 +97,17 @@ namespace lamss
 	    extern double localization_start_;
 	    // Tracking State vars
 	    extern bool tracking_active_;
+	    extern bool tracking_single_active_;
+	    extern bool tracking_multiple_active_;
 	    extern double tracking_start_;
 	    extern double tracking_duration_;
 	    extern int bearing_track_count_;
 	    extern int geo_track_count_;
-	    extern int track_report_count_;
+	    extern int geo_track_report_count_;
+	    // Single/multiple bearing tracking
+	    extern int m_buffer_length_;
+	    extern double m_xy_sigma_;
+
 	    // Classifying State vars
 	    extern bool classifying_active_;
 	    extern double classifying_start_;
@@ -177,6 +187,8 @@ namespace lamss
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      dclt_active_ = true;
+		      m_buffer_length_ = cfg_->buffer_length_single();
+		      m_xy_sigma_ = cfg_->xy_sigma_single();
 		    }
 		      
 		  ~Dclt() 
@@ -288,7 +300,7 @@ namespace lamss
 		};
 
             // /Dclt/Tracking
-            struct Tracking : boost::statechart::simple_state<Tracking, Dclt >,
+            struct Tracking : boost::statechart::simple_state<Tracking, Dclt, Single >,
                 StateNotify<TRACKING_TRACKING> 
             {
 	      Tracking() 
@@ -297,8 +309,6 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  tracking_active_ = true;
 		  tracking_start_ = current_time_;
-		  geo_track_count_= 0;
-		  track_report_count_= 0;
                 }
 	      ~Tracking() 
 		{
@@ -308,6 +318,57 @@ namespace lamss
 	      
 	      typedef boost::mpl::list<
 		boost::statechart::transition< EvToClassifying, Classifying >
+		> reactions;
+            };
+	    
+            // /Dclt/Tracking/Single
+            struct Single : boost::statechart::simple_state<Single, 
+	      Tracking >
+            {
+	      Single() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  tracking_single_active_ = true;		  
+		  geo_track_count_= 0;
+		  geo_track_report_count_= 0;
+		  m_buffer_length_ = cfg_->buffer_length_single();
+		  m_xy_sigma_ = cfg_->xy_sigma_single();
+		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		    << group("fsm") << "TRACKING_MODE = SINGLE" << std::endl;
+
+                }
+	      ~Single() 
+		{
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  tracking_single_active_ = false;		  
+		}
+	      typedef boost::mpl::list<
+		boost::statechart::transition< EvToMultiple, Multiple >
+		> reactions;
+            };
+	    
+            // /Dclt/Tracking/Multiple
+            struct Multiple : boost::statechart::simple_state<Multiple, 
+	      Tracking >
+            {
+	      Multiple() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);		  
+		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		    << group("fsm") << "TRACKING_MODE = MULTIPLE" << std::endl;
+		  tracking_multiple_active_ = true;		  
+		  geo_track_count_= 0;
+		  geo_track_report_count_= 0;
+		  m_buffer_length_ = cfg_->buffer_length_multiple();
+		  m_xy_sigma_ = cfg_->xy_sigma_multiple();
+                }
+	      ~Multiple() 
+		{
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  tracking_multiple_active_ = false;		  
+		}
+	      typedef boost::mpl::list<
+		boost::statechart::transition< EvToSingle, Single >
 		> reactions;
             };
 	    
