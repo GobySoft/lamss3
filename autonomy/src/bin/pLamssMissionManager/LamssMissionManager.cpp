@@ -80,6 +80,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
   
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
+    // Avoid abort on startup
+    last_acomms_ = MOOSTime();
 }
 
 void LamssMissionManager::loop()
@@ -187,6 +189,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 void LamssMissionManager::send_deploy()
 {
   std::string serialized;
+  last_deploy_cmd_.set_timestamp(MOOSTime());
+  last_deploy_cmd_.set__src_id(vehicle_id_);
+  last_deploy_cmd_.set_destinationplatformid(vehicle_id_);
   if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
     {
       last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
@@ -194,6 +199,7 @@ void LamssMissionManager::send_deploy()
     }
   serialize_for_moos(&serialized,last_deploy_cmd_);    
   publish("LAMSS_DEPLOY_IN", serialized);
+  //publish("OUTGOING_COMMAND", serialized);
 }
 
 void  LamssMissionManager::update_abort_mission()
