@@ -100,6 +100,7 @@ class LamssTrackManager : public GobyMOOSApp
     void slow_loop(double curr_time);
     void try_publish();
     void send_deploy();
+    void send_prosecute();
 
     // mail handlers
 
@@ -119,6 +120,7 @@ class LamssTrackManager : public GobyMOOSApp
     void handle_close_range(const CMOOSMsg& msg);
     void handle_class_done(const CMOOSMsg& msg);
     void handle_tracking_mode(const CMOOSMsg& msg);
+    void handle_sonar_control(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -130,6 +132,7 @@ class LamssTrackManager : public GobyMOOSApp
     boost::statechart::fifo_scheduler<>::processor_handle fsm_;
     boost::shared_ptr<boost::thread> fsm_thread_;
 
+    bool auto_prosecute_;
     double last_slow_loop_t_;
     
     goby::moos::protobuf::NodeStatus last_nav_;

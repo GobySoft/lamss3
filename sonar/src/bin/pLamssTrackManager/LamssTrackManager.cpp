@@ -57,6 +57,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       collaborator_id(-1),
       collaborator_name(""),
       close_range_(false),
+      auto_prosecute_(cfg_.auto_prosecute()),
       last_slow_loop_t_(0)
 {
 
@@ -92,6 +93,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_class_done, this);    
     subscribe("TRACKING_MODE", 
 	      &LamssTrackManager::handle_tracking_mode, this);    
+    subscribe("SONAR_CONTROL", 
+	      &LamssTrackManager::handle_sonar_control, this);    
 
     heading_filter = new Mavg(cfg_.filter_length());
     // reset collaborator tracks
@@ -127,13 +130,13 @@ void LamssTrackManager::loop()
       {
 	if (dclt_idle_)
 	  {
-	    publish("TRACKER_COMMAND","ON");
+	    //	    publish("TRACKER_COMMAND","ON");
 	    queue_event<EvDcltStart>();
 	  }
       }
     else
       {
-	publish("TRACKER_COMMAND","OFF");
+	//	publish("TRACKER_COMMAND","OFF");
 	if (dclt_active_)
 	  queue_event<EvDcltOff>();
       }
@@ -143,6 +146,7 @@ void LamssTrackManager::loop()
       heading = angle360(heading_filter->get_FVal());
       postStateVars();
     }
+
   //
   // update search mode
   //
@@ -277,7 +281,15 @@ void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
     {
       last_deploy_cmd_ = deploy_cmd;
       sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
+      reset_tracking();
+      auto_prosecute_ = deploy_cmd.auto_prosecute();
     }
+}
+
+void LamssTrackManager::handle_sonar_control(const CMOOSMsg& msg)
+{
+  std::string sonar_control = msg.GetString();
+  sonar_on_ = MOOSStrCmp(sonar_control,"ON");
 }
 
 void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
@@ -322,6 +334,12 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   else
     //pass in front
     new_heading = res_vector;
+
+  if (!sonar_on_)
+    {
+      publish("SONAR_CONTROL","ON");   
+      publish("SONAR_PROCESS","ON");   
+    }
 
   std::string buff = "heading=" + doubleToString(new_heading,1);
   publish("INIT_TRACK_HEADING",buff);   
@@ -395,7 +413,7 @@ void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
   std::string moosvar;
   Tracks[in_trk-1].postTrack(moosvar,sval);
   // goby::glog << group("track") 
-    glog.is(VERBOSE) && glog 
+    glog.is(DEBUG2) && glog 
 	     << "New track: " << sval << std::endl;
 }
 
@@ -438,13 +456,35 @@ void LamssTrackManager::handle_prosecute_heading(const CMOOSMsg& msg)
 void LamssTrackManager::send_deploy()
 {
   std::string serialized;
+  last_deploy_cmd_.set_timestamp(current_time_);
+  last_deploy_cmd_.set__src_id(vehicle_id_);
+  last_deploy_cmd_.set_destinationplatformid(vehicle_id_);
   if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
     {
       last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
       last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
     }
+  // disable auto_prosecute for self deploy
+  last_deploy_cmd_.set_auto_prosecute(false);
+
   serialize_for_moos(&serialized,last_deploy_cmd_);    
   publish("LAMSS_DEPLOY_IN", serialized);
+  //publish("OUTGOING_COMMAND", serialized);
+}
+
+void LamssTrackManager::send_prosecute()
+{
+  auto_prosecute_cmd_.set__src_id(vehicle_id_);
+  auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
+  auto_prosecute_cmd_.set_target_timestamp(current_time_);
+  auto_prosecute_cmd_.set_target_number(1);
+  
+  std::string serialized;
+  serialize_for_moos(&serialized,auto_prosecute_cmd_);    
+  //	      publish("OUTGOING_COMMAND", serialized);
+  publish("LAMSS_PROSECUTE_IN", serialized);
+  glog.is(DEBUG1) && glog << "Auto_Prosecute activated" 
+			  << std::endl;
 }
 
 void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
@@ -501,52 +541,53 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  if (geo_track_report_count_ == 0)
 	    m_report_start = current_time_;
 	  
-	  glog.is(DEBUG2) && glog 
+	  glog.is(DEBUG1) && glog 
 	    << "Time since first report " << current_time_-m_report_start 
 	    << std::endl;
-      geo_track_report_count_++;
-      
-      std::string track_report = msg.GetString();
-      double track_lat,track_lon;
-      
-      if (m_Geodesy.UTM2LatLong(track_x,track_y,track_lat,track_lon))
-	{
-	  track_report += ",track_lat=" + doubleToString(track_lat) 
-	    + ",track_lon=" + doubleToString(track_lon);
-	}
-      publish("TRACK_REPORT",track_report);
-      glog.is(DEBUG1) && glog 
-	<< "Good tracks reported: " << geo_track_report_count_ << std::endl;
-      // Post node report for adaptive behaviors
-      std::string node_report = trackNodeReport("priority_trk",track_x, track_y, 
-						track_spd, 
-						track_hdg, 0.0 );
-      publish("NODE_REPORT",node_report);
-      publish("PRIORITY_TRK","contact=priority_trk");
-      
-      if (current_time_ - m_report_start >= m_track_report_time)
-	{
-	  if (last_prosecute_cmd_.prosecute_mission() == 
-	      LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_ONLY )
+	  geo_track_report_count_++;
+	  
+	  std::string track_report = msg.GetString();
+	  double track_lat,track_lon;
+	  
+	  if (m_Geodesy.UTM2LatLong(track_x,track_y,track_lat,track_lon))
 	    {
-	      // Tracking only, send deploy
-	      if (prosecute_mode_active_)
+	      track_report += ",track_lat=" + doubleToString(track_lat) 
+		+ ",track_lon=" + doubleToString(track_lon);
+	    }
+	  publish("TRACK_REPORT",track_report);
+	  glog.is(DEBUG1) && glog 
+	    << "Good tracks reported: " << geo_track_report_count_ << std::endl;
+	  // Post node report for adaptive behaviors
+	  std::string node_report = trackNodeReport("priority_trk",track_x, track_y, 
+						    track_spd, 
+						    track_hdg, 0.0 );
+	  publish("NODE_REPORT",node_report);
+	  publish("PRIORITY_TRK","contact=priority_trk");
+	  
+	  if (current_time_ - m_report_start >= cfg_.track_report_time())
+	    {
+	      if (last_prosecute_cmd_.prosecute_mission() == 
+		  LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_ONLY )
 		{
-		  glog.is(DEBUG1) && glog 
-		    << "Acceptable tracking solution. DEPLOY Executed"
-		    << std::endl;
-		  queue_event<EvDcltOff>();
-		  send_deploy();
+		  // Tracking only, send deploy
+		  if (prosecute_mode_active_)
+		    {
+		      glog.is(DEBUG1) && glog 
+			<< "Acceptable tracking solution. DEPLOY Executed"
+			<< std::endl;
+		      reset_tracking();
+		      //queue_event<EvDcltReset>();
+		      send_deploy();
+		    }
+		}
+	      else if (last_prosecute_cmd_.prosecute_mission() == 
+		       LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_CLASSIFY )
+		{            
+		  // Switch to classify
+		  queue_event<EvToClassifying>();
+		  //m_Comms.Notify("TRACKING","CLASSIFYING");
 		}
 	    }
-	  else if (last_prosecute_cmd_.prosecute_mission() == 
-		   LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_CLASSIFY )
-	    {            
-	      // Switch to classify
-	      queue_event<EvToClassifying>();
-	      //m_Comms.Notify("TRACKING","CLASSIFYING");
-	    }
-	}
 	}
       else if ( tracking_duration_ > cfg_.max_tracking_time() )
 	{		// Tracking only, send deploy
@@ -727,9 +768,9 @@ void LamssTrackManager::handle_tracking_mode(const CMOOSMsg& msg)
 void LamssTrackManager::reset_tracking()
 {
   //	m_Comms.Notify   ("TRACKING","NO_TRACK");  
+  publish("TRACKER_COMMAND","RESET");
   if (dclt_active_)
     queue_event<EvDcltReset>();
-  publish("TRACKER_COMMAND","RESET");
   
   for (int i=0; i<num_tracks; i++)
     { 
@@ -856,6 +897,22 @@ bool LamssTrackManager::postStateVars()
 		publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
 		queue_event<EvToTracking>();
 		// m_Comms.Notify ("TRACKING","TRACKING");
+  //
+  // Update parameters for Auto Prosecute
+  //
+		if (deploy_mode_active_ && auto_prosecute_)
+		  {
+		    auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
+						     sin(trk_bearing*M_PI/180.0) + 
+						     last_nav_.local_fix().x());
+		    auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
+						     cos(trk_bearing*M_PI/180.0) + 
+						     last_nav_.local_fix().y());
+		    auto_prosecute_cmd_.set_target_speed(last_deploy_cmd_.deploy_speed());
+		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
+		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		    send_prosecute();
+		  }
 	      }
 	  }
 	else if (trk_state == RELATIVE)

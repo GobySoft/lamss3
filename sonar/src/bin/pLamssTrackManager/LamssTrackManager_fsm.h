@@ -78,6 +78,7 @@ namespace lamss
 
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
+	    extern LAMSS_PROSECUTE auto_prosecute_cmd_;    
             
             extern int vehicle_id_;
 
@@ -161,14 +162,18 @@ namespace lamss
 	      StateNotify<TRACKING_IDLE>
 		{
 		  Idle()
-		  {		   
-		    boost::mutex::scoped_lock lock(moos_mutex_);
-		    dclt_idle_ = true; 
-		  }
+		    {		   
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      dclt_idle_ = true; 
+		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","OFF"));
+		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			<< group("track") << "TRACKER_COMMAND=OFF" << std::endl;
+
+		    }
 		  ~Idle() 
 		    { 
-		    boost::mutex::scoped_lock lock(moos_mutex_);
-		    dclt_idle_ = false; 
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      dclt_idle_ = false; 
 		    }
 		  
 		  typedef boost::mpl::list<
@@ -187,8 +192,11 @@ namespace lamss
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      dclt_active_ = true;
+		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","ON"));
 		      m_buffer_length_ = cfg_->buffer_length_single();
 		      m_xy_sigma_ = cfg_->xy_sigma_single();
+		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			<< group("track") << "TRACKER_COMMAND=ON" << std::endl;
 		    }
 		      
 		  ~Dclt() 
@@ -199,7 +207,7 @@ namespace lamss
 		    
 		    typedef boost::mpl::list<
 		      boost::statechart::transition< EvDcltOff, Idle  >,
-		      boost::statechart::transition< EvDcltReset, Detection >
+		      boost::statechart::transition< EvDcltReset, Dclt >
 		      > reactions;
        
 		  };
@@ -267,6 +275,8 @@ namespace lamss
 		  SearchOrbit() 
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			<< group("fsm") << "Target Cue close, orbiting" << std::endl;
 		      cue_too_close_ = true;
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","TRUE"));
 		    }
@@ -354,13 +364,13 @@ namespace lamss
 	      Multiple() 
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
-		    << group("fsm") << "TRACKING_MODE = MULTIPLE" << std::endl;
 		  tracking_multiple_active_ = true;		  
 		  geo_track_count_= 0;
 		  geo_track_report_count_= 0;
 		  m_buffer_length_ = cfg_->buffer_length_multiple();
 		  m_xy_sigma_ = cfg_->xy_sigma_multiple();
+		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		    << group("fsm") << "TRACKING_MODE = MULTIPLE" << std::endl;
                 }
 	      ~Multiple() 
 		{
