@@ -69,6 +69,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRANSIT_ROUTE_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
+    subscribe("OUTGOING_COMMAND", &LamssMissionManager::handle_initial_deploy, this);
 
     // intialize MOOSGeodesy
 
@@ -233,6 +234,44 @@ void LamssMissionManager::try_publish()
             publish(publish_queue_.front());
             publish_queue_.pop_front();
 	}
+    }
+}
+
+void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  std::string cmd = msg.GetString();
+  std::string cmd_type;
+
+  MOOSValFromString(cmd_type,cmd,"MessageType");
+  if (MOOSStrCmp(cmd_type,"LAMSS_DEPLOY"))
+    {
+      LAMSS_DEPLOY init_deploy_cmd;
+      init_deploy_cmd.set_timestamp(MOOSTime());
+      init_deploy_cmd.set__src_id(vehicle_id_);
+      init_deploy_cmd.set_destinationplatformid(vehicle_id_);
+      std::string bite;
+      MOOSValFromString(bite,cmd,"Deploy_Y");
+      init_deploy_cmd.set_deploy_x(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Y");
+      init_deploy_cmd.set_deploy_y(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Speed");
+      init_deploy_cmd.set_deploy_speed(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
+      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Lower_Depth");
+      init_deploy_cmd.set_deploy_lower_depth(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
+      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
+      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Loiter_Radius");
+      init_deploy_cmd.set_loiter_radius(atof(bite.c_str()));
+
+      std::string serialized;
+      serialize_for_moos(&serialized,init_deploy_cmd);    
+      publish("LAMSS_DEPLOY_IN", serialized);
+      
     }
 }
 
