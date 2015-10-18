@@ -32,6 +32,7 @@
 #include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_contact.pb.h" // DCCL message
+#include "lamss/lib_lamss_protobuf/lamss_track.pb.h" // DCCL message
 
 namespace lamss
 {
@@ -79,6 +80,7 @@ namespace lamss
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
 	    extern LAMSS_PROSECUTE auto_prosecute_cmd_;    
+	    extern LAMSS_TRACK last_track_report_;    
             
             extern int vehicle_id_;
 

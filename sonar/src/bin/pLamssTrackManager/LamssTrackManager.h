@@ -121,6 +121,7 @@ class LamssTrackManager : public GobyMOOSApp
     void handle_class_done(const CMOOSMsg& msg);
     void handle_tracking_mode(const CMOOSMsg& msg);
     void handle_sonar_control(const CMOOSMsg& msg);
+    void handle_track_report(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>

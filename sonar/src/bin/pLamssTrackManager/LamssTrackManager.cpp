@@ -85,6 +85,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_prosecute_heading, this);    
     subscribe("TRACK_STAT", 
 	      &LamssTrackManager::handle_track_stat, this);    
+    subscribe("TRACK_REPORT_IN", 
+	      &LamssTrackManager::handle_track_report, this);    
     subscribe("BEARING_STAT", 
 	      &LamssTrackManager::handle_bearing_stat, this);    
     subscribe("CLOSE_RANGE", 
@@ -283,6 +285,61 @@ void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
       sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
       reset_tracking();
       auto_prosecute_ = deploy_cmd.auto_prosecute();
+    }
+}
+
+void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
+{
+  LAMSS_TRACK track_report;
+  parse_for_moos(msg.GetString(), &track_report);
+  if (track_report.node() == collaborator_id)
+    {
+      last_track_report_ = track_report;
+      int track_id = track_report.tgt_num();
+      double track_x = track_report.x();
+      double track_y = track_report.y();
+      double track_heading = track_report.heading();
+      double track_speed = track_report.speed();
+      double track_utc = track_report.time();
+      glog.is(VERBOSE) && glog 
+	<< "received TRACK_REPORT from collaborator" << std::endl;
+      if (deploy_mode_active_ && cfg_.auto_prosecute())
+	{
+	  double h_ang = (90.0-track_heading)*M_PI/180.0;
+	  if (h_ang <= -M_PI)
+	    h_ang = h_ang + 2*M_PI;
+	  else if (h_ang > M_PI)
+	    h_ang = h_ang - 2*M_PI;
+	  double vehicle_x = last_nav_.local_fix().x();
+	  double vehicle_y = last_nav_.local_fix().y();
+	  double b_ang =atan2(track_y-vehicle_y,track_x-vehicle_x);
+	  double t_range=sqrt(pow(track_x-vehicle_x,2)+pow(track_y-vehicle_y,2));
+	  double dif_ang = h_ang-b_ang;
+	  if (dif_ang <= -M_PI)
+	    dif_ang = dif_ang + 2*M_PI;
+	  else if (dif_ang > M_PI)
+	    dif_ang = dif_ang - 2*M_PI;
+			
+	  if (cos(dif_ang) <  0)
+	    {
+	      if (fabs(t_range*sin(dif_ang)) <= cfg_.max_search_range())
+		{
+		  glog.is(VERBOSE) && glog 
+		    << "Intercept Opportunity - Prosecuting" << std::endl;
+		  auto_prosecute_cmd_.set_target_x(track_x);
+		  auto_prosecute_cmd_.set_target_y(track_y);
+		  auto_prosecute_cmd_.set_target_speed(track_speed);
+		  auto_prosecute_cmd_.set_target_heading(track_heading);
+		  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		  send_prosecute();
+		}
+	      else
+		{
+		  glog.is(VERBOSE) && glog 
+		    << "Too far away for Intercept" << std::endl;
+		}
+	    }
+	}
     }
 }
 

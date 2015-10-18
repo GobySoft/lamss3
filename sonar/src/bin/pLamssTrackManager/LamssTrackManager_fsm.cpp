@@ -59,4 +59,5 @@ bool lamss::shared::fsm::cue_too_close_ = false;
 LAMSS_DEPLOY lamss::shared::fsm::last_deploy_cmd_;
 LAMSS_PROSECUTE lamss::shared::fsm::last_prosecute_cmd_;
 LAMSS_PROSECUTE lamss::shared::fsm::auto_prosecute_cmd_;
+LAMSS_TRACK lamss::shared::fsm::last_track_report_;
 
