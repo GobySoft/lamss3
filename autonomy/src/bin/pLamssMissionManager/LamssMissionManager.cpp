@@ -108,20 +108,6 @@ void LamssMissionManager::slow_loop(double curr_time)
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
-#if 0
-    if (!cfg_.acomms())
-      {
-	std::string node_report =
-	  NodeReport(vehicle_name_,"auv",last_nav_.local_fix().x(), 
-		     last_nav_.local_fix().y(), last_nav_.speed(), 
-		     last_nav_.pose().heading(), last_nav_.global_fix().depth());
-	    goby::glog << group("helm") 
-		       << "Publishing NODE_REPORT = " 
-		       << node_report << std::endl;
-
-	publish("NODE_REPORT",node_report);
-      }
-#endif
 
   if (prosecute_mode_active_)
     {
@@ -216,14 +202,8 @@ void LamssMissionManager::send_deploy()
       last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
     }
   serialize_for_moos(&serialized,last_deploy_cmd_);    
-#if 0
-  if (!cfg_.acomms())
-    publish("LAMSS_DEPLOY_IN", serialized);
-  else
-#endif
+  publish("LAMSS_DEPLOY_OUT", serialized);
 
-    publish("LAMSS_DEPLOY_OUT", serialized);
-  //publish("OUTGOING_COMMAND", serialized);
 }
 
 void  LamssMissionManager::update_abort_mission()
@@ -347,13 +327,7 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
 
       std::string serialized;
       serialize_for_moos(&serialized,init_deploy_cmd);    
-#if 0
-      if (!cfg_.acomms())
-	publish("LAMSS_DEPLOY_IN", serialized);
-      else
-#endif
-	publish("LAMSS_DEPLOY_OUT", serialized);
-      
+      publish("LAMSS_DEPLOY_OUT", serialized);
     }
 }
 
