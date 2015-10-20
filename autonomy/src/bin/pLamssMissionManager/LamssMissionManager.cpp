@@ -107,6 +107,19 @@ void LamssMissionManager::slow_loop(double curr_time)
 {
   // Here we should add the check for blackout_duration and prosecute_duration.
 
+    if (!cfg_.acomms())
+      {
+	std::string node_report =
+	  NodeReport(vehicle_name_,"auv",last_nav_.local_fix().x(), 
+		     last_nav_.local_fix().y(), last_nav_.speed(), 
+		     last_nav_.pose().heading(), last_nav_.global_fix().depth());
+	    goby::glog << group("helm") 
+		       << "Publishing NODE_REPORT = " 
+		       << node_report << std::endl;
+
+	publish("NODE_REPORT",node_report);
+      }
+
   if (prosecute_mode_active_)
     {
     double station_range = 
@@ -122,15 +135,6 @@ void LamssMissionManager::slow_loop(double curr_time)
 		       <<", operation_radius = "<< cfg_.operation_radius()
 		       << std::endl;
 	  }
-
-    if (!cfg_.acomms())
-      {
-	std::string node_report =
-	  NodeReport(vehicle_name_,"auv",last_nav_.local_fix().x(), 
-		     last_nav_.local_fix().y(), last_nav_.speed(), 
-		     last_nav_.pose().heading(), last_nav_.global_fix().depth());
-	publish("NODE_REPORT",node_report);
-      }
 
     double remaining = last_prosecute_cmd_.target_timestamp() + 
       last_prosecute_cmd_.prosecute_duration() - 
@@ -277,6 +281,8 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
       init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
       MOOSValFromString(bite,cmd,"Loiter_Radius");
       init_deploy_cmd.set_loiter_radius(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Loiter_Segments");
+      init_deploy_cmd.set_loiter_segments(atoi(bite.c_str()));
       MOOSValFromString(bite,cmd,"Clockwise");
       init_deploy_cmd.set_clockwise(bite == "true");
       MOOSValFromString(bite,cmd,"Auto_Prosecute");

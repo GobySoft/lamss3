@@ -276,7 +276,7 @@ namespace lamss
 		    doubleToString(last_deploy_cmd_.deploy_x(),1) + comma +
 		    doubleToString(last_deploy_cmd_.deploy_y(),1) + comma +
 		    doubleToString(last_deploy_cmd_.loiter_radius(),1) + comma +
-		    doubleToString(last_deploy_cmd_.loiter_segments(),1) + hash +
+		    intToString(last_deploy_cmd_.loiter_segments()) + hash +
 		    "clockwise=" + clockwise + hash +
 		    "speed=" + doubleToString(last_deploy_cmd_.deploy_speed(),1);
 		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "SENSOR_DEPLOY",sval));
