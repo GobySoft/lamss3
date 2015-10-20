@@ -12,7 +12,7 @@ message LamssTrackManagerConfig
   optional double auto_prosecute_range  = 18 [default = 2000];
   optional double auto_prosecute_duration  = 19 [default = 1200];
   optional double track_delay  = 5 [default = 30];
-  optional double track_report_time  = 6 [default = 30];
+  optional double track_report_time  = 6 [default = 600];
   optional double bearing_rate_threshold  = 7 [default = 20];
   optional double min_search_range  = 8 [default = 500];
   optional double max_search_range  = 9 [default = 5000];

@@ -26,6 +26,7 @@ boost::mutex lamss::shared::fsm::moos_mutex_;
 //boost::condition_variable lamss::shared::fsm::operation_box_cond_;  
 
 int lamss::shared::fsm::vehicle_id_ = 0;
+
 double lamss::shared::fsm::current_time_ = 0;
 bool lamss::shared::fsm::mission_active_ = false;
 int lamss::shared::fsm::track_state_ = 0;

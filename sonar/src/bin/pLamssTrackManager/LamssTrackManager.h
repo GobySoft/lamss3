@@ -231,8 +231,9 @@ class LamssTrackManager : public GobyMOOSApp
     std::vector<double>      m_track_xdot;
     std::vector<double>      m_track_ydot;
     
-    std::string trackNodeReport(std::string, double trk_x, double trk_y, double trk_spd, 
-				double trk_hdg, double trk_dep );
+    std::string NodeReport(std::string trk_name, std::string trk_type, 
+			   double trk_x, double trk_y, double trk_spd, 
+			   double trk_hdg, double trk_dep );
     int updateTrackBuffer(double,double,double,double,double);
     double computeSigma();
     void clearTrackBuffer();

@@ -167,13 +167,13 @@ void LamssTrackManager::loop()
       // Check whether target is reachable
       bool opportunity = checkOpportunity();   
 
-      std::string node_report = trackNodeReport("target_cue",curr_cue_x, 
+      std::string node_report = NodeReport("target_cue","track",curr_cue_x, 
 					      curr_cue_y, 
 					      cue_speed_, 
 					      cue_heading_, 
 					      cue_depth_ );
       publish("NODE_REPORT",node_report);
-      publish("MY_TARGET","contact=TARGET_CUE");
+      publish("MY_TARGET","contact=target_cue");
 
       glog.is(DEBUG2) && glog << "Current cue range =" << curr_cue_range
 			      << ", Giveup_range =" << cfg_.max_search_range()
@@ -615,7 +615,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  glog.is(DEBUG1) && glog 
 	    << "Good tracks reported: " << geo_track_report_count_ << std::endl;
 	  // Post node report for adaptive behaviors
-	  std::string node_report = trackNodeReport("priority_trk",track_x, track_y, 
+	  std::string node_report = NodeReport("priority_trk","track",track_x, track_y, 
 						    track_spd, 
 						    track_hdg, 0.0 );
 	  publish("NODE_REPORT",node_report);
@@ -1430,7 +1430,7 @@ double LamssTrackManager::computeSigma()
   return(xy_std);
 }
 
-std::string LamssTrackManager::trackNodeReport(std::string trk_name, double trk_x, double trk_y, double trk_spd, double trk_hdg, double trk_dep )
+std::string LamssTrackManager::NodeReport(std::string trk_name, std::string trk_type, double trk_x, double trk_y, double trk_spd, double trk_hdg, double trk_dep )
 {
 
   double trk_lat;
@@ -1471,3 +1471,4 @@ std::string LamssTrackManager::trackNodeReport(std::string trk_name, double trk_
 
   return(output);
 }
+
