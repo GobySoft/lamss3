@@ -525,7 +525,7 @@ void LamssTrackManager::send_deploy()
   last_deploy_cmd_.set_auto_prosecute(false);
 
   serialize_for_moos(&serialized,last_deploy_cmd_);    
-  publish("LAMSS_DEPLOY_IN", serialized);
+  publish("LAMSS_DEPLOY_OUT", serialized);
   //publish("OUTGOING_COMMAND", serialized);
 }
 
@@ -539,7 +539,7 @@ void LamssTrackManager::send_prosecute()
   std::string serialized;
   serialize_for_moos(&serialized,auto_prosecute_cmd_);    
   //	      publish("OUTGOING_COMMAND", serialized);
-  publish("LAMSS_PROSECUTE_IN", serialized);
+  publish("LAMSS_PROSECUTE_OUT", serialized);
   glog.is(DEBUG1) && glog << "Auto_Prosecute activated" 
 			  << std::endl;
 }
