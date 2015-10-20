@@ -265,7 +265,7 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
       init_deploy_cmd.set__src_id(vehicle_id_);
       init_deploy_cmd.set_destinationplatformid(vehicle_id_);
       std::string bite;
-      MOOSValFromString(bite,cmd,"Deploy_Y");
+      MOOSValFromString(bite,cmd,"Deploy_X");
       init_deploy_cmd.set_deploy_x(atof(bite.c_str()));
       MOOSValFromString(bite,cmd,"Deploy_Y");
       init_deploy_cmd.set_deploy_y(atof(bite.c_str()));
@@ -476,9 +476,9 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
 
   output += "HDG=" + doubleToString(node_hdg,2);
 
-  // output += ",";
+  output += ",";
 
-  // output += "DEPTH=" + doubleToString(node_dep,2);
+  output += "DEPTH=" + doubleToString(node_dep,2);
 
   return(output);
 }
