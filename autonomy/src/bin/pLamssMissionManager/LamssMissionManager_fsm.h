@@ -76,6 +76,7 @@ namespace lamss
 
             extern boost::mutex moos_mutex_;
 
+            extern boost::condition_variable command_received_cond_;
 	    //            extern boost::condition_variable blackout_cond_;
 	    //            extern boost::condition_variable operation_radius_cond_;
 	    //            extern boost::condition_variable operation_box_cond_;
@@ -86,6 +87,7 @@ namespace lamss
             extern int vehicle_id_;
 	    extern std::string vehicle_name_;
 
+	    extern bool command_received_;
 	    extern bool mission_active_;
 	    extern bool mission_requested_;
 	    extern bool diving_active_;
@@ -147,6 +149,10 @@ namespace lamss
 		  {		   
 		    boost::mutex::scoped_lock lock(moos_mutex_);
 		    mission_active_ = false; 
+		    // wait for initial deploy command
+		    while(!command_received_)
+		      command_received_cond_.wait(lock);
+                        
 		    // Check for new state transitions
 		    diving_requested_ = deploy_received_ || 
 		      prosecute_received_ || 

@@ -106,6 +106,7 @@ void LamssMissionManager::loop()
 void LamssMissionManager::slow_loop(double curr_time)
 {
   // Here we should add the check for blackout_duration and prosecute_duration.
+  boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
     if (!cfg_.acomms())
       {
@@ -367,8 +368,14 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
   // Only handle messages for me
   if (deploy_cmd.destinationplatformid() == vehicle_id_)
     {
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_deploy_cmd_ = deploy_cmd;
       deploy_received_ = true;
+      if (!command_received_)
+	{
+	  command_received_ = true;
+	  command_received_cond_.notify_one();
+	}
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
@@ -387,6 +394,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
   // Only handle messages for me
   if (prosecute_cmd.destinationplatformid() == vehicle_id_)
     {
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_prosecute_cmd_ = prosecute_cmd;
       
       if (prosecute_cmd._src_id() == cfg_.topside_id())
@@ -432,6 +440,7 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
   std::string mission_state = msg.GetString();
   if (MOOSStrCmp(mission_state,"DRIFTING"))
     {
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
       if (mission_active_ && !drifting_mode_active_)
 	{
 	  drifting_requested_ = true;
@@ -443,6 +452,7 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 { 
   double opreg_perimeter_distance = msg.GetDouble();
+  boost::lock_guard<boost::mutex> lock(moos_mutex_);
   if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
     {
       send_deploy();

@@ -21,6 +21,7 @@ Mission_StateEnum lamss::shared::fsm::state_ = MISSION_STATE_ALLSTOP;
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
 boost::mutex lamss::shared::fsm::moos_mutex_;
 
+boost::condition_variable lamss::shared::fsm::command_received_cond_;  
 //boost::condition_variable lamss::shared::fsm::blackout_cond_;  
 //boost::condition_variable lamss::shared::fsm::operation_radius_cond_;  
 //boost::condition_variable lamss::shared::fsm::operation_box_cond_;  
@@ -28,6 +29,8 @@ boost::mutex lamss::shared::fsm::moos_mutex_;
 int lamss::shared::fsm::vehicle_id_ = 0;
 std::string lamss::shared::fsm::vehicle_name_ = "ownship";
 
+
+bool lamss::shared::fsm::command_received_ = false;
 bool lamss::shared::fsm::mission_active_ = false;
 bool lamss::shared::fsm::mission_requested_ = false;
 bool lamss::shared::fsm::diving_active_ = false;
