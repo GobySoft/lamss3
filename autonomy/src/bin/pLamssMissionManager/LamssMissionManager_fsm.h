@@ -84,6 +84,7 @@ namespace lamss
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
             
             extern int vehicle_id_;
+	    extern std::string vehicle_name_;
 
 	    extern bool mission_active_;
 	    extern bool mission_requested_;

@@ -42,6 +42,9 @@ class LamssMissionManager : public GobyMOOSApp
     void update_abort_mission();
     void try_publish();
     void send_deploy();
+    std::string NodeReport(std::string node_name, std::string node_type, 
+			   double node_x, double node_y, double node_spd, 
+			   double node_hdg, double node_dep );
 
     // mail handlers
 
@@ -51,6 +54,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
+    void handle_vehicle_name(const CMOOSMsg& msg);
     void handle_mission_state(const CMOOSMsg& msg);
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);

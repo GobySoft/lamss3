@@ -65,6 +65,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
+    subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
     subscribe("TRANSIT_ROUTE_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
@@ -121,6 +122,15 @@ void LamssMissionManager::slow_loop(double curr_time)
 		       <<", operation_radius = "<< cfg_.operation_radius()
 		       << std::endl;
 	  }
+
+    if (!cfg_.acomms())
+      {
+	std::string node_report =
+	  NodeReport(vehicle_name_,"auv",last_nav_.local_fix().x(), 
+		     last_nav_.local_fix().y(), last_nav_.speed(), 
+		     last_nav_.pose().heading(), last_nav_.global_fix().depth());
+	publish("NODE_REPORT",node_report);
+      }
 
     double remaining = last_prosecute_cmd_.target_timestamp() + 
       last_prosecute_cmd_.prosecute_duration() - 
@@ -267,6 +277,10 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
       init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
       MOOSValFromString(bite,cmd,"Loiter_Radius");
       init_deploy_cmd.set_loiter_radius(atof(bite.c_str()));
+      MOOSValFromString(bite,cmd,"Clockwise");
+      init_deploy_cmd.set_clockwise(bite == "true");
+      MOOSValFromString(bite,cmd,"Auto_Prosecute");
+      init_deploy_cmd.set_auto_prosecute(bite == "true");
 
       std::string serialized;
       serialize_for_moos(&serialized,init_deploy_cmd);    
@@ -347,6 +361,12 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
     vehicle_id_ = msg.GetDouble();
 }
 
+void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
+{
+    boost::mutex::scoped_lock lock(moos_mutex_);
+    vehicle_name_ = msg.GetString();
+}
+
 void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
 {
   std::string mission_state = msg.GetString();
@@ -413,4 +433,46 @@ void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)
 {
   double depth_mismatch =  fabs(last_nav_.global_fix().depth()-msg.GetDouble());
   publish("DEPTH_MISMATCH",depth_mismatch);
+}
+
+std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
+{
+
+  double node_lat;
+  double node_lon;
+  std::string comma = ",";
+  std::string output="NAME=" + node_name +",TYPE=" + node_type + comma;
+
+  if (!m_Geodesy.UTM2LatLong(node_x,node_y,node_lat,node_lon))
+    {
+      glog.is(DEBUG2) && glog 
+	<< "Error in UTM2LatLong conversion" << std::endl;
+      return("Error in UTM2LatLong conversion\n");	  
+    }
+
+  output += "UTC_TIME=" + doubleToString(MOOSTime(),1);
+  output += ",";
+
+  output += "X=" + doubleToString(node_x,2);
+  output += ",";
+
+  output += "Y=" + doubleToString(node_y,2);
+  output += ",";
+
+  output += "LAT=" + doubleToString(node_lat,6);
+  output += ",";
+
+  output += "LON=" + doubleToString(node_lon,6);
+  output += ",";
+
+  output += "SPD=" + doubleToString(node_spd,2);
+  output += ",";
+
+  output += "HDG=" + doubleToString(node_hdg,2);
+
+  // output += ",";
+
+  // output += "DEPTH=" + doubleToString(node_dep,2);
+
+  return(output);
 }
