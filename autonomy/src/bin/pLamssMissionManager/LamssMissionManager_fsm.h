@@ -260,6 +260,7 @@ namespace lamss
 
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  deploy_mode_active_ = true;
+#if 0
 		  if (!cfg_->acomms())
 		    {
 		      // Publish what pAcommsHandler would for incoming
@@ -515,7 +516,7 @@ namespace lamss
 			}
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"DEPTH_MODE",sval));
 		    }
-		      
+#endif		      
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Mode..."
@@ -547,6 +548,7 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 
 		  prosecute_mode_active_ = true;
+#if 0
 		  if (!cfg_->acomms())
 		    {
 		      // Publish what pAcommsHandler would for incoming
@@ -597,6 +599,8 @@ namespace lamss
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "PROSECUTE_MISSION",
 							"ADAPTIVE"));
 		    }
+#endif
+
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Mode..."

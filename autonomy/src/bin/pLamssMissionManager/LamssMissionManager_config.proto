@@ -17,6 +17,5 @@ message LamssMissionManagerConfig
   optional double abort_y = 10[default = 0];
   optional double abort_depth = 11 [default = 30];
   optional double abort_speed = 12 [default = 1.5];
-  optional bool   acomms = 13 [default = true];
 }
 
