@@ -213,7 +213,10 @@ void LamssMissionManager::send_deploy()
       last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
     }
   serialize_for_moos(&serialized,last_deploy_cmd_);    
-  publish("LAMSS_DEPLOY_IN", serialized);
+  if (!cfg_.acomms())
+    publish("LAMSS_DEPLOY_IN", serialized);
+  else
+    publish("LAMSS_DEPLOY_OUT", serialized);
   //publish("OUTGOING_COMMAND", serialized);
 }
 
@@ -338,7 +341,10 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
 
       std::string serialized;
       serialize_for_moos(&serialized,init_deploy_cmd);    
-      publish("LAMSS_DEPLOY_IN", serialized);
+      if (!cfg_.acomms())
+	publish("LAMSS_DEPLOY_IN", serialized);
+      else
+	publish("LAMSS_DEPLOY_OUT", serialized);
       
     }
 }
