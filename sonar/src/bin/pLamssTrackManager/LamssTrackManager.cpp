@@ -1436,7 +1436,9 @@ std::string LamssTrackManager::NodeReport(std::string trk_name, std::string trk_
   double trk_lat;
   double trk_lon;
 
-  std::string output="NAME=" + trk_name +",TYPE=track,";
+  std::string comma = ",";
+  std::string output="NAME=" + trk_name +",TYPE=" + trk_type + comma;
+  //  std::string output="NAME=" + trk_name +",TYPE=track,";
 
   if (!m_Geodesy.UTM2LatLong(trk_x,trk_y,trk_lat,trk_lon))
     {
