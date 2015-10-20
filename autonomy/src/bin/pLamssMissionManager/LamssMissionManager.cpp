@@ -288,6 +288,54 @@ void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
       MOOSValFromString(bite,cmd,"Auto_Prosecute");
       init_deploy_cmd.set_auto_prosecute(bite == "true");
 
+      MOOSValFromString(bite,cmd,"Deploy_Mode");
+      if (MOOSStrCmp(bite,"LOITER"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
+      else if (MOOSStrCmp(bite,"RETURN"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
+      else if (MOOSStrCmp(bite,"RACETRACK"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RACETRACK);
+      else if (MOOSStrCmp(bite,"ZIGZAG"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG);
+      else if (MOOSStrCmp(bite,"LAEWNMOWER"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER);
+      else if (MOOSStrCmp(bite,"TRAIL"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_TRAIL);
+      else if (MOOSStrCmp(bite,"STATION_KEEP"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_STATION_KEEP);
+      else if (MOOSStrCmp(bite,"SPIRAL"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_SPIRAL);
+      else if (MOOSStrCmp(bite,"TRACK_FRONT"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_TRACK_FRONT);
+      else if (MOOSStrCmp(bite,"SAMPLETARFIELD"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_SAMPLETARFIELD);
+      else if (MOOSStrCmp(bite,"HELIX"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_HELIX);
+      else if (MOOSStrCmp(bite,"DRIFT"))
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_DRIFT);
+      else
+	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
+
+      MOOSValFromString(bite,cmd,"Depth_Mode");
+      if (MOOSStrCmp(bite,"SINGLE"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+      else if (MOOSStrCmp(bite,"DUAL"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_DUAL);
+      else if (MOOSStrCmp(bite,"YOYO"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_YOYO);
+      else if (MOOSStrCmp(bite,"ADAPTIVE_YOYO"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_YOYO);
+      else if (MOOSStrCmp(bite,"ADAPTIVE_SINGLE"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_SINGLE);
+      else if (MOOSStrCmp(bite,"ADAPTIVE_ACOMMS"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+      else if (MOOSStrCmp(bite,"BOTTOM_FOLLOWING"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_BOTTOM_FOLLOWING);
+      else if (MOOSStrCmp(bite,"HELIX"))
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_HELIX);
+      else
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+
       std::string serialized;
       serialize_for_moos(&serialized,init_deploy_cmd);    
       publish("LAMSS_DEPLOY_IN", serialized);
