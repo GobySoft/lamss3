@@ -1,6 +1,8 @@
 
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/common/protobuf/option_extensions.proto";
+import "lamss_deploy.proto";
+
 
 message LamssMissionManagerConfig
 {
@@ -18,5 +20,7 @@ message LamssMissionManagerConfig
   optional double abort_depth = 11 [default = 30];
   optional double abort_speed = 12 [default = 1.5];
 
+  optional LAMSS_DEPLOY initial_deploy = 13;
+    
 }
 
