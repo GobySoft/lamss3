@@ -77,6 +77,8 @@ namespace lamss
 
             extern boost::mutex moos_mutex_;
 
+            extern boost::condition_variable dclt_cond_;
+
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
 	    extern LAMSS_PROSECUTE auto_prosecute_cmd_;    
@@ -88,6 +90,7 @@ namespace lamss
 	    extern bool mission_active_;
 	    extern int  track_state_;
 
+	    extern bool dclt_enable_;
 	    extern bool dclt_idle_;
 	    extern bool dclt_active_;
 	    // Detection/Search state vars
@@ -166,6 +169,10 @@ namespace lamss
 		  Idle()
 		    {		   
 		      boost::mutex::scoped_lock lock(moos_mutex_);
+		    // wait for initial deploy command
+		      while(!dclt_enable_)
+			dclt_cond_.wait(lock);
+
 		      dclt_idle_ = true; 
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","OFF"));
 		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
@@ -179,7 +186,7 @@ namespace lamss
 		    }
 		  
 		  typedef boost::mpl::list<
-		    boost::statechart::transition< EvDcltStart, Detection >
+		    boost::statechart::transition< EvDcltStart, Dclt >
 		    > reactions;
 		  
 		  

@@ -21,6 +21,7 @@ BearingTrackEnum lamss::shared::fsm::state_ = TRACKING_IDLE;
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
 boost::mutex lamss::shared::fsm::moos_mutex_;
 
+boost::condition_variable lamss::shared::fsm::dclt_cond_;  
 //boost::condition_variable lamss::shared::fsm::blackout_cond_;  
 //boost::condition_variable lamss::shared::fsm::operation_radius_cond_;  
 //boost::condition_variable lamss::shared::fsm::operation_box_cond_;  
@@ -31,6 +32,7 @@ double lamss::shared::fsm::current_time_ = 0;
 bool lamss::shared::fsm::mission_active_ = false;
 int lamss::shared::fsm::track_state_ = 0;
 
+bool lamss::shared::fsm::dclt_enable_ = false;
 bool lamss::shared::fsm::dclt_idle_ = false;
 bool lamss::shared::fsm::dclt_active_ = false;
 bool lamss::shared::fsm::detection_active_ = false;

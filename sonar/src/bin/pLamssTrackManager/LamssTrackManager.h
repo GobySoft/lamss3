@@ -176,7 +176,6 @@ class LamssTrackManager : public GobyMOOSApp
     double prosecute_heading;
     bool auto_prosecute;
     
-    bool dclt_enable_;
     std::vector<double> class_features;
     
     int num_tracks;

@@ -50,7 +50,6 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       num_tracks(0),
       collab_num_tracks(0),
       filt_set(true),
-      dclt_enable_(false),
       trk_beamno(0),
       track_delay(cfg_.track_delay()),
       prev_highest(-1),
@@ -119,26 +118,30 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 
 void LamssTrackManager::loop()
 {
+  //  boost::lock_guard<boost::mutex> lock(moos_mutex_);
+
     double curr_time = MOOSTime();
+
     // set time for fsm
     current_time_ = curr_time;
 
     try_publish(); // publish messages queued from state machine
 
-    bool prev_mode = dclt_enable_;
-    dclt_enable_ = prosecute_mode_active_ || 
-      (deploy_mode_active_ && sonar_on_);
-    if (dclt_enable_)
+    if (prosecute_mode_active_ || 
+	(deploy_mode_active_ && sonar_on_))
       {
-	if (dclt_idle_)
+	boost::lock_guard<boost::mutex> lock(moos_mutex_);
+	if (!dclt_enable_)
 	  {
-	    //	    publish("TRACKER_COMMAND","ON");
+	    dclt_enable_ = true;
+	    dclt_cond_.notify_one();
 	    queue_event<EvDcltStart>();
 	  }
       }
     else
       {
-	//	publish("TRACKER_COMMAND","OFF");
+	boost::lock_guard<boost::mutex> lock(moos_mutex_);
+	dclt_enable_ = false;
 	if (dclt_active_)
 	  queue_event<EvDcltOff>();
       }
@@ -167,7 +170,7 @@ void LamssTrackManager::loop()
       // Check whether target is reachable
       bool opportunity = checkOpportunity();   
 
-      std::string node_report = NodeReport("target_cue","track",curr_cue_x, 
+      std::string node_report = NodeReport("target_cue","ship",curr_cue_x, 
 					      curr_cue_y, 
 					      cue_speed_, 
 					      cue_heading_, 
