@@ -437,15 +437,17 @@ void LamssMissionManager::post_transit_route()
       if (n>0)
 	{
 	  transit_route << "speed=" << last_transit_route_.transit_speed() 
-			<< "#points=" ;
+			<< "#points=" 
+			<< last_nav_.local_fix().x() << comma
+			<< last_nav_.local_fix().y() << colon
+;
 	  if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
 	    {
 	      // If RETURN mode publish route in reverse order
 	      for (int i=n-1; i>=0; i--)
 		{
 		  transit_route << transit_x[i] << comma << transit_y[i] ;
-		  if (i > 0) 
-		    transit_route << colon ;
+		  transit_route << colon ;
 		}
 	    }
 	  else
@@ -453,9 +455,12 @@ void LamssMissionManager::post_transit_route()
 	      for (int i=0; i<n; i++)
 		{
 		  transit_route << transit_x[i] << comma << transit_y[i] ;
-		  if (i < n-1) transit_route << colon ;
+		  transit_route << colon ;
 		}
 	    }
+	  transit_route << last_deploy_cmd_.deploy_x() << comma
+			<< last_deploy_cmd_.deploy_y() ;
+
  	  publish("TRANSIT_DEPTH", last_transit_route_.transit_depth());
 	  publish("TRANSIT_ROUTE",transit_route.str());
 	  publish("TRANSIT_MODE", "ROUTE");
