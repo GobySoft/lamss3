@@ -163,20 +163,21 @@ namespace lamss
 	      };
 	    
             // Idle
-            struct Idle: boost::statechart::simple_state<Idle, LamssTrackManagerFSM>,
+            struct Idle: boost::statechart::state<Idle, LamssTrackManagerFSM>,
 	      StateNotify<TRACKING_IDLE>
 		{
-		  Idle()
+		  Idle(my_context ctx) : my_base(ctx)
 		    {		   
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		    // wait for initial deploy command
-		      while(!dclt_enable_)
-			dclt_cond_.wait(lock);
-
 		      dclt_idle_ = true; 
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","OFF"));
 		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
 			<< group("track") << "TRACKER_COMMAND=OFF" << std::endl;
+		      while(!dclt_enable_)
+			dclt_cond_.wait(lock);
+
+		      //		      post_event(EvDcltStart());
 
 		    }
 		  ~Idle() 
