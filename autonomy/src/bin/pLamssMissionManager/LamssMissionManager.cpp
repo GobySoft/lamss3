@@ -67,10 +67,9 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
-    subscribe("TRANSIT_ROUTE_IN", &LamssMissionManager::handle_transit_route, this);    
+    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
-    subscribe("OUTGOING_COMMAND", &LamssMissionManager::handle_initial_deploy, this);
 
     // intialize MOOSGeodesy
 
@@ -240,95 +239,36 @@ void LamssMissionManager::try_publish()
     }
 }
 
-void LamssMissionManager::handle_initial_deploy(const CMOOSMsg& msg)
+void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
-  std::string cmd = msg.GetString();
-  std::string cmd_type;
+  LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
+  init_deploy_cmd.set_timestamp(MOOSTime());
 
-  MOOSValFromString(cmd_type,cmd,"MessageType");
-  if (MOOSStrCmp(cmd_type,"LAMSS_DEPLOY"))
-    {
-      LAMSS_DEPLOY init_deploy_cmd;
-      init_deploy_cmd.set_timestamp(MOOSTime());
-      init_deploy_cmd.set__src_id(vehicle_id_);
-      init_deploy_cmd.set_destinationplatformid(vehicle_id_);
-      std::string bite;
-      MOOSValFromString(bite,cmd,"Deploy_X");
-      init_deploy_cmd.set_deploy_x(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Y");
-      init_deploy_cmd.set_deploy_y(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Speed");
-      init_deploy_cmd.set_deploy_speed(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
-      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Lower_Depth");
-      init_deploy_cmd.set_deploy_lower_depth(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
-      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Deploy_Upper_Depth");
-      init_deploy_cmd.set_deploy_upper_depth(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Loiter_Radius");
-      init_deploy_cmd.set_loiter_radius(atof(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Loiter_Segments");
-      init_deploy_cmd.set_loiter_segments(atoi(bite.c_str()));
-      MOOSValFromString(bite,cmd,"Clockwise");
-      init_deploy_cmd.set_clockwise(bite == "true");
-      MOOSValFromString(bite,cmd,"Auto_Prosecute");
-      init_deploy_cmd.set_auto_prosecute(bite == "true");
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  init_deploy_cmd.set__src_id(cfg_.topside_id());
+  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
 
-      MOOSValFromString(bite,cmd,"Deploy_Mode");
-      if (MOOSStrCmp(bite,"LOITER"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
-      else if (MOOSStrCmp(bite,"RETURN"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
-      else if (MOOSStrCmp(bite,"RACETRACK"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RACETRACK);
-      else if (MOOSStrCmp(bite,"ZIGZAG"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG);
-      else if (MOOSStrCmp(bite,"LAEWNMOWER"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER);
-      else if (MOOSStrCmp(bite,"TRAIL"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_TRAIL);
-      else if (MOOSStrCmp(bite,"STATION_KEEP"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_STATION_KEEP);
-      else if (MOOSStrCmp(bite,"SPIRAL"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_SPIRAL);
-      else if (MOOSStrCmp(bite,"TRACK_FRONT"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_TRACK_FRONT);
-      else if (MOOSStrCmp(bite,"SAMPLETARFIELD"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_SAMPLETARFIELD);
-      else if (MOOSStrCmp(bite,"HELIX"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_HELIX);
-      else if (MOOSStrCmp(bite,"DRIFT"))
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_DRIFT);
-      else
-	init_deploy_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
+  std::string serialized;
+  serialize_for_moos(&serialized,init_deploy_cmd);    
+  publish("LAMSS_DEPLOY_OUT", serialized);
+}
 
-      MOOSValFromString(bite,cmd,"Depth_Mode");
-      if (MOOSStrCmp(bite,"SINGLE"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
-      else if (MOOSStrCmp(bite,"DUAL"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_DUAL);
-      else if (MOOSStrCmp(bite,"YOYO"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_YOYO);
-      else if (MOOSStrCmp(bite,"ADAPTIVE_YOYO"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_YOYO);
-      else if (MOOSStrCmp(bite,"ADAPTIVE_SINGLE"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_SINGLE);
-      else if (MOOSStrCmp(bite,"ADAPTIVE_ACOMMS"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
-      else if (MOOSStrCmp(bite,"BOTTOM_FOLLOWING"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_BOTTOM_FOLLOWING);
-      else if (MOOSStrCmp(bite,"HELIX"))
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_HELIX);
-      else
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+void LamssMissionManager::initial_transit()
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
+  init_transit_cmd.set__time(MOOSTime());
 
-      std::string serialized;
-      serialize_for_moos(&serialized,init_deploy_cmd);    
-      publish("LAMSS_DEPLOY_OUT", serialized);
-    }
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  init_transit_cmd.set__src_id(cfg_.topside_id());
+  init_transit_cmd.set_destinationplatformid(vehicle_id_);
+
+  std::string serialized;
+  serialize_for_moos(&serialized,init_transit_cmd);    
+  publish("LAMSS_TRANSIT_OUT", serialized);
 }
 
 void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
@@ -357,6 +297,8 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  command_received_ = true;
 	  command_received_cond_.notify_one();
 	}
+
+      post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
@@ -408,6 +350,9 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+    initial_transit();
+    initial_deploy();
+
 }
 
 void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
@@ -445,39 +390,82 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
 {
-  // remove trailing zero waypoints from transit route
-  std::string transit_route_in =  msg.GetString();
-  MOOSChomp(transit_route_in,"speed=");
-  std::stringstream transit_route;
-  transit_route << "speed=";
-  
-  std::string sd_v = MOOSChomp(transit_route_in,"#");
-  double v = atof(sd_v.c_str());
-  
-  transit_route << v  << "#";
-
-  MOOSChomp(transit_route_in,"points=");
-  transit_route << "points=";
-  bool first = true;
-  for (int i=1; i<=5; i++)
+  LAMSS_TRANSIT transit_cmd;
+  parse_for_moos(msg.GetString(), &transit_cmd);
+  last_transit_route_ = transit_cmd;
+  transit_x.clear();
+  transit_y.clear();
+  if (fabs(last_transit_route_.x_1()) > 1.0 && fabs(last_transit_route_.y_1()) > 1.0)
     {
-      std::string sd_x = MOOSChomp(transit_route_in,",");
-      double x = atof(sd_x.c_str());
+      transit_x.push_back(last_transit_route_.x_1());
+      transit_y.push_back(last_transit_route_.y_1());
+    }
+  if (fabs(last_transit_route_.x_2()) > 1.0 && fabs(last_transit_route_.y_2()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_2());
+      transit_y.push_back(last_transit_route_.y_2());
+    }
+  if (fabs(last_transit_route_.x_3()) > 1.0 && fabs(last_transit_route_.y_3()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_3());
+      transit_y.push_back(last_transit_route_.y_3());
+    }
+  if (fabs(last_transit_route_.x_4()) > 1.0 && fabs(last_transit_route_.y_4()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_4());
+      transit_y.push_back(last_transit_route_.y_4());
+    }
+  if (fabs(last_transit_route_.x_5()) > 1.0 && fabs(last_transit_route_.y_5()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_5());
+      transit_y.push_back(last_transit_route_.y_5());
+    }
+}
+
+void LamssMissionManager::post_transit_route()
+{
+ 
+  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
+    {
+      // remove trailing zero waypoints from transit route
       
-      std::string sd_y = MOOSChomp(transit_route_in,":");
-      double y = atof(sd_y.c_str());
-      
-      if (fabs(x) >= 10.0 || fabs(y) >= 10.0)
+      std::stringstream transit_route;
+      std::string hash = "#";
+      std::string colon = ":";
+      std::string comma = ",";
+      int n = transit_x.size();
+      if (n>0)
 	{
-	  if (!first)
+	  transit_route << "speed=" << last_transit_route_.transit_speed() 
+			<< "#points=" ;
+	  if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
 	    {
-	      transit_route << ":";
+	      // If RETURN mode publish route in reverse order
+	      for (int i=n-1; i>=0; i--)
+		{
+		  transit_route << transit_x[i] << comma << transit_y[i] ;
+		  if (i > 0) 
+		    transit_route << colon ;
+		}
 	    }
-	  transit_route << x << "," << y;
-	  first=false;
+	  else
+	    {
+	      for (int i=0; i<n; i++)
+		{
+		  transit_route << transit_x[i] << comma << transit_y[i] ;
+		  if (i < n-1) transit_route << colon ;
+		}
+	    }
+ 	  publish("TRANSIT_DEPTH", last_transit_route_.transit_depth());
+	  publish("TRANSIT_ROUTE",transit_route.str());
+	  publish("TRANSIT_MODE", "ROUTE");
 	}
+      else
+	publish("TRANSIT_MODE", "DIRECT");
+
     } 
-  publish("TRANSIT_ROUTE",transit_route.str());
+  else
+    publish("TRANSIT_MODE", "DIRECT");
 }
 
 void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)

@@ -45,11 +45,12 @@ class LamssMissionManager : public GobyMOOSApp
     std::string NodeReport(std::string node_name, std::string node_type, 
 			   double node_x, double node_y, double node_spd, 
 			   double node_hdg, double node_dep );
+    void initial_deploy();
+    void initial_transit();
 
     // mail handlers
 
     void handle_ifs_data(const CMOOSMsg& msg);
-    void handle_initial_deploy(const CMOOSMsg& msg);
     void handle_status(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
@@ -59,7 +60,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);
     void handle_desired_depth(const CMOOSMsg& msg);
-
+    void post_transit_route();
     // queue_event for FSM
     template<typename Event>
         void queue_event()
@@ -75,6 +76,8 @@ class LamssMissionManager : public GobyMOOSApp
     goby::moos::protobuf::NodeStatus last_nav_;
 
     static LamssMissionManager* inst_;    
+    std::vector<double> transit_x;
+    std::vector<double> transit_y;
 
 };
 

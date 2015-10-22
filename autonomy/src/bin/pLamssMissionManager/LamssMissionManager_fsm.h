@@ -81,6 +81,7 @@ namespace lamss
 	    //            extern boost::condition_variable operation_radius_cond_;
 	    //            extern boost::condition_variable operation_box_cond_;
       
+	    extern LAMSS_TRANSIT last_transit_route_;    
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
             
