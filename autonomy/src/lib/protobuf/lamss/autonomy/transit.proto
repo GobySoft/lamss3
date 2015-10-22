@@ -7,13 +7,13 @@ message LAMSS_TRANSIT {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_TRANSIT", (dccl.field).static_value="LAMSS_TRANSIT", (dccl.field).codec="_static"];
-	optional Transit_ModeEnum Transit_Mode = 5;
+	optional Transit_ModeEnum Transit_Mode = 5 [default=TRANSIT_MODE_DIRECT];
 	enum Transit_ModeEnum{ 
 		 TRANSIT_MODE_DIRECT = 0; 
 		 TRANSIT_MODE_ROUTE = 1; 
 	} 
-	optional double Transit_Depth = 6 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Transit_Speed = 7 [(dccl.field).max=3.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Transit_Depth = 6 [default=5.0, (dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Transit_Speed = 7 [default=1.5, (dccl.field).max=3.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double x_1 = 8 [(dccl.field).max=20470.000000, (dccl.field).min=-20470.000000, (dccl.field).precision=-1];
 	optional double y_1 = 9 [(dccl.field).max=20470.000000, (dccl.field).min=-20470.000000, (dccl.field).precision=-1];
 	optional double x_2 = 10 [(dccl.field).max=20470.000000, (dccl.field).min=-20480.000000, (dccl.field).precision=-1];
