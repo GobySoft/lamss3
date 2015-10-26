@@ -515,21 +515,24 @@ void LamssTrackManager::handle_prosecute_heading(const CMOOSMsg& msg)
 
 void LamssTrackManager::send_deploy()
 {
+  LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
   std::string serialized;
-  last_deploy_cmd_.set_timestamp(current_time_);
-  last_deploy_cmd_.set__src_id(vehicle_id_);
-  last_deploy_cmd_.set_destinationplatformid(vehicle_id_);
+  redeploy.set_timestamp(MOOSTime());
+  redeploy.set__src_id(vehicle_id_);
+  redeploy.set_destinationplatformid(vehicle_id_);
   if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
     {
-      last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
-      last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
+      redeploy.set_deploy_x(last_nav_.local_fix().x());
+      redeploy.set_deploy_y(last_nav_.local_fix().y());
+      // Re-deploy forced to loiter if not station
+      redeploy.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
+      redeploy.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
     }
-  // disable auto_prosecute for self deploy
-  last_deploy_cmd_.set_auto_prosecute(false);
-
-  serialize_for_moos(&serialized,last_deploy_cmd_);    
+  // Auto prosecute only on initial deploy
+  redeploy.set_auto_prosecute(false);
+  serialize_for_moos(&serialized,redeploy);    
   publish("LAMSS_DEPLOY_OUT", serialized);
-  //publish("OUTGOING_COMMAND", serialized);
+
 }
 
 void LamssTrackManager::send_prosecute()
