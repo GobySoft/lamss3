@@ -57,13 +57,17 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     goby::glog.add_group("mac", goby::common::Colors::lt_blue);
     goby::glog.add_group("gram", goby::common::Colors::yellow);
 
+    set_ignore_stale(false);
+
     // set up subscriptions before starting separate thread
+    subscribe("LAMSS_STATUS_IN", &LamssMissionManager::handle_status, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
+    subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
-    subscribe("TRANSIT_ROUTE_IN", &LamssMissionManager::handle_transit_route, this);    
+    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
 
@@ -77,6 +81,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
   
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
+    // Avoid abort on startup
+    last_acomms_ = MOOSTime();
 }
 
 void LamssMissionManager::loop()
@@ -99,6 +105,8 @@ void LamssMissionManager::loop()
 void LamssMissionManager::slow_loop(double curr_time)
 {
   // Here we should add the check for blackout_duration and prosecute_duration.
+  boost::lock_guard<boost::mutex> lock(moos_mutex_);
+
 
   if (prosecute_mode_active_)
     {
@@ -116,23 +124,24 @@ void LamssMissionManager::slow_loop(double curr_time)
 		       << std::endl;
 	  }
 
-    double remaining = (prosecute_time_ + last_prosecute_cmd_.prosecute_duration()) - 
+    double remaining = last_prosecute_cmd_.target_timestamp() + 
+      last_prosecute_cmd_.prosecute_duration() - 
       curr_time;
-      if (remaining <= 0.0)
-	{
-	  //	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
-	  send_deploy();
-	  goby::glog << group("helm") 
-	    << "Prosecute duration exceeded - commanding Deploy" 
-	    << std::endl;
-	}
-      else 
-	{
-	  goby::glog << group("helm") 
-	    << "Prosecute time remaining: " << remaining
-	    << std::endl;
-	  publish("PROSECUTE_REMAINING",remaining);
-	}
+    if (remaining <= 0.0)
+      {
+	//	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
+	send_deploy();
+	goby::glog << group("helm") 
+		   << "Prosecute duration exceeded - commanding Deploy" 
+		   << std::endl;
+      }
+    else 
+      {
+	goby::glog << group("helm") 
+		   << "Prosecute time remaining: " << remaining
+		   << std::endl;
+	publish("PROSECUTE_REMAINING",remaining);
+      }
     }
   if ( mission_active_ )
     {
@@ -183,13 +192,17 @@ void LamssMissionManager::slow_loop(double curr_time)
 void LamssMissionManager::send_deploy()
 {
   std::string serialized;
+  last_deploy_cmd_.set_timestamp(MOOSTime());
+  last_deploy_cmd_.set__src_id(vehicle_id_);
+  last_deploy_cmd_.set_destinationplatformid(vehicle_id_);
   if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
     {
       last_deploy_cmd_.set_deploy_x(last_nav_.local_fix().x());
       last_deploy_cmd_.set_deploy_y(last_nav_.local_fix().y());
     }
   serialize_for_moos(&serialized,last_deploy_cmd_);    
-  publish("LAMSS_DEPLOY_IN", serialized);
+  publish("LAMSS_DEPLOY_OUT", serialized);
+
 }
 
 void  LamssMissionManager::update_abort_mission()
@@ -226,6 +239,38 @@ void LamssMissionManager::try_publish()
     }
 }
 
+void LamssMissionManager::initial_deploy()
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
+  init_deploy_cmd.set_timestamp(MOOSTime());
+
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  init_deploy_cmd.set__src_id(cfg_.topside_id());
+  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
+
+  std::string serialized;
+  serialize_for_moos(&serialized,init_deploy_cmd);    
+  publish("LAMSS_DEPLOY_OUT", serialized);
+}
+
+void LamssMissionManager::initial_transit()
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
+  init_transit_cmd.set__time(MOOSTime());
+
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  init_transit_cmd.set__src_id(cfg_.topside_id());
+  init_transit_cmd.set_destinationplatformid(vehicle_id_);
+
+  std::string serialized;
+  serialize_for_moos(&serialized,init_transit_cmd);    
+  publish("LAMSS_TRANSIT_OUT", serialized);
+}
+
 void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 {
     goby::moos::protobuf::FrontSeatInterfaceData data;
@@ -241,47 +286,79 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 {
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
-  last_deploy_cmd_ = deploy_cmd;
-  deploy_received_ = true;
+  // Only handle messages for me
+  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+    {
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
+      last_deploy_cmd_ = deploy_cmd;
+      deploy_received_ = true;
+      if (!command_received_)
+	{
+	  command_received_ = true;
+	  command_received_cond_.notify_one();
+	}
 
-  if (deploy_cmd._src_id() == cfg_.topside_id())
-    last_acomms_ = MOOSTime();
+      post_transit_route();
 
-  if (mission_active_)
-    queue_event<EvNewMission>();
-  else
-    queue_event<EvStartDiving>();
-
+      if (deploy_cmd._src_id() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+      
+      if (mission_active_)
+	queue_event<EvNewMission>();
+      else
+	queue_event<EvStartDiving>();
+    }
 }
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 {
   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
-  last_prosecute_cmd_ = prosecute_cmd;
-
-  if (prosecute_cmd._src_id() == cfg_.topside_id())
-    last_acomms_ = MOOSTime();
-  // prosecute only accepted if already in active mission
-  if (mission_active_)
+  // Only handle messages for me
+  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
     {
-      prosecute_received_ = true;
-      queue_event<EvNewMission>();
-    }
-  else
-    {
-      goby::glog << group("fsm") 
-		 << "Not in active mission -  Prosecute ignored"
-		 << std::endl;
-    }
-  
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
+      last_prosecute_cmd_ = prosecute_cmd;
+      
+      if (prosecute_cmd._src_id() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+      // prosecute only accepted if already in active mission
+      if (mission_active_)
+	{
+	  prosecute_received_ = true;
+	  queue_event<EvNewMission>();
+	}
+      else
+	{
+	  goby::glog << group("fsm") 
+		     << "Not in active mission -  Prosecute ignored"
+		     << std::endl;
+	}
+    }  
 }
 
+void LamssMissionManager::handle_status(const CMOOSMsg& msg)
+{
+  LAMSS_STATUS status_msg;
+  parse_for_moos(msg.GetString(), &status_msg);
+  // If coming from topside count as being connected
+  if (status_msg.node() == cfg_.topside_id())
+	last_acomms_ = MOOSTime();
+}
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+    initial_transit();
+    initial_deploy();
+
+}
+
+void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
+{
+    boost::mutex::scoped_lock lock(moos_mutex_);
+    vehicle_name_ = msg.GetString();
 }
 
 void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
@@ -289,6 +366,7 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
   std::string mission_state = msg.GetString();
   if (MOOSStrCmp(mission_state,"DRIFTING"))
     {
+      boost::lock_guard<boost::mutex> lock(moos_mutex_);
       if (mission_active_ && !drifting_mode_active_)
 	{
 	  drifting_requested_ = true;
@@ -300,6 +378,7 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 { 
   double opreg_perimeter_distance = msg.GetDouble();
+  boost::lock_guard<boost::mutex> lock(moos_mutex_);
   if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
     {
       send_deploy();
@@ -311,43 +390,133 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
 {
-  // remove trailing zero waypoints from transit route
-  std::string transit_route_in =  msg.GetString();
-  MOOSChomp(transit_route_in,"speed=");
-  std::stringstream transit_route;
-  transit_route << "speed=";
-  
-  std::string sd_v = MOOSChomp(transit_route_in,"#");
-  double v = atof(sd_v.c_str());
-  
-  transit_route << v  << "#";
-
-  MOOSChomp(transit_route_in,"points=");
-  transit_route << "points=";
-  bool first = true;
-  for (int i=1; i<=5; i++)
+  LAMSS_TRANSIT transit_cmd;
+  parse_for_moos(msg.GetString(), &transit_cmd);
+  last_transit_route_ = transit_cmd;
+  transit_x.clear();
+  transit_y.clear();
+  if (fabs(last_transit_route_.x_1()) > 1.0 && fabs(last_transit_route_.y_1()) > 1.0)
     {
-      std::string sd_x = MOOSChomp(transit_route_in,",");
-      double x = atof(sd_x.c_str());
+      transit_x.push_back(last_transit_route_.x_1());
+      transit_y.push_back(last_transit_route_.y_1());
+    }
+  if (fabs(last_transit_route_.x_2()) > 1.0 && fabs(last_transit_route_.y_2()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_2());
+      transit_y.push_back(last_transit_route_.y_2());
+    }
+  if (fabs(last_transit_route_.x_3()) > 1.0 && fabs(last_transit_route_.y_3()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_3());
+      transit_y.push_back(last_transit_route_.y_3());
+    }
+  if (fabs(last_transit_route_.x_4()) > 1.0 && fabs(last_transit_route_.y_4()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_4());
+      transit_y.push_back(last_transit_route_.y_4());
+    }
+  if (fabs(last_transit_route_.x_5()) > 1.0 && fabs(last_transit_route_.y_5()) > 1.0)
+    {
+      transit_x.push_back(last_transit_route_.x_5());
+      transit_y.push_back(last_transit_route_.y_5());
+    }
+}
+
+void LamssMissionManager::post_transit_route()
+{
+ 
+  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
+    {
+      // remove trailing zero waypoints from transit route
       
-      std::string sd_y = MOOSChomp(transit_route_in,":");
-      double y = atof(sd_y.c_str());
-      
-      if (fabs(x) >= 10.0 || fabs(y) >= 10.0)
+      std::stringstream transit_route;
+      std::string hash = "#";
+      std::string colon = ":";
+      std::string comma = ",";
+      int n = transit_x.size();
+      if (n>0)
 	{
-	  if (!first)
+	  transit_route << "speed=" << last_transit_route_.transit_speed() 
+			<< "#points=" 
+			<< last_nav_.local_fix().x() << comma
+			<< last_nav_.local_fix().y() << colon
+;
+	  if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
 	    {
-	      transit_route << ":";
+	      // If RETURN mode publish route in reverse order
+	      for (int i=n-1; i>=0; i--)
+		{
+		  transit_route << transit_x[i] << comma << transit_y[i] ;
+		  transit_route << colon ;
+		}
 	    }
-	  transit_route << x << "," << y;
-	  first=false;
+	  else
+	    {
+	      for (int i=0; i<n; i++)
+		{
+		  transit_route << transit_x[i] << comma << transit_y[i] ;
+		  transit_route << colon ;
+		}
+	    }
+	  transit_route << last_deploy_cmd_.deploy_x() << comma
+			<< last_deploy_cmd_.deploy_y() ;
+
+ 	  publish("TRANSIT_DEPTH", last_transit_route_.transit_depth());
+	  publish("TRANSIT_ROUTE",transit_route.str());
+	  publish("TRANSIT_MODE", "ROUTE");
 	}
+      else
+	publish("TRANSIT_MODE", "DIRECT");
+
     } 
-  publish("TRANSIT_ROUTE",transit_route.str());
+  else
+    publish("TRANSIT_MODE", "DIRECT");
 }
 
 void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)
 {
   double depth_mismatch =  fabs(last_nav_.global_fix().depth()-msg.GetDouble());
   publish("DEPTH_MISMATCH",depth_mismatch);
+}
+
+std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
+{
+
+  double node_lat;
+  double node_lon;
+  std::string comma = ",";
+  std::string output="NAME=" + node_name +",TYPE=" + node_type + comma;
+
+  if (!m_Geodesy.UTM2LatLong(node_x,node_y,node_lat,node_lon))
+    {
+      glog.is(DEBUG2) && glog 
+	<< "Error in UTM2LatLong conversion" << std::endl;
+      return("Error in UTM2LatLong conversion\n");	  
+    }
+
+  output += "UTC_TIME=" + doubleToString(MOOSTime(),1);
+  output += ",";
+
+  output += "X=" + doubleToString(node_x,2);
+  output += ",";
+
+  output += "Y=" + doubleToString(node_y,2);
+  output += ",";
+
+  output += "LAT=" + doubleToString(node_lat,6);
+  output += ",";
+
+  output += "LON=" + doubleToString(node_lon,6);
+  output += ",";
+
+  output += "SPD=" + doubleToString(node_spd,2);
+  output += ",";
+
+  output += "HDG=" + doubleToString(node_hdg,2);
+
+  output += ",";
+
+  output += "DEPTH=" + doubleToString(node_dep,2);
+
+  return(output);
 }

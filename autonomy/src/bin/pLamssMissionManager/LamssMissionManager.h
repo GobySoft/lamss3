@@ -11,7 +11,7 @@
 #include "LamssMissionManager_fsm.h"
 #include "goby/moos/goby_moos_app.h"
 #include "LamssMissionManager_config.pb.h"
-#include "MBUtils.h"
+//#include "MBUtils.h"
 #include "ivp/MOOSGeodesy.h"
 
 class TrackManagerException : public std::runtime_error
@@ -42,18 +42,25 @@ class LamssMissionManager : public GobyMOOSApp
     void update_abort_mission();
     void try_publish();
     void send_deploy();
+    std::string NodeReport(std::string node_name, std::string node_type, 
+			   double node_x, double node_y, double node_spd, 
+			   double node_hdg, double node_dep );
+    void initial_deploy();
+    void initial_transit();
 
     // mail handlers
 
     void handle_ifs_data(const CMOOSMsg& msg);
+    void handle_status(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
+    void handle_vehicle_name(const CMOOSMsg& msg);
     void handle_mission_state(const CMOOSMsg& msg);
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);
     void handle_desired_depth(const CMOOSMsg& msg);
-
+    void post_transit_route();
     // queue_event for FSM
     template<typename Event>
         void queue_event()
@@ -69,6 +76,8 @@ class LamssMissionManager : public GobyMOOSApp
     goby::moos::protobuf::NodeStatus last_nav_;
 
     static LamssMissionManager* inst_;    
+    std::vector<double> transit_x;
+    std::vector<double> transit_y;
 
 };
 

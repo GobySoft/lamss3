@@ -27,6 +27,7 @@
 #include "goby/acomms/protobuf/amac.pb.h"
 
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
+#include "MBUtils.h"
 
 #include "LamssMissionManager_config.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
@@ -75,15 +76,19 @@ namespace lamss
 
             extern boost::mutex moos_mutex_;
 
+            extern boost::condition_variable command_received_cond_;
 	    //            extern boost::condition_variable blackout_cond_;
 	    //            extern boost::condition_variable operation_radius_cond_;
 	    //            extern boost::condition_variable operation_box_cond_;
       
+	    extern LAMSS_TRANSIT last_transit_route_;    
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
             
             extern int vehicle_id_;
+	    extern std::string vehicle_name_;
 
+	    extern bool command_received_;
 	    extern bool mission_active_;
 	    extern bool mission_requested_;
 	    extern bool diving_active_;
@@ -100,7 +105,6 @@ namespace lamss
 	    extern bool drifting_mode_active_;
 
             extern double last_acomms_;
-            extern double prosecute_time_;
 	    extern double abort_time_;
 	    extern double abort_duration_;
 
@@ -146,6 +150,10 @@ namespace lamss
 		  {		   
 		    boost::mutex::scoped_lock lock(moos_mutex_);
 		    mission_active_ = false; 
+		    // wait for initial deploy command
+		    while(!command_received_)
+		      command_received_cond_.wait(lock);
+                        
 		    // Check for new state transitions
 		    diving_requested_ = deploy_received_ || 
 		      prosecute_received_ || 
@@ -169,8 +177,7 @@ namespace lamss
 		};
 	    
             // Mission
-            struct Mission: boost::statechart::simple_state<Mission, LamssMissionManagerFSM, Diving>,
-	      StateNotify<MISSION_STATE_MISSION>
+            struct Mission: boost::statechart::simple_state<Mission, LamssMissionManagerFSM, Diving>
 		{
 		  Mission() 
 		    {
@@ -192,8 +199,7 @@ namespace lamss
 		};
 
             // /Mission/Diving
-            struct Diving: boost::statechart::state<Diving, Mission>,
-                StateNotify<MISSION_STATE_DIVING> 
+            struct Diving: boost::statechart::state<Diving, Mission>
 		  {
 		  Diving(my_context ctx) : my_base(ctx)
 		    {
@@ -234,7 +240,7 @@ namespace lamss
 		    ~Diving() 
 		      { 
 			boost::mutex::scoped_lock lock(moos_mutex_);
-			diving_active_ = true;
+			diving_active_ = false;
 		      }
 		    
 		    typedef boost::mpl::list<
@@ -255,7 +261,6 @@ namespace lamss
 
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  deploy_mode_active_ = true;
-
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Mode..."
@@ -291,8 +296,8 @@ namespace lamss
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Mode..."
-			       << "deploy_duration=" << cfg_->deploy_duration() 
-			       << "prosecute_duration=" << last_prosecute_cmd_.prosecute_duration() 
+			       << "deploy_duration=" << last_deploy_cmd_.deploy_duration() 
+			       << ", prosecute_duration=" << last_prosecute_cmd_.prosecute_duration() 
 			       << std::endl;
 		  
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
