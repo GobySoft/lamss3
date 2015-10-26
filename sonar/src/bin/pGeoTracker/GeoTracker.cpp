@@ -227,8 +227,9 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
   bool decode_stat;
 
   //NewMail.sort();
-  MOOSMSG_LIST::reverse_iterator p;
-  for(p = NewMail.rbegin(); p != NewMail.rend(); p++) 
+  //  MOOSMSG_LIST::reverse_iterator p;
+  MOOSMSG_LIST::iterator p;
+  for(p = NewMail.begin(); p != NewMail.end(); p++) 
     {
 
     CMOOSMsg &Msg = *p;
