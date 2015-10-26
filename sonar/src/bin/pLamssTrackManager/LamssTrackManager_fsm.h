@@ -329,7 +329,18 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  tracking_active_ = true;
 		  tracking_start_ = current_time_;
-                }
+		  std::stringstream update;
+		  update << "bearing_mode=";
+		  if (last_prosecute_cmd_.array_angle_mode() ==
+		      LAMSS_PROSECUTE::ARRAY_ANGLE_MODE_quad)
+		    update << "quad#";
+		  else
+		    update << "dual#";
+		  update << "desired_angle=" << last_prosecute_cmd_.array_angle();
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "ARRAY_TRACK_ANGLE", 
+						    update.str()));   
+		  
+		}
 	      ~Tracking() 
 		{
 		  boost::mutex::scoped_lock lock(moos_mutex_);
