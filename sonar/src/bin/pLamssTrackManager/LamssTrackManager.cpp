@@ -972,7 +972,7 @@ bool LamssTrackManager::postStateVars()
 		    auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
 						     cos(trk_bearing*M_PI/180.0) + 
 						     last_nav_.local_fix().y());
-		    auto_prosecute_cmd_.set_target_speed(0.0);
+		    auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
 		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
 		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
 		    auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
