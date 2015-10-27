@@ -158,7 +158,7 @@ void LamssTrackManager::loop()
   if ( prosecute_mode_active_ && detection_active_ )
     {
       //update time since contact was seen
-      double elapsed = current_time_ - detection_start_;;
+      double elapsed = current_time_ - cue_utc_;
      
       //update target cue estimates
       double curr_cue_x = cue_x_+ elapsed*cue_speed_* sin(cue_heading_*M_PI/180.);
@@ -170,7 +170,7 @@ void LamssTrackManager::loop()
       // Check whether target is reachable
       bool opportunity = checkOpportunity();   
 
-      std::string node_report = NodeReport("target_cue","ship",curr_cue_x, 
+      std::string node_report = NodeReport("target_cue","track",curr_cue_x, 
 					      curr_cue_y, 
 					      cue_speed_, 
 					      cue_heading_, 
