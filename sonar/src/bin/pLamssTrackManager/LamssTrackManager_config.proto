@@ -9,8 +9,6 @@ message LamssTrackManagerConfig
   optional int32  priority_threshold = 2 [default = 5];
   optional int32  filter_length   = 3 [default = 1];
   optional bool   auto_prosecute  = 4 [default = false];
-  optional double auto_prosecute_range  = 18 [default = 2000];
-  optional double auto_prosecute_duration  = 19 [default = 1200];
   optional double track_delay  = 5 [default = 30];
   optional double track_report_time  = 6 [default = 600];
   optional double bearing_rate_threshold  = 7 [default = 20];
@@ -24,5 +22,8 @@ message LamssTrackManagerConfig
   optional double xy_sigma_multiple  = 15 [default = 50];
   optional string deploy_location = 16 [default = "station"];
   optional double orbit_radius = 17 [default = 500];
+  optional double auto_prosecute_range  = 18 [default = 2000];
+  optional double auto_prosecute_duration  = 19 [default = 1200];
+  optional double auto_prosecute_array_angle  = 20 [default = 80];
 }
 
