@@ -2057,8 +2057,8 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
       if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
 	{
 	  // if we waited more than 30 secs, iBellhop must have missed request
-	  //	  if (readyAcousticContact(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 30.0 )
-	  if (readyAcousticContact(cn) || acoustic_contacts[i].last_request <= 0 )
+	  if (readyAcousticContact(cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 30.0 )
+	    // if (readyAcousticContact(cn) || acoustic_contacts[i].last_request <= 0 )
 	    {
 	      // Request raytracing
 	      string acoustic_contact = cn + "_SIM";
