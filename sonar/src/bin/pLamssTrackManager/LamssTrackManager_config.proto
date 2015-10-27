@@ -23,7 +23,8 @@ message LamssTrackManagerConfig
   optional string deploy_location = 16 [default = "station"];
   optional double orbit_radius = 17 [default = 500];
   optional double auto_prosecute_range  = 18 [default = 2000];
-  optional double auto_prosecute_duration  = 19 [default = 1200];
-  optional double auto_prosecute_array_angle  = 20 [default = 80];
+  optional double auto_prosecute_speed  = 19 [default = 0];
+  optional double auto_prosecute_duration  = 20 [default = 1200];
+  optional double auto_prosecute_array_angle  = 21 [default = 80];
 }
 
