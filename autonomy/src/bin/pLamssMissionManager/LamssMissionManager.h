@@ -71,6 +71,9 @@ class LamssMissionManager : public GobyMOOSApp
     boost::statechart::fifo_scheduler<>::processor_handle fsm_;
     boost::shared_ptr<boost::thread> fsm_thread_;
 
+    double mission_start_time_;
+    bool initial_deploy_done_;
+
     double last_slow_loop_t_;
     
     goby::moos::protobuf::NodeStatus last_nav_;

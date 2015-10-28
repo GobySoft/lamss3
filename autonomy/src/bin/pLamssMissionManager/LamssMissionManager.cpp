@@ -48,6 +48,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       cfg_(cfg),
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
+      initial_deploy_done_(false),
       last_slow_loop_t_(0)
 {
 
@@ -83,6 +84,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
+    mission_start_time_ = MOOSTime();
 }
 
 void LamssMissionManager::loop()
@@ -93,6 +95,14 @@ void LamssMissionManager::loop()
 
 
     try_publish(); // publish messages queued from state machine
+
+    // wait 30 seconds sending the initial deploy commands
+    if (!initial_deploy_done_ && curr_time >= mission_start_time_ + 30.0)
+      {
+	initial_transit();
+	initial_deploy();
+	initial_deploy_done_ = true;
+      }
 
     // process some events at a slower rate
     const int slow_loop_period = 10;
@@ -356,9 +366,6 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
-    initial_transit();
-    initial_deploy();
-
 }
 
 void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
