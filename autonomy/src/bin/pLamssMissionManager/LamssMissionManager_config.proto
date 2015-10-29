@@ -22,5 +22,10 @@ message LamssMissionManagerConfig
   optional double abort_speed = 12 [default = 1.5];
   optional LAMSS_DEPLOY initial_deploy = 13;
   optional LAMSS_TRANSIT initial_transit = 14;
+  optional bool homing_beacon = 15 [default = false];
+  optional double homing_beacon_frequency = 16 [default = 975];
+  optional double homing_interval = 17 [default = 300];
+  optional double homing_duration = 18 [default = 300];
+
 }
 

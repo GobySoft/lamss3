@@ -60,6 +60,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);
     void handle_desired_depth(const CMOOSMsg& msg);
+    void handle_goto_surface(const CMOOSMsg& msg);
     void post_transit_route();
     // queue_event for FSM
     template<typename Event>

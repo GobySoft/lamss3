@@ -71,6 +71,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
+    subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);    
 
     // intialize MOOSGeodesy
 
@@ -90,6 +91,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 void LamssMissionManager::loop()
 {
     double curr_time = MOOSTime();
+    current_time_ = curr_time;
+
     if (last_acomms_ < 1)
       last_acomms_ = curr_time;
 
@@ -163,9 +166,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      goby::glog << group("helm") 
 			 << "Deploy duration exceeded - initiating Abort" 
 			 << std::endl;
-	      abort_requested_ = true;
-	      abort_time_ = curr_time;
 	      queue_event<EvNewMission>();
+	      queue_event<EvStartAbort>();
 	    }
 	  else 
 	    {
@@ -173,8 +175,6 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << "Deploy time remaining: " << remaining
 			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
-	      abort_requested_ = false;
-	      abort_mode_active_ = false;
 	    }
 	  update_abort_mission();
 	}
@@ -190,8 +190,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  else
 	    {
-	      abort_requested_ = false;
-	      drifting_requested_ = true;
+	      queue_event<EvNewMission>();
+	      queue_event<EvStartDrifting>();
 	    }
 	}
     }
@@ -307,7 +307,6 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_deploy_cmd_ = deploy_cmd;
-      deploy_received_ = true;
       if (!command_received_)
 	{
 	  command_received_ = true;
@@ -321,8 +320,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       
       if (mission_active_)
 	queue_event<EvNewMission>();
-      else
-	queue_event<EvStartDiving>();
+      queue_event<EvStartDeploy>();
     }
 }
 
@@ -341,8 +339,8 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
       // prosecute only accepted if already in active mission
       if (mission_active_)
 	{
-	  prosecute_received_ = true;
 	  queue_event<EvNewMission>();
+	  queue_event<EvStartProsecute>();
 	}
       else
 	{
@@ -382,8 +380,8 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       if (mission_active_ && !drifting_mode_active_)
 	{
-	  drifting_requested_ = true;
 	  queue_event<EvNewMission>();
+	  queue_event<EvStartDrifting>();
 	}
     }
 }
@@ -490,6 +488,14 @@ void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)
 {
   double depth_mismatch =  fabs(last_nav_.global_fix().depth()-msg.GetDouble());
   publish("DEPTH_MISMATCH",depth_mismatch);
+}
+
+void LamssMissionManager::handle_goto_surface(const CMOOSMsg& msg)
+{
+  if (MOOSStrCmp(toupper(msg.GetString()),"TRUE"))
+    queue_event<EvGotoSurface>();
+  else
+    queue_event<EvEnableDiving>();
 }
 
 std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )

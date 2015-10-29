@@ -44,7 +44,6 @@ namespace lamss
             // events
     
             struct EvAbortMission : boost::statechart::event< EvAbortMission > { };
-            struct EvStartDiving : boost::statechart::event< EvStartDiving > { };
 	    struct EvNewMission : boost::statechart::event< EvNewMission > { };
 	    // Deploy events
             struct EvStartDeploy : boost::statechart::event< EvStartDeploy > { };
@@ -54,10 +53,15 @@ namespace lamss
             struct EvStartAbort : boost::statechart::event< EvStartAbort > { };
 	    // Drifting event
             struct EvStartDrifting : boost::statechart::event< EvStartDrifting > { };
+	    // Surfacing event
+            struct EvGotoSurface : boost::statechart::event< EvGotoSurface > { };
+            struct EvEnableDiving : boost::statechart::event< EvEnableDiving > { };
 
             struct Idle;
             struct Mission;
             struct Diving;
+            struct Surfacing;
+
 	    // Deploy States
             struct Deploy;
 
@@ -90,23 +94,20 @@ namespace lamss
 
 	    extern bool command_received_;
 	    extern bool mission_active_;
-	    extern bool mission_requested_;
 	    extern bool diving_active_;
-	    extern bool diving_requested_;
-	    extern bool deploy_received_;
 	    extern bool deploy_mode_active_;
-	    extern bool prosecute_received_;
 	    extern bool prosecute_mode_active_;
 	    extern bool surfacing_mode_active_;
-	    extern bool surfacing_requested_;
-	    extern bool abort_requested_;
 	    extern bool abort_mode_active_;
-	    extern bool drifting_requested_;
 	    extern bool drifting_mode_active_;
 
+            extern double current_time_;
             extern double last_acomms_;
 	    extern double abort_time_;
 	    extern double abort_duration_;
+
+	    extern bool homing_activated_;
+	    extern double last_homing_prosecute_;
 
             extern boost::shared_ptr<LamssMissionManagerConfig> cfg_;
             
@@ -154,23 +155,16 @@ namespace lamss
 		    while(!command_received_)
 		      command_received_cond_.wait(lock);
                         
-		    // Check for new state transitions
-		    diving_requested_ = deploy_received_ || 
-		      prosecute_received_ || 
-		      abort_requested_ ||
-		      drifting_requested_;
-		    mission_requested_ = diving_requested_ || surfacing_requested_;
-
-		    if (diving_requested_)
-		      post_event(EvStartDiving());
-		    
 		  }
 		  ~Idle() 
 		    { 
 		    }
 		  
 		  typedef boost::mpl::list<
-		    boost::statechart::transition< EvStartDiving, Diving >
+		    boost::statechart::transition< EvStartDeploy, Deploy  >,
+		    boost::statechart::transition< EvStartProsecute, Prosecute >,
+		    boost::statechart::transition< EvStartAbort, Abort >,
+		    boost::statechart::transition< EvStartDrifting, Drifting >
 		    > reactions;
 		  
 		  
@@ -198,62 +192,49 @@ namespace lamss
 		  
 		};
 
-            // /Mission/Diving
-            struct Diving: boost::statechart::state<Diving, Mission>
+            // Mission/Diving
+            struct Diving: boost::statechart::simple_state<Diving, Mission, Deploy>
 		  {
-		  Diving(my_context ctx) : my_base(ctx)
+		  Diving()
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      diving_active_ = true;
-		      if (deploy_received_)
-			{
-			  post_event(EvStartDeploy());
-			  deploy_received_ = false;
-			}
-		      else if (prosecute_received_)
-			{
-			  post_event(EvStartProsecute());
-			  prosecute_received_ = false;
-			}
-		      else if (abort_requested_)
-			{
-			  post_event(EvStartAbort());
-			  abort_requested_ = false;
-			}
-		      else if (drifting_requested_)
-			{
-			  post_event(EvStartDrifting());
-			  drifting_requested_ = false;
-			}
-		      else
-			{
-			  goby::glog << group("fsm") 
-				     << "Unknown Mission State - Aborting" 
-				     << std::endl;
-			  post_event(EvAbortMission());
-			  deploy_received_ = false;
-			  prosecute_received_ = false;
-			  abort_requested_ = true;
-			}
-		      
 		    }
-		    ~Diving() 
-		      { 
-			boost::mutex::scoped_lock lock(moos_mutex_);
-			diving_active_ = false;
-		      }
-		    
-		    typedef boost::mpl::list<
-		      boost::statechart::transition< EvStartDeploy, Deploy  >,
-		      boost::statechart::transition< EvStartProsecute, Prosecute >,
-		      boost::statechart::transition< EvStartAbort, Abort >,
-		      boost::statechart::transition< EvStartDrifting, Drifting >
-		      > reactions;
-       
+		  ~Diving() 
+		    { 
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      diving_active_ = false;
+		    }
+		  
+		  typedef boost::mpl::list<
+                    boost::statechart::transition< EvGotoSurface, Surfacing >
+                    > reactions;
+
 		  };
 
-            // /Mission/Deploy
-            struct Deploy : boost::statechart::simple_state<Deploy, Mission >,
+            // Mission/Surfacing
+            struct Surfacing: boost::statechart::simple_state<Surfacing, Mission>,
+                StateNotify<MISSION_STATE_SURFACING> 
+		  {
+		  Surfacing()
+		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      surfacing_mode_active_ = true;
+		    }
+		  ~Surfacing() 
+		    { 
+		      boost::mutex::scoped_lock lock(moos_mutex_);
+		      surfacing_mode_active_ = false;
+		    }
+		  
+		  typedef boost::mpl::list<
+                    boost::statechart::transition< EvEnableDiving, Idle >
+                    > reactions;
+
+		  };
+
+            // /Mission/Diving/Deploy
+            struct Deploy : boost::statechart::simple_state<Deploy, Diving >,
                 StateNotify<MISSION_STATE_DEPLOY> 
             {
 	      Deploy() 
@@ -282,15 +263,14 @@ namespace lamss
 	    
 	    // Prosecute states
 
-            // /Mission/Prosecute
-            struct Prosecute : boost::statechart::simple_state<Prosecute, Mission >,
+            // /Mission/Diving/Prosecute
+            struct Prosecute : boost::statechart::simple_state<Prosecute, Diving >,
                 StateNotify<MISSION_STATE_PROSECUTE> 
             {
 	      Prosecute() 
                 {
 		  
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-
 		  prosecute_mode_active_ = true;
 
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
@@ -308,14 +288,13 @@ namespace lamss
 	      ~Prosecute() 
 		{
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-
 		  prosecute_mode_active_ = false;
 		}
 	      
             };
 	    
-            // /Mission/Abort
-            struct Abort : boost::statechart::simple_state<Abort, Mission >,
+            // /Mission/Diving/Abort
+            struct Abort : boost::statechart::simple_state<Abort, Diving >,
                 StateNotify<MISSION_STATE_ABORT> 
             {
 	      Abort() 
@@ -323,6 +302,7 @@ namespace lamss
 
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  abort_mode_active_ = true;
+		  abort_time_ = current_time_;
 
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
@@ -343,8 +323,8 @@ namespace lamss
 	      
             };
 	    
-            // /Mission/Drifting
-            struct Drifting : boost::statechart::simple_state<Drifting, Mission >,
+            // /Mission/Diving/Drifting
+            struct Drifting : boost::statechart::simple_state<Drifting, Diving >,
                 StateNotify<MISSION_STATE_DRIFTING> 
             {
 	      Drifting() 
