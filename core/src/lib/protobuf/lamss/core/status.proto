@@ -69,6 +69,7 @@ enum Mission_StateEnum
   MISSION_STATE_PROSECUTE = 5;
   MISSION_STATE_ABORT = 6;
   MISSION_STATE_DRIFTING = 7;
+  MISSION_STATE_SURFACING = 8;
 }
 
 enum BearingTrackEnum
