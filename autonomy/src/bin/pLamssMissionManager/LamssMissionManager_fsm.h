@@ -57,6 +57,10 @@ namespace lamss
             struct EvGotoSurface : boost::statechart::event< EvGotoSurface > { };
             struct EvEnableDiving : boost::statechart::event< EvEnableDiving > { };
 
+	    // Homing events
+            struct EvUpdateHeading : boost::statechart::event< EvUpdateHeading > { };
+            struct EvResumeAbort : boost::statechart::event< EvResumeAbort > { };
+
             struct Idle;
             struct Mission;
             struct Diving;
@@ -67,6 +71,8 @@ namespace lamss
 
 	    // Prosecute States 
             struct Prosecute;
+            struct Target;
+            struct Homing;
 
 	    // Abort State
             struct Abort;
@@ -106,8 +112,7 @@ namespace lamss
 	    extern double abort_time_;
 	    extern double abort_duration_;
 
-	    extern bool homing_activated_;
-	    extern double last_homing_prosecute_;
+	    extern bool homing_mode_active_;
 
             extern boost::shared_ptr<LamssMissionManagerConfig> cfg_;
             
@@ -264,7 +269,7 @@ namespace lamss
 	    // Prosecute states
 
             // /Mission/Diving/Prosecute
-            struct Prosecute : boost::statechart::simple_state<Prosecute, Diving >,
+            struct Prosecute : boost::statechart::simple_state<Prosecute, Diving, Target >,
                 StateNotify<MISSION_STATE_PROSECUTE> 
             {
 	      Prosecute() 
@@ -291,6 +296,57 @@ namespace lamss
 		  prosecute_mode_active_ = false;
 		}
 	      
+            };
+	    
+            // /Mission/Diving/Prosecute/Target
+            struct Target : boost::statechart::simple_state<Target, Prosecute >
+            {
+	      Target() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "Entering Target Prosecute Mode..."
+			       << std::endl;
+		  
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "success..." 
+			       << std::endl;
+                }
+	      ~Target() 
+		{
+		}
+	      
+            };
+	    
+            // /Mission/Diving/Prosecute/Homing
+            struct Homing : boost::statechart::simple_state<Homing, Prosecute >,
+                StateNotify<MISSION_STATE_PROSECUTE> 
+            {
+	      Homing() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  homing_mode_active_ = true;
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "Entering Homing Prosecute Mode..."
+			       << std::endl;
+		  
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "success..." 
+			       << std::endl;
+                }
+	      ~Homing() 
+		{
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  homing_mode_active_ = false;
+		}
+	      
+	      typedef boost::mpl::list<
+		boost::statechart::transition< EvResumeAbort, Abort >
+		> reactions;
             };
 	    
             // /Mission/Diving/Abort
@@ -321,6 +377,10 @@ namespace lamss
 		  abort_mode_active_ = false;
 		}
 	      
+	      typedef boost::mpl::list<
+		boost::statechart::transition< EvUpdateHeading, Homing >
+		> reactions;
+
             };
 	    
             // /Mission/Diving/Drifting

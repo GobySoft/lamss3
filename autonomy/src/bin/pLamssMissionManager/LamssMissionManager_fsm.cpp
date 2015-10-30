@@ -38,14 +38,12 @@ bool lamss::shared::fsm::prosecute_mode_active_ = false;
 bool lamss::shared::fsm::surfacing_mode_active_ = false;
 bool lamss::shared::fsm::abort_mode_active_ = false;
 bool lamss::shared::fsm::drifting_mode_active_ = false;
+bool lamss::shared::fsm::homing_mode_active_ = false;
 
 double lamss::shared::fsm::current_time_ = 0;
 double lamss::shared::fsm::last_acomms_ = 0;
 double lamss::shared::fsm::abort_time_ = 0;
 double lamss::shared::fsm::abort_duration_ = 0;
-
-bool lamss::shared::fsm::homing_activated_ = false;
-double lamss::shared::fsm::last_homing_prosecute_ = 0;
 
 LAMSS_TRANSIT lamss::shared::fsm::last_transit_route_;
 LAMSS_DEPLOY lamss::shared::fsm::last_deploy_cmd_;
