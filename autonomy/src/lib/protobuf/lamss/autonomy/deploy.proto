@@ -44,19 +44,19 @@ message LAMSS_DEPLOY {
 		 SONAR_PROCESS_ON = 0; 
 		 SONAR_PROCESS_OFF = 1; 
 	} 
-	optional double Deploy_X = 10 [(dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Deploy_Y = 11 [(dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Deploy_Speed = 12 [(dccl.field).max=2.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Upper_Depth = 13 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Lower_Depth = 14 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Deploy_Altitude = 15 [(dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Loiter_Radius = 16 [(dccl.field).max=2047, (dccl.field).min=0, (dccl.field).precision=0];
-	optional int32 Loiter_Segments = 17 [(dccl.field).max=31, (dccl.field).min=0, default = 6];
-	optional double Survey_Heading = 18 [(dccl.field).max=360, (dccl.field).min=0, (dccl.field).precision=0];
-	optional double Survey_Length = 19 [(dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
-	optional double Survey_Width = 20 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
-	optional double Survey_Period = 21 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
-	optional bool Clockwise = 22;
+	optional double Deploy_X = 10 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Y = 11 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Speed = 12 [default=1.5, (dccl.field).max=2.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Upper_Depth = 13 [default=10, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Lower_Depth = 14 [default=20, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Deploy_Altitude = 15 [default=10, (dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Loiter_Radius = 16 [default=100, (dccl.field).max=2047, (dccl.field).min=0, (dccl.field).precision=0];
+	optional int32 Loiter_Segments = 17 [default=6, (dccl.field).max=31, (dccl.field).min=0];
+	optional double Survey_Heading = 18 [default=0, (dccl.field).max=360, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Survey_Length = 19 [default=500, (dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+	optional double Survey_Width = 20 [default=100, (dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double Survey_Period = 21 [default=200, (dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+	optional bool Clockwise = 22 [default=true];
 	optional Trail_ContactEnum Trail_Contact = 23;
 	enum Trail_ContactEnum{ 
 		 TRAIL_CONTACT_macrura = 0; 
@@ -66,7 +66,7 @@ message LAMSS_DEPLOY {
 	} 
 	optional double Trail_Range = 24 [(dccl.field).max=511, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double Trail_Angle = 25 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
-	optional Trail_Angle_TypeEnum Trail_Angle_Type = 26;
+	optional Trail_Angle_TypeEnum Trail_Angle_Type = 26 [default=TRAIL_ANGLE_TYPE_relative];
 	enum Trail_Angle_TypeEnum{ 
 		 TRAIL_ANGLE_TYPE_relative = 0; 
 		 TRAIL_ANGLE_TYPE_absolute = 1; 
