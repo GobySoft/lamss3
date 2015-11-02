@@ -134,6 +134,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
 	  {
 	    send_deploy();
+	    publish("SURVEY_COMPLETED","TRUE");
 	    goby::glog << group("helm") 
 		       << "DEPLOY Executed: Approaching op_radius during prosecute"
 		       <<"station_range = " << station_range 
@@ -148,6 +149,7 @@ void LamssMissionManager::slow_loop(double curr_time)
       {
 	//	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
 	send_deploy();
+	publish("SURVEY_COMPLETED","TRUE");
 	goby::glog << group("helm") 
 		   << "Prosecute duration exceeded - commanding Deploy" 
 		   << std::endl;
@@ -308,6 +310,10 @@ void LamssMissionManager::initial_deploy()
   init_deploy_cmd.set__src_id(cfg_.topside_id());
   init_deploy_cmd.set_destinationplatformid(vehicle_id_);
 
+  // Auto prosecute only on initial deploy
+  if (initial_deploy_done_)
+    init_deploy_cmd.set_auto_prosecute(false);
+
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);    
   publish("LAMSS_DEPLOY_OUT", serialized);
@@ -445,6 +451,7 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
   if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
     {
       send_deploy();
+      publish("SURVEY_COMPLETED","TRUE");
       goby::glog << group("helm") 
 	<< "DEPLOY Executed: Too close to Opregion Perimeter"
 	<< std::endl;
