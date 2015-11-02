@@ -42,6 +42,7 @@ class LamssMissionManager : public GobyMOOSApp
     void update_abort_mission();
     void try_publish();
     void send_deploy();
+    void homing_prosecute();
     std::string NodeReport(std::string node_name, std::string node_type, 
 			   double node_x, double node_y, double node_spd, 
 			   double node_hdg, double node_dep );
@@ -60,6 +61,10 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);
     void handle_desired_depth(const CMOOSMsg& msg);
+    void handle_goto_surface(const CMOOSMsg& msg);
+    void handle_tracking(const CMOOSMsg& msg);
+    void handle_target_bearing(const CMOOSMsg& msg);
+    void handle_survey_flag(const CMOOSMsg& msg);
     void post_transit_route();
     // queue_event for FSM
     template<typename Event>
@@ -71,6 +76,10 @@ class LamssMissionManager : public GobyMOOSApp
     boost::statechart::fifo_scheduler<>::processor_handle fsm_;
     boost::shared_ptr<boost::thread> fsm_thread_;
 
+    double mission_start_time_;
+    bool initial_deploy_done_;
+
+    double slow_loop_period_;
     double last_slow_loop_t_;
     
     goby::moos::protobuf::NodeStatus last_nav_;
@@ -78,6 +87,10 @@ class LamssMissionManager : public GobyMOOSApp
     static LamssMissionManager* inst_;    
     std::vector<double> transit_x;
     std::vector<double> transit_y;
+    
+    double last_homing_prosecute_;
+    bool tracking_;
+    double target_bearing_;
 
 };
 
