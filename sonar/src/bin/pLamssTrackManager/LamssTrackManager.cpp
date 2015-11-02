@@ -945,7 +945,8 @@ bool LamssTrackManager::postStateVars()
 	  {
 	    if (localization_active_)
 	      {
-		// Publish broadside heading
+		// Publish target bearing and broadside heading
+		publish("TARGET_BEARING",angle360(trk_bearing));
 		double broadside_heading = angle360(trk_bearing + 90.0);
 		if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
 		    fabs(broadside_heading - prosecute_heading) >= 270.0)
