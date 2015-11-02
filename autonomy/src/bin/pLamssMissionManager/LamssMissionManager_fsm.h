@@ -321,8 +321,7 @@ namespace lamss
             };
 	    
             // /Mission/Diving/Prosecute/Homing
-            struct Homing : boost::statechart::simple_state<Homing, Prosecute >,
-                StateNotify<MISSION_STATE_PROSECUTE> 
+            struct Homing : boost::statechart::simple_state<Homing, Prosecute >
             {
 	      Homing() 
                 {

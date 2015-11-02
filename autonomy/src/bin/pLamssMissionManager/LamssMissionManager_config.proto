@@ -26,6 +26,5 @@ message LamssMissionManagerConfig
   optional double homing_beacon_frequency = 16 [default = 950];
   optional double homing_interval = 17 [default = 600];
   optional double homing_duration = 18 [default = 300];
-
 }
 

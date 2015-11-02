@@ -75,6 +75,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);    
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);    
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);    
+    subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);    
 
     // intialize MOOSGeodesy
 
@@ -359,6 +360,8 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
       
+      publish("SURVEY_COMPLETED","FALSE");
+
       if (mission_active_)
 	queue_event<EvNewMission>();
       queue_event<EvStartDeploy>();
@@ -564,6 +567,12 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
 void LamssMissionManager::handle_target_bearing(const CMOOSMsg& msg)
 {
   target_bearing_ = msg.GetDouble();
+}
+
+void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
+{
+  if (MOOSStrCmp(toupper(msg.GetString()),"TRUE"))
+    initial_deploy();
 }
 
 std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
