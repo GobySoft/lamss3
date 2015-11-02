@@ -642,6 +642,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 		      reset_tracking();
 		      //queue_event<EvDcltReset>();
 		      send_deploy();
+		      publish("SURVEY_COMPLETED","TRUE");
 		    }
 		}
 	      else if (last_prosecute_cmd_.prosecute_mission() == 
@@ -661,6 +662,7 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	      glog.is(DEBUG1) && glog 
 		<< "DEPLOY Executed: Max tracking time exceeded" << std::endl;
 	      send_deploy();
+	      publish("SURVEY_COMPLETED","TRUE");
 	    }
 	}
     }
