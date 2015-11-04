@@ -17,8 +17,7 @@ message BTR {
                              (dccl.field).min=0,
                              (dccl.field).in_head=true];
     
-    repeated double beam_power_db  = 4 [(dccl.field).max=55,
+    repeated int32 beam_power_db  = 4 [(dccl.field).max=55,
                                         (dccl.field).min=-15,
-                                        (dccl.field).precision=0,
                                         (dccl.field).max_repeat=47];
 } 
