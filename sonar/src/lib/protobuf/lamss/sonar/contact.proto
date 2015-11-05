@@ -7,11 +7,11 @@ message LAMSS_CONTACT {
 	optional int32 node = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_CONTACT", (dccl.field).static_value="LAMSS_CONTACT", (dccl.field).codec="_static"];
-	optional double Nav_x = 5 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Nav_y = 6 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Heading = 7 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
-	optional double Speed = 8 [(dccl.field).max=6.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Depth = 9 [(dccl.field).max=6400.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double nav_x = 5 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double nav_y = 6 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double nav_hdg = 7 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double nav_spd = 8 [(dccl.field).max=6.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double nav_dep = 9 [(dccl.field).max=6400.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional Collaboration_modeEnum collaboration_mode = 10;
 	enum Collaboration_modeEnum{ 
 		 COLLABORATION_MODE_OFF = 0; 
