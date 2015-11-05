@@ -84,7 +84,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_prosecute_heading, this);    
     subscribe("TRACK_STAT", 
 	      &LamssTrackManager::handle_track_stat, this);    
-    subscribe("TRACK_REPORT_IN", 
+    subscribe("LAMSS_TRACK_IN", 
 	      &LamssTrackManager::handle_track_report, this);    
     subscribe("BEARING_STAT", 
 	      &LamssTrackManager::handle_bearing_stat, this);    
