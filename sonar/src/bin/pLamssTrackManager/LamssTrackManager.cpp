@@ -521,7 +521,8 @@ void LamssTrackManager::send_deploy()
   redeploy.set_timestamp(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
   redeploy.set_destinationplatformid(vehicle_id_);
-  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+  //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+  if (cfg_.deploy_location() == LamssTrackManagerConfig::STATION)
     {
       redeploy.set_deploy_x(last_nav_.local_fix().x());
       redeploy.set_deploy_y(last_nav_.local_fix().y());
