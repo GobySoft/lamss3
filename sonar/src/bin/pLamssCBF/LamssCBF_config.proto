@@ -6,25 +6,57 @@ message LamssCBFConfig
 {
   optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
 
-  optional int32  priority_threshold = 2 [default = 5];
-  optional int32  filter_length   = 3 [default = 1];
-  optional bool   auto_prosecute  = 4 [default = false];
-  optional double track_delay  = 5 [default = 30];
-  optional double track_report_time  = 6 [default = 600];
-  optional double bearing_rate_threshold  = 7 [default = 20];
-  optional double min_search_range  = 8 [default = 500];
-  optional double max_search_range  = 9 [default = 5000];
-  optional double max_tracking_time  = 10 [default = 1200];
-  optional double max_classify_time  = 11 [default = 600];
-  optional int32  buffer_length_single  = 12 [default = 20];
-  optional double xy_sigma_single  = 13 [default = 100];
-  optional int32  buffer_length_multiple  = 14 [default = 5];
-  optional double xy_sigma_multiple  = 15 [default = 50];
-  optional string deploy_location = 16 [default = "station"];
-  optional double orbit_radius = 17 [default = 500];
-  optional double auto_prosecute_range  = 18 [default = 2000];
-  optional double auto_prosecute_speed  = 19 [default = 0];
-  optional double auto_prosecute_duration  = 20 [default = 1800];
-  optional double auto_prosecute_array_angle  = 21 [default = 80];
+  optional ArrayTypeEnum  array_type = 2 [default = HYD];
+  enum ArrayTypeEnum {
+  VSA = 1;
+  DURIP = 2;
+  HYD = 3;
+  SLITA = 4;
+  SINGLE = 5;
+  DUAL = 6;
+  TEE = 7;
+  }
+  optional SamplingEnum  sampling   = 3 [default = EQUALLY_SPACED_WAVENUMBER];
+  enum SamplingEnum {
+    EQUALLY_SPACED_WAVENUMBER = 1;
+    EQUALLY_SPACED_THETA = 2;
+  }
+  optional int32  array_definition  = 4 [default = 0];
+  optional int32  number_elements  = 5 [default = 1];
+  optional double element_spacing  = 6 [default = 1.0];
+  optional int32  number_spacing_groups  = 7 [default = 3];
+  optional int32  spacing_group_1  = 8 [default = 1];
+  optional int32  num_spacing_group_1  = 9 [default = 1];
+  optional int32  spacing_group_2  = 10 [default = 1];
+  optional int32  num_spacing_group_2  = 11 [default = 1];
+  optional int32  spacing_group_3  = 12 [default = 1];
+  optional int32  num_spacing_group_3  = 13 [default = 1];
+  optional string array_element_locations = 14;
+  optional int32  number_samples  = 15 [default = 1];
+  optional double sampling_frequency  = 16 [default = 4000];
+  optional int32  fft_size  = 17 [default = 1024];
+  optional int32  number_beams  = 18 [default = 47];
+  optional double overlap  = 19 [default = 50];
+  optional double hydrophone_gain = 20 [deafult = 1];
+  optional double integration_time  = 21 [default = 1];
+  optional double sound_speed  = 22 [default = 1500];
+  optional string array_elements_used = 23;
+  optional bool   delete_data_files = 24 [default = false];
+  optional bool   check_consec_zeroes = 25 [default = false];
+  optional ProcessingTypeEnum processing_type = 26 [default =  BROADBAND];
+  enum ProcessingTypeEnum {
+     BROADBAND = 1;
+     TONES = 2;
+  }
+  optional double center_frequency  = 27 [default = 900];
+  optional double bandwidth  = 28 [default = 200];
+  optional string frequency_bins = 29;
+    
 }
 
+enum ProcessingStateEnum{
+  PROCESSING_STATE_IDLE = 0;
+  PROCESSING_STATE_PROCESSING = 1;
+  PROCESSING_STATE_BROADBAND = 2;
+  PROCESSING_STATE_TONES = 3;
+}
