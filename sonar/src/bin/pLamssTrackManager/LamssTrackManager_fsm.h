@@ -228,12 +228,14 @@ namespace lamss
 		{
 		  Detection() 
 		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = true;
 		      detection_start_ = current_time_;
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","FALSE"));
 		    }
 		  ~Detection()
 		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = false;
 		    }
 		  
