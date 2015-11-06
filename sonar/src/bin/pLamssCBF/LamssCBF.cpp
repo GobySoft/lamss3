@@ -1,0 +1,1487 @@
+// Copyright 2015 
+// Henrik Schmidt
+// Massachusetts Institute of Technology 
+
+#include <dlfcn.h>
+
+#include <numeric>
+
+#include <boost/thread.hpp>
+
+#include "goby/common/logger.h"
+#include "goby/acomms/connect.h"
+#include "goby/common/time.h"
+
+#include "LamssCBF.h"
+
+#include "goby/moos/moos_protobuf_helpers.h"
+
+using namespace lamss::shared::fsm;
+using namespace goby::common::logger;
+using namespace goby::common::logger_lock;
+namespace gpb = goby::moos::protobuf;
+using goby::common::goby_time;
+using goby::glog;
+
+const double pi = 3.14159;
+
+LamssCBF* LamssCBF::inst_ = 0;
+void* LamssCBF::driver_library_handle_= 0;
+
+int main(int argc, char * argv[])
+{
+    return goby::moos::run<LamssCBF>(argc, argv);
+}
+
+LamssCBF* LamssCBF::get_instance()
+{
+    if(!inst_)    {
+        lamss::shared::fsm::cfg_.reset(new LamssCBFConfig);
+        inst_ = new LamssCBF(*lamss::shared::fsm::cfg_);
+    }
+    return inst_;
+}
+
+LamssCBF::LamssCBF(LamssCBFConfig& cfg)
+    : GobyMOOSApp(&cfg),
+      cfg_(cfg),
+      scheduler_(true),
+      fsm_(scheduler_.create_processor<LamssCBFFSM>()),
+      num_tracks(0),
+      collab_num_tracks(0),
+      filt_set(true),
+      trk_beamno(0),
+      track_delay(cfg_.track_delay()),
+      prev_highest(-1),
+      collaborator_id(-1),
+      collaborator_name(""),
+      close_range_(false),
+      auto_prosecute_(cfg_.auto_prosecute()),
+      last_slow_loop_t_(0)
+{
+
+    goby::glog.set_lock_action(lock);
+    goby::glog.add_group("fsm", goby::common::Colors::lt_magenta);
+    goby::glog.add_group("helm", goby::common::Colors::lt_green);
+    goby::glog.add_group("mac", goby::common::Colors::lt_blue);
+    goby::glog.add_group("track", goby::common::Colors::yellow);
+
+    set_ignore_stale(false);
+
+    // set up subscriptions before starting separate thread
+    subscribe("LAMSS_DEPLOY_IN", &LamssCBF::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_IN", &LamssCBF::handle_prosecute, this);
+    subscribe("MISSION_STATE", &LamssCBF::handle_mission_state, this);
+    subscribe("VEHICLE_ID", &LamssCBF::handle_vehicle_id, this);
+    subscribe("IFS_DATA_IN", &LamssCBF::handle_ifs_data, this);    
+    subscribe("COLLABORATOR_ID", 
+	      &LamssCBF::handle_collaborator_id, this);    
+    subscribe("COLLABORATOR_NAME", 
+	      &LamssCBF::handle_collaborator_name, this);  
+    subscribe("BEARING_TRACKS", 
+	      &LamssCBF::handle_bearing_tracks, this);    
+    subscribe("PROSECUTE_HEADING", 
+	      &LamssCBF::handle_prosecute_heading, this);    
+    subscribe("TRACK_STAT", 
+	      &LamssCBF::handle_track_stat, this);    
+    subscribe("LAMSS_TRACK_IN", 
+	      &LamssCBF::handle_track_report, this);    
+    subscribe("BEARING_STAT", 
+	      &LamssCBF::handle_bearing_stat, this);    
+    subscribe("CLOSE_RANGE", 
+	      &LamssCBF::handle_close_range, this);    
+    subscribe("CLASS_DONE", 
+	      &LamssCBF::handle_class_done, this);    
+    subscribe("TRACKING_MODE", 
+	      &LamssCBF::handle_tracking_mode, this);    
+    subscribe("SONAR_CONTROL", 
+	      &LamssCBF::handle_sonar_control, this);    
+
+    heading_filter = new Mavg(cfg_.filter_length());
+    // reset collaborator tracks
+    collab_new_track.clear();
+    collab_Tracks.clear();
+  
+    Empty.setTrack( 0, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, class_features);
+    
+    // intialize MOOSGeodesy
+
+    m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
+    scheduler_.initiate_processor(fsm_);  
+  
+    fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
+  
+    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+
+}
+
+void LamssCBF::loop()
+{
+  //  boost::lock_guard<boost::mutex> lock(moos_mutex_);
+
+    double curr_time = MOOSTime();
+
+    // set time for fsm
+    current_time_ = curr_time;
+
+    try_publish(); // publish messages queued from state machine
+
+    if (prosecute_mode_active_ || 
+	(deploy_mode_active_ && sonar_on_))
+      {
+	boost::lock_guard<boost::mutex> lock(moos_mutex_);
+	if (!dclt_enable_)
+	  {
+	    dclt_enable_ = true;
+	    dclt_cond_.notify_one();
+	    queue_event<EvDcltStart>();
+	  }
+      }
+    else
+      {
+	boost::lock_guard<boost::mutex> lock(moos_mutex_);
+	dclt_enable_ = false;
+	if (dclt_active_)
+	  queue_event<EvDcltOff>();
+      }
+
+  if (dclt_enable_)
+    {
+      heading = angle360(heading_filter->get_FVal());
+      postStateVars();
+    }
+
+  //
+  // update search mode
+  //
+  if ( prosecute_mode_active_ && detection_active_ )
+    {
+      //update time since contact was seen
+      double elapsed = current_time_ - cue_utc_;
+     
+      //update target cue estimates
+      double curr_cue_x = cue_x_+ elapsed*cue_speed_* sin(cue_heading_*M_PI/180.);
+      double curr_cue_y = cue_y_+ elapsed*cue_speed_* cos(cue_heading_*M_PI/180.);
+      double auv_x = last_nav_.local_fix().x();
+      double auv_y = last_nav_.local_fix().y();
+      //update target range
+      double curr_cue_range = sqrt(pow(curr_cue_x-auv_x,2) + pow(curr_cue_y-auv_y,2));
+      // Check whether target is reachable
+      bool opportunity = checkOpportunity();   
+
+      std::string node_report = NodeReport("target_cue","track",curr_cue_x, 
+					      curr_cue_y, 
+					      cue_speed_, 
+					      cue_heading_, 
+					      cue_depth_ );
+      publish("NODE_REPORT",node_report);
+      publish("MY_TARGET","contact=target_cue");
+
+      glog.is(DEBUG2) && glog << "Current cue range =" << curr_cue_range
+			      << ", Giveup_range =" << cfg_.max_search_range()
+			      << std::endl;
+
+      if (!cue_in_range_ && curr_cue_range <= cfg_.max_search_range())
+	{
+	  queue_event<EvCueInRange>();
+	}
+
+      if ( !opportunity )
+	{
+	  glog.is(DEBUG1) && glog << "Cannot reach target - Deploy Commanded" 
+				  << std::endl;
+	  send_deploy();
+	}
+      else if (cue_in_range_)
+	{
+	  if  (curr_cue_range > cfg_.max_search_range())
+	    {
+	      glog.is(DEBUG1) && glog << 
+		"Target running out of range, giving up - Deploy Commanded" 
+				      << std::endl;
+	      send_deploy();
+	    }
+      // No detect yet and close to target. 
+      //if((!cue_too_close_ && curr_cue_range <= cfg_.min_search_range()) )
+	  if((curr_cue_range <= cfg_.min_search_range()) )
+	    {
+	      std::string buff = "polygon=radial:" + 
+		doubleToString(auv_x,1) +
+		"," + doubleToString(auv_y,1) + 
+		"," + doubleToString(cfg_.orbit_radius(),1);
+	      publish("PROSECUTE_LOITER",buff);
+	      queue_event<EvSearchOrbit>();
+	    }
+	}
+      //send info to CloseRange behavior
+      std::string buff = "node=" + intToString(vehicle_id_) +
+	",state=4" +
+	",x=" + doubleToString(curr_cue_x,2) +
+	",y=" + doubleToString(curr_cue_y,2) +
+	",heading=" + doubleToString(cue_heading_,1) +
+	",speed=" + doubleToString(cue_speed_,2) +
+	",time=" + doubleToString(current_time_,2);
+      m_Comms.Notify("TRACK_STAT",buff); 
+    }
+  // 
+  // Update classify mode
+  
+  if ( prosecute_mode_active_ && classifying_active_ )
+    {
+      glog.is(DEBUG1) && glog << "Classifying time: " << curr_time-classifying_start_ 
+			      << std::endl;
+      if ((curr_time-classifying_start_) >= cfg_.max_classify_time())
+	{
+	  queue_event<EvDcltOff>();
+	  publish ("CLASS_DONE","TRUE");
+	}
+    }
+
+// process some events at a slower rate
+    const int slow_loop_period = 10;
+    if(curr_time > last_slow_loop_t_ + slow_loop_period)
+        slow_loop(curr_time);
+
+
+}
+
+void LamssCBF::slow_loop(double curr_time)
+{
+  // Here we should add slow loop actions.
+
+  last_slow_loop_t_ = curr_time;
+}
+
+void LamssCBF::try_publish()
+{
+    boost::mutex::scoped_try_lock lk(moos_mutex_);
+    if(lk.owns_lock())   
+    {
+        while(!publish_queue_.empty())
+	{
+            glog.is(DEBUG2) && glog << "Publishing: " << publish_queue_.front().GetKey() << ": " << publish_queue_.front().GetAsString()  << std::endl;
+            publish(publish_queue_.front());
+            publish_queue_.pop_front();
+	}
+    }
+}
+
+void LamssCBF::handle_ifs_data(const CMOOSMsg& msg)
+{
+    goby::moos::protobuf::FrontSeatInterfaceData data;
+    parse_for_moos(msg.GetString(), &data);
+
+    if(data.has_node_status())
+    {
+        last_nav_ = data.node_status();
+    }
+}
+
+void LamssCBF::handle_deploy(const CMOOSMsg& msg)
+{
+  LAMSS_DEPLOY deploy_cmd;
+  parse_for_moos(msg.GetString(), &deploy_cmd);
+  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+    {
+      last_deploy_cmd_ = deploy_cmd;
+      sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
+      reset_tracking();
+      auto_prosecute_ = deploy_cmd.auto_prosecute();
+    }
+}
+
+void LamssCBF::handle_track_report(const CMOOSMsg& msg)
+{
+  LAMSS_TRACK track_report;
+  parse_for_moos(msg.GetString(), &track_report);
+  if (track_report.node() == collaborator_id)
+    {
+      last_track_report_ = track_report;
+      int track_id = track_report.tgt_num();
+      double track_x = track_report.x();
+      double track_y = track_report.y();
+      double track_heading = track_report.heading();
+      double track_speed = track_report.speed();
+      double track_utc = track_report.time();
+      glog.is(VERBOSE) && glog 
+	<< "received TRACK_REPORT from collaborator" << std::endl;
+      if (deploy_mode_active_ && cfg_.auto_prosecute())
+	{
+	  double h_ang = (90.0-track_heading)*M_PI/180.0;
+	  if (h_ang <= -M_PI)
+	    h_ang = h_ang + 2*M_PI;
+	  else if (h_ang > M_PI)
+	    h_ang = h_ang - 2*M_PI;
+	  double vehicle_x = last_nav_.local_fix().x();
+	  double vehicle_y = last_nav_.local_fix().y();
+	  double b_ang =atan2(track_y-vehicle_y,track_x-vehicle_x);
+	  double t_range=sqrt(pow(track_x-vehicle_x,2)+pow(track_y-vehicle_y,2));
+	  double dif_ang = h_ang-b_ang;
+	  if (dif_ang <= -M_PI)
+	    dif_ang = dif_ang + 2*M_PI;
+	  else if (dif_ang > M_PI)
+	    dif_ang = dif_ang - 2*M_PI;
+			
+	  if (cos(dif_ang) <  0)
+	    {
+	      if (fabs(t_range*sin(dif_ang)) <= cfg_.max_search_range())
+		{
+		  glog.is(VERBOSE) && glog 
+		    << "Intercept Opportunity - Prosecuting" << std::endl;
+		  auto_prosecute_cmd_.set_target_x(track_x);
+		  auto_prosecute_cmd_.set_target_y(track_y);
+		  auto_prosecute_cmd_.set_target_speed(track_speed);
+		  auto_prosecute_cmd_.set_target_heading(track_heading);
+		  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+		  send_prosecute();
+		}
+	      else
+		{
+		  glog.is(VERBOSE) && glog 
+		    << "Too far away for Intercept" << std::endl;
+		}
+	    }
+	}
+    }
+}
+
+void LamssCBF::handle_sonar_control(const CMOOSMsg& msg)
+{
+  std::string sonar_control = msg.GetString();
+  sonar_on_ = MOOSStrCmp(sonar_control,"ON");
+}
+
+void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
+{
+  LAMSS_PROSECUTE prosecute_cmd;
+  parse_for_moos(msg.GetString(), &prosecute_cmd);
+  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
+    last_prosecute_cmd_ = prosecute_cmd;
+
+  // set up  search parameters from target cue
+
+  cue_utc_ = last_prosecute_cmd_.target_timestamp();
+  cue_x_ = last_prosecute_cmd_.target_x();
+  cue_y_ = last_prosecute_cmd_.target_y();
+  cue_heading_= last_prosecute_cmd_.target_heading();
+  cue_speed_ = last_prosecute_cmd_.target_speed();
+  cue_depth_ = last_prosecute_cmd_.target_depth();
+
+  double auv_x =last_nav_.local_fix().x();
+  double auv_y =last_nav_.local_fix().y();
+  //bearing to target 
+  double cue_bearing = atan2(cue_x_ - auv_x,
+			 cue_y_ - auv_y)*180.0/M_PI;
+	        
+  //vector addition
+  double res_vector = 180.0/M_PI*
+    atan2((sin(cue_bearing*M_PI/180.0)+sin(cue_heading_*M_PI/180.0)),
+	  (cos(cue_bearing*M_PI/180.0)+cos(cue_heading_*M_PI/180.0)));
+  
+  res_vector= angle360(res_vector);
+  
+  double new_heading;
+  double h_diff = fabs(cue_bearing-res_vector);
+  if(h_diff <= 45.0)    
+    {
+      //pass behind target   
+      if((sin(cue_bearing*M_PI/180)*cos(cue_bearing*M_PI/180)) < 0.0)
+	new_heading = angle360(cue_bearing - h_diff);
+      else
+	new_heading = angle360(cue_bearing + h_diff);
+    }
+  else
+    //pass in front
+    new_heading = res_vector;
+
+  if (!sonar_on_)
+    {
+      publish("SONAR_CONTROL","ON");   
+      publish("SONAR_PROCESS","ON");   
+    }
+
+  std::string buff = "heading=" + doubleToString(new_heading,1);
+  publish("INIT_TRACK_HEADING",buff);   
+  
+  buff = "heading=" + doubleToString(cue_heading_,1);
+  publish("PROSECUTE_HEADING",buff);
+  
+}
+
+
+void LamssCBF::handle_vehicle_id(const CMOOSMsg& msg)
+{
+    boost::mutex::scoped_lock lock(moos_mutex_);
+    vehicle_id_ = msg.GetDouble();
+}
+
+void LamssCBF::handle_collaborator_id(const CMOOSMsg& msg)
+{
+    collaborator_id = msg.GetDouble();
+}
+
+void LamssCBF::handle_collaborator_name(const CMOOSMsg& msg)
+{
+    collaborator_name = msg.GetString();
+    subscribe(collaborator_name+"_BEARING_TRACKS", 
+	      &LamssCBF::handle_collaborator_bearing_tracks, this);  
+}
+
+void LamssCBF::handle_mission_state(const CMOOSMsg& msg)
+{
+  std::string mission_state = msg.GetString();
+  deploy_mode_active_ = MOOSStrCmp(mission_state,"DEPLOY"); 
+  prosecute_mode_active_ = MOOSStrCmp(mission_state,"PROSECUTE");
+  mission_active_ = deploy_mode_active_ || prosecute_mode_active_;
+  if (mission_active_)
+    reset_tracking();
+}
+
+void LamssCBF::handle_ael_heading(const CMOOSMsg& msg)
+	      {
+		raw_heading = msg.GetDouble();
+		raw_heading = angle360(raw_heading);
+		heading = raw_heading;
+		if (filt_set)
+		  {
+		    heading_filter->set_RawVal(raw_heading);
+		    heading = angle360(heading_filter->get_FVal());     //HS 2007/07/12
+		  }
+	      }
+
+void LamssCBF::handle_bearing_tracks(const CMOOSMsg& msg)
+{
+  std::string sval = msg.GetString();
+  CTrack TrackBuf;
+  TrackBuf.decodeTrack(sval);
+  int in_trk= TrackBuf.trk_num;
+  if ( in_trk > num_tracks )
+    {
+      glog.is(DEBUG2) && glog 
+	<< "Non-existing track number " << in_trk
+	<< ". Adding new track" << std::endl;
+      for (int i=num_tracks; i< in_trk; i++)
+	{
+	  Tracks.push_back(Empty);
+	  new_track.push_back(false);
+	}
+      num_tracks = in_trk;
+    }
+  Tracks[in_trk-1]=TrackBuf;
+  new_track[in_trk-1] = true;
+  std::string moosvar;
+  Tracks[in_trk-1].postTrack(moosvar,sval);
+  // goby::glog << group("track") 
+    glog.is(DEBUG2) && glog 
+	     << "New track: " << sval << std::endl;
+}
+
+void LamssCBF::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
+{
+  std::string sval = msg.GetString();
+  CTrack TrackBuf;
+  TrackBuf.decodeTrack(sval);
+  int in_trk= TrackBuf.trk_num;
+  if (in_trk > 0)
+    {
+      if ( in_trk > collab_num_tracks)
+	{
+	  glog.is(DEBUG2) && glog 
+	    << "Non-existing collaborator track number " << in_trk
+	    << ". Adding new track" << std::endl;
+	  for (int i=collab_num_tracks; i< in_trk; i++)
+	    {
+	      collab_Tracks.push_back(Empty);
+	      collab_new_track.push_back(false);
+	    }
+	  collab_num_tracks = in_trk;
+	}
+      collab_Tracks[in_trk-1]=TrackBuf;
+      collab_new_track[in_trk-1] = true;
+      std::string moosvar;
+      collab_Tracks[in_trk-1].postTrack(moosvar,sval);
+      // goby::glog << group("track") 
+      glog.is(DEBUG2) && glog 
+	<< "New collaborator track: " << sval << std::endl;
+      postStateCollab();
+    }	      
+}
+
+void LamssCBF::handle_prosecute_heading(const CMOOSMsg& msg)
+{
+  MOOSValFromString(prosecute_heading,msg.GetString(),"heading");
+}
+
+void LamssCBF::send_deploy()
+{
+  LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
+  std::string serialized;
+  redeploy.set_timestamp(MOOSTime());
+  redeploy.set__src_id(vehicle_id_);
+  redeploy.set_destinationplatformid(vehicle_id_);
+  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+    {
+      redeploy.set_deploy_x(last_nav_.local_fix().x());
+      redeploy.set_deploy_y(last_nav_.local_fix().y());
+      // Re-deploy forced to loiter if not station
+      redeploy.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
+      redeploy.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+    }
+  // Auto prosecute only on initial deploy
+  redeploy.set_auto_prosecute(false);
+  serialize_for_moos(&serialized,redeploy);    
+  publish("LAMSS_DEPLOY_OUT", serialized);
+
+}
+
+void LamssCBF::send_prosecute()
+{
+  auto_prosecute_cmd_.set__src_id(vehicle_id_);
+  auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
+  auto_prosecute_cmd_.set_target_timestamp(current_time_);
+  auto_prosecute_cmd_.set_target_number(1);
+  
+  std::string serialized;
+  serialize_for_moos(&serialized,auto_prosecute_cmd_);    
+  //	      publish("OUTGOING_COMMAND", serialized);
+  publish("LAMSS_PROSECUTE_OUT", serialized);
+  glog.is(DEBUG1) && glog << "Auto_Prosecute activated" 
+			  << std::endl;
+}
+
+void LamssCBF::handle_track_stat(const CMOOSMsg& msg)
+{
+  std::string track_stat =  msg.GetString();
+  
+  MOOSChomp(track_stat,"node=");
+  std::string tracknode = MOOSChomp(track_stat,",");
+  int track_node = atoi(tracknode.c_str());
+  
+  MOOSChomp(track_stat,"state=");
+  std::string trackstate = MOOSChomp(track_stat,",");
+  
+  if(trackstate == "2" && (track_node == vehicle_id_) )
+    {
+      MOOSChomp(track_stat,"x=");
+      std::string Tstat_x = MOOSChomp(track_stat,",");
+      double track_x = atof(Tstat_x.c_str());
+      MOOSChomp(track_stat,"y=");
+      std::string Tstat_y = MOOSChomp(track_stat,",");
+      double track_y = atof(Tstat_y.c_str());
+      MOOSChomp(track_stat,"heading=");
+      std::string Tstat_course = MOOSChomp(track_stat,",");
+      double track_hdg = atof(Tstat_course.c_str());
+      MOOSChomp(track_stat,"speed=");
+      std::string Tstat_speed = MOOSChomp(track_stat,",");
+      double track_spd = atof(Tstat_speed.c_str());
+      MOOSChomp(track_stat,"time=");
+      std::string Tstat_utc = MOOSChomp(track_stat,",");
+      double track_utc = atof(Tstat_utc.c_str());
+      
+      geo_track_count_++;
+      if (geo_track_count_ == 1)
+	clearTrackBuffer();
+      else
+	tracking_duration_ = current_time_ - tracking_start_;
+      glog.is(DEBUG1) && glog 
+	<< "Geo Track Count =" << geo_track_count_ 
+	<<", Tracking duration =" << tracking_duration_ << std::endl;
+      
+      // Update track buffer and compute uncertainty
+      int buf_len = updateTrackBuffer(track_utc,track_x,track_y,
+				      track_spd,track_hdg);
+      glog.is(DEBUG2) && glog 
+	<< "Current buffer length =" << buf_len << std::endl;
+      glog.is(DEBUG2) && glog 
+	<< "Max buffer length =" << m_buffer_length_ << std::endl;
+      double xy_std = computeSigma();
+      glog.is(DEBUG2) && glog 
+	<< "xy_std =" << xy_std << ", xy_sigma =" << m_xy_sigma_ << std::endl;
+      bool good_track = (xy_std < m_xy_sigma_) && (buf_len >= m_buffer_length_);
+      if (good_track)
+	{
+	  if (geo_track_report_count_ == 0)
+	    m_report_start = current_time_;
+	  
+	  glog.is(DEBUG1) && glog 
+	    << "Time since first report " << current_time_-m_report_start 
+	    << std::endl;
+	  geo_track_report_count_++;
+	  
+	  std::string track_report = msg.GetString();
+	  double track_lat,track_lon;
+	  
+	  if (m_Geodesy.UTM2LatLong(track_x,track_y,track_lat,track_lon))
+	    {
+	      track_report += ",track_lat=" + doubleToString(track_lat) 
+		+ ",track_lon=" + doubleToString(track_lon);
+	    }
+	  publish("TRACK_REPORT",track_report);
+	  glog.is(DEBUG1) && glog 
+	    << "Good tracks reported: " << geo_track_report_count_ << std::endl;
+	  // Post node report for adaptive behaviors
+	  std::string node_report = NodeReport("priority_trk","track",track_x, track_y, 
+						    track_spd, 
+						    track_hdg, 0.0 );
+	  publish("NODE_REPORT",node_report);
+	  publish("PRIORITY_TRK","contact=priority_trk");
+	  
+	  if (current_time_ - m_report_start >= cfg_.track_report_time())
+	    {
+	      if (last_prosecute_cmd_.prosecute_mission() == 
+		  LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_ONLY )
+		{
+		  // Tracking only, send deploy
+		  if (prosecute_mode_active_)
+		    {
+		      glog.is(DEBUG1) && glog 
+			<< "Acceptable tracking solution. DEPLOY Executed"
+			<< std::endl;
+		      reset_tracking();
+		      //queue_event<EvDcltReset>();
+		      send_deploy();
+		      publish("SURVEY_COMPLETED","TRUE");
+		    }
+		}
+	      else if (last_prosecute_cmd_.prosecute_mission() == 
+		       LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_CLASSIFY )
+		{            
+		  // Switch to classify
+		  queue_event<EvToClassifying>();
+		  //m_Comms.Notify("TRACKING","CLASSIFYING");
+		}
+	    }
+	}
+      else if ( tracking_duration_ > cfg_.max_tracking_time() )
+	{		// Tracking only, send deploy
+	  geo_track_report_count_ = 0;
+	  if (prosecute_mode_active_)
+	    {
+	      glog.is(DEBUG1) && glog 
+		<< "DEPLOY Executed: Max tracking time exceeded" << std::endl;
+	      send_deploy();
+	      publish("SURVEY_COMPLETED","TRUE");
+	    }
+	}
+    }
+}
+
+void LamssCBF::handle_bearing_stat(const CMOOSMsg& msg)
+{
+  std::string bearing_stat =  msg.GetString();
+  int bstat_node;
+  int bstate;
+  double bearing;
+  double brg_sigma;
+  double auv_x;
+  double auv_y;
+  double meas_time;
+
+  parse_brng_stat(bearing_stat,
+		  bstat_node,
+		  bstate,
+		  bearing,
+		  brg_sigma,
+		  auv_x,
+		  auv_y,
+		  meas_time);
+
+  if ( bstat_node == vehicle_id_)
+    {
+      if ( prosecute_mode_active_ && 
+	   close_range_ )
+	{
+	  if( bearing_track_count_%10 == 0 )
+	    {
+	      if ( bearing_track_count_ > 0 ) 
+		{
+		  double delta_bearing;
+		  if ( (bearing- prev_bearing_) > 180.0)
+		    delta_bearing = bearing - prev_bearing_ - 360.0;
+		  else
+		    {
+		      if ( (bearing-prev_bearing_) < -180.0)
+			delta_bearing = bearing - prev_bearing_ + 360.0;
+		      else
+			delta_bearing = bearing - prev_bearing_;
+		    }
+		  // Bearing rate in degree per minute
+		  double bearing_rate = fabs(60*delta_bearing/(meas_time-prev_bearing_time_));
+		  if ( (bearing_rate > bearing_rate_max_))
+		    {
+		      bearing_rate_max_ = bearing_rate;
+		      bearing_rate_threshold_ = bearing_rate_max_ * 
+			cfg_.bearing_rate_threshold()/100.0;
+		      bearing_neg_trend_ = false;
+		    }
+		  else
+		    bearing_neg_trend_ = true;
+		  if ((bearing_track_count_ > 60) && 
+		      (bearing_rate < bearing_rate_threshold_) && 
+		      prosecute_mode_active_)
+		    {
+		      send_deploy();
+		      glog.is(DEBUG1) && glog 
+			<< "DEPLOY Executed: Bearing Rate Threshold Reached " 
+			<< std::endl;
+		    }
+		}          
+	      prev_bearing_time_=meas_time;
+	      prev_bearing_=bearing;
+	    }
+	  bearing_track_count_++;
+	}
+      else
+	{
+	  bearing_rate_max_ = -1E20;
+	  bearing_neg_trend_ = false;
+	  bearing_rate_threshold_ = 0;
+	}
+    }
+}
+
+bool LamssCBF::checkOpportunity()
+// This function checks whether target will ever be getting inside the 
+// giveup/detection range
+{
+  double h_ang = (90.0-cue_heading_)*M_PI/180.0;
+  if (h_ang <= -M_PI)
+    h_ang = h_ang + 2*M_PI;
+  else if (h_ang > M_PI)
+    h_ang = h_ang - 2*M_PI;
+  
+  double auv_x =last_nav_.local_fix().x();
+  double auv_y =last_nav_.local_fix().y();
+  double auv_speed =last_nav_.speed();
+
+  double b_ang =atan2(cue_y_- auv_y,
+		      cue_x_- auv_x);
+  double t_range=sqrt(pow(cue_x_-auv_x,2)+pow(cue_y_-auv_y,2));
+
+  if (t_range < cfg_.max_search_range())
+    return(true);
+
+  double dif_ang = h_ang-b_ang;
+  if (dif_ang <= -M_PI)
+    dif_ang = dif_ang + 2*M_PI;
+  else if (dif_ang > M_PI)
+    dif_ang = dif_ang - 2*M_PI;
+
+  double cos_ang = cos(dif_ang);  
+  if (cos_ang <  0)
+    {
+      //	         coming this way - check if close enough
+      // time to CPA 
+      double time_to_cpa = -cos_ang*t_range/cue_speed_;
+      double my_dist = time_to_cpa * auv_speed;
+      if (fabs(t_range*sin(dif_ang))- my_dist <= cfg_.max_search_range())
+	return(true);
+    }
+  else
+    {
+      // Closing range ?
+      // Relative target speed
+      double closing_speed = auv_speed - cue_speed_ * cos_ang;
+      if (closing_speed > 0 && (t_range <= cfg_.max_search_range()))
+	return(true);
+    }
+
+    return(false);
+}
+
+void LamssCBF::handle_close_range(const CMOOSMsg& msg)
+{
+  std::string close_state = msg.GetString();
+  if (MOOSStrCmp(close_state,"TRUE"))
+    {
+      if( !close_range_)
+	{
+	  close_range_ = true;
+	  glog.is(DEBUG2) && glog 
+	    << "In tracking range" << std::endl;
+	}
+    }
+  else
+    close_range_ = false;
+}
+      
+void LamssCBF::handle_class_done(const CMOOSMsg& msg)
+{
+  std::string class_state = msg.GetString();
+  if (prosecute_mode_active_ && class_state =="TRUE")
+    {
+      send_deploy();
+      glog.is(DEBUG1) && glog 
+	<< "DEPLOY Executed: Classification done " << std::endl;
+    }
+  
+}
+
+void LamssCBF::handle_tracking_mode(const CMOOSMsg& msg)
+{
+  std::string tracking_mode = msg.GetString();
+  if (tracking_active_)
+    {
+      if (tracking_single_active_ && MOOSStrCmp(tracking_mode,"MULTIPLE"))
+	queue_event<EvToMultiple>();
+      else if (tracking_multiple_active_ && MOOSStrCmp(tracking_mode,"SINGLE"))
+	queue_event<EvToSingle>();
+    }
+}
+
+void LamssCBF::reset_tracking()
+{
+  //	m_Comms.Notify   ("TRACKING","NO_TRACK");  
+  publish("TRACKER_COMMAND","RESET");
+  if (dclt_active_)
+    queue_event<EvDcltReset>();
+  
+  for (int i=0; i<num_tracks; i++)
+    { 
+      Tracks[i].clrTrack();
+    }
+  
+  for (int i=0; i<collab_num_tracks; i++)
+    { 
+      collab_Tracks[i].clrTrack();
+    }
+  
+  std::string msg;
+  char buff[200];
+  sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+  msg = buff;
+  publish("BEARING_STAT",msg);
+  
+  if (collaborator_id > 0)
+    {
+      sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",collaborator_id,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+      msg = buff;
+      publish(collaborator_name+"_BEARING_STAT" ,msg);
+    }
+  return;
+}
+
+bool LamssCBF::postStateVars()
+{
+
+  char buff[200];
+  std::string msg;
+  double current =  MOOSTime();
+
+
+  int track_count = 0;
+
+  int highest_prio = 0;
+  int highest_index = -1;
+
+  // If prosecuting, concentrate on cued template (tgt_track_id)
+  for (int i=0; i<num_tracks; i++)
+    { 
+      Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+			 trk_ips, trk_x, trk_y, 
+			 trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+			 trk_snr, trk_utc, class_features);
+      if (current -  trk_utc < track_delay) 
+	{
+	  bool interest = ( (prosecute_mode_active_ && 
+			     ((trk_template == tgt_track_id) || 
+			      (trk_template == 0) || 
+			      (tgt_track_id == 0))) || 
+			    !prosecute_mode_active_);
+	  //goby::glog << group("track") 
+	  glog.is(DEBUG2) && glog 
+	    << "trk_template_=" << trk_template 
+	    << ", tgt_track_id =" << tgt_track_id
+	    << ", track_=" << trk_num 
+	    << ", priority =" << trk_prio << std::endl;
+	  if ( interest && ( trk_prio > highest_prio) )
+	    {
+	      highest_prio = trk_prio;
+	      highest_index = i;
+	    }
+	}
+      else
+	{
+	  Tracks[i].clrTrack();
+	  new_track[i] = false;
+	  if (i == prev_highest)
+	    {
+	      char buff[200];
+	      sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.6f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());  
+	      msg = buff;
+	      publish("BEARING_STAT",msg);
+	    }
+	}
+    }
+  
+    if (dclt_active_ && highest_index != prev_highest)
+      queue_event<EvDcltReset>();
+  //    tracking_published = false;
+  
+  //goby::glog << group("track") 
+    glog.is(DEBUG2) && glog 
+      << "Highest=" << highest_index
+      << ",priority=" << highest_prio << std::endl;
+ 
+  // For now we do the highest priority track only
+  if (highest_index >= 0 && highest_prio >= priority_threshold)
+    if (new_track[highest_index] )
+      {
+	Tracks[highest_index].getTrack(trk_num, trk_prio, trk_template, 
+				       trk_state, trk_ips, trk_x, trk_y, 
+				       trk_bearing, trk_sigma, trk_rate, 
+				       trk_rate_sigma, trk_snr, trk_utc, 
+				       class_features);
+	// goby::glog << group("track") 
+	glog.is(DEBUG2) && glog 
+	  << "Highest=" << highest_index
+	  << ", trk=" << trk_num 
+	  << ", prio=" << trk_prio
+	  << ", state=" << trk_state
+	  << ", ips=" << trk_ips
+	  << ", bearing=" << trk_bearing << std::endl;
+	// If ambiguity is broken, go to Tracking	  
+	if (trk_state == ABSOLUTE)
+	  {
+	    if (localization_active_)
+	      {
+		// Publish target bearing and broadside heading
+		publish("TARGET_BEARING",angle360(trk_bearing));
+		double broadside_heading = angle360(trk_bearing + 90.0);
+		if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
+		    fabs(broadside_heading - prosecute_heading) >= 270.0)
+		  publish("BROADSIDE_HEADING","heading="+
+			  doubleToString(broadside_heading,1));
+		else
+		  publish("BROADSIDE_HEADING","heading="+
+			  doubleToString(angle360(broadside_heading + 180.0)));
+		
+		// set tracking depth to current depth for non-adaptive tracking
+		std::string tracking_depth_update = "depth=" 
+		  + doubleToString(last_nav_.global_fix().depth());
+		publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
+		queue_event<EvToTracking>();
+		// m_Comms.Notify ("TRACKING","TRACKING");
+  //
+  // Update parameters for Auto Prosecute
+  //
+		if (deploy_mode_active_ && auto_prosecute_)
+		  {
+		    auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
+						     sin(trk_bearing*M_PI/180.0) + 
+						     last_nav_.local_fix().x());
+		    auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
+						     cos(trk_bearing*M_PI/180.0) + 
+						     last_nav_.local_fix().y());
+		    auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
+		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
+		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		    auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+		    send_prosecute();
+		  }
+	      }
+	  }
+	else if (trk_state == RELATIVE)
+	  {
+	    if (trk_ips == 0)
+	      {
+		// When detection is made switch to breaking ambiguity
+		// set tracking depth to current depth for non-adaptive tracking
+		if (detection_active_)
+		  {
+		    std::string tracking_depth_update = "depth=" 
+		      + doubleToString(last_nav_.global_fix().depth());
+		    publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
+		    queue_event<EvToLocalization>();
+		  }		// m_Comms.Notify ("TRACKING","AMBIGUOUS");
+	      } 
+	    else
+	      {
+		double absolute = angle360(heading + trk_ips*trk_bearing);
+		if (!tracking_active_)
+		  {
+		    // Publish broadside heading
+		    double broadside_heading = angle360(absolute + 90.0);
+		    if (fabs(broadside_heading - heading) <= 90.0 || 
+			fabs(broadside_heading - heading) >= 270.0)
+		      publish("BROADSIDE_HEADING","heading="+
+			      doubleToString(broadside_heading,1));
+		    else
+		      publish("BROADSIDE_HEADING","heading="+
+			      doubleToString(angle360(broadside_heading + 180.0)));
+		    
+		    queue_event<EvToTracking>();
+		    // m_Comms.Notify ("TRACKING","TRACKING");
+		  }
+		Tracks[highest_index].setTrack(trk_num, trk_prio, trk_template, 
+					       ABSOLUTE, trk_ips, trk_x, trk_y, 
+					       absolute, trk_sigma, trk_rate, 
+					       trk_rate_sigma, trk_snr, class_features);
+	      }
+	  }
+	else
+	  {
+	    queue_event<EvDcltReset>();
+	    // m_Comms.Notify ("TRACKING","NO_TRACK");
+	    // tracking_published = false;
+	  }
+	
+	if (current -  trk_utc > track_delay) 
+	  new_track[highest_index] = false;
+	
+	// set BEARING_STATE
+	if (highest_index >= 0)
+	  msg = Tracks[highest_index].bearingState(node,trk_x, trk_y);
+	else
+	  {
+	    char buff[200];
+	    sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
+	    msg = buff;
+	  }
+	
+	publish("BEARING_STAT",msg);
+	prev_highest = highest_index;
+      }
+  
+  for (int i=0; i<num_tracks; i++)
+    {
+      Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+			 trk_ips, trk_x, trk_y, 
+			 trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+			 trk_snr, trk_utc, class_features);
+      if (new_track[i]) 
+	{
+	  if (trk_state == ABSOLUTE)
+	    {
+	      if (track_count == 0)
+		BearingTrack.initReport(node, trk_x,trk_y, last_nav_.speed(), 
+					heading, trk_utc);
+	      track_count = BearingTrack.reportTrack(trk_num,trk_prio,trk_template,
+						     trk_bearing, trk_sigma, 
+						     trk_rate, trk_rate_sigma, trk_snr);
+	      if (track_count >= 1)
+		{
+		  msg = BearingTrack.createContactReport(); 
+		  publish("CONTACT_REPORT",msg);
+		  track_count = 0;
+		}
+	    }
+	  new_track[i] = false;
+	} 
+    }
+  if (track_count > 0)
+    {
+      msg = BearingTrack.createContactReport(); 
+      publish("CONTACT_REPORT",msg);
+      track_count = 0;
+    }
+  
+  return(true);
+}
+
+bool LamssCBF::postStateCollab()
+{
+
+  char buff[200];
+  std::string msg;
+  double current =  MOOSTime();
+
+  int trk_num;
+  int trk_prio; // 1-10, 10 highest.
+  int trk_template;
+  int trk_state; // 0: Invalid, 1: Relative, 2: Bbsolute.
+  int trk_ips;   // -1: Port, 1: Starboard, 0: Ambiguous
+  double trk_x; // array x corresponding to track
+  double trk_y; // array y corresponding to track
+  double trk_bearing;
+  double trk_sigma;
+  double trk_utc;
+  double trk_rate;
+  double trk_rate_sigma;
+  double trk_snr;
+  int trk_nfeat;
+  int trk_beamno;
+  std::vector<double> class_features;
+
+  int track_count = 0;
+
+  int highest_prio = 0;
+  int highest_index = -1;
+
+  for (int i=0; i<collab_num_tracks; i++)
+    { 
+      collab_Tracks[i].getTrack(trk_num, trk_prio, trk_template, trk_state, 
+				trk_ips, trk_x, trk_y, 
+				trk_bearing, trk_sigma, trk_rate, trk_rate_sigma, 
+				trk_snr, trk_utc, class_features);
+      if (current -  trk_utc < track_delay) 
+	{
+	  if (trk_prio > highest_prio)
+	    {
+	      highest_prio = trk_prio;
+	      highest_index = i;
+	    }
+	}
+      else
+	{
+	  collab_Tracks[i].clrTrack();
+	  collab_new_track[i] = false;
+	}
+      
+    }
+  
+  //goby::glog << group("track") 
+  glog.is(DEBUG2) && glog 
+    << "Collaborator: Highest=" << highest_index
+    << ", priority=" << highest_prio << std::endl;
+  
+  if (highest_index >= 0 && highest_prio >= priority_threshold)
+    if (collab_new_track[highest_index] )
+      {
+	collab_Tracks[highest_index].getTrack(trk_num, trk_prio, trk_template, 
+					      trk_state, trk_ips, trk_x, trk_y, 
+					      trk_bearing, trk_sigma, trk_rate, 
+					      trk_rate_sigma, 
+					      trk_snr, trk_utc, class_features);
+	//goby::glog << group("track") 
+	glog.is(DEBUG2) && glog 
+	     << "Highest=" << highest_index
+	     << ", trk=" << trk_num
+	     << ", prio=" << trk_prio
+	     << ", state=" << trk_state
+	     << ", ips=" << trk_ips
+	     << ", bearing=" << trk_bearing << std::endl;
+
+	if (current -  trk_utc > track_delay) 
+	  collab_new_track[highest_index] = false;
+
+	// set BEARING_STATE
+	msg = collab_Tracks[highest_index].bearingState(collaborator_id,trk_x, trk_y);
+	publish(collaborator_name+"_BEARING_STAT" ,msg);
+      }
+
+  return(true);
+}
+
+double LamssCBF::angle360(double angle)
+{
+  double res = angle;
+  //  unwrap angles
+  while (res >= 360.0)
+    res -= 360.0;
+  while (res < 0.0)
+    res += 360.0;
+  
+  return(res);
+  
+}
+
+// >>>>>>>>>>>>>>> vector utility methods <<<<<<<<<<<<
+int LamssCBF::str2dbl_vec(std::string msg, std::vector<double>& values)
+{
+  std::string bite;
+  
+  values.clear();
+  int nz = 0;
+  while (msg.length() > 0)
+    {
+      bite = MOOSChomp(msg,",");
+      values.push_back(atof(bite.c_str()));
+      nz++;
+    }
+  
+  return(nz);
+}
+
+bool LamssCBF::dbl_vec2str(std::vector<double> numbers, std::string& output)
+{
+  output = "";
+  for(int i=0; i<numbers.size(); i++) 
+    {
+      if(i > 0)
+	output += ",";
+      std::string istr = doubleToString(numbers[i], 2); // 2 is the precision 123.45
+      output += istr;
+    }
+  return(true);
+}
+
+//***************************************************************************
+//*  Mavg::set_RawVal()                                                     *
+//*                                                                         *
+//*  This method calculates the moving average of a sequence of angles.     *
+//*                                                                         *
+//*************************************************************************** 
+
+Mavg::Mavg(int length)
+{
+
+	len = length;
+	num_measurements = 0;
+}
+
+Mavg::~Mavg()
+{
+}
+
+void Mavg::set_RawVal(double val)
+{
+	int avg_len;
+	double csum,ssum,s,c;
+
+	if (num_measurements < len)
+	{	  
+		s = sin(val*M_PI/180.0);
+		c = cos(val*M_PI/180.0);
+		svals.push_back(s);
+		cvals.push_back(c);
+		avg_len = num_measurements + 1;
+		num_measurements += 1;
+	}
+	else
+	{
+		s = sin(val*M_PI/180);
+		c = cos(val*M_PI/180.0);
+		svals.push_back(s);
+		cvals.push_back(c);
+		svals.pop_front();
+		cvals.pop_front();
+		avg_len = len;      
+	}
+
+	csum = 0.0;
+	ssum = 0.0;
+
+	for (int kk = 0; kk < avg_len; kk++)
+	{   
+		csum +=cvals[kk];
+		ssum +=svals[kk];
+	}
+
+	avg = atan2(ssum,csum)*180.0/M_PI;
+
+//MOOSTrace("ssum = %f, csum = %f, average angle = %f\n",ssum,csum,avg);
+}
+
+
+//***************************************************************************
+//*  Mavg::get_FVal()                                                       *
+//*                                                                         *
+//*  This method returns the value of the moving average                    *
+//*                                                                         *
+//*************************************************************************** 
+double Mavg::get_FVal()  
+{
+  if (num_measurements > 0)
+    return (avg);
+  else
+    return(0.0);
+}
+
+
+bool CReport::initReport(int node, double x, double y, double spd, double hdg, double utc)
+{
+
+  trk_node = node;
+  ael_x = x;
+  ael_y = y;
+  nav_spd = spd;
+  nav_hdg = hdg;
+  nav_utc = utc;
+
+  num_trk = 0;
+
+  trk_id.clear();
+  trk_priority.clear();
+  trk_template.clear();
+  trk_bearing.clear();
+  trk_sigma.clear();
+  trk_rate.clear();
+  trk_rate_sigma.clear();
+  trk_snr.clear();
+
+  return(true);
+}
+  
+int CReport::reportTrack(int id, int prio, int templ, double bearing, double sigma, 
+			 double rate, double rate_sigma, double snr)
+{
+
+  trk_id.push_back(id);
+  trk_priority.push_back(prio);
+  trk_template.push_back(templ);
+  trk_bearing.push_back(bearing);
+  trk_sigma.push_back(sigma);
+  trk_rate.push_back(rate);
+  trk_rate_sigma.push_back(rate_sigma);
+  trk_snr.push_back(snr);
+
+  num_trk++;
+
+  return(num_trk);
+}
+
+std::string CReport::createContactReport()
+{
+  std::string msg = "MessageType=CONTACT_REPORT";
+  msg += ",node=" + intToString(trk_node) ;
+  msg += ",time=" + doubleToString(nav_utc) ;
+
+  for (int i=0; i<num_trk; i++)
+    {
+      msg += ",track=" + intToString(trk_id[i]);
+      msg += ",priority=" + intToString(trk_priority[i]);
+      msg += ",template=" + intToString(trk_template[i]);
+      msg += ",ael_x=" + doubleToString(ael_x) ;
+      msg += ",ael_y=" + doubleToString(ael_y) ;
+      msg += ",bearing=" + doubleToString(trk_bearing[i],2);
+      msg += ",bearing_error=" + doubleToString(trk_sigma[i],2);
+      msg += ",rate=" + doubleToString(trk_rate[i],3);
+      msg += ",rate_error=" + doubleToString(trk_rate_sigma[i],3);
+      msg += ",snr=" + doubleToString(trk_snr[i],2);
+    }
+  return(msg);
+}
+
+int LamssCBF::updateTrackBuffer(double track_utc,
+				      double track_x,
+				      double track_y,
+				      double track_spd,
+				      double track_hdg)
+{
+  int i;
+  
+  double rhead = 90.0-track_hdg*M_PI/180.0;
+  double track_xdot = track_spd * cos(rhead);
+  double track_ydot = track_spd * sin(rhead);
+ 
+  if (m_track_utc.size() >= m_buffer_length_)
+    {
+      for(i=1; i<m_buffer_length_; i++) 
+	{
+	  m_track_utc[i-1] = m_track_utc[i]; 
+	  m_track_x[i-1]   = m_track_x[i] ;
+	  m_track_y[i-1]   = m_track_y[i] ;
+	  m_track_xdot[i-1] = m_track_xdot[i] ;
+	  m_track_ydot[i-1] = m_track_ydot[i] ;
+	}
+      m_track_utc[m_buffer_length_] = track_utc;
+      m_track_x[m_buffer_length_]   = track_x;
+      m_track_y[m_buffer_length_]   = track_y;
+      m_track_xdot[m_buffer_length_] = track_xdot;
+      m_track_ydot[m_buffer_length_] = track_ydot;
+    }
+  else
+    {
+      m_track_utc.push_back(track_utc);
+      m_track_x.push_back(track_x);
+      m_track_y.push_back(track_y);
+      m_track_xdot.push_back(track_xdot);
+      m_track_ydot.push_back(track_ydot);
+    }
+  glog.is(DEBUG2) && glog 
+    << "Updating track buffer, length = " << m_track_utc.size() << std::endl;
+  return(m_track_utc.size());
+}
+
+ void LamssCBF::clearTrackBuffer()
+ {
+   glog.is(DEBUG2) && glog 
+     << "Clearing track buffer, length = " << m_track_utc.size() << std::endl;
+   m_track_utc.clear();
+   m_track_x.clear();
+   m_track_y.clear();
+   m_track_xdot.clear();
+   m_track_ydot.clear();
+   return ;
+ }
+
+double LamssCBF::computeSigma()
+{
+  int n = m_track_utc.size();
+  m_utc_mean = 0;
+  m_x_mean = 0;
+  m_y_mean = 0;
+  m_xdot_mean = 0;
+  m_ydot_mean = 0;
+
+  for (int i=0; i < n; i++)
+    {
+      m_utc_mean += m_track_utc[i];
+      m_x_mean   += m_track_x[i];
+      m_y_mean   += m_track_y[i];
+      m_xdot_mean += m_track_xdot[i];
+      m_ydot_mean += m_track_ydot[i];
+    }
+  m_utc_mean = m_utc_mean/n;
+  m_x_mean = m_x_mean/n;
+  m_y_mean = m_y_mean/n;
+  m_xdot_mean = m_xdot_mean/n;
+  m_ydot_mean = m_ydot_mean/n;
+  m_heading_mean = 90.0 - atan2(m_ydot_mean,m_xdot_mean);
+  if (m_heading_mean < 0)
+    m_heading_mean += 360;
+  m_speed_mean = sqrt(pow(m_xdot_mean,2) + pow(m_ydot_mean,2));
+
+  double xy_std = 0;
+ 
+  for (int i=0; i < n; i++)
+    {
+      double x = m_x_mean + m_xdot_mean*(m_track_utc[i]-m_utc_mean);
+      double y = m_y_mean + m_ydot_mean*(m_track_utc[i]-m_utc_mean);
+      xy_std += pow(x-m_track_x[i],2) + pow(y-m_track_y[i],2);
+   }
+  if (n > 1)
+    xy_std = sqrt(xy_std/(n-1));
+  else 
+    xy_std = 1e20;
+
+  return(xy_std);
+}
+
+std::string LamssCBF::NodeReport(std::string trk_name, std::string trk_type, double trk_x, double trk_y, double trk_spd, double trk_hdg, double trk_dep )
+{
+
+  double trk_lat;
+  double trk_lon;
+
+  std::string comma = ",";
+  std::string output="NAME=" + trk_name +",TYPE=" + trk_type + comma;
+  //  std::string output="NAME=" + trk_name +",TYPE=track,";
+
+  if (!m_Geodesy.UTM2LatLong(trk_x,trk_y,trk_lat,trk_lon))
+    {
+      glog.is(DEBUG2) && glog 
+	<< "Error in UTM2LatLong conversion" << std::endl;
+      return("Error in UTM2LatLong conversion\n");	  
+    }
+
+  output += "UTC_TIME=" + doubleToString(current_time_,1);
+  output += ",";
+
+  output += "X=" + doubleToString(trk_x,2);
+  output += ",";
+
+  output += "Y=" + doubleToString(trk_y,2);
+  output += ",";
+
+  output += "LAT=" + doubleToString(trk_lat,6);
+  output += ",";
+
+  output += "LON=" + doubleToString(trk_lon,6);
+  output += ",";
+
+  output += "SPD=" + doubleToString(trk_spd,2);
+  output += ",";
+
+  output += "HDG=" + doubleToString(trk_hdg,2);
+
+  // output += ",";
+
+  // output += "DEPTH=" + doubleToString(trk_dep,2);
+
+  return(output);
+}
+
