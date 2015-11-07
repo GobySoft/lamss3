@@ -15,11 +15,7 @@ boost::mutex lamss::shared::fsm::moos_mutex_;
 
 boost::condition_variable lamss::shared::fsm::processing_cond_;  
 
-int lamss::shared::fsm::vehicle_id_ = 0;
-
 double lamss::shared::fsm::current_time_ = 0;
-bool lamss::shared::fsm::mission_active_ = false;
-int lamss::shared::fsm::track_state_ = 0;
 
 bool lamss::shared::fsm::processing_enable_ = false;
 bool lamss::shared::fsm::processing_idle_ = false;

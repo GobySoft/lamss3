@@ -28,6 +28,8 @@
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
 
 #include "LamssCBF_config.pb.h"
+#include "BeamformingVars.pb.h"
+
 //#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 //#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 //#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
@@ -45,8 +47,8 @@ namespace lamss
       
       struct EvProcessingOff : boost::statechart::event< EvProcessingOff > { };
       struct EvProcessingReset : boost::statechart::event< EvProcessingReset > { };
-      struct EvToBroadband : boost::statechart::event< EvProcessingStart > { };
-      struct EvToTones : boost::statechart::event< EvProcessingStart > { };
+      struct EvToBroadband : boost::statechart::event< EvToBroadband > { };
+      struct EvToTones : boost::statechart::event< EvToTones > { };
       
       struct Idle;
       // Processing States
@@ -147,7 +149,7 @@ namespace lamss
 	      }
 	    
 	    typedef boost::mpl::list<
-	      boost::statechart::transition< EvToBroadband, Broadband >
+	      boost::statechart::transition< EvToBroadband, Broadband >,
 	      boost::statechart::transition< EvToTones, Tones >
 	      > reactions;
 	    

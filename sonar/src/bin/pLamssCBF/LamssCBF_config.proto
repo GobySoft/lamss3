@@ -37,7 +37,7 @@ message LamssCBFConfig
   optional int32  fft_size  = 17 [default = 1024];
   optional int32  number_beams  = 18 [default = 47];
   optional double overlap  = 19 [default = 50];
-  optional double hydrophone_gain = 20 [deafult = 1];
+  optional double hydrophone_gain = 20 [default = 1];
   optional double integration_time  = 21 [default = 1];
   optional double sound_speed  = 22 [default = 1500];
   optional string array_elements_used = 23;
