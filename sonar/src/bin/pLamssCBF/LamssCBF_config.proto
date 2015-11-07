@@ -43,7 +43,7 @@ message LamssCBFConfig
   optional string array_elements_used = 23;
   optional string good_elements = 24;
   optional bool   delete_data_files = 25 [default = false];
-  optional bool   check_consec_zeroes = 26 [default = false];
+  optional bool   check_consecutive_zeros = 26 [default = false];
   optional ProcessingTypeEnum processing_type = 27 [default =  BROADBAND];
   enum ProcessingTypeEnum {
      BROADBAND = 1;

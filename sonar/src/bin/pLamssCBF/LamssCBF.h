@@ -47,6 +47,8 @@ class LamssCBF : public GobyMOOSApp
     void update_array_configuration();
     void handle_bin_list(std::string bin_list);
     void handle_fc_bw();
+    // Processing modules
+    bool LoadData(std::string);
 
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
@@ -71,9 +73,14 @@ class LamssCBF : public GobyMOOSApp
     bool sonar_on_;
     bool processing_on_;
 
+    bool new_file_flag_;
     bool got_filename_;
     std::string sonar_filename_;
     int frame_number_;
+    int last_frame_processed_;
+    int buff_index_;
+    int end_data_;
+
     int num_blocks_integrated_;
     int num_files_processed_;
 

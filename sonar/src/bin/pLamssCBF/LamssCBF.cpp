@@ -14,6 +14,7 @@
 
 #include "LamssCBF.h"
 
+#include "lamss/lib_anrp_util/sliva_parse.h"
 #include "goby/moos/moos_protobuf_helpers.h"
 
 using namespace lamss::shared::fsm;
@@ -50,6 +51,8 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       sonar_on_(false),
       processing_on_(false),
       frame_number_(0),
+      buff_index_(0),
+      end_data_(0),
       num_blocks_integrated_(0),
       num_files_processed_(0),
       got_filename_(false),
@@ -116,10 +119,41 @@ void LamssCBF::loop()
 	  queue_event<EvProcessingOff>();
       }
 
-// process some events at a slower rate
+    // Processing block
+
+     if(new_file_flag_ && got_filename_)
+      {
+	glog.is(DEBUG1) && glog << "Loading File " << sonar_filename_ << std::endl;
+	//load the data file
+	if ( LoadData(sonar_filename_) )
+	  {	
+	    glog.is(DEBUG2) && glog << "Begin Processing Data..." << std::endl;
+	    //	    if ( !Process_Data() )
+	    if ( 0 )
+	      {
+		glog.is(DEBUG1) && glog << "Processing failed!" << std::endl;
+	      }
+	    else
+	      {
+		num_files_processed_++;
+		last_frame_processed_ = frame_number_;
+		glog.is(DEBUG2) && glog << "Finished Processing Data File Number "
+					<<  last_frame_processed_ << std::endl;
+	        new_file_flag_ = false;
+		return;
+	      }
+	  }
+	else //Added 21 OCT 2010 AJP
+	  {
+	    glog.is(DEBUG1) && glog << "Loading Data Failed!" << std::endl;
+	    new_file_flag_ = false;
+	    return;
+	  }
+      }
+    // process some events at a slower rate
     const int slow_loop_period = 10;
     if(curr_time > last_slow_loop_t_ + slow_loop_period)
-        slow_loop(curr_time);
+      slow_loop(curr_time);
 }
 
 void LamssCBF::slow_loop(double curr_time)
@@ -318,6 +352,188 @@ void LamssCBF::update_beamforming_vars()
 
 }
 
+//***************************************************************************
+//*  LamssCBF::LoadData(string filename)                                        *
+//*                                                                         *
+//*  LoadData() reads in the most recent sonar file.                        *
+//*************************************************************************** 
+bool LamssCBF::LoadData(std::string filename)
+{	
+    FILE *fp;
+    char fnamechar[256];  
+    int time0,time1;
+int leftover = 0;  
+    short *temp_int;
+    float *temp_data;
+  
+    glog.is(DEBUG2) && glog << "Entering LoadData" << std::endl;
+    sprintf(fnamechar,"%s",filename.c_str());
+  
+    if (num_files_processed_ > 0)
+      {
+	if (frame_number_==(last_frame_processed_+1))  //Previous and current data files contain contiguous timeseries data
+	  {
+	    glog.is(DEBUG2) && glog << "Saving leftover data from file number "
+				    << intToString(last_frame_processed_)
+				    << " before reading file number "
+				    << intToString(frame_number_) << std::endl;
+	    leftover = (end_data_ - buff_index_);
+	    for (int uu = 1; uu <= leftover; uu++)
+	      Array_Data.Row(uu) = Array_Data.Row(buff_index_+uu);
+	    end_data_ = leftover + cfg_.number_samples(); 
+	  }  
+	else //Skipped one or more data files, so don't use any leftover data
+	  {
+	    glog.is(DEBUG2) && glog << "Non-consecutive acoustic data files (previous: "
+				    << intToString(last_frame_processed_) 
+				    << ", current: " 
+				    << frame_number_ << std::endl;
+	    leftover = 0;
+	    end_data_ = cfg_.number_samples();
+	  }
+      }
+    else
+      {
+        leftover = 0;
+        end_data_ = cfg_.number_samples();
+      }
+  
+    if ( cfg_.array_type() == LamssCBFConfig::SLITA ) 
+      {
+	glog.is(DEBUG2) && glog << "Reading SLITA File" << std::endl;
+        SlivaReader *sr;
+        try 
+	{
+	    sr = new SlivaReader(filename);
+	} 
+        catch(const exception &e) 
+	{
+	  glog.is(DEBUG1) && glog << "Couldn't load SLITA file "
+				  << filename << std::endl;
+	  return false;
+	}
+      
+	glog.is(DEBUG2) && glog << "Sample rate " << intToString(sr->fs)
+				<< ", ch sz " 
+				<< intToString(sr->channel_data[1].size()) << std::endl;
+
+        for (int kk=0; kk < cfg_.number_elements(); kk++) 
+	  {
+	    for (int jj=leftover; jj < end_data_; jj++) 
+	      {
+	        Array_Data(jj+1,kk+1) = (float)sr->channel_data[kk+1][jj-leftover].data;
+	      }
+	  }
+      
+        delete sr;
+	
+	glog.is(DEBUG2) && glog << "Done Reading SLITA File" << std::endl;
+      } 
+    else	
+      {
+	//open sample file
+	if ((fp = fopen(fnamechar,"rb")) == NULL)
+	  {
+	    glog.is(DEBUG2) && glog << "Could not open sample file "
+				    << filename << std::endl;
+	    return false;
+	  }
+	
+	// signals from all channels
+	if ( cfg_.array_type() == LamssCBFConfig::VSA || 
+	     cfg_.array_type() == LamssCBFConfig::DURIP || 
+	     cfg_.array_type() == LamssCBFConfig::HYD )
+	  { 
+	    temp_data = new float [cfg_.number_samples()];
+	    for (int kk=0; kk < cfg_.number_elements(); kk++)
+	      {
+		fread (temp_data, sizeof (float), cfg_.number_samples(), fp);
+		for (int jj=leftover; jj < end_data_; jj++)
+		  { 
+		    Array_Data(jj+1,kk+1) = temp_data[jj-leftover];
+		  }
+	      }
+	    delete [] temp_data;
+	  }
+	else if ( cfg_.array_type() == LamssCBFConfig::SINGLE || 
+		  cfg_.array_type() == LamssCBFConfig::DUAL || 
+		  cfg_.array_type() == LamssCBFConfig::TEE )
+	  {
+	    temp_int = new short [cfg_.number_samples()];
+	    //read the two timetags out of the file
+	    fread(&time0,sizeof(int),1,fp);
+	    fread(&time1,sizeof(int),1,fp);
+	    for (int kk=0; kk < cfg_.number_elements(); kk++)
+	      {
+		fread(temp_int,sizeof(short),cfg_.number_samples(),fp);
+		for (int jj=leftover; jj < end_data_; jj++)
+		  { 
+		    Array_Data(jj+1,kk+1) = temp_int[jj-leftover];
+		  }
+	      }
+	    delete [] temp_int;
+	  }
+	
+	fclose(fp);
+	
+	glog.is(DEBUG2) && glog << "Done reading sample file "
+				<< filename << std::endl;
+	
+	// F. Baralli Data file is cancelled after reading to save disk space
+	//	if(bDelFileAfterProc==true)
+	//	{
+	//		int iRet = 0;
+	//		string sTmp = "rm ";
+	//		
+	//		sTmp.append(fnamechar, strlen(fnamechar));
+	//		iRet = system(sTmp.c_str());
+	//		if(iRet==0)
+	//			MOOSTrace("Data file %s cancelled\n",fnamechar);
+	//		else
+	//			MOOSTrace("Failed cancelling %s data file\n",fnamechar);
+	//	}
+	//	End F. Baralli
+	
+	// Following code added by K. Cockrell on Aug 6 2008, 
+	// to eliminate bad DURIP array data.
+	// When data is bad, many consecutive zeros occur on all channels at once,
+	// preceded by a large spike.
+	// So here, we'll choose a arbitrary channel, and if we find consecutive zeros, 
+	// then we'll output a moos variable letting us know it is bad, 
+	// and replace the spike. This code only runs if
+	// def_check_for_consec_zeros is set to true in the .moos file 
+	if (cfg_.check_consecutive_zeros())
+	  {
+	    // Choose an arbitrary channel to look for consecutive zeros.
+	    int arb_channel = 1;
+	    int cons_zero = 0;
+	    int max_zeros = 10;
+	    // Loop through each time sample on channel arb_channel looking 
+	    // for consecutive zeros. 
+	    // AJP Changed "leftover + 1" to "leftover", 26 NOV 2010
+	    for (int jj=leftover; jj < end_data_; jj++)
+	      {
+		if(Array_Data(jj+1, arb_channel) == 0)
+		  cons_zero = cons_zero + 1;
+		else
+		  cons_zero = 0;
+		
+		if (cons_zero > 10)
+		  {
+		    glog.is(DEBUG1) && glog << "Warning: Acoustic data contains more "
+					    << "than 10 consecutive zeros" << std::endl;
+		    jj = end_data_; // If we have lots of zeros, then just stop checking.
+		  }
+	      }
+	  }
+      }
+    glog.is(DEBUG2) && glog << "Done with LoadData" << std::endl;
+    
+    return true;
+}
+
+// >>>>>>>>>>>>>>> vector utility methods <<<<<<<<<<<<
+  
 double LamssCBF::angle360(double angle)
 {
   double res = angle;
@@ -331,7 +547,6 @@ double LamssCBF::angle360(double angle)
   
 }
 
-// >>>>>>>>>>>>>>> vector utility methods <<<<<<<<<<<<
 int LamssCBF::str2dbl_vec(std::string msg, std::vector<double>& values)
 {
   std::string bite;
