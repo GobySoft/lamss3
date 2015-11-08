@@ -50,7 +50,7 @@ class LamssCBF : public GobyMOOSApp
     void handle_homing_beacon_frequency(const CMOOSMsg& msg);
 
     void update_beamforming_vars();
-    void update_array_configuration();
+    void array_configuration();
     void handle_bin_list(std::string bin_list);
     void handle_fc_bw();
     // Processing modules
@@ -59,7 +59,7 @@ class LamssCBF : public GobyMOOSApp
     void hamming(Real *,int);  //Added AJP 21 JUL 2010
     int  round(double);
     bool Process_Data();
-    bool initialize();
+    bool initialize_beamformer();
     void zeros(double *,int);
     void clear_buffers();
     void compute_steering_vectors();

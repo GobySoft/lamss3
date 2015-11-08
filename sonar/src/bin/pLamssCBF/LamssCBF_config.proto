@@ -21,7 +21,12 @@ message LamssCBFConfig
     EQUALLY_SPACED_WAVENUMBER = 1;
     EQUALLY_SPACED_THETA = 2;
   }
-  optional int32  array_definition  = 4 [default = 0];
+  optional ArrayDefinitionEnum  array_configuration  = 4 [default = UNIFORM_SPACING];
+  enum ArrayDefinitionEnum {
+     UNIFORM_SPACING = 0;
+     GROUP_SPACING =1;
+     ELEMENT_LOCATIONS = 2;
+  } 
   optional int32  number_elements  = 5 [default = 1];
   optional double element_spacing  = 6 [default = 1.0];
   optional int32  number_spacing_groups  = 7 [default = 3];
@@ -41,17 +46,16 @@ message LamssCBFConfig
   optional double integration_time  = 21 [default = 1];
   optional double sound_speed  = 22 [default = 1500];
   optional string array_elements_used = 23;
-  optional string good_elements = 24;
-  optional bool   delete_data_files = 25 [default = false];
-  optional bool   check_consecutive_zeros = 26 [default = false];
-  optional ProcessingTypeEnum processing_type = 27 [default =  BROADBAND];
+  optional bool   delete_data_files = 26 [default = false];
+  optional bool   check_consecutive_zeros = 27 [default = false];
+  optional ProcessingTypeEnum processing_type = 28 [default =  BROADBAND];
   enum ProcessingTypeEnum {
      BROADBAND = 1;
      TONES = 2;
   }
-  optional double center_frequency  = 28 [default = 900];
-  optional double bandwidth  = 29 [default = 200];
-  optional string frequency_bins = 30;
+  optional double center_frequency  = 29 [default = 900];
+  optional double bandwidth  = 30 [default = 200];
+  optional string frequency_bins = 31;
     
 }
 

@@ -89,9 +89,9 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     // Dynamic configuration enabled
     curr_cfg_ = cfg_;
     // initialize beamforming variables
-    update_array_configuration();
+    array_configuration();
     // initialize beamformer data structures
-    initialize();
+    initialize_beamformer();
     if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
       handle_fc_bw();
     else if (curr_cfg_.processing_type() == LamssCBFConfig::TONES)
@@ -282,9 +282,9 @@ void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
     }
 }
 
-void LamssCBF::update_array_configuration()
+void LamssCBF::array_configuration()
 {
-  glog.is(DEBUG1) && glog << "Entering update_array_configuration " 
+  glog.is(DEBUG1) && glog << "Entering array_configuration " 
 			  << std::endl; 
 
   string token;
@@ -331,7 +331,7 @@ void LamssCBF::update_array_configuration()
 	  chused_vec_idx +=1;
 	} 
     }
-  if (curr_cfg_.array_definition() == 0)
+  if (curr_cfg_.array_configuration() == LamssCBFConfig::UNIFORM_SPACING)
     {
       nominal_element_locations.ReSize(curr_cfg_.number_elements());
 	for(int k=1;k<=curr_cfg_.number_elements();k++)
@@ -339,7 +339,7 @@ void LamssCBF::update_array_configuration()
 	    nominal_element_locations(k) = (double) (k-1)*curr_cfg_.element_spacing();
 	  }
     }
-  else if (curr_cfg_.array_definition() == 1)
+  else if (curr_cfg_.array_configuration() == LamssCBFConfig::GROUP_SPACING)
     {
       vector<double> spacings;
       spacings.push_back(0.0);  //why is this here? Because #sensors = #spacings+1. HS
@@ -365,7 +365,7 @@ void LamssCBF::update_array_configuration()
       for (int k=2; k <= curr_cfg_.number_elements(); k++)
 	nominal_element_locations(k)=nominal_element_locations(k-1)+spacings[k-1];
     }
-  else if (curr_cfg_.array_definition() == 2)
+  else if (curr_cfg_.array_configuration() == LamssCBFConfig::ELEMENT_LOCATIONS)
     {
       std::string current_element_location_temp;
       std::vector<double> element_locations_temp;
@@ -386,15 +386,15 @@ void LamssCBF::update_array_configuration()
 }
 
 //***************************************************************************
-//*  LamssCBF::initialize()                                                 *
+//*  LamssCBF::initialize_beamformer()                                                 *
 //*                                                                         *
 //*  Initialize all of the data structures and constants needed to process  *
 //*  data, except those associated with num_bins_.                          *
 //*                                                                         *
 //*************************************************************************** 
-bool LamssCBF::initialize()
+bool LamssCBF::initialize_beamformer()
 {
-  glog.is(DEBUG1) && glog << "Entering initialize" << std::endl;
+  glog.is(DEBUG1) && glog << "Entering initialize_beamformer" << std::endl;
 
   double sum_win_spatial;
 
