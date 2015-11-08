@@ -44,7 +44,10 @@ class LamssCBF : public GobyMOOSApp
     void handle_sonar_process(const CMOOSMsg& msg);
     void handle_sonar_filename(const CMOOSMsg& msg);
     void handle_sonar_dir(const CMOOSMsg& msg);
+    void handle_sonar_file_num(const CMOOSMsg& msg);
     void handle_sound_speed(const CMOOSMsg& msg);
+    void handle_homing_active(const CMOOSMsg& msg);
+    void handle_homing_beacon_frequency(const CMOOSMsg& msg);
 
     void update_beamforming_vars();
     void update_array_configuration();
@@ -58,6 +61,8 @@ class LamssCBF : public GobyMOOSApp
     bool Process_Data();
     bool initialize();
     void zeros(double *,int);
+    void clear_buffers();
+    void compute_steering_vectors();
 
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
@@ -121,8 +126,14 @@ class LamssCBF : public GobyMOOSApp
     double *P_max;
     std::vector<double> beam_angles;
 	
-
+    double time_window_constant_;
+    double hydrophone_amplitude_gain_;
     double sound_speed_;
+
+    double homing_beacon_frequency_;
+    int homing_frequency_bin_;
+    bool homing_mode_active_;
+    std::string homing_bin_list_;
 };
 
 #endif

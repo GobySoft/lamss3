@@ -25,12 +25,12 @@ message LamssCBFConfig
   optional int32  number_elements  = 5 [default = 1];
   optional double element_spacing  = 6 [default = 1.0];
   optional int32  number_spacing_groups  = 7 [default = 3];
-  optional int32  spacing_group_1  = 8 [default = 1];
-  optional int32  num_spacing_group_1  = 9 [default = 1];
-  optional int32  spacing_group_2  = 10 [default = 1];
-  optional int32  num_spacing_group_2  = 11 [default = 1];
-  optional int32  spacing_group_3  = 12 [default = 1];
-  optional int32  num_spacing_group_3  = 13 [default = 1];
+  optional double spacing_group_1  = 8 [default = 1];
+  optional int32  number_spacings_group_1  = 9 [default = 1];
+  optional double spacing_group_2  = 10 [default = 1];
+  optional int32  number_spacings_group_2  = 11 [default = 1];
+  optional double spacing_group_3  = 12 [default = 1];
+  optional int32  number_spacings_group_3  = 13 [default = 1];
   optional string array_element_locations = 14;
   optional int32  number_samples  = 15 [default = 1];
   optional double sampling_frequency  = 16 [default = 4000];
