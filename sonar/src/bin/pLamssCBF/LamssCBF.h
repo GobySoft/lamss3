@@ -12,6 +12,8 @@
 #include "MBUtils.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 
+#include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
+
 class CBFException : public std::runtime_error
 {
   public:
@@ -41,6 +43,7 @@ class LamssCBF : public GobyMOOSApp
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_sonar_process(const CMOOSMsg& msg);
     void handle_sonar_filename(const CMOOSMsg& msg);
+    void handle_sonar_dir(const CMOOSMsg& msg);
     void handle_sound_speed(const CMOOSMsg& msg);
 
     void update_beamforming_vars();
@@ -49,6 +52,12 @@ class LamssCBF : public GobyMOOSApp
     void handle_fc_bw();
     // Processing modules
     bool LoadData(std::string);
+    void hanning(Real *,int);
+    void hamming(Real *,int);  //Added AJP 21 JUL 2010
+    int  round(double);
+    bool Process_Data();
+    bool initialize();
+    void zeros(double *,int);
 
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
@@ -61,6 +70,7 @@ class LamssCBF : public GobyMOOSApp
     { scheduler_.queue_event(fsm_, boost::intrusive_ptr<Event>(new Event())); }
   private:
     LamssCBFConfig& cfg_;
+    LamssCBFConfig curr_cfg_;
     boost::statechart::fifo_scheduler<> scheduler_;
     boost::statechart::fifo_scheduler<>::processor_handle fsm_;
     boost::shared_ptr<boost::thread> fsm_thread_;
@@ -76,13 +86,20 @@ class LamssCBF : public GobyMOOSApp
     bool new_file_flag_;
     bool got_filename_;
     std::string sonar_filename_;
+    bool got_dir_;
+    std::string sonar_dir_;
     int frame_number_;
     int last_frame_processed_;
     int buff_index_;
     int end_data_;
 
     int num_blocks_integrated_;
+    int int_blocks_;
     int num_files_processed_;
+
+    double actual_integration_;
+    double btr_normalization_;
+    double num_overlapping_samples_;
 
     ColumnVector win;
     ColumnVector windowed_data;
@@ -92,7 +109,7 @@ class LamssCBF : public GobyMOOSApp
     Matrix       S_real;
     Matrix       S_imag;
     ColumnVector win_spatial;
-    ColumnVector nominal_relative_array_element_locations; 
+    ColumnVector nominal_element_locations; 
     ColumnVector beam_cosines;
 
     int *array_elements_used;
@@ -100,6 +117,11 @@ class LamssCBF : public GobyMOOSApp
     int *bins;
     int num_bins_;
     
+    double *P;
+    double *P_max;
+    std::vector<double> beam_angles;
+	
+
     double sound_speed_;
 };
 
