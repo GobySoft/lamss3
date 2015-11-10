@@ -132,7 +132,9 @@ namespace lamss
                         }
                     virtual ~StateNotify()
                         {
-                            goby::glog.is(goby::common::logger::VERBOSE) && goby::glog << group("fsm") << "~" << state_str_ << std::endl;
+			  boost::mutex::scoped_lock lock(moos_mutex_);
+			  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			    << group("fsm") << "~" << state_str_ << std::endl;
 			}
 
                     const std::string::size_type prefix_;
