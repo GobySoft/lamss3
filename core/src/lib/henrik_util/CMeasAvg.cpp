@@ -84,10 +84,10 @@ double CMeasAvg::getAvg()
 }
 
 //***************************************************************************
-//*  CAngleAvg::setVal()                                                     *
+//*  CAngleAvg::setVal()                                                    *
 //*                                                                         *
-//*  This method calculates the moving average of a sequence of angles.     *
-//*                                                                         *
+//*  This method calculates the moving average of a sequence of angles in   *
+//*  degrees                                                                *
 //*************************************************************************** 
 
 void CAngleAvg::configAvg(int length)
@@ -142,6 +142,72 @@ void CAngleAvg::setVal(double val)
 //*                                                                         *
 //*************************************************************************** 
 double CAngleAvg::getAvg()  
+{
+  if (num_measurements > 0)
+    return (avg);
+  else
+    return(0.0);
+}
+
+//***************************************************************************
+//*  CRadianAvg::setVal()                                                    *
+//*                                                                         *
+//*  This method calculates the moving average of a sequence of angles in   *
+//*  radians                                                                *
+//*************************************************************************** 
+
+void CRadianAvg::configAvg(int length)
+{
+
+	len = length;
+	num_measurements = 0;
+}
+
+void CRadianAvg::setVal(double val)
+{
+	double csum,ssum,s,c;
+
+	if (num_measurements < len)
+	{	  
+		s = sin(val);
+		c = cos(val);
+		svals.push_back(s);
+		cvals.push_back(c);
+		num_measurements += 1;
+	}
+	else
+	{
+		s = sin(val);
+		c = cos(val);
+		svals.push_back(s);
+		cvals.push_back(c);
+		svals.pop_front();
+		cvals.pop_front();
+		num_measurements = len;      
+	}
+
+	csum = 0.0;
+	ssum = 0.0;
+
+	for (int kk = 0; kk < num_measurements; kk++)
+	{   
+		csum +=cvals[kk];
+		ssum +=svals[kk];
+	}
+
+	avg = atan2(ssum,csum);
+
+//MOOSTrace("ssum = %f, csum = %f, average angle = %f\n",ssum,csum,avg);
+}
+
+
+//***************************************************************************
+//*  CRadianAvg::get_FVal()                                                       *
+//*                                                                         *
+//*  This method returns the value of the moving average                    *
+//*                                                                         *
+//*************************************************************************** 
+double CRadianAvg::getAvg()  
 {
   if (num_measurements > 0)
     return (avg);
