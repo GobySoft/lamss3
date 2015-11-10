@@ -771,11 +771,18 @@ bool LamssTrackManager::checkOpportunity()
     dif_ang = dif_ang - 2*M_PI;
 
   double cos_ang = cos(dif_ang);  
-  if (cos_ang <  0)
+  if (cos_ang <  0 )
     {
       //	         coming this way - check if close enough
       // time to CPA 
-      double time_to_cpa = -cos_ang*t_range/cue_speed_;
+      double time_to_cpa;
+      if (cue_speed_ > 0.0)
+	time_to_cpa = -cos_ang*t_range/cue_speed_;
+      else if (auv_speed > 0)
+	time_to_cpa = -cos_ang*t_range/auv_speed;
+      else
+	time_to_cpa = 0;
+
       double my_dist = time_to_cpa * auv_speed;
       if (fabs(t_range*sin(dif_ang))- my_dist <= cfg_.max_search_range())
 	return(true);
@@ -785,7 +792,7 @@ bool LamssTrackManager::checkOpportunity()
       // Closing range ?
       // Relative target speed
       double closing_speed = auv_speed - cue_speed_ * cos_ang;
-      if (closing_speed > 0 && (t_range <= cfg_.max_search_range()))
+      if (closing_speed >= 0 && (t_range <= cfg_.max_search_range()))
 	return(true);
     }
 
