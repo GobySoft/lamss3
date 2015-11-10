@@ -26,6 +26,7 @@ message LamssCBFConfig
      UNIFORM_SPACING = 0;
      GROUP_SPACING =1;
      ELEMENT_LOCATIONS = 2;
+     VOLUMETRIC = 3;
   } 
   optional int32  number_elements  = 5 [default = 1];
   optional double element_spacing  = 6 [default = 1.0];
@@ -37,6 +38,9 @@ message LamssCBFConfig
   optional double spacing_group_3  = 12 [default = 1];
   optional int32  number_spacings_group_3  = 13 [default = 1];
   optional string array_element_locations = 14;
+  optional string volumetric_array_x = 51;
+  optional string volumetric_array_y = 52;
+  optional string volumetric_array_z = 53;
   optional int32  number_samples  = 15 [default = 1];
   optional double sampling_frequency  = 16 [default = 4000];
   optional int32  fft_size  = 17 [default = 1024];
@@ -46,16 +50,26 @@ message LamssCBFConfig
   optional double integration_time  = 21 [default = 1];
   optional double sound_speed  = 22 [default = 1500];
   optional string array_elements_used = 23;
-  optional bool   delete_data_files = 26 [default = false];
-  optional bool   check_consecutive_zeros = 27 [default = false];
-  optional ProcessingTypeEnum processing_type = 28 [default =  BROADBAND];
+  optional AngularSteeringTypeEnum anglular_steering_type = 24;
+  enum AngularSteeringTypeEnum {
+     ARRAY_ANGLE = 1;
+     AZIMUTH = 2;
+     ELEVATION = 3;
+     AZIMUTH_AND_ELEVATION = 4;
+  }
+  optional int32  number_beams_azimuth = 25 [default = 47];
+  optional int32  number_beams_elevation = 26 [default =47];
+
+  optional bool   delete_data_files = 27 [default = false];
+  optional bool   check_consecutive_zeros = 28 [default = false];
+  optional ProcessingTypeEnum processing_type = 29 [default =  BROADBAND];
   enum ProcessingTypeEnum {
      BROADBAND = 1;
      TONES = 2;
   }
-  optional double center_frequency  = 29 [default = 900];
-  optional double bandwidth  = 30 [default = 200];
-  optional string frequency_bins = 31;
+  optional double center_frequency  = 30 [default = 900];
+  optional double bandwidth  = 31 [default = 200];
+  optional string frequency_bins = 32;
     
 }
 

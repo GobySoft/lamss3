@@ -111,6 +111,7 @@ namespace lamss
 	  }
 	  virtual ~StateNotify()
 	  {
+	    boost::mutex::scoped_lock lock(moos_mutex_);
 	    goby::glog.is(goby::common::logger::VERBOSE) && 
 	      goby::glog << group("fsm") << "~" << 
 	      state_str_ << std::endl;

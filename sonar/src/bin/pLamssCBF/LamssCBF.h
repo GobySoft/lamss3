@@ -13,12 +13,32 @@
 #include "lamss/lib_newmat10D/newmatap.h"
 
 #include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
-
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 class CBFException : public std::runtime_error
 {
   public:
   CBFException(const std::string& what) : std::runtime_error(what)
     { }
+};
+
+class AngleFilter
+{
+    public:
+
+        AngleFilter(int length);
+        ~AngleFilter();
+
+        double get_FVal();
+        void set_RawVal(double);
+
+    protected:
+
+        int filter_length;
+        int num_measurements;
+        double avg;
+
+        deque<double>  svals;
+        deque<double>  cvals;
 };
 
 class LamssCBF : public GobyMOOSApp
@@ -46,6 +66,7 @@ class LamssCBF : public GobyMOOSApp
     void handle_sonar_dir(const CMOOSMsg& msg);
     void handle_sonar_file_num(const CMOOSMsg& msg);
     void handle_sound_speed(const CMOOSMsg& msg);
+    void handle_ael_pitch(const CMOOSMsg& msg);
     void handle_homing_active(const CMOOSMsg& msg);
     void handle_homing_beacon_frequency(const CMOOSMsg& msg);
 
@@ -63,7 +84,7 @@ class LamssCBF : public GobyMOOSApp
     void zeros(double *,int);
     void clear_buffers();
     void compute_steering_vectors();
-
+    size_t parseArrayCoordinates(std::string str, vector<double> & element_coordinate);
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
@@ -83,6 +104,13 @@ class LamssCBF : public GobyMOOSApp
     double last_slow_loop_t_;
     
     static LamssCBF* inst_;    
+
+    CRadianAvg pitch_filter;
+    CAngleAvg heading_filter;
+
+    bool filt_set_;
+    bool got_pitch_;
+    int filter_length_;
 
     //prosecute mode stuff
     bool sonar_on_;
@@ -116,6 +144,9 @@ class LamssCBF : public GobyMOOSApp
     ColumnVector win_spatial;
     ColumnVector nominal_element_locations; 
     ColumnVector beam_cosines;
+    ColumnVector array_x;
+    ColumnVector array_y;
+    ColumnVector array_z;
 
     int *array_elements_used;
     int num_elements_used_;

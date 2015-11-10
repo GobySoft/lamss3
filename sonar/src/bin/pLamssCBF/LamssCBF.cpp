@@ -57,6 +57,10 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       num_files_processed_(0),
       got_filename_(false),
       sound_speed_(cfg_.sound_speed()),
+      homing_mode_active_(false),
+      filter_length_(10),
+      filt_set_(false),
+      got_pitch_(false),
       last_slow_loop_t_(0)
 {
 
@@ -75,6 +79,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     subscribe("SONAR_DIR", &LamssCBF::handle_sonar_dir, this);    
     subscribe("SONAR_FILE_NUM", &LamssCBF::handle_sonar_file_num, this);    
     subscribe("SOUND_SPEED", &LamssCBF::handle_sonar_filename, this);    
+    subscribe("AEL_PITCH", &LamssCBF::handle_ael_pitch, this);    
     subscribe("HOMING_BEACON_FREQUENCY", 
 	      &LamssCBF::handle_homing_beacon_frequency, this);    
     subscribe("HOMING_ACTIVE", 
@@ -241,6 +246,17 @@ void LamssCBF::handle_sound_speed(const CMOOSMsg& msg)
     compute_steering_vectors();
 }
 
+void LamssCBF::handle_ael_pitch(const CMOOSMsg& msg)
+{
+  double raw_pitch = msg.GetDouble();
+  if (!isnan(raw_pitch))
+    {
+      if (filt_set_)
+	pitch_filter.setVal(raw_pitch);
+      got_pitch_ = true;
+    }
+}
+
 void LamssCBF::handle_homing_beacon_frequency(const CMOOSMsg& msg)
 {
   homing_beacon_frequency_ = msg.GetDouble();
@@ -269,6 +285,7 @@ void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
   else if (homing_mode_active_ && MOOSStrCmp(tolower(msg.GetString()),"false"))
     {
       // Switch back to default processing mode
+      curr_cfg_ = cfg_;
       homing_mode_active_ = false;
       delete [] bins;
       if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
@@ -295,6 +312,9 @@ void LamssCBF::array_configuration()
   vector<int> first_channels_used;
   vector<int> last_channels_used;
   
+  pitch_filter.configAvg(filter_length_);
+  filt_set_ = true;
+
   first_channels_used.clear();
   last_channels_used.clear();
 
@@ -359,6 +379,7 @@ void LamssCBF::array_configuration()
 	  for (int i=0; i < curr_cfg_.number_spacings_group_3(); i++)
 	    spacings.push_back(curr_cfg_.spacing_group_3());
 	}
+      cfg_.set_number_elements(spacings.size());
       curr_cfg_.set_number_elements(spacings.size());
       nominal_element_locations.ReSize(curr_cfg_.number_elements());
       nominal_element_locations(1)=spacings[0];
@@ -367,24 +388,68 @@ void LamssCBF::array_configuration()
     }
   else if (curr_cfg_.array_configuration() == LamssCBFConfig::ELEMENT_LOCATIONS)
     {
-      std::string current_element_location_temp;
-      std::vector<double> element_locations_temp;
-      int num_elements=0;
-      std::string tmp = curr_cfg_.array_element_locations();
-      current_element_location_temp = MOOSChomp(tmp,",");
-      while (!current_element_location_temp.empty())
-	{ 
-	  element_locations_temp.push_back(atof(current_element_location_temp.c_str()));
-	  num_elements++;
-	  current_element_location_temp = MOOSChomp(tmp,",");
-	}
+      vector<double> element_locations_temp;
+      int num_elements=parseArrayCoordinates(curr_cfg_.array_element_locations(),
+					     element_locations_temp);
       nominal_element_locations.ReSize(num_elements);
-      for(int k=1;k<=num_elements;k++)
-	nominal_element_locations(k) = element_locations_temp[k-1];
+      for(int k=1; k<=num_elements; k++)
+	nominal_element_locations(k) = element_locations_temp[k-1];      
+      cfg_.set_number_elements(num_elements);
+      curr_cfg_.set_number_elements(num_elements);
+    }
+  else if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
+    {
+      // array_x (positive starboard)
+      vector<double> element_locations_temp;
+      int num_elements = parseArrayCoordinates(curr_cfg_.volumetric_array_x(),
+					 element_locations_temp);
+      array_x.ReSize(num_elements);
+      for(int k=1; k<=num_elements; k++)
+	array_y(k) = element_locations_temp[k-1];
+      element_locations_temp.clear();
+      // array_y (positive forward)
+      int num_y = parseArrayCoordinates(curr_cfg_.volumetric_array_y(),
+					element_locations_temp);
+      if (num_y != num_elements)
+	{
+	  glog.is(VERBOSE) && glog << "num_element mismatch, using minimum" << std::endl;
+	  num_elements = std::min(num_elements,num_y);
+	} 
+      for(int k=1; k<=num_elements; k++)
+	array_y(k) = element_locations_temp[k-1];
+      element_locations_temp.clear();
+      // array_z (positive up)
+      int num_z = parseArrayCoordinates(curr_cfg_.volumetric_array_z(),
+					element_locations_temp);
+      if (num_z != num_elements)
+	{
+	  glog.is(VERBOSE) && glog << "num_element mismatch, using minimum" << std::endl;
+	  num_elements = std::min(num_elements,num_z);
+	} 
+      for(int k=1; k<=num_elements; k++)
+	array_y(k) = element_locations_temp[k-1];
+      element_locations_temp.clear();
+      // set in number_elements current and original config 
+      cfg_.set_number_elements(num_elements);
       curr_cfg_.set_number_elements(num_elements);
     }
 }
 
+size_t LamssCBF::parseArrayCoordinates(std::string str, vector<double> & element_coordinate)
+{
+    string temp;
+    size_t num_values=0;
+    temp = MOOSChomp(str,",");
+    element_coordinate.clear();
+    while (!temp.empty())
+    { 
+        element_coordinate.push_back(atof(temp.c_str()));
+        num_values++;
+        temp = MOOSChomp(str,",");
+    }
+    return(num_values);
+}
+  
 //***************************************************************************
 //*  LamssCBF::initialize_beamformer()                                                 *
 //*                                                                         *
@@ -1006,6 +1071,8 @@ bool LamssCBF::Process_Data()
   int w = 0;
   int z = 0;
 
+  double pitch = pitch_filter.getAvg();
+
   buff_index_ = 0;
 
   while ((buff_index_ + curr_cfg_.fft_size()) <= end_data_) //Changed < to <=, AJP 21 OCT 2010
@@ -1246,5 +1313,4 @@ bool LamssCBF::dbl_vec2str(std::vector<double> numbers, std::string& output)
     }
   return(true);
 }
-
 
