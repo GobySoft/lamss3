@@ -81,10 +81,17 @@ class LamssCBF : public GobyMOOSApp
     int  round(double);
     bool Process_Data();
     bool initialize_beamformer();
+    bool generate_spatial_window();
+    void steering_parameters();
     void zeros(double *,int);
     void clear_buffers();
     void compute_steering_vectors();
     size_t parseArrayCoordinates(std::string str, vector<double> & element_coordinate);
+    //variables used to generate steering vectors using new convention
+    Matrix       steering_vector_real;
+    Matrix       steering_vector_imag;    
+    ColumnVector azimuthal_beams;
+    ColumnVector elevation_beams;
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
@@ -134,27 +141,32 @@ class LamssCBF : public GobyMOOSApp
     double btr_normalization_;
     double num_overlapping_samples_;
 
+    // newmat arrays for beamformers
     ColumnVector win;
     ColumnVector windowed_data;
     Matrix       Array_Data;
-    Matrix       Spectrum_real;
-    Matrix       Spectrum_imag;
-    Matrix       S_real;
-    Matrix       S_imag;
     ColumnVector win_spatial;
     ColumnVector nominal_element_locations; 
     ColumnVector beam_cosines;
     ColumnVector array_x;
     ColumnVector array_y;
     ColumnVector array_z;
+    ColumnVector bin_center_frequencies;
 
     int *array_elements_used;
     int num_elements_used_;
     int *bins;
     int num_bins_;
-    
+    // 1D beamformer
+    Matrix       S_real;
+    Matrix       S_imag;
     double *P;
     double *P_max;
+    // 2D beamformer
+    Matrix       Spectrum_real;
+    Matrix       Spectrum_imag;
+    Matrix P_2D;
+
     std::vector<double> beam_angles;
 	
     double time_window_constant_;

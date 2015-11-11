@@ -461,18 +461,11 @@ bool LamssCBF::initialize_beamformer()
 {
   glog.is(DEBUG1) && glog << "Entering initialize_beamformer" << std::endl;
 
-  double sum_win_spatial;
-
-  ColumnVector win_spatial_temp2;
-  ColumnVector win_spatial_temp;
-  
-  //ArrayElementUnits_MicroPascals: flag indicating whether the array element data 
-  // is in units of microPascals (true) or Pascals (false)
-  bool ArrayElementUnits_MicroPascals=false;
   
   //calculate a few constants
   num_overlapping_samples_=round((double)(curr_cfg_.overlap()*curr_cfg_.fft_size()));
-  int_blocks_ = round((double)(curr_cfg_.integration_time()*curr_cfg_.sampling_frequency()/
+  int_blocks_ = round((double)(curr_cfg_.integration_time()*
+			       curr_cfg_.sampling_frequency()/
 			       (curr_cfg_.fft_size()-num_overlapping_samples_)));
   actual_integration_ = int_blocks_*(curr_cfg_.fft_size()-num_overlapping_samples_)/
     curr_cfg_.sampling_frequency();
@@ -481,54 +474,116 @@ bool LamssCBF::initialize_beamformer()
   
   win.ReSize(curr_cfg_.fft_size());
   windowed_data.ReSize(curr_cfg_.fft_size());
+
+  
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      P = new double[curr_cfg_.number_beams()+1];
+      P_max = new double[curr_cfg_.number_beams()+1];
+      zeros(P,curr_cfg_.number_beams()+1);
+      zeros(P_max,curr_cfg_.number_beams()+1);
+    }
+  else
+    {
+      //Set the size of a few NEWMAT arrays 
+      P_2D.ReSize(curr_cfg_.number_beams_elevation(),curr_cfg_.number_beams_azimuth());
+      P_2D = 0.0;    //Initialize all elements of BTR vector to zero
+    }
+
+  beam_cosines.ReSize(curr_cfg_.number_beams());
+  Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
+		    curr_cfg_.number_elements());
+  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
+  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
+  //Create time-domain window used before the DFT operation
+  hanning(win.Store(),curr_cfg_.fft_size());
+      
+  steering_parameters();
+  generate_spatial_window();
+
+  time_window_constant_=0.0;
+  for (int k = 1; k <= curr_cfg_.fft_size(); k++)
+    time_window_constant_ += win(k)*win(k);
+  
+  // Hydrophone amplitude gain
+  hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
+  
+  if (glog.is(DEBUG1))
+    {
+      glog << "btr_normalization_ = " 
+	   << doubleToString(btr_normalization_) << std::endl;
+      glog << "time_window_constant_ = " 
+	   << doubleToString(time_window_constant_) << std::endl;
+      
+      //    glog << "Array Type = " << ,sArray.c_str());
+      //glog << "Array Definition Type = %d\n",array_definition_type); 
+      // glog << "Beam Sampling Type = ",sSampling.c_str());
+      
+      glog << "Sampling Frequency = " 
+	   << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
+      glog << "Number of Samples in Each File = "
+	   << intToString(curr_cfg_.number_samples()) << std::endl;
+      glog << "Number of Array Elements = "
+	   << intToString(curr_cfg_.number_elements()) << std::endl; 
+      glog << "Number of Array Elements Used = "
+	   << intToString(num_elements_used_) << std::endl;
+      glog << "Sound Speed = " 
+	   << doubleToString(sound_speed_,2) << std::endl;
+      glog << "Number of Beams = " 
+	   << intToString(curr_cfg_.number_beams()) << std::endl ;	
+      glog << "FFT Length = " 
+	   << intToString(curr_cfg_.fft_size()) << std::endl;
+      glog << "Overlap Fraction = "
+	   << doubleToString(curr_cfg_.overlap(),1) << std::endl;
+      glog << "Number of Overlapping Samples " 
+	   << intToString(num_overlapping_samples_) << std::endl;
+      glog << "Desired Integration Time = " 
+	   << doubleToString(curr_cfg_.integration_time()) << std::endl;
+      glog << "Actual Integration Time = "
+	   << doubleToString(actual_integration_,2) << std::endl;
+      glog << "Integration Blocks = "
+	   << intToString(int_blocks_) << std::endl;
+      glog << "Hydrophone Amplitude Gain = "
+	   << doubleToString(hydrophone_amplitude_gain_) << std::endl;
+    }
+  
+  if (glog.is(DEBUG2))
+    {
+      glog << "Nominal Element Locations (1:"
+	   << intToString(curr_cfg_.number_elements()) << std::endl;
+      for (int k=1; k <= curr_cfg_.number_elements(); k++)
+	glog << "[" << intToString(k) << "] = "
+	     << doubleToString(nominal_element_locations(k),2) 
+	     << " m" << std::endl;
+      glog << "Array Elements Used (1:" 
+	   << intToString(num_elements_used_) << std::endl;
+      for(int k=1;k<=num_elements_used_;k++)
+	glog << "[" << intToString(k) << "] = "
+	     << intToString(array_elements_used[k]) << std::endl;
+      glog << "Beam Angles (1:" 
+	   << intToString(curr_cfg_.number_beams()) << std::endl;
+      for(int k=1;k<=curr_cfg_.number_beams();k++)
+	glog << "[" << intToString(k) << "] = "
+	     << doubleToString(beam_angles[k],1) << std::endl;
+      
+    }
+  
+  return true;
+}
+
+bool LamssCBF::generate_spatial_window()
+{
+  double sum_win_spatial;
+
+  ColumnVector win_spatial_temp2;
+  ColumnVector win_spatial_temp;
   
   win_spatial.ReSize(num_elements_used_);
   
   win_spatial_temp.ReSize(curr_cfg_.number_elements());
   win_spatial_temp2.ReSize(curr_cfg_.number_elements());
   
-  P = new double[curr_cfg_.number_beams()+1];
-  P_max = new double[curr_cfg_.number_beams()+1];
-  zeros(P,curr_cfg_.number_beams()+1);
-  zeros(P_max,curr_cfg_.number_beams()+1);
-  beam_cosines.ReSize(curr_cfg_.number_beams());
-  Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
-		    curr_cfg_.number_elements());
-  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
-  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
-    
-  double min_radians = 0;
-  double max_radians = M_PI;
-
-  double min_cos = cos(min_radians);
-  double max_cos = cos(max_radians);
-	
-  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
-    {
-        for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	    beam_cosines(k)= min_cos - ((min_cos-max_cos)/(curr_cfg_.number_beams()-1))*(k-1);
-    }
-  else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
-    {
-      for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	beam_cosines(k)= cos(min_radians + (k-1) * (max_radians-min_radians)/
-			     curr_cfg_.number_beams()-1 );
-    }
   
-  // Publish to MOOSDB for use by Tracker
-  //    beam_angles.reserve(curr_cfg_.number_beams());
-  beam_angles.clear();
-  for (int mm=0; mm<curr_cfg_.number_beams();mm++)
-    beam_angles.push_back(acos(beam_cosines(mm+1))*180.0/M_PI);
-  std::string sbeam_data;
-  dbl_vec2str(beam_angles,sbeam_data);
-  glog.is(DEBUG1) && glog << "beam_angles= " << sbeam_data << std::endl;
-  publish("BEAM_ANGLES",sbeam_data);
-
-  //Create time-domain window used before the DFT operation
-    hanning(win.Store(),curr_cfg_.fft_size());
-    
-    
     // Adjust spatial window to fit elements used for "SINGLE" and "DUAL" arrays.  Not yet implimented for other arrays.
 
     if (curr_cfg_.array_type() == LamssCBFConfig::SINGLE )
@@ -582,76 +637,142 @@ bool LamssCBF::initialize_beamformer()
       {
 	hanning(win_spatial.Store(),num_elements_used_);
       }
+    else if (curr_cfg_.array_type() == LamssCBFConfig::VOLUME )
+      {
+	for (int k = 1; k <= num_elements_used_; k++)
+	  win_spatial(k) = 1.0;
+      }
 
     sum_win_spatial=0.0;
     for (int k = 1; k <= num_elements_used_; k++)
       sum_win_spatial += win_spatial(k);
     win_spatial=win_spatial/sum_win_spatial;   
   
-    time_window_constant_=0.0;
-    for (int k = 1; k <= curr_cfg_.fft_size(); k++)
-      time_window_constant_ += win(k)*win(k);
-
-    // Hydrophone amplitude gain
-    hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
-
-    if (glog.is(DEBUG1))
-      {
-	glog << "btr_normalization_ = " 
-	     << doubleToString(btr_normalization_) << std::endl;
-	glog << "time_window_constant_ = " 
-	     << doubleToString(time_window_constant_) << std::endl;
-	
-	//    glog << "Array Type = " << ,sArray.c_str());
-	//glog << "Array Definition Type = %d\n",array_definition_type); 
-	// glog << "Beam Sampling Type = ",sSampling.c_str());
-	
-	glog << "Sampling Frequency = " 
-	     << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
-	glog << "Number of Samples in Each File = "
-	     << intToString(curr_cfg_.number_samples()) << std::endl;
-	glog << "Number of Array Elements = "
-	     << intToString(curr_cfg_.number_elements()) << std::endl; 
-	glog << "Number of Array Elements Used = "
-	     << intToString(num_elements_used_) << std::endl;
-	glog << "Sound Speed = " 
-	     << doubleToString(sound_speed_,2) << std::endl;
-	glog << "Number of Beams = " 
-	     << intToString(curr_cfg_.number_beams()) << std::endl ;	
-	glog << "FFT Length = " 
-	     << intToString(curr_cfg_.fft_size()) << std::endl;
-	glog << "Overlap Fraction = "
-	     << doubleToString(curr_cfg_.overlap(),1) << std::endl;
-	glog << "Number of Overlapping Samples " 
-	     << intToString(num_overlapping_samples_) << std::endl;
-	glog << "Desired Integration Time = " 
-	     << doubleToString(curr_cfg_.integration_time()) << std::endl;
-	glog << "Actual Integration Time = "
-	     << doubleToString(actual_integration_,2) << std::endl;
-	glog << "Integration Blocks = "
-	     << intToString(int_blocks_) << std::endl;
-	glog << "Hydrophone Amplitude Gain = "
-	     << doubleToString(hydrophone_amplitude_gain_) << std::endl;
-      }
-
-    if (glog.is(DEBUG2))
-      {
-	glog << "Nominal Element Locations (1:"
-	     << intToString(curr_cfg_.number_elements()) << std::endl;
-	for (int k=1; k <= curr_cfg_.number_elements(); k++)
-	  glog << "[" << intToString(k) << "] = "
-	       << doubleToString(nominal_element_locations(k),2) 
-	       << " m" << std::endl;
-	glog << "Array Elements Used (1:" 
-	     << intToString(num_elements_used_) << std::endl;
-	for(int k=1;k<=num_elements_used_;k++)
-	  glog << "[" << intToString(k) << "] = "
-	       << intToString(array_elements_used[k]) << std::endl;
-	
-      }
-
-    return true;
 }
+
+//***************************************************************************
+//*  LamssCBF::steering_parameters()                          *
+//*                                                                         *
+//*  Generates beam steering parameters.                                    *
+//*************************************************************************** 
+void LamssCBF::steering_parameters()
+{
+  beam_angles.clear();
+  azimuthal_beams.ReSize(curr_cfg_.number_beams_azimuth()); 
+  elevation_beams.ReSize(curr_cfg_.number_beams_elevation()); 
+  
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      double min_radians = 0;
+      double max_radians = M_PI;
+      
+      double min_cos = cos(min_radians);
+      double max_cos = cos(max_radians);
+      
+      if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
+	{
+	  for (int k=1; k <= curr_cfg_.number_beams(); k++)
+	    beam_cosines(k)= min_cos - ((min_cos-max_cos)/(curr_cfg_.number_beams()-1))*(k-1);
+	}
+      else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
+	{
+	  for (int k=1; k <= curr_cfg_.number_beams(); k++)
+	    beam_cosines(k)= cos(min_radians + (k-1) * (max_radians-min_radians)/
+				 curr_cfg_.number_beams()-1 );
+	}
+      
+      // Publish to MOOSDB for use by Tracker
+      //    beam_angles.reserve(curr_cfg_.number_beams());
+      beam_angles.clear();
+      for (int mm=0; mm<curr_cfg_.number_beams();mm++)
+	beam_angles.push_back(acos(beam_cosines(mm+1))*180.0/M_PI);
+    }
+  else if ((curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY) || 
+	   (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION))  
+    {
+      if (curr_cfg_.number_beams_azimuth() == 1)
+	azimuthal_beams(1)=curr_cfg_.max_azimuth();
+      else
+        {
+	  double start_cos;
+	  double end_cos;
+	  
+	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
+            {
+	      if (curr_cfg_.min_azimuth() < 0)
+		start_cos=-cos(curr_cfg_.min_azimuth())+2;
+	      else
+		start_cos = cos(curr_cfg_.min_azimuth());
+	      if (curr_cfg_.max_azimuth() < 0)
+		end_cos=-cos(curr_cfg_.max_azimuth())+2;
+	      else
+		end_cos = cos(curr_cfg_.max_azimuth());
+	      
+	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
+                {
+		  double temp = start_cos - 
+		    ((start_cos-end_cos)/(curr_cfg_.number_beams_azimuth()-1))*(k-1);
+		  if ( temp > 1 )
+		    azimuthal_beams(k) = - acos(-(temp-2));
+		  else
+		    azimuthal_beams(k)=acos(temp);
+                }
+            }
+	  else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
+            {
+	      //Generate azimuthal beam look directions
+	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
+		azimuthal_beams(k) = (curr_cfg_.min_azimuth() + (k-1) * 
+				      (curr_cfg_.max_azimuth()-curr_cfg_.min_azimuth())/
+				      (curr_cfg_.number_beams_azimuth()-1) );
+            }
+        }
+      for (int mm=0; mm<curr_cfg_.number_beams_azimuth();mm++)
+	beam_angles.push_back(azimuthal_beams(mm+1)*180.0/M_PI);
+    }
+  else //ELEVATION_ONLY
+    azimuthal_beams(1)=curr_cfg_.min_azimuth();
+  
+  // ELEVATION ANGLES
+
+  if ((curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY) || 
+      (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION))  
+    {
+      if (curr_cfg_.number_beams_elevation() == 1)
+	elevation_beams(1)=curr_cfg_.max_elevation();
+      else
+	{
+	  double start_sin=sin(curr_cfg_.min_elevation());
+	  double end_sin=sin(curr_cfg_.max_elevation());
+	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
+	    {
+	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
+		elevation_beams(k)= asin(start_sin + (k-1) * 
+					 (end_sin-start_sin)/
+					 (curr_cfg_.number_beams_elevation()-1));
+	    }
+	  else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
+	    {
+	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
+		elevation_beams(k)=(curr_cfg_.min_elevation() + (k-1) * 
+				    (curr_cfg_.max_elevation()-curr_cfg_.min_elevation())/
+				    (curr_cfg_.number_beams_elevation()-1) );
+	    }
+	}
+      if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY)  
+	for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
+	  beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
+    }
+  else //AZIMUTH_ONLY
+    elevation_beams(1)=curr_cfg_.min_elevation();
+
+    string sbeam_data;
+    dbl_vec2str(beam_angles,sbeam_data);
+    publish("BEAM_ANGLES",sbeam_data);
+    
+  return ;
+}
+
 
 void LamssCBF::handle_bin_list(std::string sbin_list)
 {
@@ -713,152 +834,231 @@ void LamssCBF::handle_fc_bw()
 
 void LamssCBF::update_beamforming_vars()
 {
-    double mean_frequency=0.0;
-    for(int k = 1;k <=num_bins_;k++)
+  double mean_frequency=0.0;
+  bin_center_frequencies.ReSize(num_bins_);
+  for(int k = 1;k <=num_bins_;k++)
     {
-      double freq=(curr_cfg_.sampling_frequency()*(bins[k]-1))/curr_cfg_.fft_size(); 
-      mean_frequency += freq;
+      bin_center_frequencies(k)=(curr_cfg_.sampling_frequency()*(bins[k]-1))/
+	curr_cfg_.fft_size(); 
+      mean_frequency += bin_center_frequencies(k);
     }
-    mean_frequency = mean_frequency/num_bins_;
-
-    //RealSignals: flag indicating whether the array element time series are real (true)
-    // or complex (false). Note that currently only real time series are supported.
-    bool RealSignals=true;
-    glog.is(DEBUG1) && glog << "Average Processing Frequency = " 
-			    << doubleToString(mean_frequency,1) << " Hz"
-			    << std::endl;
-    double mean_element_spacing = 0.0;
-    for(int k = 2; k <=num_elements_used_; k++)
-      mean_element_spacing+=(nominal_element_locations(array_elements_used[k]) -
-			     nominal_element_locations(array_elements_used[k-1]));
-    mean_element_spacing=mean_element_spacing/(num_elements_used_ - 1);
-
-    //Set the size of the matrix which contains all of the steering vectors for all beams defined in 
-    //beam_cosines and for all DFT bins of interest
-    //size of S: (NUM_BEAMS*num_bins_) x NUM_ELEMENTS_USED 
-    
-    S_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-    S_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-    
-    //Calculate normalization constant for BTRs
-    
-    if (RealSignals)
-      {
-	btr_normalization_=2.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
-				int_blocks_*num_bins_);
-      }
-    else //complex signals (not currently supported)
-      {	
-	btr_normalization_=1.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
-				int_blocks_*num_bins_);
-      }	
-    
-    btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
-    if (glog.is(DEBUG1))
-      {  
-	glog << "Num Bins = " << intToString(num_bins_) << std::endl;
-	glog << "BTR Normalization Constant = "
-	     << doubleToString(btr_normalization_,2) << std::endl;
-      }
-    if (glog.is(DEBUG2))
-      {  
-	glog << "Beam Cosines (1:" 
-	     << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
-	for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	  glog << "[" << intToString(bins[k]) << "] = "
-	       << doubleToString(beam_cosines(k),2) << " Hz" 
-	       << std::endl;
-	
-	glog << "Processing Frequency Bins (1:"
-	     << intToString(num_bins_) << ")" << std::endl;
-	for(int j = 1;j <= num_bins_;j++)
-	  {
-	    double freq=(curr_cfg_.sampling_frequency()*(bins[j]-1))/curr_cfg_.fft_size();  
-	    glog << "[" << intToString(bins[j]) << "] = "
-		 << doubleToString(freq,2) << " Hz" << std::endl;
-	  }
-	glog << "Spatial Window (1:" 
-	     << intToString(num_elements_used_) << ")" << std::endl;
-	for (int k = 1; k <= num_elements_used_; k++)
-	  glog << "[" << intToString(k) << "] = "
-	       << doubleToString(win_spatial(k),2) << " Hz" 
-	       << std::endl;
-	
-	glog << "Beam Angles (1:" 
-	     << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
-	for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	  glog << "[" << intToString(k+1) << "] = "
-	       << doubleToString(beam_angles[k],2) << " Hz" 
-	       << std::endl;
-      }
-
-    // New PB format
-    BeamformingVars beamforming_vars;
-    beamforming_vars.set_fft_size(curr_cfg_.fft_size());
-    beamforming_vars.set_number_beams(curr_cfg_.number_beams());
-    beamforming_vars.set_overlap(curr_cfg_.overlap());
-    beamforming_vars.set_integration_time(curr_cfg_.integration_time());
-    beamforming_vars.set_sound_speed(sound_speed_);
-    beamforming_vars.set_sampling_frequency(curr_cfg_.sampling_frequency());
-    beamforming_vars.set_num_elements_used(num_elements_used_);
-    beamforming_vars.set_mean_frequency(mean_frequency);
-    beamforming_vars.set_mean_element_spacing(mean_element_spacing);
-    std::string serialized;
-    serialize_for_moos(&serialized,beamforming_vars);    
-    publish("BEAMFORMING_VARS_PB", serialized);
-    
-    // keep old var/val format until pBearingTrack converted to PB
-    std::vector<double> sampling_vars;
-    sampling_vars.clear();
-    sampling_vars.push_back((double) curr_cfg_.fft_size());
-    sampling_vars.push_back((double) curr_cfg_.number_beams());
-    sampling_vars.push_back(curr_cfg_.overlap());
-    sampling_vars.push_back(curr_cfg_.integration_time());
-    sampling_vars.push_back(sound_speed_);
-    sampling_vars.push_back(curr_cfg_.sampling_frequency());
-    sampling_vars.push_back((double) num_elements_used_);
-    sampling_vars.push_back(mean_frequency);
-    sampling_vars.push_back(mean_element_spacing);
-    
-    string s_sampling;
-    dbl_vec2str(sampling_vars,s_sampling);
-    publish("BEAMFORMING_VARS",s_sampling);
-    
+  mean_frequency = mean_frequency/num_bins_;
+  
+  //RealSignals: flag indicating whether the array element time series are real (true)
+  // or complex (false). Note that currently only real time series are supported.
+  bool RealSignals=true;
+  glog.is(DEBUG1) && glog << "Average Processing Frequency = " 
+			  << doubleToString(mean_frequency,1) << " Hz"
+			  << std::endl;
+  double mean_element_spacing = 0.0;
+  if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
+    mean_element_spacing=0.5*sound_speed_/mean_frequency;
+  else
+    {
+      for(int k = 2; k <=num_elements_used_; k++)
+	mean_element_spacing+=(nominal_element_locations(array_elements_used[k]) -
+			       nominal_element_locations(array_elements_used[k-1]));
+      mean_element_spacing=mean_element_spacing/(num_elements_used_ - 1);
+    }
+  //Set the size of the matrix which contains all of the steering vectors for all beams defined in 
+  //beam_cosines and for all DFT bins of interest
+  //size of S: (NUM_BEAMS*num_bins_) x NUM_ELEMENTS_USED 
+  
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      //1D beamformer
+      S_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+      S_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+    }
+  else
+    {
+      Spectrum_real.ReSize(num_bins_, num_elements_used_); 
+      Spectrum_imag.ReSize(num_bins_, num_elements_used_);
+    }
+  
+  //Calculate normalization constant for BTRs
+  
+  if (RealSignals)
+    {
+      btr_normalization_=2.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
+			      int_blocks_*num_bins_);
+    }
+  else //complex signals (not currently supported)
+    {	
+      btr_normalization_=1.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
+			      int_blocks_*num_bins_);
+    }	
+  
+  btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
+  if (glog.is(DEBUG1))
+    {  
+      glog << "Num Bins = " << intToString(num_bins_) << std::endl;
+      glog << "BTR Normalization Constant = "
+	   << doubleToString(btr_normalization_,2) << std::endl;
+    }
+  if (glog.is(DEBUG2))
+    {  
+      glog << "Beam Cosines (1:" 
+	   << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
+      for (int k=1; k <= curr_cfg_.number_beams(); k++)
+	glog << "[" << intToString(bins[k]) << "] = "
+	     << doubleToString(beam_cosines(k),2)  
+	     << std::endl;
+      
+      glog << "Processing Frequency Bins (1:"
+	   << intToString(num_bins_) << ")" << std::endl;
+      for(int j = 1;j <= num_bins_;j++)
+	{
+	  double freq=(curr_cfg_.sampling_frequency()*(bins[j]-1))/curr_cfg_.fft_size();  
+	  glog << "[" << intToString(bins[j]) << "] = "
+	       << doubleToString(freq,2) << " Hz" << std::endl;
+	}
+      glog << "Spatial Window (1:" 
+	   << intToString(num_elements_used_) << ")" << std::endl;
+      for (int k = 1; k <= num_elements_used_; k++)
+	glog << "[" << intToString(k) << "] = "
+	     << doubleToString(win_spatial(k),2) << " Hz" 
+	     << std::endl;
+    }
+  
+  // New PB format
+  BeamformingVars beamforming_vars;
+  beamforming_vars.set_fft_size(curr_cfg_.fft_size());
+  beamforming_vars.set_number_beams(curr_cfg_.number_beams());
+  beamforming_vars.set_overlap(curr_cfg_.overlap());
+  beamforming_vars.set_integration_time(curr_cfg_.integration_time());
+  beamforming_vars.set_sound_speed(sound_speed_);
+  beamforming_vars.set_sampling_frequency(curr_cfg_.sampling_frequency());
+  beamforming_vars.set_num_elements_used(num_elements_used_);
+  beamforming_vars.set_mean_frequency(mean_frequency);
+  beamforming_vars.set_mean_element_spacing(mean_element_spacing);
+  std::string serialized;
+  serialize_for_moos(&serialized,beamforming_vars);    
+  publish("BEAMFORMING_VARS_PB", serialized);
+  
+  // keep old var/val format until pBearingTrack converted to PB
+  std::vector<double> sampling_vars;
+  sampling_vars.clear();
+  sampling_vars.push_back((double) curr_cfg_.fft_size());
+  sampling_vars.push_back((double) curr_cfg_.number_beams());
+  sampling_vars.push_back(curr_cfg_.overlap());
+  sampling_vars.push_back(curr_cfg_.integration_time());
+  sampling_vars.push_back(sound_speed_);
+  sampling_vars.push_back(curr_cfg_.sampling_frequency());
+  sampling_vars.push_back((double) num_elements_used_);
+  sampling_vars.push_back(mean_frequency);
+  sampling_vars.push_back(mean_element_spacing);
+  
+  string s_sampling;
+  dbl_vec2str(sampling_vars,s_sampling);
+  publish("BEAMFORMING_VARS",s_sampling);
+  
 }
 
 void LamssCBF::compute_steering_vectors()
 {
-
-    //Precalculate the steering vectors 
-    //The matrix S has the following structure:
-    //	1)	Each row corresponds to a steering vector for a specific frequency 
-    //          bin and DOA
-    //	2)	size of S: (NUM_BEAMS*num_bins_) x NUM_ELEMENTS_USED 
-    //	3) 	First set of num_bins_ rows correspond to first beam, Second set of 
-    //          num_bins_ rows correspond to second beam, etc.
-
-  glog.is(DEBUG1) && glog << "Computing Steering Vectors" << std::endl;
-  double constant2 = (2*M_PI/sound_speed_);
-  for (int z=1; z <= curr_cfg_.number_beams(); z++)
-    {	
-      for (int k=1; k <= num_bins_; k++)
-	{
-	  double freq = (curr_cfg_.sampling_frequency()*(bins[k]-1))/
-	    curr_cfg_.fft_size();   
-	  for (int m=1; m <= num_elements_used_; m++)
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      glog.is(DEBUG1) && glog << "Computing Steering Vectors" << std::endl;
+      double constant2 = (2*M_PI/sound_speed_);
+      for (int z=1; z <= curr_cfg_.number_beams(); z++)
+	{	
+	  for (int k=1; k <= num_bins_; k++)
 	    {
-	      // When computing the steering vector, I assume that the array elements 
-	      // are aligned along the array axis with the mth
-	      // element used at position -nominal_element_locations(array_elements_used[m]).  
-	      // Note the minus sign.
-	      // This is used in order to have the conical angles referenced from forward endfire. 
-	      double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*freq;
-	      S_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
-	      S_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
-	    }
-	}	
+	      for (int m=1; m <= num_elements_used_; m++)
+		{
+		  // When computing the steering vector, I assume that the array elements 
+		  // are aligned along the array axis with the mth
+		  // element used at position -nominal_element_locations(array_elements_used[m]).  
+		  // Note the minus sign.
+		  // This is used in order to have the conical angles referenced from forward endfire. 
+		  double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*bin_center_frequencies(k);
+		  S_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
+		  S_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
+		}
+	    }	
+	}
     }
-  
+  else
+    {
+      // Azimuth/elevation beamforming
+      double constant3;
+      ColumnVector steering_vector_temp_real;
+      ColumnVector steering_vector_temp_imag;
+      ColumnVector h(4);
+      ColumnVector tau;
+      Matrix nominal_positions123;  
+      
+      steering_vector_real.ReSize(num_elements_used_,
+				  curr_cfg_.number_beams_elevation()*
+				  curr_cfg_.number_beams_azimuth()*
+				  num_bins_);
+      steering_vector_imag.ReSize(num_elements_used_,
+				  curr_cfg_.number_beams_elevation()*
+				  curr_cfg_.number_beams_azimuth()*
+				  num_bins_);
+      nominal_positions123.ReSize(num_elements_used_,3);
+      steering_vector_temp_real.ReSize(num_elements_used_);
+      steering_vector_temp_imag.ReSize(num_elements_used_);
+      constant3 = -1.0/sound_speed_;
+      
+      h(1)=1.0;
+      double pitch = round( pitch_filter.getAvg() );
+      int q = 1;
+      //      double pitch = 0;
+      if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
+        {
+	  for (int m=1; m <= num_elements_used_; m++)
+            {
+	      nominal_positions123(m,1)=array_x(array_elements_used[m]);
+	      nominal_positions123(m,2)=array_y(array_elements_used[m])*cos(pitch)-
+		array_z(array_elements_used[m])*sin(pitch);
+	      nominal_positions123(m,3)=array_z(array_elements_used[m])*cos(pitch)+
+		array_y(array_elements_used[m])*sin(pitch);
+            }
+        }
+      else
+        {
+	  for (int m=1; m <= num_elements_used_; m++)
+            {
+	      nominal_positions123(m,1)=0.0;
+	      nominal_positions123(m,2)=
+		-nominal_element_locations(array_elements_used[m])*cos(pitch);
+	      nominal_positions123(m,3)=
+		-nominal_element_locations(array_elements_used[m])*sin(pitch);
+            }
+        }
+      for (int bb=1; bb <= curr_cfg_.number_beams_elevation(); bb++)
+        {
+	  for (int z=1; z <= curr_cfg_.number_beams_azimuth(); z++)
+            {
+	      h(2)=sin(azimuthal_beams(z))*cos(elevation_beams(bb));
+	      h(3)=cos(azimuthal_beams(z))*cos(elevation_beams(bb));
+	      h(4)=sin(elevation_beams(bb));
+	      tau=(nominal_positions123*h.Rows(2,4))*constant3;  //Note that unit vector u=h(2:4)
+	      for (int k=1; k <= num_bins_; k++)
+                {
+		  int manifold_index=k+(z-1)*num_bins_+
+		    (bb-1)*curr_cfg_.number_beams_azimuth()*num_bins_ +
+		    (q-1)*curr_cfg_.number_beams_elevation() *
+		    curr_cfg_.number_beams_azimuth()*num_bins_;
+		  for (int m=1; m <= num_elements_used_; m++)
+                    {
+		      double temp=-2*M_PI*tau(m)*bin_center_frequencies(k);
+		      steering_vector_temp_real(m)=cos(temp)*win_spatial(m);  
+		      steering_vector_temp_imag(m)=sin(temp)*win_spatial(m);
+                    }
+		  steering_vector_real.Column(manifold_index)=steering_vector_temp_real;
+		  steering_vector_imag.Column(manifold_index)=steering_vector_temp_imag;
+		}
+	    }    
+        }
+      nominal_positions123.CleanUp();
+      steering_vector_temp_real.CleanUp();
+      steering_vector_temp_imag.CleanUp();
+      tau.CleanUp();
+      h.CleanUp();
+    }
 }
 
 //***************************************************************************

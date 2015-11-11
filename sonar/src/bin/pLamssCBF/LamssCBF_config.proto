@@ -15,6 +15,7 @@ message LamssCBFConfig
   SINGLE = 5;
   DUAL = 6;
   TEE = 7;
+  VOLUME = 8;
   }
   optional SamplingEnum  sampling   = 3 [default = EQUALLY_SPACED_WAVENUMBER];
   enum SamplingEnum {
@@ -50,18 +51,25 @@ message LamssCBFConfig
   optional double integration_time  = 21 [default = 1];
   optional double sound_speed  = 22 [default = 1500];
   optional string array_elements_used = 23;
-  optional AngularSteeringTypeEnum anglular_steering_type = 24;
+
+  optional AngularSteeringTypeEnum angular_steering_type = 24;
   enum AngularSteeringTypeEnum {
      ARRAY_ANGLE = 1;
-     AZIMUTH = 2;
-     ELEVATION = 3;
+     AZIMUTH_ONLY = 2;
+     ELEVATION_ONLY = 3;
      AZIMUTH_AND_ELEVATION = 4;
   }
   optional int32  number_beams_azimuth = 25 [default = 47];
+  optional double min_azimuth = 61 [default = 0];
+  optional double max_azimuth = 62 [default = 360];
+
   optional int32  number_beams_elevation = 26 [default =47];
+  optional double min_elevation = 71 [default = 0];
+  optional double max_elevation = 72 [default = 360];
 
   optional bool   delete_data_files = 27 [default = false];
   optional bool   check_consecutive_zeros = 28 [default = false];
+
   optional ProcessingTypeEnum processing_type = 29 [default =  BROADBAND];
   enum ProcessingTypeEnum {
      BROADBAND = 1;
