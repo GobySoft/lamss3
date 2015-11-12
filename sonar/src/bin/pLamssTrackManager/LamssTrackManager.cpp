@@ -152,9 +152,23 @@ void LamssTrackManager::loop()
       postStateVars();
     }
 
+// process some events at a slower rate
+    const int slow_loop_period = 10;
+    if(curr_time > last_slow_loop_t_ + slow_loop_period)
+        slow_loop(curr_time);
+
+
+}
+
+void LamssTrackManager::slow_loop(double curr_time)
+{
+  // Here we should add slow loop actions.
+
   //
   // update search mode
   //
+  boost::mutex::scoped_try_lock lk(moos_mutex_);
+
   if ( prosecute_mode_active_ && detection_active_ )
     {
       //update time since contact was seen
@@ -189,8 +203,16 @@ void LamssTrackManager::loop()
 
       if ( !opportunity )
 	{
-	  glog.is(DEBUG1) && glog << "Cannot reach target - Deploy Commanded" 
-				  << std::endl;
+	  if (glog.is(DEBUG1))
+	    {
+	      glog << "Cannot reach target - Deploy Commanded" << std::endl;
+	      glog << "curr_cue_x =" << curr_cue_x << std::endl;
+	      glog << "curr_cue_y =" << curr_cue_y << std::endl;
+	      glog << "cue_heading_ =" << cue_heading_ << std::endl;
+	      glog << "cue_speed_ =" << cue_speed_ << std::endl;
+	      glog << "auv_x =" << auv_x << std::endl;
+	      glog << "auv_y =" << auv_y << std::endl;
+	    }
 	  send_deploy();
 	}
       else if (cue_in_range_)
@@ -237,18 +259,6 @@ void LamssTrackManager::loop()
 	  publish ("CLASS_DONE","TRUE");
 	}
     }
-
-// process some events at a slower rate
-    const int slow_loop_period = 10;
-    if(curr_time > last_slow_loop_t_ + slow_loop_period)
-        slow_loop(curr_time);
-
-
-}
-
-void LamssTrackManager::slow_loop(double curr_time)
-{
-  // Here we should add slow loop actions.
 
   last_slow_loop_t_ = curr_time;
 }
@@ -543,6 +553,12 @@ void LamssTrackManager::send_prosecute()
   auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
   auto_prosecute_cmd_.set_target_timestamp(current_time_);
   auto_prosecute_cmd_.set_target_number(1);
+  cue_utc_ = auto_prosecute_cmd_.target_timestamp();
+  cue_x_ = auto_prosecute_cmd_.target_x();
+  cue_y_ = auto_prosecute_cmd_.target_y();
+  cue_heading_= auto_prosecute_cmd_.target_heading();
+  cue_speed_ = auto_prosecute_cmd_.target_speed();
+  cue_depth_ = auto_prosecute_cmd_.target_depth();
   
   std::string serialized;
   serialize_for_moos(&serialized,auto_prosecute_cmd_);    
