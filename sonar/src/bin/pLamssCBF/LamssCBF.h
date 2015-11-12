@@ -160,12 +160,11 @@ class LamssCBF : public GobyMOOSApp
     // 1D beamformer
     Matrix       S_real;
     Matrix       S_imag;
-    double *P;
-    double *P_max;
+
     // 2D beamformer
     Matrix       Spectrum_real;
     Matrix       Spectrum_imag;
-    Matrix P_2D;
+    Matrix P;
 
     std::vector<double> beam_angles;
 	

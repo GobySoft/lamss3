@@ -478,23 +478,21 @@ bool LamssCBF::initialize_beamformer()
   
   if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
     {
-      P = new double[curr_cfg_.number_beams()+1];
-      P_max = new double[curr_cfg_.number_beams()+1];
-      zeros(P,curr_cfg_.number_beams()+1);
-      zeros(P_max,curr_cfg_.number_beams()+1);
+      P.ReSize(1,curr_cfg_.number_beams());
+      P = 0.0;
     }
   else
     {
       //Set the size of a few NEWMAT arrays 
-      P_2D.ReSize(curr_cfg_.number_beams_elevation(),curr_cfg_.number_beams_azimuth());
-      P_2D = 0.0;    //Initialize all elements of BTR vector to zero
+      P.ReSize(curr_cfg_.number_beams_elevation(),curr_cfg_.number_beams_azimuth());
+      P = 0.0;    //Initialize all elements of BTR vector to zero
     }
 
   beam_cosines.ReSize(curr_cfg_.number_beams());
   Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
 		    curr_cfg_.number_elements());
-  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
-  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
+  //  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
+  //  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
   //Create time-domain window used before the DFT operation
   hanning(win.Store(),curr_cfg_.fft_size());
       
@@ -864,17 +862,8 @@ void LamssCBF::update_beamforming_vars()
   //beam_cosines and for all DFT bins of interest
   //size of S: (NUM_BEAMS*num_bins_) x NUM_ELEMENTS_USED 
   
-  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
-    {
-      //1D beamformer
-      S_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-      S_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-    }
-  else
-    {
-      Spectrum_real.ReSize(num_bins_, num_elements_used_); 
-      Spectrum_imag.ReSize(num_bins_, num_elements_used_);
-    }
+  Spectrum_real.ReSize(num_bins_, num_elements_used_); 
+  Spectrum_imag.ReSize(num_bins_, num_elements_used_);
   
   //Calculate normalization constant for BTRs
   
@@ -917,7 +906,7 @@ void LamssCBF::update_beamforming_vars()
 	   << intToString(num_elements_used_) << ")" << std::endl;
       for (int k = 1; k <= num_elements_used_; k++)
 	glog << "[" << intToString(k) << "] = "
-	     << doubleToString(win_spatial(k),2) << " Hz" 
+	     << doubleToString(win_spatial(k),2)  
 	     << std::endl;
     }
   
@@ -959,8 +948,12 @@ void LamssCBF::compute_steering_vectors()
 {
   if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
     {
+      //1D beamformer
       glog.is(DEBUG1) && glog << "Computing Steering Vectors" << std::endl;
       double constant2 = (2*M_PI/sound_speed_);
+      S_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+      S_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+
       for (int z=1; z <= curr_cfg_.number_beams(); z++)
 	{	
 	  for (int k=1; k <= num_bins_; k++)
@@ -1265,7 +1258,7 @@ bool LamssCBF::Process_Data()
 
   Real P_real, P_imag, temp2;
   ColumnVector s_real,s_imag;
-  double elapsed, tk, tk_max;
+  double elapsed;
   double maxsum=0;
 
   int w = 0;
@@ -1282,132 +1275,108 @@ bool LamssCBF::Process_Data()
 	  windowed_data=SP(Array_Data.SubMatrix(buff_index_+1,
 						buff_index_+curr_cfg_.fft_size(),
 						array_elements_used[k],
-						array_elements_used[k]),
-			   win);
+						array_elements_used[k]), win);
 	  RealFFT (windowed_data, s_real, s_imag);
-	  Spectrum_real.Column(k) = s_real;
-	  Spectrum_imag.Column(k) = s_imag;
-	}
-
-      double beamsum=0;
-      
-      double P_temp[curr_cfg_.number_beams()+1];
-      //Find Power Spectrum
-      for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	{
-	  temp2=0;
 	  for (int m=1; m <= num_bins_; m++)
 	    {
-	      int idx1 = (m+num_bins_*(k-1));
-	      int idx2 = bins[m];
-	      P_real=DotProduct(S_real.Row(idx1),Spectrum_real.Row(idx2)) + 
-		DotProduct(S_imag.Row(idx1),Spectrum_imag.Row(idx2));	
-	      P_imag=DotProduct(S_real.Row(idx1),Spectrum_imag.Row(idx2)) - 
-		DotProduct(S_imag.Row(idx1),Spectrum_real.Row(idx2));
-	      temp2=temp2+P_real*P_real+P_imag*P_imag;
+	      Spectrum_real(m,k) = s_real(bins[m]) ;
+	      Spectrum_imag(m,k) = s_imag(bins[m]) ;
 	    }
-	  beamsum=beamsum+temp2;
-	  P[k] = P[k] + temp2;
-	  P_temp[k]=temp2;
 	}
-	if (beamsum > maxsum)
-	  {
-	    for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	      P_max[k]=P_temp[k];
-	    maxsum=beamsum;
-	  }
-	num_blocks_integrated_++;
+      double beamsum=0;
+      
+      //Find Power Spectrum
+      int vbeams;
+      int hbeams;
 
-	if (num_blocks_integrated_ == int_blocks_)
-	  {	
-	    sprintf (bpwr_file, "%s/%s%09d%s", sonar_dir_.c_str(), "HYD", 
-		     frame_number_, ".bpw");
-	    double max_power = 0;
-	    double best_ang = 0;
-	    double max_power_max = 0;
-	    
-	    double best_ang_max = -1;
-	    
-	    lamss::protobuf::BTR btr_msg;
-	    std::string serialized;
-	    
-	    btr_msg.set_time(MOOSTime());
-	    
-	    //**************************************************  
-	    // Publish the content of the btr file in MOOSDB 
-	    for (int mm=0; mm<=curr_cfg_.number_beams()-1;mm++) 
-	      {  
-		tk=P[mm+1]*btr_normalization_; //Power Calibration AJP 2NOV2010
-		tk_max=P_max[mm+1]*btr_normalization_; //Power Calibration AJP 2NOV2010
-		btr_msg.add_beam_power_db(10.0*log10(tk));
-		if (tk > max_power){
-		  max_power = tk;
-		  best_ang=beam_angles[mm];
+      if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+	{
+	  vbeams = 1;
+	  hbeams = curr_cfg_.number_beams();
+	}
+      else
+	{
+	  vbeams = curr_cfg_.number_beams_elevation();
+	  hbeams = curr_cfg_.number_beams_azimuth();
+	} 
+      P = 0.0;
+      for (int bb=1; bb <= vbeams; bb++)
+	{
+	  for (int k=1; k <= hbeams; k++)
+	    {
+	      temp2=0;
+	      for (int m=1; m <= num_bins_; m++)
+		{
+		  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+		    {
+		      int idx1 = m+num_bins_*(k-1);
+		      P_real=DotProduct(S_real.Row(idx1),Spectrum_real.Row(m)) + 
+			DotProduct(S_imag.Row(idx1),Spectrum_imag.Row(m));	
+		      P_imag=DotProduct(S_real.Row(idx1),Spectrum_imag.Row(m)) - 
+			DotProduct(S_imag.Row(idx1),Spectrum_real.Row(m));
+		    }
+		  else
+		    {
+		      int idx1 = m+num_bins_*(k-1)+(bb-1)*hbeams*num_bins_;
+		      P_real=DotProduct(steering_vector_real.Column(idx1),
+					Spectrum_real.Row(m)) + 
+			     DotProduct(steering_vector_imag.Column(idx1),
+			  	        Spectrum_imag.Row(m));
+		      P_imag=DotProduct(steering_vector_real.Column(idx1),
+					Spectrum_imag.Row(m)) - 
+			     DotProduct(steering_vector_imag.Column(idx1),
+					Spectrum_real.Row(m));
+		    }
+		  temp2=temp2+P_real*P_real+P_imag*P_imag;
 		}
-		if (tk_max > max_power_max){
-		  max_power_max = tk_max;
-		  best_ang_max=beam_angles[mm];
-		}
+	      beamsum=beamsum+temp2;
+	      P(bb,k) = P(bb,k) + temp2;
+	    }
+	}
+      num_blocks_integrated_++;
 
-	        sprintf(cc,"%e",tk); 
-	        for(int o=0;cc[o]!='\0';o++) 
-		  { 
-		    buff1[n]= cc[o]; 
-		    n++; 
-		  } 
-	        if (mm!=curr_cfg_.number_beams()-1) 
-		  { 
-		    buff1[n] = ','; 
-		    n++; 
-		  } 
-		sprintf(cc_max,"%e",tk_max); 
-	        for(int o=0;cc_max[o]!='\0';o++) 
-		  { 
-		    buff1_max[n_max]= cc_max[o]; 
-		    n_max++; 
-		  } 
-	        if (mm!=curr_cfg_.number_beams()-1) 
-		  { 
-		    buff1_max[n_max] = ','; 
-		    n_max++; 
-		  } 
-	      } 
-	    dd= (char *) malloc(n+1);  
-	    dd_max= (char *) malloc(n_max+1);  
-	    for (int g=0;g<n;g++) 
-	      dd[g]=buff1[g]; 
-	    for (int g=0;g<n_max;g++) 
-	      dd_max[g]=buff1_max[g]; 
-	    
-	    dd[n]='\0'; 
-	    n=0; 
-	    
-	    dd_max[n_max]='\0'; 
-	    n_max=0; 
-	    cout << "best angle is " << best_ang_max << endl;
-	    
-	    serialize_for_moos(&serialized,btr_msg);    
-	    publish("BTR_DATA_DB", serialized);
-	    
-	    publish("MAX_BEAM_POWER",max_power);
-	    //threshold: publish max_beam_angle if max_beam_power is above some value:
-	    publish("MAX_BEAM_POWER_MAX",max_power_max);
-	    publish("MAX_BEAM_ANGLE",best_ang_max);
-	    publish("BEAM_DATA",dd); 
-	    
-	    publish("BEAM_DATA_MAX",dd_max); 
-	    free(dd); 
-	    free(dd_max); 
-	    //**************************************************
-	    
-	    zeros(P,curr_cfg_.number_beams()+1);
-	    zeros(P_max,curr_cfg_.number_beams()+1);
-	    num_blocks_integrated_ = 0;
-	    w++;
-	  }  //end if (num_blocks_integrated_ == int_blocks)
-	
-        z++;
-        buff_index_ = (int) (z*(curr_cfg_.fft_size() - num_overlapping_samples_));
+      if (num_blocks_integrated_ == int_blocks_)
+	{	
+	  double max_power = 0;
+	  bool nan_in_BTR = false;
+	  double best_ang = 0;
+	  string P_string_dB="";
+	  string P_string_linear="";
+	  
+	  lamss::protobuf::BTR btr_msg;
+	  std::string serialized;
+	  
+	  for (int elev=1; elev<=vbeams; elev++)
+	    {
+	      for (int azim=1; azim<=hbeams; azim++)
+		{  
+		  double tk=P(elev,azim)*btr_normalization_;       
+		  btr_msg.add_beam_power_db(10.0*log10(tk));
+		  if (tk > max_power)
+		    {
+		      max_power = tk;
+		    }
+		  if (isnan(tk))
+		    nan_in_BTR = true;
+		  if (tk > max_power)
+		    max_power = tk;
+		  P_string_linear+=doubleToString(tk);
+		  if (elev < vbeams || azim < hbeams)
+		    P_string_linear+=",";
+		}
+	    }
+	  serialize_for_moos(&serialized,btr_msg);    
+	  publish("BTR_DATA_DB", serialized);
+	  
+	  publish("MAX_BEAM_POWER",max_power);
+	  publish("BEAM_DATA",P_string_linear); 
+	  
+	  num_blocks_integrated_ = 0;
+	  w++;
+	}  //end if (num_blocks_integrated_ == int_blocks)
+      
+      z++;
+      buff_index_ = (int) (z*(curr_cfg_.fft_size() - num_overlapping_samples_));
     }		
   return true;
 } // end LamssCBF::Process_Data()
@@ -1422,9 +1391,6 @@ void LamssCBF::clear_buffers()
 {
   delete [] array_elements_used;
   delete [] bins;
-  delete [] P;
-  delete [] P_max;
-
 }
 
 void LamssCBF::hanning(Real *window, int M)
