@@ -506,65 +506,58 @@ bool LamssCBF::initialize_beamformer()
   // Hydrophone amplitude gain
   hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
   
-  if (glog.is(DEBUG1))
-    {
-      glog << "btr_normalization_ = " 
-	   << doubleToString(btr_normalization_) << std::endl;
-      glog << "time_window_constant_ = " 
-	   << doubleToString(time_window_constant_) << std::endl;
-      
-      //    glog << "Array Type = " << ,sArray.c_str());
-      //glog << "Array Definition Type = %d\n",array_definition_type); 
-      // glog << "Beam Sampling Type = ",sSampling.c_str());
-      
-      glog << "Sampling Frequency = " 
-	   << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
-      glog << "Number of Samples in Each File = "
-	   << intToString(curr_cfg_.number_samples()) << std::endl;
-      glog << "Number of Array Elements = "
-	   << intToString(curr_cfg_.number_elements()) << std::endl; 
-      glog << "Number of Array Elements Used = "
-	   << intToString(num_elements_used_) << std::endl;
-      glog << "Sound Speed = " 
-	   << doubleToString(sound_speed_,2) << std::endl;
-      glog << "Number of Beams = " 
-	   << intToString(curr_cfg_.number_beams()) << std::endl ;	
-      glog << "FFT Length = " 
-	   << intToString(curr_cfg_.fft_size()) << std::endl;
-      glog << "Overlap Fraction = "
-	   << doubleToString(curr_cfg_.overlap(),1) << std::endl;
-      glog << "Number of Overlapping Samples " 
-	   << intToString(num_overlapping_samples_) << std::endl;
-      glog << "Desired Integration Time = " 
-	   << doubleToString(curr_cfg_.integration_time()) << std::endl;
-      glog << "Actual Integration Time = "
-	   << doubleToString(actual_integration_,2) << std::endl;
-      glog << "Integration Blocks = "
-	   << intToString(int_blocks_) << std::endl;
-      glog << "Hydrophone Amplitude Gain = "
-	   << doubleToString(hydrophone_amplitude_gain_) << std::endl;
-    }
+  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
+			  << doubleToString(btr_normalization_) << std::endl;
+  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
+			  << doubleToString(time_window_constant_) << std::endl;
   
-  if (glog.is(DEBUG2))
-    {
-      glog << "Nominal Element Locations (1:"
-	   << intToString(curr_cfg_.number_elements()) << std::endl;
-      for (int k=1; k <= curr_cfg_.number_elements(); k++)
-	glog << "[" << intToString(k) << "] = "
-	     << doubleToString(nominal_element_locations(k),2) 
-	     << " m" << std::endl;
-      glog << "Array Elements Used (1:" 
-	   << intToString(num_elements_used_) << std::endl;
-      for(int k=1;k<=num_elements_used_;k++)
-	glog << "[" << intToString(k) << "] = "
-	     << intToString(array_elements_used[k]) << std::endl;
-      glog << "Beam Angles (1:" 
-	   << intToString(curr_cfg_.number_beams()) << std::endl;
-      for(int k=1;k<=curr_cfg_.number_beams();k++)
-	glog << "[" << intToString(k) << "] = "
-	     << doubleToString(beam_angles[k],1) << std::endl;
-      
-    }
+  //    glog << "Array Type = " << ,sArray.c_str());
+  //glog << "Array Definition Type = %d\n",array_definition_type); 
+  // glog << "Beam Sampling Type = ",sSampling.c_str());
+  
+  glog.is(DEBUG1) && glog << "Sampling Frequency = " 
+			  << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
+  glog.is(DEBUG1) && glog << "Number of Samples in Each File = "
+			  << intToString(curr_cfg_.number_samples()) << std::endl;
+  glog.is(DEBUG1) && glog << "Number of Array Elements = "
+			  << intToString(curr_cfg_.number_elements()) << std::endl; 
+  glog.is(DEBUG1) && glog << "Number of Array Elements Used = "
+			  << intToString(num_elements_used_) << std::endl;
+  glog.is(DEBUG1) && glog << "Sound Speed = " 
+			  << doubleToString(sound_speed_,2) << std::endl;
+  glog.is(DEBUG1) && glog << "Number of Beams = " 
+			  << intToString(curr_cfg_.number_beams()) << std::endl ;	
+  glog.is(DEBUG1) && glog << "FFT Length = " 
+			  << intToString(curr_cfg_.fft_size()) << std::endl;
+  glog.is(DEBUG1) && glog << "Overlap Fraction = "
+			  << doubleToString(curr_cfg_.overlap(),1) << std::endl;
+  glog.is(DEBUG1) && glog << "Number of Overlapping Samples " 
+			  << intToString(num_overlapping_samples_) << std::endl;
+  glog.is(DEBUG1) && glog << "Desired Integration Time = " 
+			  << doubleToString(curr_cfg_.integration_time()) << std::endl;
+  glog.is(DEBUG1) && glog << "Actual Integration Time = "
+			  << doubleToString(actual_integration_,2) << std::endl;
+  glog.is(DEBUG1) && glog << "Integration Blocks = "
+			  << intToString(int_blocks_) << std::endl;
+  glog.is(DEBUG1) && glog << "Hydrophone Amplitude Gain = "
+			  << doubleToString(hydrophone_amplitude_gain_) << std::endl;
+  
+  glog.is(DEBUG2) && glog << "Nominal Element Locations (1:"
+			  << intToString(curr_cfg_.number_elements()) << std::endl;
+  for (int k=1; k <= curr_cfg_.number_elements(); k++)
+    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+			    << doubleToString(nominal_element_locations(k),2) 
+			    << " m" << std::endl;
+  glog.is(DEBUG2) && glog << "Array Elements Used (1:" 
+			  << intToString(num_elements_used_) << std::endl;
+  for(int k=1;k<=num_elements_used_;k++)
+    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+			    << intToString(array_elements_used[k]) << std::endl;
+  glog.is(DEBUG2) && glog << "Beam Angles (1:" 
+			  << intToString(curr_cfg_.number_beams()) << std::endl;
+  for(int k=1;k<=curr_cfg_.number_beams();k++)
+    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+			    << doubleToString(beam_angles[k],1) << std::endl;
   
   return true;
 }
@@ -848,16 +841,6 @@ void LamssCBF::update_beamforming_vars()
   glog.is(DEBUG1) && glog << "Average Processing Frequency = " 
 			  << doubleToString(mean_frequency,1) << " Hz"
 			  << std::endl;
-  double mean_element_spacing = 0.0;
-  if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
-    mean_element_spacing=0.5*sound_speed_/mean_frequency;
-  else
-    {
-      for(int k = 2; k <=num_elements_used_; k++)
-	mean_element_spacing+=(nominal_element_locations(array_elements_used[k]) -
-			       nominal_element_locations(array_elements_used[k-1]));
-      mean_element_spacing=mean_element_spacing/(num_elements_used_ - 1);
-    }
   //Set the size of the matrix which contains all of the steering vectors for all beams defined in 
   //beam_cosines and for all DFT bins of interest
   //size of S: (NUM_BEAMS*num_bins_) x NUM_ELEMENTS_USED 
@@ -879,37 +862,43 @@ void LamssCBF::update_beamforming_vars()
     }	
   
   btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
-  if (glog.is(DEBUG1))
-    {  
-      glog << "Num Bins = " << intToString(num_bins_) << std::endl;
-      glog << "BTR Normalization Constant = "
+
+  glog.is(DEBUG1) && glog << "Num Bins = " << intToString(num_bins_) << std::endl;
+  glog.is(DEBUG1) && glog << "BTR Normalization Constant = "
 	   << doubleToString(btr_normalization_,2) << std::endl;
-    }
-  if (glog.is(DEBUG2))
-    {  
-      glog << "Beam Cosines (1:" 
-	   << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
-      for (int k=1; k <= curr_cfg_.number_beams(); k++)
-	glog << "[" << intToString(bins[k]) << "] = "
+  glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
+			  << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
+  for (int k=1; k <= curr_cfg_.number_beams(); k++)
+    glog.is(DEBUG2) && glog << "[" << intToString(bins[k]) << "] = "
 	     << doubleToString(beam_cosines(k),2)  
 	     << std::endl;
       
-      glog << "Processing Frequency Bins (1:"
-	   << intToString(num_bins_) << ")" << std::endl;
-      for(int j = 1;j <= num_bins_;j++)
-	{
-	  double freq=(curr_cfg_.sampling_frequency()*(bins[j]-1))/curr_cfg_.fft_size();  
-	  glog << "[" << intToString(bins[j]) << "] = "
-	       << doubleToString(freq,2) << " Hz" << std::endl;
-	}
-      glog << "Spatial Window (1:" 
-	   << intToString(num_elements_used_) << ")" << std::endl;
-      for (int k = 1; k <= num_elements_used_; k++)
-	glog << "[" << intToString(k) << "] = "
-	     << doubleToString(win_spatial(k),2)  
-	     << std::endl;
+  glog.is(DEBUG2) && glog << "Processing Frequency Bins (1:"
+			  << intToString(num_bins_) << ")" << std::endl;
+  for(int j = 1;j <= num_bins_;j++)
+    {
+      double freq=(curr_cfg_.sampling_frequency()*(bins[j]-1))/curr_cfg_.fft_size();  
+      glog.is(DEBUG2) && glog << "[" << intToString(bins[j]) << "] = "
+			      << doubleToString(freq,2) << " Hz" << std::endl;
     }
+  glog.is(DEBUG2) && glog << "Spatial Window (1:" 
+			  << intToString(num_elements_used_) << ")" << std::endl;
+  for (int k = 1; k <= num_elements_used_; k++)
+    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+			    << doubleToString(win_spatial(k),2)  
+			    << std::endl;
   
+  double mean_element_spacing = 0.0;
+  if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
+    mean_element_spacing=0.5*sound_speed_/mean_frequency;
+  else
+    {
+      for(int k = 2; k <=num_elements_used_; k++)
+	mean_element_spacing+=(nominal_element_locations(array_elements_used[k]) -
+			       nominal_element_locations(array_elements_used[k-1]));
+      mean_element_spacing=mean_element_spacing/(num_elements_used_ - 1);
+    }
+
   // New PB format
   BeamformingVars beamforming_vars;
   beamforming_vars.set_fft_size(curr_cfg_.fft_size());
@@ -941,6 +930,7 @@ void LamssCBF::update_beamforming_vars()
   string s_sampling;
   dbl_vec2str(sampling_vars,s_sampling);
   publish("BEAMFORMING_VARS",s_sampling);
+
   
 }
 
