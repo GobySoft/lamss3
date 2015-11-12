@@ -203,16 +203,13 @@ void LamssTrackManager::slow_loop(double curr_time)
 
       if ( !opportunity )
 	{
-	  if (glog.is(DEBUG1))
-	    {
-	      glog << "Cannot reach target - Deploy Commanded" << std::endl;
-	      glog << "curr_cue_x =" << curr_cue_x << std::endl;
-	      glog << "curr_cue_y =" << curr_cue_y << std::endl;
-	      glog << "cue_heading_ =" << cue_heading_ << std::endl;
-	      glog << "cue_speed_ =" << cue_speed_ << std::endl;
-	      glog << "auv_x =" << auv_x << std::endl;
-	      glog << "auv_y =" << auv_y << std::endl;
-	    }
+	  glog.is(DEBUG1) && glog << "Cannot reach target - Deploy Commanded" << std::endl;
+	  glog.is(DEBUG1) && glog << "curr_cue_x =" << curr_cue_x << std::endl;
+	  glog.is(DEBUG1) && glog << "curr_cue_y =" << curr_cue_y << std::endl;
+	  glog.is(DEBUG1) && glog << "cue_heading_ =" << cue_heading_ << std::endl;
+	  glog.is(DEBUG1) && glog << "cue_speed_ =" << cue_speed_ << std::endl;
+	  glog.is(DEBUG1) && glog << "auv_x =" << auv_x << std::endl;
+	  glog.is(DEBUG1) && glog << "auv_y =" << auv_y << std::endl;
 	  send_deploy();
 	}
       else if (cue_in_range_)
@@ -244,7 +241,7 @@ void LamssTrackManager::slow_loop(double curr_time)
 	",heading=" + doubleToString(cue_heading_,1) +
 	",speed=" + doubleToString(cue_speed_,2) +
 	",time=" + doubleToString(current_time_,2);
-      m_Comms.Notify("TRACK_STAT",buff); 
+      publish("TRACK_STAT",buff); 
     }
   // 
   // Update classify mode
@@ -379,6 +376,13 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   cue_speed_ = last_prosecute_cmd_.target_speed();
   cue_depth_ = last_prosecute_cmd_.target_depth();
 
+  glog.is(DEBUG1) && glog << "handle_prosecute:" << std::endl;
+  glog.is(DEBUG1) && glog << "cue_x_ =" << cue_x_ << std::endl;
+  glog.is(DEBUG1) && glog << "cue_y_ =" << cue_y_ << std::endl;
+  glog.is(DEBUG1) && glog << "cue_heading_ =" << cue_heading_ << std::endl;
+  glog.is(DEBUG1) && glog << "cue_speed_ =" << cue_speed_ << std::endl;
+  glog.is(DEBUG1) && glog << "cue_depth_ =" << cue_speed_ << std::endl;
+  
   double auv_x =last_nav_.local_fix().x();
   double auv_y =last_nav_.local_fix().y();
   //bearing to target 
@@ -445,6 +449,7 @@ void LamssTrackManager::handle_mission_state(const CMOOSMsg& msg)
   deploy_mode_active_ = MOOSStrCmp(mission_state,"DEPLOY"); 
   prosecute_mode_active_ = MOOSStrCmp(mission_state,"PROSECUTE");
   mission_active_ = deploy_mode_active_ || prosecute_mode_active_;
+  glog.is(DEBUG1) && glog << "MISSION_STATE=" << mission_state << std::endl;
   if (mission_active_)
     reset_tracking();
 }
@@ -465,27 +470,34 @@ void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
 {
   std::string sval = msg.GetString();
   CTrack TrackBuf;
-  TrackBuf.decodeTrack(sval);
-  int in_trk= TrackBuf.trk_num;
-  if ( in_trk > num_tracks )
+  if (TrackBuf.decodeTrack(sval))
     {
-      glog.is(DEBUG2) && glog 
-	<< "Non-existing track number " << in_trk
-	<< ". Adding new track" << std::endl;
-      for (int i=num_tracks; i< in_trk; i++)
+      int in_trk= TrackBuf.trk_num;
+      if ( in_trk > num_tracks )
 	{
-	  Tracks.push_back(Empty);
-	  new_track.push_back(false);
+	  glog.is(DEBUG2) && glog 
+	    << "Non-existing track number " << in_trk
+	    << ". Adding new track" << std::endl;
+	  for (int i=num_tracks; i< in_trk; i++)
+	    {
+	      Tracks.push_back(Empty);
+	      new_track.push_back(false);
+	    }
+	  num_tracks = in_trk;
 	}
-      num_tracks = in_trk;
+      Tracks[in_trk-1]=TrackBuf;
+      new_track[in_trk-1] = true;
+      std::string moosvar;
+      
+      Tracks[in_trk-1].postTrack(moosvar,sval);
+      // goby::glog << group("track") 
+      glog.is(DEBUG2) && glog 
+	<< "New track: " << sval << std::endl;
     }
-  Tracks[in_trk-1]=TrackBuf;
-  new_track[in_trk-1] = true;
-  std::string moosvar;
-  Tracks[in_trk-1].postTrack(moosvar,sval);
-  // goby::glog << group("track") 
-    glog.is(DEBUG2) && glog 
-	     << "New track: " << sval << std::endl;
+  else
+    {
+      reset_tracking();
+    }
 }
 
 void LamssTrackManager::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
@@ -900,6 +912,8 @@ bool LamssTrackManager::postStateVars()
   int highest_prio = 0;
   int highest_index = -1;
 
+  boost::mutex::scoped_lock lock(moos_mutex_);
+
   // If prosecuting, concentrate on cued template (tgt_track_id)
   for (int i=0; i<num_tracks; i++)
     { 
@@ -959,7 +973,7 @@ bool LamssTrackManager::postStateVars()
 				       trk_rate_sigma, trk_snr, trk_utc, 
 				       class_features);
 	// goby::glog << group("track") 
-	glog.is(DEBUG2) && glog 
+	glog.is(DEBUG1) && glog 
 	  << "Highest=" << highest_index
 	  << ", trk=" << trk_num 
 	  << ", prio=" << trk_prio
@@ -967,7 +981,7 @@ bool LamssTrackManager::postStateVars()
 	  << ", ips=" << trk_ips
 	  << ", bearing=" << trk_bearing << std::endl;
 	// If ambiguity is broken, go to Tracking	  
-	if (trk_state == ABSOLUTE)
+	if (trk_state == ABSOLUTE )
 	  {
 	    if (localization_active_)
 	      {
