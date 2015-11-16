@@ -164,6 +164,8 @@ bool CTrack::postTrack(string& moosvar, string& sval)
   // This function creates a string with the multi-track format used in
   // PLUS. Also returns suggested variable name: BEARING_TRACKS
 
+  if (isnan(trk_bearing))
+      return(false);
 
       moosvar = "BEARING_TRACKS" ;
       
@@ -254,6 +256,7 @@ bool CTrack::decodeTrack(string val)
   MOOSValFromString(trk_snr,val,"snr");
   MOOSValFromString(trk_utc,val,"time");
 
+
   //decode number of classification features following
   //decode ips 
   MOOSChomp(val,"nfeat=");
@@ -267,6 +270,7 @@ bool CTrack::decodeTrack(string val)
       trk_features.push_back(atof(bite.c_str()));
     }
   
-  return(true);
+  //  return(true);
+  return(!isnan(trk_bearing));
 }
 
