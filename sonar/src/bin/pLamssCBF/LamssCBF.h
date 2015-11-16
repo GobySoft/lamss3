@@ -11,9 +11,16 @@
 #include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
 #include "lamss/lib_newmat10D/newmatap.h"
+#include "boost/multi_array.hpp"
 
 #include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
+
+#include "BeamformingVars.pb.h"
+#include "ActiveSonarParameters.pb.h"
+#include "SonarProcessingCommand.pb.h"
+
+
 class CBFException : public std::runtime_error
 {
   public:
@@ -62,6 +69,7 @@ class LamssCBF : public GobyMOOSApp
 
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_sonar_process(const CMOOSMsg& msg);
+    void handle_sonar_processing_command(const CMOOSMsg& msg);
     void handle_sonar_filename(const CMOOSMsg& msg);
     void handle_sonar_dir(const CMOOSMsg& msg);
     void handle_sonar_file_num(const CMOOSMsg& msg);
@@ -87,11 +95,8 @@ class LamssCBF : public GobyMOOSApp
     void clear_buffers();
     void compute_steering_vectors();
     size_t parseArrayCoordinates(std::string str, vector<double> & element_coordinate);
-    //variables used to generate steering vectors using new convention
-    Matrix       steering_vector_real;
-    Matrix       steering_vector_imag;    
-    ColumnVector azimuthal_beams;
-    ColumnVector elevation_beams;
+    void save_stft_file(std::string name);
+
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
@@ -115,6 +120,7 @@ class LamssCBF : public GobyMOOSApp
     CRadianAvg pitch_filter;
     CAngleAvg heading_filter;
 
+    double prev_steering_pitch_;
     bool filt_set_;
     bool got_pitch_;
     int filter_length_;
@@ -126,6 +132,7 @@ class LamssCBF : public GobyMOOSApp
     bool new_file_flag_;
     bool got_filename_;
     std::string sonar_filename_;
+    std::string sonar_basename_;
     bool got_dir_;
     std::string sonar_dir_;
     int frame_number_;
@@ -139,7 +146,13 @@ class LamssCBF : public GobyMOOSApp
 
     double actual_integration_;
     double btr_normalization_;
+    double single_bin_spectral_normalization_;
+    double spectral_normalization_;
+
     double num_overlapping_samples_;
+
+    int num_samples_skip_;
+    int num_samples_read_;
 
     // newmat arrays for beamformers
     ColumnVector win;
@@ -152,20 +165,39 @@ class LamssCBF : public GobyMOOSApp
     ColumnVector array_y;
     ColumnVector array_z;
     ColumnVector bin_center_frequencies;
+    //variables used to generate steering vectors using new convention
+    Matrix       steering_vector_real;
+    Matrix       steering_vector_imag;    
+    ColumnVector azimuthal_beams;
+    ColumnVector elevation_beams;
 
     int *array_elements_used;
     int num_elements_used_;
     int *bins;
     int num_bins_;
-    // 1D beamformer
-    Matrix       S_real;
-    Matrix       S_imag;
 
-    // 2D beamformer
     Matrix       Spectrum_real;
     Matrix       Spectrum_imag;
     Matrix P;
 
+    // Declare matrices which will contain Short Time Fourier Transform (STFT) along each steered beam as a function of azimuth/elevation.
+    boost::multi_array<double, 4> Beam_STFT_real;
+    boost::multi_array<double, 4> Beam_STFT_imag;
+
+    //parameters used for active sonar detector
+    double  transmit_elevation_angle_;
+    double pingtime_;
+    double recordtime_;
+    double proc_offset_;
+    double proc_duration_;
+    SonarProcessingCommand::WaveformEnum waveform_;
+    double ping_x_;
+    double ping_y_;
+    double ping_depth_;
+    double ping_speed_;
+    double ping_heading_;
+    double ping_pitch_;
+    
     std::vector<double> beam_angles;
 	
     double time_window_constant_;

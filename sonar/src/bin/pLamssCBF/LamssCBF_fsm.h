@@ -28,8 +28,6 @@
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
 
 #include "LamssCBF_config.pb.h"
-#include "BeamformingVars.pb.h"
-
 //#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 //#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 //#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message

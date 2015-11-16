@@ -61,6 +61,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       filter_length_(10),
       filt_set_(false),
       got_pitch_(false),
+      prev_steering_pitch_(0),
       last_slow_loop_t_(0)
 {
 
@@ -75,10 +76,12 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     // set up subscriptions before starting separate thread
     subscribe("SONAR_CONTROL", &LamssCBF::handle_sonar_control, this);    
     subscribe("SONAR_PROCESS", &LamssCBF::handle_sonar_process, this);    
+    subscribe("SONAR_PROCESSING_COMMAND", 
+	      &LamssCBF::handle_sonar_processing_command, this);    
     subscribe("SONAR_FILENAME", &LamssCBF::handle_sonar_filename, this);    
     subscribe("SONAR_DIR", &LamssCBF::handle_sonar_dir, this);    
     subscribe("SONAR_FILE_NUM", &LamssCBF::handle_sonar_file_num, this);    
-    subscribe("SOUND_SPEED", &LamssCBF::handle_sonar_filename, this);    
+    subscribe("SOUND_SPEED", &LamssCBF::handle_sound_speed, this);    
     subscribe("AEL_PITCH", &LamssCBF::handle_ael_pitch, this);    
     subscribe("HOMING_BEACON_FREQUENCY", 
 	      &LamssCBF::handle_homing_beacon_frequency, this);    
@@ -142,33 +145,42 @@ void LamssCBF::loop()
       }
 
     // Processing block
-
-     if(sonar_on_ && processing_on_ && new_file_flag_ && got_filename_)
+    if (sonar_on_ && processing_on_)
       {
-	glog.is(DEBUG1) && glog << "Loading File " << sonar_filename_ << std::endl;
-	//load the data file
-	if ( LoadData(sonar_filename_) )
-	  {	
-	    glog.is(DEBUG1) && glog << "Begin Processing Data..." << std::endl;
-	    if ( !Process_Data() )
-	      {
-		glog.is(DEBUG1) && glog << "Processing failed!" << std::endl;
+	if (curr_cfg_.angular_steering_type() != LamssCBFConfig::ARRAY_ANGLE)
+	  {
+	    // recompute steering_vectors if pich changed by more than 1 deg
+	    if (fabs(pitch_filter.getAvg()-prev_steering_pitch_) >= 1.0)
+	      compute_steering_vectors();
+	  }
+	
+	if(new_file_flag_ && got_filename_)
+	  {
+	    glog.is(DEBUG1) && glog << "Loading File " << sonar_filename_ << std::endl;
+	    //load the data file
+	    if ( LoadData(sonar_filename_) )
+	      {	
+		glog.is(DEBUG1) && glog << "Begin Processing Data..." << std::endl;
+		if ( !Process_Data() )
+		  {
+		    glog.is(DEBUG1) && glog << "Processing failed!" << std::endl;
+		  }
+		else
+		  {
+		    num_files_processed_++;
+		    last_frame_processed_ = frame_number_;
+		    glog.is(DEBUG1) && glog << "Finished Processing Data File Number "
+					    <<  last_frame_processed_ << std::endl;
+		    new_file_flag_ = false;
+		    return;
+		  }
 	      }
-	    else
+	    else //Added 21 OCT 2010 AJP
 	      {
-		num_files_processed_++;
-		last_frame_processed_ = frame_number_;
-		glog.is(DEBUG1) && glog << "Finished Processing Data File Number "
-					<<  last_frame_processed_ << std::endl;
-	        new_file_flag_ = false;
+		glog.is(DEBUG1) && glog << "Loading Data Failed!" << std::endl;
+		new_file_flag_ = false;
 		return;
 	      }
-	  }
-	else //Added 21 OCT 2010 AJP
-	  {
-	    glog.is(DEBUG1) && glog << "Loading Data Failed!" << std::endl;
-	    new_file_flag_ = false;
-	    return;
 	  }
       }
     // process some events at a slower rate
@@ -210,6 +222,28 @@ void LamssCBF::handle_sonar_process(const CMOOSMsg& msg)
   processing_on_ = MOOSStrCmp(sonar_process,"ON");
 }
 
+void LamssCBF::handle_sonar_processing_command(const CMOOSMsg& msg)
+{
+  SonarProcessingCommand processing_cmd;
+  parse_for_moos(msg.GetString(), &processing_cmd);
+  transmit_elevation_angle_ = processing_cmd.transmit_elevation_angle();
+  pingtime_ = processing_cmd.pingtime();
+  recordtime_ = processing_cmd.recordtime();
+  proc_offset_ = processing_cmd.proc_offset();
+  proc_duration_ = processing_cmd.proc_duration();
+  waveform_ = processing_cmd.waveform();
+  ping_x_ = processing_cmd.ping_x();
+  ping_y_ = processing_cmd.ping_y();
+  ping_depth_ = processing_cmd.ping_depth();
+  ping_speed_ = processing_cmd.ping_speed();
+  ping_heading_ = processing_cmd.ping_heading();
+  ping_pitch_ = processing_cmd.ping_pitch();
+
+  num_samples_skip_ = ( processing_cmd.pingtime() - processing_cmd.recordtime() + 
+			processing_cmd.proc_offset()) * curr_cfg_.sampling_frequency();
+  num_samples_read_ = processing_cmd.proc_duration() * curr_cfg_.sampling_frequency();
+}
+
 void LamssCBF::handle_sonar_filename(const CMOOSMsg& msg)
 {
   if (msg.GetString() != "")
@@ -217,6 +251,8 @@ void LamssCBF::handle_sonar_filename(const CMOOSMsg& msg)
       sonar_filename_ = msg.GetString();
       glog.is(DEBUG1) && glog << "Got filename: " << sonar_filename_ << std::endl;
       got_filename_ = true;
+      std::string tmp = sonar_filename_;
+      sonar_basename_ = MOOSChomp(tmp,".");
     }
 }
 
@@ -242,7 +278,7 @@ void LamssCBF::handle_sound_speed(const CMOOSMsg& msg)
 {
   double sound_speed_prev = sound_speed_;
   sound_speed_ = msg.GetDouble();
-  if (fabs(sound_speed_ - sound_speed_prev) > 0.1 )
+  if (fabs(sound_speed_ - sound_speed_prev) >= 1.0 )
     compute_steering_vectors();
 }
 
@@ -463,6 +499,9 @@ bool LamssCBF::initialize_beamformer()
 
   
   //calculate a few constants
+  num_samples_skip_ = 0;
+  num_samples_read_ = curr_cfg_.number_samples();
+
   num_overlapping_samples_=round((double)(curr_cfg_.overlap()*curr_cfg_.fft_size()));
   int_blocks_ = round((double)(curr_cfg_.integration_time()*
 			       curr_cfg_.sampling_frequency()/
@@ -475,18 +514,30 @@ bool LamssCBF::initialize_beamformer()
   win.ReSize(curr_cfg_.fft_size());
   windowed_data.ReSize(curr_cfg_.fft_size());
 
-  
+  int vbeams;
+  int hbeams;  
   if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
     {
-      P.ReSize(1,curr_cfg_.number_beams());
-      P = 0.0;
+      vbeams = 1;
+      hbeams = curr_cfg_.number_beams();
     }
   else
     {
       //Set the size of a few NEWMAT arrays 
-      P.ReSize(curr_cfg_.number_beams_elevation(),curr_cfg_.number_beams_azimuth());
-      P = 0.0;    //Initialize all elements of BTR vector to zero
+      vbeams = curr_cfg_.number_beams_elevation();
+      hbeams = curr_cfg_.number_beams_azimuth();
     }
+  P.ReSize(vbeams,hbeams);
+  P = 0.0;    //Initialize all elements of BTR vector to zero
+
+  if (curr_cfg_.save_beam_stft())
+    {
+        Beam_STFT_real.resize(boost::extents[vbeams+1][hbeams+1]
+			      [int_blocks_+1][num_bins_+1]);
+        Beam_STFT_imag.resize(boost::extents[vbeams+1][hbeams+1]
+			      [int_blocks_+1][num_bins_+1]);
+    }
+
 
   beam_cosines.ReSize(curr_cfg_.number_beams());
   Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
@@ -677,6 +728,7 @@ void LamssCBF::steering_parameters()
       beam_angles.clear();
       for (int mm=0; mm<curr_cfg_.number_beams();mm++)
 	beam_angles.push_back(acos(beam_cosines(mm+1))*180.0/M_PI);
+
     }
   else if ((curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY) || 
 	   (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION))  
@@ -854,14 +906,21 @@ void LamssCBF::update_beamforming_vars()
     {
       btr_normalization_=2.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
 			      int_blocks_*num_bins_);
+      single_bin_spectral_normalization_=2.0/(curr_cfg_.sampling_frequency()*
+					      time_window_constant_);
     }
   else //complex signals (not currently supported)
     {	
       btr_normalization_=1.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
 			      int_blocks_*num_bins_);
+      single_bin_spectral_normalization_=1.0/(curr_cfg_.sampling_frequency()*
+					      time_window_constant_);    
     }	
   
   btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
+
+  spectral_normalization_=single_bin_spectral_normalization_/(int_blocks_*num_bins_);
+  single_bin_spectral_normalization_=sqrt(single_bin_spectral_normalization_);
 
   glog.is(DEBUG1) && glog << "Num Bins = " << intToString(num_bins_) << std::endl;
   glog.is(DEBUG1) && glog << "BTR Normalization Constant = "
@@ -939,10 +998,10 @@ void LamssCBF::compute_steering_vectors()
   if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
     {
       //1D beamformer
-      glog.is(DEBUG1) && glog << "Computing Steering Vectors" << std::endl;
+      glog.is(DEBUG1) && glog << "Computing Steering Vectors - " << std::endl;
       double constant2 = (2*M_PI/sound_speed_);
-      S_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-      S_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+      steering_vector_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+      steering_vector_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
 
       for (int z=1; z <= curr_cfg_.number_beams(); z++)
 	{	
@@ -956,8 +1015,8 @@ void LamssCBF::compute_steering_vectors()
 		  // Note the minus sign.
 		  // This is used in order to have the conical angles referenced from forward endfire. 
 		  double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*bin_center_frequencies(k);
-		  S_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
-		  S_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
+		  steering_vector_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
+		  steering_vector_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
 		}
 	    }	
 	}
@@ -986,8 +1045,11 @@ void LamssCBF::compute_steering_vectors()
       constant3 = -1.0/sound_speed_;
       
       h(1)=1.0;
-      double pitch = round( pitch_filter.getAvg() );
+      double pitch = pitch_filter.getAvg();
+      prev_steering_pitch_ = pitch;
+      glog.is(DEBUG1) && glog << " pitch = " << doubleToString(pitch) << std::endl;
       int q = 1;
+
       //      double pitch = 0;
       if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
         {
@@ -1244,6 +1306,8 @@ bool LamssCBF::Process_Data()
   char cc_max[30];
   char * dd;
   char * dd_max;
+  std::string stft_file = sonar_basename_ + ".stft";;
+
   //Are these initialized big enough so nothing will break? 
 
   Real P_real, P_imag, temp2;
@@ -1300,10 +1364,10 @@ bool LamssCBF::Process_Data()
 		  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
 		    {
 		      int idx1 = m+num_bins_*(k-1);
-		      P_real=DotProduct(S_real.Row(idx1),Spectrum_real.Row(m)) + 
-			DotProduct(S_imag.Row(idx1),Spectrum_imag.Row(m));	
-		      P_imag=DotProduct(S_real.Row(idx1),Spectrum_imag.Row(m)) - 
-			DotProduct(S_imag.Row(idx1),Spectrum_real.Row(m));
+		      P_real=DotProduct(steering_vector_real.Row(idx1),Spectrum_real.Row(m)) + 
+			DotProduct(steering_vector_imag.Row(idx1),Spectrum_imag.Row(m));	
+		      P_imag=DotProduct(steering_vector_real.Row(idx1),Spectrum_imag.Row(m)) - 
+			DotProduct(steering_vector_imag.Row(idx1),Spectrum_real.Row(m));
 		    }
 		  else
 		    {
@@ -1317,6 +1381,14 @@ bool LamssCBF::Process_Data()
 			     DotProduct(steering_vector_imag.Column(idx1),
 					Spectrum_real.Row(m));
 		    }
+
+		  if (curr_cfg_.save_beam_stft())
+                    {
+		      Beam_STFT_real[bb][k][num_blocks_integrated_+1][m]=
+			((double)P_real)*single_bin_spectral_normalization_;
+		      Beam_STFT_imag[bb][k][num_blocks_integrated_+1][m]=
+			((double)P_imag)*single_bin_spectral_normalization_;
+                    }
 		  temp2=temp2+P_real*P_real+P_imag*P_imag;
 		}
 	      beamsum=beamsum+temp2;
@@ -1361,6 +1433,9 @@ bool LamssCBF::Process_Data()
 	  publish("MAX_BEAM_POWER",max_power);
 	  publish("BEAM_DATA",P_string_linear); 
 	  
+	  if (curr_cfg_.save_beam_stft())
+	      save_stft_file(stft_file);
+
 	  num_blocks_integrated_ = 0;
 	  w++;
 	}  //end if (num_blocks_integrated_ == int_blocks)
@@ -1371,6 +1446,185 @@ bool LamssCBF::Process_Data()
   return true;
 } // end LamssCBF::Process_Data()
 
+void LamssCBF::save_stft_file(std::string name)
+{
+  FILE * stft_file;
+
+  if ((stft_file = fopen(name.c_str(), "wb")) == NULL)  
+    glog.is(DEBUG1) && glog << "Could not open file: " << name << std::endl;
+  else
+    {
+      glog.is(DEBUG1) && glog << "Writing STFT data file: " << name << std::endl;;
+      
+      //Write header
+      int process_id = 0;
+      fwrite(&process_id, sizeof(int), 1, stft_file);
+      int AngularSteeringTypeINT;     
+      if (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY ||
+	  curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE )
+	AngularSteeringTypeINT=1;
+      else if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY )
+	AngularSteeringTypeINT=2;
+      else 
+	AngularSteeringTypeINT=3;
+      fwrite(&AngularSteeringTypeINT, sizeof(int), 1 , stft_file);
+      fwrite(&sound_speed_, sizeof(double), 1 , stft_file);
+      int vbeams;
+      int hbeams;
+      double val;
+      if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+	{
+	  vbeams = 1;
+	  hbeams = curr_cfg_.number_beams();
+	  fwrite(&vbeams, sizeof(int), 1 , stft_file);
+	  fwrite(&hbeams, sizeof(int), 1 , stft_file);
+	  val=0;
+	  fwrite(&val, sizeof(double), 1 , stft_file);
+	  for (int k=1; k <= hbeams; k++)
+	    {
+	      val=beam_angles[k];
+	      fwrite(&val, sizeof(double), 1 , stft_file);
+	    }
+	}
+      else
+	{
+	  vbeams = curr_cfg_.number_beams_elevation();
+	  hbeams = curr_cfg_.number_beams_azimuth();
+	  for (int k=1; k <= vbeams; k++)
+	    {
+	      val=elevation_beams(k);
+	      fwrite(&val, sizeof(double), 1 , stft_file);
+	    }
+	  for (int k=1; k <= hbeams; k++)
+	    {
+	      val=azimuthal_beams(k);
+	      fwrite(&val, sizeof(double), 1 , stft_file);
+	    }
+	} 
+
+      fwrite(&pingtime_, sizeof(double), 1 , stft_file);
+      fwrite(&recordtime_, sizeof(double), 1 , stft_file);
+      fwrite(&proc_offset_, sizeof(double), 1 , stft_file);
+      fwrite(&proc_duration_, sizeof(double), 1 , stft_file);
+      
+      int waveform_ID;
+      if (waveform_ == SonarProcessingCommand::WAVEFORM_CW)
+	waveform_ID=1;
+      else 
+	waveform_ID=2;
+      fwrite(&waveform_ID, sizeof(int), 1, stft_file);
+      val = curr_cfg_.sampling_frequency();
+      fwrite(&val,sizeof(double),1,stft_file);
+      fwrite(&int_blocks_, sizeof(int), 1, stft_file);
+                    
+      double time_temp;
+      for (int k=1; k<=int_blocks_; k++)
+	{
+	  if (k==1)
+	    time_temp=proc_offset_+0.5*curr_cfg_.fft_size()/
+	      curr_cfg_.sampling_frequency();
+	  else
+	    time_temp=time_temp+
+	      (curr_cfg_.fft_size()-num_overlapping_samples_)/
+	      curr_cfg_.sampling_frequency();
+	  
+	  fwrite(&time_temp, sizeof(double), 1 , stft_file);
+	}
+                    
+      val = curr_cfg_.center_frequency();                    
+      fwrite(&val, sizeof(double), 1 , stft_file);
+      val = curr_cfg_.bandwidth(); 
+      fwrite(&val, sizeof(double), 1 , stft_file);
+      val = curr_cfg_.fft_size(); 
+      fwrite(&val, sizeof(int), 1 , stft_file);
+      fwrite(&num_overlapping_samples_, sizeof(int), 1 , stft_file);
+      fwrite(&num_bins_, sizeof(int), 1, stft_file);
+      for (int k=1; k <= num_bins_; k++)
+	{
+	  int ival=bins[k];
+	  fwrite(&ival, sizeof(int), 1 , stft_file);
+	}
+
+      for (int k=1; k <= num_bins_; k++)
+	{
+	  val=bin_center_frequencies(k);
+	  fwrite(&val, sizeof(double), 1 , stft_file);
+	}
+
+      fwrite(&ping_x_, sizeof(double), 1 , stft_file);
+      fwrite(&ping_y_, sizeof(double), 1 , stft_file);
+      fwrite(&ping_depth_, sizeof(double), 1 , stft_file);
+      fwrite(&ping_speed_, sizeof(double), 1 , stft_file);
+      fwrite(&ping_heading_, sizeof(double), 1 , stft_file);
+      fwrite(&ping_pitch_, sizeof(double), 1 , stft_file);
+      
+      double processing_array_pitch_angle=pitch_filter.getAvg();
+      fwrite(&processing_array_pitch_angle, sizeof(double), 1 , stft_file);
+      fwrite(&transmit_elevation_angle_, sizeof(double), 1 , stft_file);
+
+      //save Beam_STFT_real
+      for (int bb=1; bb <= vbeams; bb++)
+	{
+	  for (int k=1; k <= hbeams; k++)
+	    {    
+	      for (int t_idx=1; t_idx <= int_blocks_; t_idx++)
+		{
+		  for (int m=1; m <= num_bins_; m++)
+		    {
+		      val=Beam_STFT_real[bb][k][t_idx][m];
+		      fwrite(&val, sizeof(double), 1 , stft_file);
+		    }
+		}
+	    }
+	}
+      //save Beam_STFT_imag
+      for (int bb=1; bb <= vbeams; bb++)
+	{
+	  for (int k=1; k <= hbeams; k++)
+	    {    
+	      for (int t_idx=1; t_idx <= int_blocks_; t_idx++)
+		{
+		  for (int m=1; m <= num_bins_; m++)
+		    {
+		      val=Beam_STFT_imag[bb][k][t_idx][m];
+		      fwrite(&val, sizeof(double), 1 , stft_file);
+		    }
+		}
+	    }
+	}
+      ///////////////////////////////////////////
+      double max_stft;
+      for (int bb=1; bb <= vbeams; bb++)
+	{
+	  for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
+	    {    
+	      max_stft=0;
+	      for (int t_idx=1; t_idx <= int_blocks_; t_idx++)
+		{
+		  for (int m=1; m <= num_bins_; m++)
+		    max_stft=std::max(max_stft,
+				      pow(Beam_STFT_imag[bb][k][t_idx][m],2)+
+				      pow(Beam_STFT_imag[bb][k][t_idx][m],2));
+		}
+	    }
+	}
+      
+      //////////////////////////////////
+                    
+      //save P
+      for (int bb=1; bb <= curr_cfg_.number_beams_elevation(); bb++)
+	{
+	  for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
+	    {    
+	      val=P(bb,k)*spectral_normalization_; 
+	      fwrite(&val, sizeof(double), 1 , stft_file);
+	    }
+	}
+      fclose (stft_file);
+      MOOSTrace("Finished\n");
+      publish("BEAM_STFT_FILE",name);
+    }
+}
 void LamssCBF::clear_buffers()
 //***************************************************************************
 //*  LamssCBF::clear_buffers()                                                        *

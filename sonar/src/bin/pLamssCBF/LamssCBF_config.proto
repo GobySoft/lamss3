@@ -78,7 +78,12 @@ message LamssCBFConfig
   optional double center_frequency  = 30 [default = 900];
   optional double bandwidth  = 31 [default = 200];
   optional string frequency_bins = 32;
-    
+  optional bool   save_beam_stft = 33 [default = false];    
+  optional SonarModeEnum sonar_mode = 34;
+  enum SonarModeEnum {
+      PASSIVE = 1;
+      ACTIVE = 2;
+      }
 }
 
 enum ProcessingStateEnum{
