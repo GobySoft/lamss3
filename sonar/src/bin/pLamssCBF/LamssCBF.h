@@ -96,11 +96,14 @@ class LamssCBF : public GobyMOOSApp
     void compute_steering_vectors();
     size_t parseArrayCoordinates(std::string str, vector<double> & element_coordinate);
     void save_stft_file(std::string name);
+    void publish_active_processsing_parameters();
 
     // local Utilities    
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
     double angle360(double hdg);
+
+    SonarProcessingCommand last_processing_cmd_;
 
     // queue_event for FSM
     template<typename Event>
