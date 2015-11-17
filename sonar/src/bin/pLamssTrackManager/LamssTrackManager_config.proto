@@ -14,21 +14,22 @@ message LamssTrackManagerConfig
   optional double bearing_rate_threshold  = 7 [default = 20];
   optional double min_search_range  = 8 [default = 500];
   optional double max_search_range  = 9 [default = 5000];
-  optional double max_tracking_time  = 10 [default = 1200];
-  optional double max_classify_time  = 11 [default = 600];
-  optional int32  buffer_length_single  = 12 [default = 20];
-  optional double xy_sigma_single  = 13 [default = 100];
-  optional int32  buffer_length_multiple  = 14 [default = 5];
-  optional double xy_sigma_multiple  = 15 [default = 50];
-  optional DeployLocationEnum deploy_location = 16 [default = STATION];
+  optional double min_tracking_time  = 10 [default = 30];
+  optional double max_tracking_time  = 11 [default = 1200];
+  optional double max_classify_time  = 12 [default = 600];
+  optional int32  buffer_length_single  = 13 [default = 20];
+  optional double xy_sigma_single  = 14 [default = 100];
+  optional int32  buffer_length_multiple  = 15 [default = 5];
+  optional double xy_sigma_multiple  = 16 [default = 50];
+  optional DeployLocationEnum deploy_location = 17 [default = STATION];
   enum DeployLocationEnum {
      STATION = 1;
      CURRENT = 2;
   }
-  optional double orbit_radius = 17 [default = 500];
-  optional double auto_prosecute_range  = 18 [default = 2000];
-  optional double auto_prosecute_speed  = 19 [default = 0];
-  optional double auto_prosecute_duration  = 20 [default = 1800];
-  optional double auto_prosecute_array_angle  = 21 [default = 80];
+  optional double orbit_radius = 18 [default = 500];
+  optional double auto_prosecute_range  = 19 [default = 2000];
+  optional double auto_prosecute_speed  = 20 [default = 0];
+  optional double auto_prosecute_duration  = 21 [default = 1800];
+  optional double auto_prosecute_array_angle  = 22 [default = 80];
 }
 

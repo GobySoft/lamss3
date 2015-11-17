@@ -169,6 +169,18 @@ void LamssTrackManager::slow_loop(double curr_time)
   //
   boost::mutex::scoped_try_lock lk(moos_mutex_);
 
+  if (deploy_mode_active_ && auto_prosecute_ && 
+      prosecute_pending_ && tracking_active_ && 
+      (curr_time - tracking_start_ >= cfg_.min_tracking_time()))
+    {
+      send_prosecute();
+      prosecute_pending_ = false;
+    }
+  else if (prosecute_pending_)
+    {
+      glog.is(DEBUG1) && glog << "Prosecute pending" << std::endl;
+    }
+
   if ( prosecute_mode_active_ && detection_active_ )
     {
       //update time since contact was seen
@@ -1005,7 +1017,7 @@ bool LamssTrackManager::postStateVars()
   //
   // Update parameters for Auto Prosecute
   //
-		if (deploy_mode_active_ && auto_prosecute_)
+		if (deploy_mode_active_ && auto_prosecute_ )
 		  {
 		    auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
 						     sin(trk_bearing*M_PI/180.0) + 
@@ -1017,7 +1029,8 @@ bool LamssTrackManager::postStateVars()
 		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
 		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
 		    auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
-		    send_prosecute();
+		    prosecute_pending_ = true;
+		    //		    send_prosecute();
 		  }
 	      }
 	  }
