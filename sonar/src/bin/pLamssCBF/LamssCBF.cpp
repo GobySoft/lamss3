@@ -443,7 +443,7 @@ void LamssCBF::array_configuration()
 					 element_locations_temp);
       array_x.ReSize(num_elements);
       for(int k=1; k<=num_elements; k++)
-	array_y(k) = element_locations_temp[k-1];
+	array_x(k) = element_locations_temp[k-1];
       element_locations_temp.clear();
       // array_y (positive forward)
       int num_y = parseArrayCoordinates(curr_cfg_.volumetric_array_y(),
@@ -453,6 +453,7 @@ void LamssCBF::array_configuration()
 	  glog.is(VERBOSE) && glog << "num_element mismatch, using minimum" << std::endl;
 	  num_elements = std::min(num_elements,num_y);
 	} 
+      array_y.ReSize(num_elements);
       for(int k=1; k<=num_elements; k++)
 	array_y(k) = element_locations_temp[k-1];
       element_locations_temp.clear();
@@ -464,8 +465,9 @@ void LamssCBF::array_configuration()
 	  glog.is(VERBOSE) && glog << "num_element mismatch, using minimum" << std::endl;
 	  num_elements = std::min(num_elements,num_z);
 	} 
+      array_z.ReSize(num_elements);
       for(int k=1; k<=num_elements; k++)
-	array_y(k) = element_locations_temp[k-1];
+	array_z(k) = element_locations_temp[k-1];
       element_locations_temp.clear();
       // set in number_elements current and original config 
       cfg_.set_number_elements(num_elements);
@@ -595,22 +597,26 @@ bool LamssCBF::initialize_beamformer()
   glog.is(DEBUG1) && glog << "Hydrophone Amplitude Gain = "
 			  << doubleToString(hydrophone_amplitude_gain_) << std::endl;
   
-  glog.is(DEBUG2) && glog << "Nominal Element Locations (1:"
-			  << intToString(curr_cfg_.number_elements()) << std::endl;
-  for (int k=1; k <= curr_cfg_.number_elements(); k++)
-    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
-			    << doubleToString(nominal_element_locations(k),2) 
-			    << " m" << std::endl;
-  glog.is(DEBUG2) && glog << "Array Elements Used (1:" 
-			  << intToString(num_elements_used_) << std::endl;
-  for(int k=1;k<=num_elements_used_;k++)
-    glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
-			    << intToString(array_elements_used[k]) << std::endl;
-  glog.is(DEBUG2) && glog << "Beam Angles (1:" 
-			  << intToString(curr_cfg_.number_beams()) << std::endl;
+  if (curr_cfg_.array_configuration() != LamssCBFConfig::VOLUMETRIC)
+    { 
+      glog.is(DEBUG2) && glog << "Nominal Element Locations (1:"
+			      << intToString(curr_cfg_.number_elements()) << std::endl;
+      for (int k=1; k <= curr_cfg_.number_elements(); k++)
+	glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+				<< doubleToString(nominal_element_locations(k),2) 
+				<< " m" << std::endl;
+      glog.is(DEBUG2) && glog << "Array Elements Used (1:" 
+			      << intToString(num_elements_used_) << std::endl;
+      for(int k=1;k<=num_elements_used_;k++)
+	glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
+				<< intToString(array_elements_used[k]) << std::endl;
+    }
+
+  glog.is(DEBUG2) && glog << "Beam Angles " 
+			  << std::endl;
   for(int k=1;k<=curr_cfg_.number_beams();k++)
     glog.is(DEBUG2) && glog << "[" << intToString(k) << "] = "
-			    << doubleToString(beam_angles[k],1) << std::endl;
+			    << doubleToString(beam_angles[k],1) <<std::endl;
   
   return true;
 }
@@ -773,7 +779,7 @@ void LamssCBF::steering_parameters()
             }
         }
       for (int mm=0; mm<curr_cfg_.number_beams_azimuth();mm++)
-	beam_angles.push_back(azimuthal_beams(mm+1)*180.0/M_PI);
+	beam_angles.push_back(azimuthal_beams(mm+1));
     }
   else //ELEVATION_ONLY
     azimuthal_beams(1)=curr_cfg_.min_azimuth();
@@ -806,7 +812,7 @@ void LamssCBF::steering_parameters()
 	}
       if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY)  
 	for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
-	  beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
+	  beam_angles.push_back(elevation_beams(mm+1));
     }
   else //AZIMUTH_ONLY
     elevation_beams(1)=curr_cfg_.min_elevation();
