@@ -60,12 +60,12 @@ message LamssCBFConfig
      AZIMUTH_AND_ELEVATION = 4;
   }
   optional int32  number_beams_azimuth = 25 [default = 47];
-  optional double min_azimuth = 61 [default = 0];
-  optional double max_azimuth = 62 [default = 360];
+  optional int32 min_azimuth = 61 [default = 0];
+  optional int32 max_azimuth = 62 [default = 360];
 
   optional int32  number_beams_elevation = 26 [default =1];
-  optional double min_elevation = 71 [default = 0];
-  optional double max_elevation = 72 [default = 90];
+  optional int32 min_elevation = 71 [default = 0];
+  optional int32 max_elevation = 72 [default = 90];
 
   optional bool   delete_data_files = 27 [default = false];
   optional bool   check_consecutive_zeros = 28 [default = false];

@@ -1423,7 +1423,15 @@ bool LamssCBF::Process_Data()
 	  
 	  lamss::protobuf::BTR btr_msg;
 	  std::string serialized;
-	  
+	  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+	    btr_msg.set_ambiguous(true);
+	  else if ( curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY ||
+		    curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION )
+	      btr_msg.set_ambiguous(curr_cfg_.max_azimuth() == 180);
+	  else
+	      btr_msg.set_ambiguous(curr_cfg_.max_elevation() == 180);
+          btr_msg.set_wavenumber(curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER);
+
 	  for (int elev=1; elev<=vbeams; elev++)
 	    {
 	      for (int azim=1; azim<=hbeams; azim++)
