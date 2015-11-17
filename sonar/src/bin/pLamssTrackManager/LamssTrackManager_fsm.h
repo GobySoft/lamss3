@@ -122,6 +122,7 @@ namespace lamss
 	    extern bool deploy_mode_active_;
 	    extern bool prosecute_received_;
 	    extern bool prosecute_mode_active_;
+	    extern bool prosecute_pending_;
 
             extern boost::shared_ptr<LamssTrackManagerConfig> cfg_;
             
@@ -348,6 +349,7 @@ namespace lamss
 		{
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  tracking_active_ = false;
+		  prosecute_pending_ = false;
 		}
 	      
 	      typedef boost::mpl::list<
