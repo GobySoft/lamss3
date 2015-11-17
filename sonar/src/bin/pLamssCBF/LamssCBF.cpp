@@ -546,7 +546,7 @@ bool LamssCBF::initialize_beamformer()
   beam_cosines.ReSize(curr_cfg_.number_beams());
   Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
 		    curr_cfg_.number_elements());
-  //  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
+   //  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
   //  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
   //Create time-domain window used before the DFT operation
   hanning(win.Store(),curr_cfg_.fft_size());
@@ -561,14 +561,12 @@ bool LamssCBF::initialize_beamformer()
   // Hydrophone amplitude gain
   hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
   
-  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
-			  << doubleToString(btr_normalization_) << std::endl;
-  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
-			  << doubleToString(time_window_constant_) << std::endl;
-  
   //    glog << "Array Type = " << ,sArray.c_str());
   //glog << "Array Definition Type = %d\n",array_definition_type); 
   // glog << "Beam Sampling Type = ",sSampling.c_str());
+  
+  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
+			  << doubleToString(time_window_constant_) << std::endl;
   
   glog.is(DEBUG1) && glog << "Sampling Frequency = " 
 			  << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
@@ -932,15 +930,24 @@ void LamssCBF::update_beamforming_vars()
   single_bin_spectral_normalization_=sqrt(single_bin_spectral_normalization_);
 
   glog.is(DEBUG1) && glog << "Num Bins = " << intToString(num_bins_) << std::endl;
+  glog.is(DEBUG1) && glog << "Integration Blocks = "
+			  << intToString(int_blocks_) << std::endl;
+  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
+			  << doubleToString(time_window_constant_) << std::endl;
+  
+  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
+			  << doubleToString(btr_normalization_) << std::endl;
   glog.is(DEBUG1) && glog << "BTR Normalization Constant = "
 	   << doubleToString(btr_normalization_,2) << std::endl;
-  glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
-			  << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
-  for (int k=1; k <= curr_cfg_.number_beams(); k++)
-    glog.is(DEBUG2) && glog << "[" << intToString(bins[k]) << "] = "
-	     << doubleToString(beam_cosines(k),2)  
-	     << std::endl;
-      
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
+			      << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
+      for (int k=1; k <= curr_cfg_.number_beams(); k++)
+	glog.is(DEBUG2) && glog << "[" << intToString(bins[k]) << "] = "
+				<< doubleToString(beam_cosines(k),2)  
+				<< std::endl;
+    }
   glog.is(DEBUG2) && glog << "Processing Frequency Bins (1:"
 			  << intToString(num_bins_) << ")" << std::endl;
   for(int j = 1;j <= num_bins_;j++)
