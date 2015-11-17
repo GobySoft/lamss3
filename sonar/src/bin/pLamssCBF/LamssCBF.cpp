@@ -226,6 +226,8 @@ void LamssCBF::handle_sonar_processing_command(const CMOOSMsg& msg)
 {
   SonarProcessingCommand processing_cmd;
   parse_for_moos(msg.GetString(), &processing_cmd);
+  last_processing_cmd_ = processing_cmd;
+
   transmit_elevation_angle_ = processing_cmd.transmit_elevation_angle();
   pingtime_ = processing_cmd.pingtime();
   recordtime_ = processing_cmd.recordtime();
@@ -1457,7 +1459,11 @@ void LamssCBF::save_stft_file(std::string name)
       glog.is(DEBUG1) && glog << "Writing STFT data file: " << name << std::endl;;
       
       //Write header
-      int process_id = 0;
+      int process_id;
+      if (last_processing_cmd_.processing_objective() == SonarProcessingCommand::NOISE)
+	process_id = 1;
+      else
+	process_id = 2;
       fwrite(&process_id, sizeof(int), 1, stft_file);
       int AngularSteeringTypeINT;     
       if (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY ||
@@ -1625,6 +1631,54 @@ void LamssCBF::save_stft_file(std::string name)
       publish("BEAM_STFT_FILE",name);
     }
 }
+
+//***************************************************************************
+//*  LamssCBF::publish_active_processing_parameters()                   *
+//*                                                                         *
+//*  Publish Parameters needed by active sonar processing to the MOOSDB     *
+//*************************************************************************** 
+void LamssCBF::publish_active_processsing_parameters()
+{ 
+  ActiveSonarParameters active_params;
+  if (last_processing_cmd_.processing_objective() == SonarProcessingCommand::NOISE)
+    active_params.set_processing_objective(ActiveSonarParameters::NOISE);
+  else if (last_processing_cmd_.processing_objective() == SonarProcessingCommand::TARGET)
+    active_params.set_processing_objective(ActiveSonarParameters::TARGET);
+
+  active_params.set_fft_size(curr_cfg_.fft_size());
+  active_params.set_overlap(curr_cfg_.overlap());
+  active_params.set_sampling_frequency(curr_cfg_.sampling_frequency());
+  active_params.set_bandwidth(curr_cfg_.bandwidth());
+  active_params.set_num_bins(num_bins_);
+  
+  std::string binstr = ",bins={";
+  for (int k=1; k<=num_bins_; k++)
+    {
+      if(k > 1)
+	binstr += ",";
+      binstr += intToString(bins[k]);
+    }
+  binstr += "}";
+  active_params.set_frequency_bins(binstr);
+
+  binstr = "bin_center_frequencies={";
+  for (int k=1; k<=num_bins_; k++)
+    {
+      if(k > 1)
+	binstr += ",";
+      binstr += doubleToString(bin_center_frequencies(k),4);
+    } 
+  binstr += "}";
+  active_params.set_bin_center_frequencies(binstr);
+
+  glog.is(DEBUG1) && glog << "Publishing ACTIVE_PROCESSOR_PARAMETERS to MOOSDB"
+			  << std::endl;
+  std::string serialized;
+  serialize_for_moos(&serialized,active_params);    
+  publish("ACTIVE_PROCESSING_PARAMETERS",serialized);
+}
+
+
 void LamssCBF::clear_buffers()
 //***************************************************************************
 //*  LamssCBF::clear_buffers()                                                        *
