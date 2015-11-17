@@ -132,7 +132,9 @@ namespace lamss
                         }
                     virtual ~StateNotify()
                         {
-                            goby::glog.is(goby::common::logger::VERBOSE) && goby::glog << group("fsm") << "~" << state_str_ << std::endl;
+			  boost::mutex::scoped_lock lock(moos_mutex_);
+			  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			    << group("fsm") << "~" << state_str_ << std::endl;
 			}
 
                     const std::string::size_type prefix_;
@@ -327,6 +329,7 @@ namespace lamss
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  homing_mode_active_ = true;
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"HOMING_ACTIVE","true"));
 		  goby::glog.is(goby::common::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Homing Prosecute Mode..."
@@ -341,6 +344,7 @@ namespace lamss
 		{
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  homing_mode_active_ = false;
+		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"HOMING_ACTIVE","false"));
 		}
 	      
 	      typedef boost::mpl::list<

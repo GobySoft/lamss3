@@ -230,7 +230,8 @@ void LamssMissionManager::send_deploy()
   redeploy.set_timestamp(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
   redeploy.set_destinationplatformid(vehicle_id_);
-  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+  //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
+  if (cfg_.deploy_location() == LamssMissionManagerConfig::STATION)
     {
       redeploy.set_deploy_x(last_nav_.local_fix().x());
       redeploy.set_deploy_y(last_nav_.local_fix().y());
@@ -257,7 +258,9 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_prosecute_duration(cfg_.prosecute_duration());
   prosecute_cmd.set_target_speed(0);
   prosecute_cmd.set_array_angle(60);
-  
+
+  publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
+
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);    
   publish("LAMSS_PROSECUTE_OUT", serialized);
@@ -561,7 +564,8 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
 {
   tracking_ = MOOSStrCmp(toupper(msg.GetString()),"TRACKING");
   // if in homing mode return to abort
-  if (tracking_)
+  boost::mutex::scoped_try_lock lk(moos_mutex_);
+  if (homing_mode_active_ && tracking_)
     {
       abort_duration_ += current_time_ - last_homing_prosecute_;
       std::stringstream ss;
