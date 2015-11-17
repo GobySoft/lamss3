@@ -144,9 +144,10 @@ namespace lamss
                         }
                     virtual ~StateNotify()
                         {
-                            goby::glog.is(goby::common::logger::VERBOSE) && 
-			      goby::glog << group("fsm") << "~" << 
-			      state_str_ << std::endl;
+			  boost::mutex::scoped_lock lock(moos_mutex_);
+			  goby::glog.is(goby::common::logger::VERBOSE) && 
+			    goby::glog << group("fsm") << "~" << 
+			    state_str_ << std::endl;
 			}
 
                     const std::string::size_type prefix_;
@@ -228,12 +229,14 @@ namespace lamss
 		{
 		  Detection() 
 		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = true;
 		      detection_start_ = current_time_;
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","FALSE"));
 		    }
 		  ~Detection()
 		    {
+		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      detection_active_ = false;
 		    }
 		  
