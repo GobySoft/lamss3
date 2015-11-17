@@ -101,7 +101,6 @@ class LamssTrackManager : public GobyMOOSApp
     void try_publish();
     void send_deploy();
     void send_prosecute();
-    bool prosecute_pending_;
 
     // mail handlers
 
