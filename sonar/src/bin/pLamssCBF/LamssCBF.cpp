@@ -742,7 +742,7 @@ void LamssCBF::steering_parameters()
 	   (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION))  
     {
       if (curr_cfg_.number_beams_azimuth() == 1)
-	azimuthal_beams(1)=curr_cfg_.max_azimuth();
+	azimuthal_beams(1)=curr_cfg_.max_azimuth()*M_PI/180.0;
       else
         {
 	  double start_cos;
@@ -751,13 +751,13 @@ void LamssCBF::steering_parameters()
 	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
             {
 	      if (curr_cfg_.min_azimuth() < 0)
-		start_cos=-cos(curr_cfg_.min_azimuth())+2;
+		start_cos=-cos(curr_cfg_.min_azimuth()*M_PI/180.0)+2;
 	      else
-		start_cos = cos(curr_cfg_.min_azimuth());
+		start_cos = cos(curr_cfg_.min_azimuth()*M_PI/180.0);
 	      if (curr_cfg_.max_azimuth() < 0)
-		end_cos=-cos(curr_cfg_.max_azimuth())+2;
+		end_cos=-cos(curr_cfg_.max_azimuth()*M_PI/180.0)+2;
 	      else
-		end_cos = cos(curr_cfg_.max_azimuth());
+		end_cos = cos(curr_cfg_.max_azimuth()*M_PI/180.0);
 	      
 	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
                 {
@@ -773,16 +773,16 @@ void LamssCBF::steering_parameters()
             {
 	      //Generate azimuthal beam look directions
 	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
-		azimuthal_beams(k) = (curr_cfg_.min_azimuth() + (k-1) * 
+		azimuthal_beams(k) = M_PI/180.0*(curr_cfg_.min_azimuth() + (k-1) * 
 				      (curr_cfg_.max_azimuth()-curr_cfg_.min_azimuth())/
 				      (curr_cfg_.number_beams_azimuth()-1) );
             }
         }
       for (int mm=0; mm<curr_cfg_.number_beams_azimuth();mm++)
-	beam_angles.push_back(azimuthal_beams(mm+1));
+	beam_angles.push_back(azimuthal_beams(mm+1)*180.0/M_PI);
     }
   else //ELEVATION_ONLY
-    azimuthal_beams(1)=curr_cfg_.min_azimuth();
+    azimuthal_beams(1)=curr_cfg_.min_azimuth()*M_PI/180.0;
   
   // ELEVATION ANGLES
 
@@ -793,8 +793,8 @@ void LamssCBF::steering_parameters()
 	elevation_beams(1)=curr_cfg_.max_elevation();
       else
 	{
-	  double start_sin=sin(curr_cfg_.min_elevation());
-	  double end_sin=sin(curr_cfg_.max_elevation());
+	  double start_sin=sin(curr_cfg_.min_elevation()*M_PI/180.0);
+	  double end_sin=sin(curr_cfg_.max_elevation()*M_PI/180.0);
 	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
 	    {
 	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
@@ -805,17 +805,18 @@ void LamssCBF::steering_parameters()
 	  else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
 	    {
 	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
-		elevation_beams(k)=(curr_cfg_.min_elevation() + (k-1) * 
-				    (curr_cfg_.max_elevation()-curr_cfg_.min_elevation())/
-				    (curr_cfg_.number_beams_elevation()-1) );
+		elevation_beams(k)=M_PI/180.0*(curr_cfg_.min_elevation() + 
+					       (k-1)*(curr_cfg_.max_elevation()-
+						      curr_cfg_.min_elevation())/
+					       (curr_cfg_.number_beams_elevation()-1) );
 	    }
 	}
       if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY)  
 	for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
-	  beam_angles.push_back(elevation_beams(mm+1));
+	  beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
     }
   else //AZIMUTH_ONLY
-    elevation_beams(1)=curr_cfg_.min_elevation();
+    elevation_beams(1)=curr_cfg_.min_elevation() * M_PI/180.0;
 
     string sbeam_data;
     dbl_vec2str(beam_angles,sbeam_data);
