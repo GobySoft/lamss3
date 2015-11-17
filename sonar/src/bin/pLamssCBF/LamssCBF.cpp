@@ -546,7 +546,7 @@ bool LamssCBF::initialize_beamformer()
   beam_cosines.ReSize(curr_cfg_.number_beams());
   Array_Data.ReSize(curr_cfg_.number_samples()+curr_cfg_.fft_size(), 
 		    curr_cfg_.number_elements());
-  //  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
+   //  Spectrum_real.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_); 
   //  Spectrum_imag.ReSize((curr_cfg_.fft_size()/2 + 1), num_elements_used_);
   //Create time-domain window used before the DFT operation
   hanning(win.Store(),curr_cfg_.fft_size());
@@ -561,14 +561,12 @@ bool LamssCBF::initialize_beamformer()
   // Hydrophone amplitude gain
   hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
   
-  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
-			  << doubleToString(btr_normalization_) << std::endl;
-  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
-			  << doubleToString(time_window_constant_) << std::endl;
-  
   //    glog << "Array Type = " << ,sArray.c_str());
   //glog << "Array Definition Type = %d\n",array_definition_type); 
   // glog << "Beam Sampling Type = ",sSampling.c_str());
+  
+  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
+			  << doubleToString(time_window_constant_) << std::endl;
   
   glog.is(DEBUG1) && glog << "Sampling Frequency = " 
 			  << doubleToString(curr_cfg_.sampling_frequency()) << std::endl;
@@ -742,7 +740,7 @@ void LamssCBF::steering_parameters()
 	   (curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION))  
     {
       if (curr_cfg_.number_beams_azimuth() == 1)
-	azimuthal_beams(1)=curr_cfg_.max_azimuth();
+	azimuthal_beams(1)=curr_cfg_.max_azimuth()*M_PI/180.0;
       else
         {
 	  double start_cos;
@@ -751,13 +749,13 @@ void LamssCBF::steering_parameters()
 	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
             {
 	      if (curr_cfg_.min_azimuth() < 0)
-		start_cos=-cos(curr_cfg_.min_azimuth())+2;
+		start_cos=-cos(curr_cfg_.min_azimuth()*M_PI/180.0)+2;
 	      else
-		start_cos = cos(curr_cfg_.min_azimuth());
+		start_cos = cos(curr_cfg_.min_azimuth()*M_PI/180.0);
 	      if (curr_cfg_.max_azimuth() < 0)
-		end_cos=-cos(curr_cfg_.max_azimuth())+2;
+		end_cos=-cos(curr_cfg_.max_azimuth()*M_PI/180.0)+2;
 	      else
-		end_cos = cos(curr_cfg_.max_azimuth());
+		end_cos = cos(curr_cfg_.max_azimuth()*M_PI/180.0);
 	      
 	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
                 {
@@ -773,16 +771,16 @@ void LamssCBF::steering_parameters()
             {
 	      //Generate azimuthal beam look directions
 	      for (int k=1; k <= curr_cfg_.number_beams_azimuth(); k++)
-		azimuthal_beams(k) = (curr_cfg_.min_azimuth() + (k-1) * 
+		azimuthal_beams(k) = M_PI/180.0*(curr_cfg_.min_azimuth() + (k-1) * 
 				      (curr_cfg_.max_azimuth()-curr_cfg_.min_azimuth())/
 				      (curr_cfg_.number_beams_azimuth()-1) );
             }
         }
       for (int mm=0; mm<curr_cfg_.number_beams_azimuth();mm++)
-	beam_angles.push_back(azimuthal_beams(mm+1));
+	beam_angles.push_back(azimuthal_beams(mm+1)*180.0/M_PI);
     }
   else //ELEVATION_ONLY
-    azimuthal_beams(1)=curr_cfg_.min_azimuth();
+    azimuthal_beams(1)=curr_cfg_.min_azimuth()*M_PI/180.0;
   
   // ELEVATION ANGLES
 
@@ -793,8 +791,8 @@ void LamssCBF::steering_parameters()
 	elevation_beams(1)=curr_cfg_.max_elevation();
       else
 	{
-	  double start_sin=sin(curr_cfg_.min_elevation());
-	  double end_sin=sin(curr_cfg_.max_elevation());
+	  double start_sin=sin(curr_cfg_.min_elevation()*M_PI/180.0);
+	  double end_sin=sin(curr_cfg_.max_elevation()*M_PI/180.0);
 	  if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER)
 	    {
 	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
@@ -805,17 +803,18 @@ void LamssCBF::steering_parameters()
 	  else if (curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_THETA)
 	    {
 	      for (int k=1; k <= curr_cfg_.number_beams_elevation(); k++)
-		elevation_beams(k)=(curr_cfg_.min_elevation() + (k-1) * 
-				    (curr_cfg_.max_elevation()-curr_cfg_.min_elevation())/
-				    (curr_cfg_.number_beams_elevation()-1) );
+		elevation_beams(k)=M_PI/180.0*(curr_cfg_.min_elevation() + 
+					       (k-1)*(curr_cfg_.max_elevation()-
+						      curr_cfg_.min_elevation())/
+					       (curr_cfg_.number_beams_elevation()-1) );
 	    }
 	}
       if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY)  
 	for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
-	  beam_angles.push_back(elevation_beams(mm+1));
+	  beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
     }
   else //AZIMUTH_ONLY
-    elevation_beams(1)=curr_cfg_.min_elevation();
+    elevation_beams(1)=curr_cfg_.min_elevation() * M_PI/180.0;
 
     string sbeam_data;
     dbl_vec2str(beam_angles,sbeam_data);
@@ -931,15 +930,24 @@ void LamssCBF::update_beamforming_vars()
   single_bin_spectral_normalization_=sqrt(single_bin_spectral_normalization_);
 
   glog.is(DEBUG1) && glog << "Num Bins = " << intToString(num_bins_) << std::endl;
+  glog.is(DEBUG1) && glog << "Integration Blocks = "
+			  << intToString(int_blocks_) << std::endl;
+  glog.is(DEBUG1) && glog << "time_window_constant_ = " 
+			  << doubleToString(time_window_constant_) << std::endl;
+  
+  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
+			  << doubleToString(btr_normalization_) << std::endl;
   glog.is(DEBUG1) && glog << "BTR Normalization Constant = "
 	   << doubleToString(btr_normalization_,2) << std::endl;
-  glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
-			  << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
-  for (int k=1; k <= curr_cfg_.number_beams(); k++)
-    glog.is(DEBUG2) && glog << "[" << intToString(bins[k]) << "] = "
-	     << doubleToString(beam_cosines(k),2)  
-	     << std::endl;
-      
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    {
+      glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
+			      << intToString(curr_cfg_.number_beams()) << ")" << std::endl;
+      for (int k=1; k <= curr_cfg_.number_beams(); k++)
+	glog.is(DEBUG2) && glog << "[" << intToString(bins[k]) << "] = "
+				<< doubleToString(beam_cosines(k),2)  
+				<< std::endl;
+    }
   glog.is(DEBUG2) && glog << "Processing Frequency Bins (1:"
 			  << intToString(num_bins_) << ")" << std::endl;
   for(int j = 1;j <= num_bins_;j++)
