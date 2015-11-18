@@ -462,7 +462,7 @@ void LamssTrackManager::handle_mission_state(const CMOOSMsg& msg)
   prosecute_mode_active_ = MOOSStrCmp(mission_state,"PROSECUTE");
   mission_active_ = deploy_mode_active_ || prosecute_mode_active_;
   glog.is(DEBUG1) && glog << "MISSION_STATE=" << mission_state << std::endl;
-  if (mission_active_)
+  if (deploy_mode_active_)
     reset_tracking();
 }
 
