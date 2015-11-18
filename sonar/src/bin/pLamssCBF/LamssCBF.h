@@ -28,24 +28,21 @@ class CBFException : public std::runtime_error
     { }
 };
 
-class AngleFilter
+class SteeringVector
 {
-    public:
+ public:
 
-        AngleFilter(int length);
-        ~AngleFilter();
+  void config(double p_tol, double s_tol);
+  void put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag);
+  bool get(double sv_pitch, double sv_ssp, Matrix & sv_real, Matrix & sv_imag);
 
-        double get_FVal();
-        void set_RawVal(double);
-
-    protected:
-
-        int filter_length;
-        int num_measurements;
-        double avg;
-
-        deque<double>  svals;
-        deque<double>  cvals;
+ private:
+  double pitch_tol;
+  double ssp_tol;
+  double pitch;
+  double ssp;
+  Matrix       steering_vector_real;
+  Matrix       steering_vector_imag;    
 };
 
 class LamssCBF : public GobyMOOSApp
@@ -104,6 +101,7 @@ class LamssCBF : public GobyMOOSApp
     double angle360(double hdg);
 
     SonarProcessingCommand last_processing_cmd_;
+    vector<SteeringVector>  SteeringVectors;
 
     // queue_event for FSM
     template<typename Event>
