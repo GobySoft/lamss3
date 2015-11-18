@@ -58,7 +58,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       got_filename_(false),
       sound_speed_(cfg_.sound_speed()),
       homing_mode_active_(false),
-      filter_length_(10),
+      filter_length_(15),
       filt_set_(false),
       got_pitch_(false),
       prev_steering_pitch_(0),
@@ -150,7 +150,7 @@ void LamssCBF::loop()
 	if (curr_cfg_.angular_steering_type() != LamssCBFConfig::ARRAY_ANGLE)
 	  {
 	    // recompute steering_vectors if pich changed by more than 1 deg
-	    if (fabs(pitch_filter.getAvg()-prev_steering_pitch_) >= 1.0)
+	    if (fabs(pitch_filter.getAvg()-prev_steering_pitch_) >= M_PI/180)
 	      compute_steering_vectors();
 	  }
 	
@@ -1011,114 +1011,138 @@ void LamssCBF::update_beamforming_vars()
 
 void LamssCBF::compute_steering_vectors()
 {
-  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+  //
+  // First check if we already got it
+  //
+  double ssp_tol = 5;
+  double pitch_tol = M_PI/180.; // 1 deg
+  int iter = 0;
+  bool got_it = false;
+  double pitch = pitch_filter.getAvg();
+  while( iter < SteeringVectors.size() && !got_it)
     {
-      //1D beamformer
-      glog.is(DEBUG1) && glog << "Computing Steering Vectors - " << std::endl;
-      double constant2 = (2*M_PI/sound_speed_);
-      steering_vector_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-      steering_vector_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
-
-      for (int z=1; z <= curr_cfg_.number_beams(); z++)
-	{	
-	  for (int k=1; k <= num_bins_; k++)
+      got_it = SteeringVectors[iter].get(pitch, sound_speed_,
+				   steering_vector_real, steering_vector_imag);
+      iter++;
+    }
+  if (!got_it)
+    {
+      glog.is(DEBUG1) && glog << "Computing Steering Vectors, pitch = "
+			      << pitch << ", ssp = " << sound_speed_ << std::endl;
+      if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+	{
+	  //1D beamformer
+	  glog.is(DEBUG1) && glog << "Computing Steering Vectors - " << std::endl;
+	  double constant2 = (2*M_PI/sound_speed_);
+	  steering_vector_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+	  steering_vector_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
+	  
+	  for (int z=1; z <= curr_cfg_.number_beams(); z++)
+	    {	
+	      for (int k=1; k <= num_bins_; k++)
+		{
+		  for (int m=1; m <= num_elements_used_; m++)
+		    {
+		      // When computing the steering vector, I assume that the array elements 
+		      // are aligned along the array axis with the mth
+		      // element used at position -nominal_element_locations(array_elements_used[m]).  
+		      // Note the minus sign.
+		      // This is used in order to have the conical angles referenced from forward endfire. 
+		      double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*bin_center_frequencies(k);
+		      steering_vector_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
+		      steering_vector_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
+		    }
+		}	
+	    }
+	}
+      else
+	{
+	  // Azimuth/elevation beamforming
+	  double constant3;
+	  ColumnVector steering_vector_temp_real;
+	  ColumnVector steering_vector_temp_imag;
+	  ColumnVector h(4);
+	  ColumnVector tau;
+	  Matrix nominal_positions123;  
+	  
+	  steering_vector_real.ReSize(num_elements_used_,
+				      curr_cfg_.number_beams_elevation()*
+				      curr_cfg_.number_beams_azimuth()*
+				      num_bins_);
+	  steering_vector_imag.ReSize(num_elements_used_,
+				      curr_cfg_.number_beams_elevation()*
+				      curr_cfg_.number_beams_azimuth()*
+				      num_bins_);
+	  nominal_positions123.ReSize(num_elements_used_,3);
+	  steering_vector_temp_real.ReSize(num_elements_used_);
+	  steering_vector_temp_imag.ReSize(num_elements_used_);
+	  constant3 = -1.0/sound_speed_;
+	  
+	  h(1)=1.0;
+	  double pitch = pitch_filter.getAvg();
+	  prev_steering_pitch_ = pitch;
+	  glog.is(DEBUG1) && glog << " pitch = " << doubleToString(pitch) << std::endl;
+	  int q = 1;
+	  
+	  //      double pitch = 0;
+	  if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
 	    {
 	      for (int m=1; m <= num_elements_used_; m++)
 		{
-		  // When computing the steering vector, I assume that the array elements 
-		  // are aligned along the array axis with the mth
-		  // element used at position -nominal_element_locations(array_elements_used[m]).  
-		  // Note the minus sign.
-		  // This is used in order to have the conical angles referenced from forward endfire. 
-		  double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*bin_center_frequencies(k);
-		  steering_vector_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
-		  steering_vector_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
+		  nominal_positions123(m,1)=array_x(array_elements_used[m]);
+		  nominal_positions123(m,2)=array_y(array_elements_used[m])*cos(pitch)-
+		    array_z(array_elements_used[m])*sin(pitch);
+		  nominal_positions123(m,3)=array_z(array_elements_used[m])*cos(pitch)+
+		    array_y(array_elements_used[m])*sin(pitch);
 		}
-	    }	
+	    }
+	  else
+	    {
+	      for (int m=1; m <= num_elements_used_; m++)
+		{
+		  nominal_positions123(m,1)=0.0;
+		  nominal_positions123(m,2)=
+		    -nominal_element_locations(array_elements_used[m])*cos(pitch);
+		  nominal_positions123(m,3)=
+		    -nominal_element_locations(array_elements_used[m])*sin(pitch);
+		}
+	    }
+	  for (int bb=1; bb <= curr_cfg_.number_beams_elevation(); bb++)
+	    {
+	      for (int z=1; z <= curr_cfg_.number_beams_azimuth(); z++)
+		{
+		  h(2)=sin(azimuthal_beams(z))*cos(elevation_beams(bb));
+		  h(3)=cos(azimuthal_beams(z))*cos(elevation_beams(bb));
+		  h(4)=sin(elevation_beams(bb));
+		  tau=(nominal_positions123*h.Rows(2,4))*constant3;  //Note that unit vector u=h(2:4)
+		  for (int k=1; k <= num_bins_; k++)
+		    {
+		      int manifold_index=k+(z-1)*num_bins_+
+			(bb-1)*curr_cfg_.number_beams_azimuth()*num_bins_ +
+			(q-1)*curr_cfg_.number_beams_elevation() *
+			curr_cfg_.number_beams_azimuth()*num_bins_;
+		      for (int m=1; m <= num_elements_used_; m++)
+			{
+			  double temp=-2*M_PI*tau(m)*bin_center_frequencies(k);
+			  steering_vector_temp_real(m)=cos(temp)*win_spatial(m);  
+			  steering_vector_temp_imag(m)=sin(temp)*win_spatial(m);
+			}
+		      steering_vector_real.Column(manifold_index)=steering_vector_temp_real;
+		      steering_vector_imag.Column(manifold_index)=steering_vector_temp_imag;
+		    }
+		}    
+	    }
+	  nominal_positions123.CleanUp();
+	  steering_vector_temp_real.CleanUp();
+	  steering_vector_temp_imag.CleanUp();
+	  tau.CleanUp();
+	  h.CleanUp();
 	}
-    }
-  else
-    {
-      // Azimuth/elevation beamforming
-      double constant3;
-      ColumnVector steering_vector_temp_real;
-      ColumnVector steering_vector_temp_imag;
-      ColumnVector h(4);
-      ColumnVector tau;
-      Matrix nominal_positions123;  
-      
-      steering_vector_real.ReSize(num_elements_used_,
-				  curr_cfg_.number_beams_elevation()*
-				  curr_cfg_.number_beams_azimuth()*
-				  num_bins_);
-      steering_vector_imag.ReSize(num_elements_used_,
-				  curr_cfg_.number_beams_elevation()*
-				  curr_cfg_.number_beams_azimuth()*
-				  num_bins_);
-      nominal_positions123.ReSize(num_elements_used_,3);
-      steering_vector_temp_real.ReSize(num_elements_used_);
-      steering_vector_temp_imag.ReSize(num_elements_used_);
-      constant3 = -1.0/sound_speed_;
-      
-      h(1)=1.0;
-      double pitch = pitch_filter.getAvg();
-      prev_steering_pitch_ = pitch;
-      glog.is(DEBUG1) && glog << " pitch = " << doubleToString(pitch) << std::endl;
-      int q = 1;
-
-      //      double pitch = 0;
-      if (curr_cfg_.array_configuration() == LamssCBFConfig::VOLUMETRIC)
-        {
-	  for (int m=1; m <= num_elements_used_; m++)
-            {
-	      nominal_positions123(m,1)=array_x(array_elements_used[m]);
-	      nominal_positions123(m,2)=array_y(array_elements_used[m])*cos(pitch)-
-		array_z(array_elements_used[m])*sin(pitch);
-	      nominal_positions123(m,3)=array_z(array_elements_used[m])*cos(pitch)+
-		array_y(array_elements_used[m])*sin(pitch);
-            }
-        }
-      else
-        {
-	  for (int m=1; m <= num_elements_used_; m++)
-            {
-	      nominal_positions123(m,1)=0.0;
-	      nominal_positions123(m,2)=
-		-nominal_element_locations(array_elements_used[m])*cos(pitch);
-	      nominal_positions123(m,3)=
-		-nominal_element_locations(array_elements_used[m])*sin(pitch);
-            }
-        }
-      for (int bb=1; bb <= curr_cfg_.number_beams_elevation(); bb++)
-        {
-	  for (int z=1; z <= curr_cfg_.number_beams_azimuth(); z++)
-            {
-	      h(2)=sin(azimuthal_beams(z))*cos(elevation_beams(bb));
-	      h(3)=cos(azimuthal_beams(z))*cos(elevation_beams(bb));
-	      h(4)=sin(elevation_beams(bb));
-	      tau=(nominal_positions123*h.Rows(2,4))*constant3;  //Note that unit vector u=h(2:4)
-	      for (int k=1; k <= num_bins_; k++)
-                {
-		  int manifold_index=k+(z-1)*num_bins_+
-		    (bb-1)*curr_cfg_.number_beams_azimuth()*num_bins_ +
-		    (q-1)*curr_cfg_.number_beams_elevation() *
-		    curr_cfg_.number_beams_azimuth()*num_bins_;
-		  for (int m=1; m <= num_elements_used_; m++)
-                    {
-		      double temp=-2*M_PI*tau(m)*bin_center_frequencies(k);
-		      steering_vector_temp_real(m)=cos(temp)*win_spatial(m);  
-		      steering_vector_temp_imag(m)=sin(temp)*win_spatial(m);
-                    }
-		  steering_vector_real.Column(manifold_index)=steering_vector_temp_real;
-		  steering_vector_imag.Column(manifold_index)=steering_vector_temp_imag;
-		}
-	    }    
-        }
-      nominal_positions123.CleanUp();
-      steering_vector_temp_real.CleanUp();
-      steering_vector_temp_imag.CleanUp();
-      tau.CleanUp();
-      h.CleanUp();
+      // add new steering vectors to catalogue
+      SteeringVector Empty;
+      Empty.config(pitch_tol, ssp_tol);
+      Empty.put(pitch,sound_speed_,steering_vector_real, steering_vector_imag);
+      SteeringVectors.push_back(Empty);
     }
 }
 
@@ -1798,5 +1822,36 @@ bool LamssCBF::dbl_vec2str(std::vector<double> numbers, std::string& output)
       output += istr;
     }
   return(true);
+}
+
+
+//
+// Storage of steering vectors
+//
+
+void SteeringVector:: config(double p_tol, double s_tol)
+{
+  pitch_tol = p_tol;
+  ssp_tol = s_tol;
+}
+
+void SteeringVector:: put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag)
+{
+  pitch = sv_pitch;
+  ssp = sv_ssp;
+  steering_vector_real =sv_real;  
+  steering_vector_imag =sv_imag;
+}
+
+bool SteeringVector:: get(double sv_pitch, double sv_ssp, Matrix& sv_real, Matrix& sv_imag)
+{
+  if (fabs(sv_pitch-pitch) < pitch_tol && fabs(sv_ssp - ssp) < ssp_tol)
+    { 
+      sv_real = steering_vector_real;  
+      sv_imag = steering_vector_imag;
+      return true;
+    }
+  else
+    return false;
 }
 
