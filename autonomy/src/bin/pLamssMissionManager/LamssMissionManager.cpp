@@ -373,7 +373,11 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       if (mission_active_)
 	queue_event<EvNewMission>();
-      queue_event<EvStartDeploy>();
+      if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
+	queue_event<EvStartAbort>();
+      else
+	queue_event<EvStartDeploy>();
+
     }
 }
 
