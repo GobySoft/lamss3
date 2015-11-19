@@ -21,6 +21,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_SAMPLETARFIELD=9;
 		 DEPLOY_MODE_HELIX = 10;
 		 DEPLOY_MODE_DRIFT = 11;
+		 DEPLOY_MODE_ABORT = 12;
 	} 
 	optional Depth_ModeEnum Depth_Mode = 6 [default=DEPTH_MODE_SINGLE];
 	enum Depth_ModeEnum{ 
