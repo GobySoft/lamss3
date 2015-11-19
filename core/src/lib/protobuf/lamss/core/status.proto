@@ -25,6 +25,7 @@ message LAMSS_STATUS {
 		 DEPLOY_MODE_LAWNMOWER = 4; 
 		 DEPLOY_MODE_TRAIL = 5; 
 		 DEPLOY_MODE_STATION_KEEP = 6; 
+		 DEPLOY_ABORT = 7; 
 	} 
 	optional Depth_ModeEnum Depth_Mode = 15;
 	enum Depth_ModeEnum{ 
