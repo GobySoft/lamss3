@@ -203,6 +203,7 @@ class LamssCBF : public GobyMOOSApp
 	
     double time_window_constant_;
     double hydrophone_amplitude_gain_;
+    double hydrophone_calibration_;
     double sound_speed_;
 
     double homing_beacon_frequency_;

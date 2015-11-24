@@ -560,6 +560,8 @@ bool LamssCBF::initialize_beamformer()
   
   // Hydrophone amplitude gain
   hydrophone_amplitude_gain_ = pow(10.0,curr_cfg_.hydrophone_gain()/20.0);
+
+  hydrophone_calibration_ = 1.0/hydrophone_amplitude_gain_;
   
   //    glog << "Array Type = " << ,sArray.c_str());
   //glog << "Array Definition Type = %d\n",array_definition_type); 
@@ -911,20 +913,20 @@ void LamssCBF::update_beamforming_vars()
   
   if (RealSignals)
     {
-      btr_normalization_=2.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
-			      int_blocks_*num_bins_);
+ //     btr_normalization_=2.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
+ //		      int_blocks_*num_bins_);
       single_bin_spectral_normalization_=2.0/(curr_cfg_.sampling_frequency()*
 					      time_window_constant_);
     }
   else //complex signals (not currently supported)
     {	
-      btr_normalization_=1.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
-			      int_blocks_*num_bins_);
+ //     btr_normalization_=1.0/(curr_cfg_.sampling_frequency()*time_window_constant_ *
+ //		      int_blocks_*num_bins_);
       single_bin_spectral_normalization_=1.0/(curr_cfg_.sampling_frequency()*
 					      time_window_constant_);    
     }	
   
-  btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
+ // btr_normalization_=btr_normalization_/pow(hydrophone_amplitude_gain_,2);
 
   spectral_normalization_=single_bin_spectral_normalization_/(int_blocks_*num_bins_);
   single_bin_spectral_normalization_=sqrt(single_bin_spectral_normalization_);
@@ -935,10 +937,8 @@ void LamssCBF::update_beamforming_vars()
   glog.is(DEBUG1) && glog << "time_window_constant_ = " 
 			  << doubleToString(time_window_constant_) << std::endl;
   
-  glog.is(DEBUG1) && glog << "btr_normalization_ = " 
-			  << doubleToString(btr_normalization_) << std::endl;
-  glog.is(DEBUG1) && glog << "BTR Normalization Constant = "
-	   << doubleToString(btr_normalization_,2) << std::endl;
+  glog.is(DEBUG1) && glog << "spectral_normalization_ = " 
+			  << doubleToString(spectral_normalization_) << std::endl;
   if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
     {
       glog.is(DEBUG2) && glog << "Beam Cosines (1:" 
@@ -1373,8 +1373,8 @@ bool LamssCBF::Process_Data()
 	  RealFFT (windowed_data, s_real, s_imag);
 	  for (int m=1; m <= num_bins_; m++)
 	    {
-	      Spectrum_real(m,k) = s_real(bins[m]) ;
-	      Spectrum_imag(m,k) = s_imag(bins[m]) ;
+	      Spectrum_real(m,k) = s_real(bins[m]) * hydrophone_calibration_;
+	      Spectrum_imag(m,k) = s_imag(bins[m]) * hydrophone_calibration_;
 	    }
 	}
       double beamsum=0;
@@ -1460,7 +1460,7 @@ bool LamssCBF::Process_Data()
 	    {
 	      for (int azim=1; azim<=hbeams; azim++)
 		{  
-		  double tk=P(elev,azim)*btr_normalization_;       
+		  double tk=P(elev,azim)*spectral_normalization_;       
 		  btr_msg.add_beam_power_db(10.0*log10(tk));
 		  if (tk > max_power)
 		    {
