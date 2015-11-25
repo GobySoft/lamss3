@@ -1393,7 +1393,6 @@ bool LamssCBF::Process_Data()
 	  vbeams = curr_cfg_.number_beams_elevation();
 	  hbeams = curr_cfg_.number_beams_azimuth();
 	} 
-      P = 0.0;
       for (int bb=1; bb <= vbeams; bb++)
 	{
 	  for (int k=1; k <= hbeams; k++)
@@ -1484,6 +1483,7 @@ bool LamssCBF::Process_Data()
 	  if (curr_cfg_.save_beam_stft())
 	      save_stft_file(stft_file);
 
+	  P = 0.0;
 	  num_blocks_integrated_ = 0;
 	  w++;
 	}  //end if (num_blocks_integrated_ == int_blocks)
