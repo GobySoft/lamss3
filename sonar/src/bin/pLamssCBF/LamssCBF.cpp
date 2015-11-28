@@ -315,7 +315,7 @@ void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
 	  curr_cfg_.set_frequency_bins(homing_bin_list_);
 	  // delete bins array before creating new
 	  delete [] bins;
-	  handle_bin_list(curr_cfg_.frequency_bins());
+	  handle_bin_list(homing_bin_list_);
 	  update_beamforming_vars();
 	  compute_steering_vectors();
 	}
