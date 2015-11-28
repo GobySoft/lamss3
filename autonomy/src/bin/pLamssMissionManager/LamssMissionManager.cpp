@@ -90,6 +90,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
     mission_start_time_ = MOOSTime();
+
+    if (cfg_.homing_beacon_frequency() > 0)
+      publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
+
 }
 
 void LamssMissionManager::loop()
