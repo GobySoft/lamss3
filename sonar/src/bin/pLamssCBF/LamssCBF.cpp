@@ -130,10 +130,10 @@ void LamssCBF::loop()
 	    processing_enable_ = true;
 	    processing_cond_.notify_one();
 	    // add Broadband/Tones logic
-	    if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
-	      queue_event<EvToBroadband>();
-	    else if (curr_cfg_.processing_type() == LamssCBFConfig::TONES)
+	    if (curr_cfg_.processing_type() == LamssCBFConfig::TONES)
 	      queue_event<EvToTones>();
+	    else if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
+	      queue_event<EvToBroadband>();
 	  }
       }
     else
@@ -305,6 +305,7 @@ void LamssCBF::handle_homing_beacon_frequency(const CMOOSMsg& msg)
 
 void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
 {
+  boost::mutex::scoped_try_lock lk(moos_mutex_);
   if (!homing_mode_active_ && MOOSStrCmp(tolower(msg.GetString()),"true"))
     {
       // Switch to homing mode, 
@@ -318,6 +319,9 @@ void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
 	  handle_bin_list(homing_bin_list_);
 	  update_beamforming_vars();
 	  compute_steering_vectors();
+	  processing_enable_ = false;
+	  if (processing_active_)
+	    queue_event<EvProcessingReset>();
 	}
     }
   else if (homing_mode_active_ && MOOSStrCmp(tolower(msg.GetString()),"false"))
@@ -334,6 +338,9 @@ void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
       update_beamforming_vars();
       // compute steering vectors
       compute_steering_vectors();
+      processing_enable_ = false;
+      if (processing_active_)
+	queue_event<EvProcessingReset>();
     }
 }
 
@@ -868,6 +875,8 @@ void LamssCBF::handle_bin_list(std::string sbin_list)
 	  bin_vec_idx +=1;
 	} 
     }
+  SteeringVectors.clear();
+
 }
 
 void LamssCBF::handle_fc_bw()
@@ -882,6 +891,7 @@ void LamssCBF::handle_fc_bw()
   bins = new int[num_bins_+1];
   for(int k = 1; k <=num_bins_; k++)
     bins[k] = (center_bin - num_sidebins + k - 1);  
+  SteeringVectors.clear();
 }
 
 void LamssCBF::update_beamforming_vars()
