@@ -266,6 +266,7 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_array_angle(60);
 
   publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
+  publish("TRACKER_COMMAND","RESET");
 
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);    
