@@ -292,6 +292,7 @@ void  LamssMissionManager::update_abort_mission()
   ss2 << "depth=" << cfg_.abort_depth() ;
   publish("ABORT_DEPTH", ss2.str());
   publish("SENSOR_DEPTH_TRACKING",ss2.str());
+  publish("SENSOR_DEPTH_DEPLOY",ss2.str());
   abort_duration_ = duration;
 }  
 
