@@ -17,8 +17,8 @@ message BTR {
                              (dccl.field).min=0,
                              (dccl.field).in_head=true];
     
-    repeated int32 beam_power_db  = 4 [(dccl.field).max=63,
-                                        (dccl.field).min=0,
+    repeated int32 beam_power_db  = 4 [(dccl.field).max=83,
+                                        (dccl.field).min=20,
                                         (dccl.field).max_repeat=47];
     optional bool wavenumber = 5 [default = true];
     optional bool ambiguous = 6 [default = true];
