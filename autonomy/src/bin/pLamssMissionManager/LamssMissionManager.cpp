@@ -179,6 +179,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      goby::glog << group("helm") 
 			 << "Deploy duration exceeded - initiating Abort" 
 			 << std::endl;
+	      // allow auv to get to abort depth before homing
+	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
@@ -379,6 +381,8 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	queue_event<EvNewMission>();
       if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
 	{
+	  // allow auv to get to abort depth before homing
+	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	  update_abort_mission();
 	  queue_event<EvStartAbort>();
 	}
