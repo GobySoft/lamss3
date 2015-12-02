@@ -205,6 +205,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      if (cfg_.homing_beacon() && 
 		  (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
 		{
+		  abort_duration_ = remaining;
 		  homing_prosecute();
 		}
 	    }
@@ -223,6 +224,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  // Finish homing prosecute and extend abort duration
 	      queue_event<EvResumeAbort>();
 	      abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
+	      std::stringstream ss;
+	      ss << "duration=" << abort_duration_ ; 
+	      publish("ABORT_HEADING", ss.str());
 	}
     }
 
@@ -267,6 +271,10 @@ void LamssMissionManager::homing_prosecute()
 
   publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
   publish("TRACKER_COMMAND","RESET");
+  std::stringstream ss2;
+  ss2 << "depth=" << cfg_.abort_depth() ;
+  publish("SENSOR_DEPTH_TRACKING",ss2.str());
+  publish("SENSOR_DEPTH_DEPLOY",ss2.str());
 
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);    
@@ -291,8 +299,6 @@ void  LamssMissionManager::update_abort_mission()
   std::stringstream ss2;
   ss2 << "depth=" << cfg_.abort_depth() ;
   publish("ABORT_DEPTH", ss2.str());
-  publish("SENSOR_DEPTH_TRACKING",ss2.str());
-  publish("SENSOR_DEPTH_DEPLOY",ss2.str());
   abort_duration_ = duration;
 }  
 
