@@ -281,6 +281,10 @@ void  LamssMissionManager::update_abort_mission()
 		      pow(last_nav_.local_fix().y() - cfg_.abort_y(),2));
   double heading = atan2(cfg_.abort_x() - last_nav_.local_fix().x(),  
 			 cfg_.abort_y() - last_nav_.local_fix().y()) * 180./M_PI;
+  while (heading < 0)
+    heading += 360;
+  while (heading >= 360)
+    heading -= 360;
   double duration = range/cfg_.abort_speed();
   std::stringstream ss;
   ss << "heading=" << heading << "#duration=" << duration ;; 
@@ -585,8 +589,11 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
   if (homing_mode_active_ && tracking_)
     {
       abort_duration_ += current_time_ - last_homing_prosecute_;
+      double new_heading = target_bearing_;
+      if (new_heading < 0)
+	new_heading += 360;
       std::stringstream ss;
-      ss << "heading=" << target_bearing_ << "#duration=" << abort_duration_ ; 
+      ss << "heading=" << new_heading << "#duration=" << abort_duration_ ; 
       publish("ABORT_HEADING", ss.str());
       queue_event<EvResumeAbort>();
     }
