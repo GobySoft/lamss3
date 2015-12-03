@@ -298,9 +298,10 @@ void LamssCBF::handle_ael_pitch(const CMOOSMsg& msg)
 void LamssCBF::handle_homing_beacon_frequency(const CMOOSMsg& msg)
 {
   homing_beacon_frequency_ = msg.GetDouble();
-  homing_frequency_bin_ = (int) homing_beacon_frequency_*curr_cfg_.fft_size()/
-    curr_cfg_.sampling_frequency() + 1;
-  homing_bin_list_ = intToString(homing_frequency_bin_);
+  //  homing_frequency_bin_ = (int) homing_beacon_frequency_*curr_cfg_.fft_size()/
+  //    curr_cfg_.sampling_frequency() + 1;
+  //  homing_bin_list_ = intToString(homing_frequency_bin_);
+  homing_bin_list_ = doubleToString(homing_beacon_frequency_);
 }
 
 void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
@@ -844,7 +845,7 @@ void LamssCBF::handle_bin_list(std::string sbin_list)
   int last_temp;
   vector<int> first;
   vector<int> last;
-  
+  double bin_factor = curr_cfg_.fft_size()/curr_cfg_.sampling_frequency();
   first.clear();
   last.clear();
   
@@ -856,8 +857,10 @@ void LamssCBF::handle_bin_list(std::string sbin_list)
       slast = MOOSChomp(token);
       if(slast.empty())
 	slast=sfirst;
-      first_temp = atoi(sfirst.c_str());
-      last_temp = atoi(slast.c_str());
+      //      first_temp = atoi(sfirst.c_str());
+      //      last_temp = atoi(slast.c_str());
+      first_temp = round(atof(sfirst.c_str())*bin_factor+1);
+      last_temp = round(atof(slast.c_str())*bin_factor+1);
       first.push_back(first_temp );
       last.push_back(last_temp);
       sum_bins += (last_temp-first_temp+1);        
