@@ -330,7 +330,7 @@ void LamssMissionManager::initial_deploy()
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
   init_deploy_cmd.set_timestamp(MOOSTime());
 
-  //  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
+  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
 
   // Auto prosecute only on initial deploy
   if (initial_deploy_done_)
