@@ -87,7 +87,6 @@ namespace lamss
             extern int vehicle_id_;
 
 	    extern double current_time_;
-	    extern bool mission_active_;
 	    extern int  track_state_;
 
 	    extern bool dclt_enable_;
@@ -98,6 +97,7 @@ namespace lamss
 	    extern double detection_start_;
 	    extern bool cue_in_range_;
 	    extern bool cue_too_close_;
+	    extern bool prosecute_pending_;
 	    // Localization State vars
 	    extern bool localization_active_;
 	    extern double localization_start_;
@@ -117,12 +117,6 @@ namespace lamss
 	    // Classifying State vars
 	    extern bool classifying_active_;
 	    extern double classifying_start_;
-	    // Mission state vars
-	    extern bool deploy_received_;
-	    extern bool deploy_mode_active_;
-	    extern bool prosecute_received_;
-	    extern bool prosecute_mode_active_;
-	    extern bool prosecute_pending_;
 
             extern boost::shared_ptr<LamssTrackManagerConfig> cfg_;
             
