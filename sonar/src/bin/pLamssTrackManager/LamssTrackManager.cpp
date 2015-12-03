@@ -869,6 +869,7 @@ void LamssTrackManager::handle_class_done(const CMOOSMsg& msg)
 
 void LamssTrackManager::handle_tracking_mode(const CMOOSMsg& msg)
 {
+  boost::mutex::scoped_lock lock(moos_mutex_);
   std::string tracking_mode = msg.GetString();
   if (tracking_active_)
     {
