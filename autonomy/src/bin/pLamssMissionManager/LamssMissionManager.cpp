@@ -209,11 +209,15 @@ void LamssMissionManager::slow_loop(double curr_time)
 		  homing_prosecute();
 		}
 	    }
+
+	  /*	  // Let the helm finish the ABORT
+
 	  else
 	    {
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartDrifting>();
 	    }
+	  */
 	}
     }
   else if (homing_mode_active_)
