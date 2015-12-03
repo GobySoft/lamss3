@@ -241,7 +241,7 @@ void LamssMissionManager::send_deploy()
   redeploy.set__src_id(vehicle_id_);
   redeploy.set_destinationplatformid(vehicle_id_);
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
-  if (cfg_.deploy_location() == LamssMissionManagerConfig::STATION)
+  if (cfg_.deploy_location() == LamssMissionManagerConfig::CURRENT)
     {
       redeploy.set_deploy_x(last_nav_.local_fix().x());
       redeploy.set_deploy_y(last_nav_.local_fix().y());
@@ -295,7 +295,7 @@ void  LamssMissionManager::update_abort_mission()
     heading -= 360;
   double duration = range/cfg_.abort_speed();
   std::stringstream ss;
-  ss << "heading=" << heading << "#duration=" << duration ;; 
+  ss << "heading=" << heading << "#duration=" << duration ; 
   publish("ABORT_HEADING", ss.str());
   std::stringstream ss1;
   ss1 << "speed=" << cfg_.abort_speed() ;
@@ -326,15 +326,17 @@ void LamssMissionManager::initial_deploy()
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
   init_deploy_cmd.set_timestamp(MOOSTime());
 
-  // Note that the initial will have topside origin to allow resetting
-  // deploy_duration by poking for no-modem use.
-  init_deploy_cmd.set__src_id(cfg_.topside_id());
-  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
+  //  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
 
   // Auto prosecute only on initial deploy
   if (initial_deploy_done_)
-    init_deploy_cmd.set_auto_prosecute(false);
-
+    {
+      // Note that the initial will have topside origin to allow resetting
+      // deploy_duration by poking for no-modem use.
+      //  init_deploy_cmd.set__src_id(cfg_.topside_id());
+      init_deploy_cmd.set__src_id(vehicle_id_);
+      init_deploy_cmd.set_auto_prosecute(false);
+    }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);    
   publish("LAMSS_DEPLOY_OUT", serialized);
@@ -399,8 +401,9 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  queue_event<EvStartAbort>();
 	}
       else
-	queue_event<EvStartDeploy>();
-
+	{
+	  queue_event<EvStartDeploy>();
+	}
     }
 }
 
@@ -613,7 +616,10 @@ void LamssMissionManager::handle_target_bearing(const CMOOSMsg& msg)
 void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
 {
   if (MOOSStrCmp(toupper(msg.GetString()),"TRUE"))
-    initial_deploy();
+    {
+      glog.is(DEBUG1) && glog << "Survey completed - Returning to initial deploy" << std::endl;
+      initial_deploy();
+    }
 }
 
 std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
