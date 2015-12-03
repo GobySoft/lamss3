@@ -56,6 +56,10 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       collaborator_id(-1),
       collaborator_name(""),
       close_range_(false),
+      mission_active_(false),
+      deploy_mode_active_(false),
+      abort_mode_active_(false),
+      prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
       last_slow_loop_t_(0)
 {
@@ -459,10 +463,11 @@ void LamssTrackManager::handle_mission_state(const CMOOSMsg& msg)
 {
   std::string mission_state = msg.GetString();
   deploy_mode_active_ = MOOSStrCmp(mission_state,"DEPLOY"); 
+  abort_mode_active_ = MOOSStrCmp(mission_state,"ABORT"); 
   prosecute_mode_active_ = MOOSStrCmp(mission_state,"PROSECUTE");
   mission_active_ = deploy_mode_active_ || prosecute_mode_active_;
   glog.is(DEBUG1) && glog << "MISSION_STATE=" << mission_state << std::endl;
-  if (deploy_mode_active_)
+  if (deploy_mode_active_ or abort_mode_active_)
     reset_tracking();
 }
 

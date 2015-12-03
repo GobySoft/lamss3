@@ -29,7 +29,6 @@ boost::condition_variable lamss::shared::fsm::dclt_cond_;
 int lamss::shared::fsm::vehicle_id_ = 0;
 
 double lamss::shared::fsm::current_time_ = 0;
-bool lamss::shared::fsm::mission_active_ = false;
 int lamss::shared::fsm::track_state_ = 0;
 
 bool lamss::shared::fsm::dclt_enable_ = false;
@@ -52,10 +51,6 @@ double lamss::shared::fsm::classifying_start_ = 0;
 // pTrackQuality variables
 int lamss::shared::fsm::m_buffer_length_ = 20;
 double lamss::shared::fsm::m_xy_sigma_ = 100;
-
-bool lamss::shared::fsm::deploy_mode_active_ = false;
-bool lamss::shared::fsm::deploy_received_ = false;
-bool lamss::shared::fsm::prosecute_mode_active_ = false;
 bool lamss::shared::fsm::cue_in_range_ = false;
 bool lamss::shared::fsm::cue_too_close_ = false;
 bool lamss::shared::fsm::prosecute_pending_ = false;

@@ -133,6 +133,12 @@ class LamssTrackManager : public GobyMOOSApp
     boost::statechart::fifo_scheduler<>::processor_handle fsm_;
     boost::shared_ptr<boost::thread> fsm_thread_;
 
+    // Mission state vars
+    bool mission_active_;
+    bool deploy_mode_active_;
+    bool abort_mode_active_;
+    bool prosecute_mode_active_;
+
     bool auto_prosecute_;
     double last_slow_loop_t_;
     
