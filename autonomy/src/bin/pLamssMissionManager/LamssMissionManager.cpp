@@ -601,7 +601,7 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
   boost::mutex::scoped_try_lock lk(moos_mutex_);
   if (homing_mode_active_ && tracking_)
     {
-      abort_duration_ += current_time_ - last_homing_prosecute_;
+      abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
       double new_heading = target_bearing_;
       if (new_heading < 0)
 	new_heading += 360;
