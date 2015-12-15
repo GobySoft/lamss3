@@ -76,7 +76,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);    
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);    
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);    
-
+    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -625,6 +625,33 @@ void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
       initial_deploy();
     }
 }
+
+void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
+{
+  lamss::icex::protobuf::VehiclePosition vehicle_pos;
+  parse_for_moos(msg.GetString(), &vehicle_pos);
+  // Only handle messages for me
+  if (vehicle_pos.dest() == vehicle_id_)
+    {
+      double moos_x;
+      double moos_y;
+      if(m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), moos_y, moos_x))
+	{    
+	  // reset deploy duration counter
+	  last_acomms_ = MOOSTime();
+	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
+				  << " lat=" << vehicle_pos.lat()
+				  << " lon=" << vehicle_pos.lon()
+				  << " x=" << moos_x 
+				  << " y=" << moos_y 
+				  << std::endl;
+	}
+      else
+	{
+	  glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
+	}
+    }
+ }
 
 std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
 {
