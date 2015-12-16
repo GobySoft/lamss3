@@ -450,9 +450,12 @@ void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
   LAMSS_STATUS status_msg;
   parse_for_moos(msg.GetString(), &status_msg);
-  // If coming from topside count as being connected
+  // If coming from topside count as being connected 
+  // Disabled after ICEXTracker implemented. Only nav updates and commands count
+#if 0
   if (status_msg.node() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
+#endif
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
