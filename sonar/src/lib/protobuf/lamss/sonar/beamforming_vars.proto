@@ -1,0 +1,16 @@
+import "dccl/protobuf/option_extensions.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+message BeamformingVars { 
+    
+    optional int32 fft_size = 4;
+    optional int32 number_beams = 5;
+    optional double overlap = 6;
+    optional double integration_time = 7;
+    optional double sound_speed = 8;
+    optional double sampling_frequency = 9;
+    optional int32 num_elements_used = 10;
+    optional double mean_frequency = 11;
+    optional double mean_element_spacing = 12;
+
+} 
