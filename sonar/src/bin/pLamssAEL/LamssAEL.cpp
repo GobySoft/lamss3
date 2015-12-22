@@ -91,7 +91,9 @@ void LamssAEL::loop()
   
   if (got_nav_)
     {
-      computeAEL();
+      std::string serialized;
+      serialize_for_moos(&serialized,computeAEL());    
+      publish("AEL_NAV", serialized);
     }
   
    // process some events at a slower rate
@@ -128,7 +130,7 @@ void LamssAEL::handle_ifs_data(const CMOOSMsg& msg)
     }
 }
 
-void LamssAEL::computeAEL()
+ArrayNavigation LamssAEL::computeAEL()
 {
   double curr_time = MOOSTime();
 
@@ -146,10 +148,20 @@ void LamssAEL::computeAEL()
       double ael_y_offset = cfg_.array_center_offset()*sin(theta)*cos(nav_pitch);
       double ael_heading = nav_hdg;
       double ael_pitch = nav_pitch*180/M_PI;
-      m_Comms.Notify(cfg_.ael_preample()+"_PITCH",ael_pitch);
-      m_Comms.Notify(cfg_.ael_preample()+"_HEADING",ael_heading);
-      m_Comms.Notify(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
-      m_Comms.Notify(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
+      publish(cfg_.ael_preample()+"_PITCH",ael_pitch);
+      publish(cfg_.ael_preample()+"_HEADING",ael_heading);
+      publish(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
+      publish(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
+
+      ArrayNavigation ael_nav;
+      ael_nav.set_ael_utc(curr_time);
+      ael_nav.set_ael_x(nav_x+ael_x_offset);
+      ael_nav.set_ael_y(nav_y+ael_y_offset);
+      ael_nav.set_ael_z(-nav_hist[0].nav_dep);
+      ael_nav.set_ael_heading(nav_hist[0].nav_hdg);
+      ael_nav.set_ael_pitch(nav_hist[0].nav_pitch);
+      ael_nav.set_ael_roll(nav_hist[0].nav_roll);
+      return(ael_nav);
     }
   else
     {
@@ -187,11 +199,20 @@ void LamssAEL::computeAEL()
 		  double ael_y_offset = nav_hist[0].nav_y - nav_y;
 		  double ael_heading = nav_hist[0].nav_hdg;
 		  double ael_pitch = nav_hist[0].nav_pitch;
-		  m_Comms.Notify(cfg_.ael_preample()+"_PITCH",ael_pitch);
-		  m_Comms.Notify(cfg_.ael_preample()+"_HEADING",ael_heading);
-		  m_Comms.Notify(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
-		  m_Comms.Notify(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
-		  return;
+		  publish(cfg_.ael_preample()+"_PITCH",ael_pitch);
+		  publish(cfg_.ael_preample()+"_HEADING",ael_heading);
+		  publish(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
+		  publish(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
+
+		  ArrayNavigation ael_nav;
+		  ael_nav.set_ael_utc(curr_time);
+		  ael_nav.set_ael_x(nav_hist[0].nav_x);
+		  ael_nav.set_ael_y(nav_hist[0].nav_y);
+		  ael_nav.set_ael_z(-nav_hist[0].nav_dep);
+		  ael_nav.set_ael_heading(nav_hist[0].nav_hdg);
+		  ael_nav.set_ael_pitch(nav_hist[0].nav_pitch);
+		  ael_nav.set_ael_roll(nav_hist[0].nav_roll);
+		  return(ael_nav);
 		}
 	    }
 	}

@@ -16,9 +16,9 @@
 #include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 
-#include "BeamformingVars.pb.h"
-#include "ActiveSonarParameters.pb.h"
-#include "SonarProcessingCommand.pb.h"
+#include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
+#include "lamss/lib_lamss_protobuf/ActiveSonarParameters.pb.h"
+#include "lamss/lib_lamss_protobuf/SonarProcessingCommand.pb.h"
 
 
 class CBFException : public std::runtime_error

@@ -16,7 +16,7 @@
 #include "goby/moos/frontseat/bluefin/bluefin.pb.h"
 
 #include "LamssAEL_config.pb.h"
-#include "ArrayNavigation.pb.h"
+#include "lamss/lib_lamss_protobuf/ArrayNavigation.pb.h"
 
 class AELException : public std::runtime_error
 {
@@ -34,7 +34,7 @@ class Nav
   double nav_hdg;
   double nav_dep;
   double nav_pitch;
-  double nav_rol;
+  double nav_roll;
   double nav_spd;
   double nav_utc;
 };
@@ -57,7 +57,7 @@ class LamssAEL : public GobyMOOSApp
 
     void handle_ifs_data(const CMOOSMsg& msg);
 
-    void computeAEL();
+    ArrayNavigation computeAEL();
     double angle360(double angle);
   private:
     LamssAELConfig& cfg_;
