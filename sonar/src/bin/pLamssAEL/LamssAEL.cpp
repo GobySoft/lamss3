@@ -144,23 +144,23 @@ ArrayNavigation LamssAEL::computeAEL()
   if (cfg_.array_type() == LamssAELConfig::ARRAY_TYPE_FIXED || nav_spd <= 0)
     {
       double theta = (90-nav_hdg)*M_PI/180.;
-      double ael_x_offset = cfg_.array_center_offset()*cos(theta)*cos(nav_pitch);
-      double ael_y_offset = cfg_.array_center_offset()*sin(theta)*cos(nav_pitch);
+      double ael_x = nav_x + cfg_.array_center_offset()*cos(theta)*cos(nav_pitch);
+      double ael_y = nav_y + cfg_.array_center_offset()*sin(theta)*cos(nav_pitch);
       double ael_heading = nav_hdg;
       double ael_pitch = nav_pitch*180/M_PI;
       publish(cfg_.ael_preample()+"_PITCH",ael_pitch);
       publish(cfg_.ael_preample()+"_HEADING",ael_heading);
-      publish(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
-      publish(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
+      publish(cfg_.ael_preample()+"_X",ael_x);
+      publish(cfg_.ael_preample()+"_Y",ael_y);
 
       ArrayNavigation ael_nav;
       ael_nav.set_ael_utc(curr_time);
-      ael_nav.set_ael_x(nav_x+ael_x_offset);
-      ael_nav.set_ael_y(nav_y+ael_y_offset);
-      ael_nav.set_ael_z(-nav_hist[0].nav_dep);
-      ael_nav.set_ael_heading(nav_hist[0].nav_hdg);
-      ael_nav.set_ael_pitch(nav_hist[0].nav_pitch);
-      ael_nav.set_ael_roll(nav_hist[0].nav_roll);
+      ael_nav.set_ael_x(ael_x);
+      ael_nav.set_ael_y(ael_y);
+      ael_nav.set_ael_z(-nav_dep);
+      ael_nav.set_ael_heading(nav_hdg);
+      ael_nav.set_ael_pitch(nav_pitch);
+      ael_nav.set_ael_roll(nav_roll);
       return(ael_nav);
     }
   else
@@ -195,14 +195,14 @@ ArrayNavigation LamssAEL::computeAEL()
 		  nav_hist = nav_buf;
 		  glog.is(DEBUG1) && glog << "nav record length " << nav_hist.size() << std::endl;
 		  // now take oldest and use as ael
-		  double ael_x_offset = nav_hist[0].nav_x - nav_x;
-		  double ael_y_offset = nav_hist[0].nav_y - nav_y;
+		  double ael_x = nav_hist[0].nav_x;
+		  double ael_y = nav_hist[0].nav_y;
 		  double ael_heading = nav_hist[0].nav_hdg;
 		  double ael_pitch = nav_hist[0].nav_pitch;
 		  publish(cfg_.ael_preample()+"_PITCH",ael_pitch);
 		  publish(cfg_.ael_preample()+"_HEADING",ael_heading);
-		  publish(cfg_.ael_preample()+"_X_OFFSET",ael_x_offset);
-		  publish(cfg_.ael_preample()+"_Y_OFFSET",ael_y_offset);
+		  publish(cfg_.ael_preample()+"_X",ael_x);
+		  publish(cfg_.ael_preample()+"_Y",ael_y);
 
 		  ArrayNavigation ael_nav;
 		  ael_nav.set_ael_utc(curr_time);
