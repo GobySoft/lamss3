@@ -655,8 +655,10 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
 				  << " lat=" << vehicle_pos.lat()
 				  << " lon=" << vehicle_pos.lon()
-				  << " x=" << moos_x 
-				  << " y=" << moos_y 
+				  << " my_x=" << moos_x 
+				  << " my_y=" << moos_y 
+				  << " camp_x=" << moos_x 
+				  << " camp_y=" << moos_y 
 				  << std::endl;
 	}
       else
