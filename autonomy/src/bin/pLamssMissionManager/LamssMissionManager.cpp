@@ -49,6 +49,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
       initial_deploy_done_(false),
+      abort_x(cfg_.abort_x()),
+      abort_y(cfg_.abort_y()),
       slow_loop_period_(10),
       last_slow_loop_t_(0)
 {
@@ -267,8 +269,8 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_destinationplatformid(vehicle_id_);
   prosecute_cmd.set_target_timestamp(current_time_);
   prosecute_cmd.set_target_number(2);
-  prosecute_cmd.set_target_x(cfg_.abort_x());
-  prosecute_cmd.set_target_y(cfg_.abort_y());
+  prosecute_cmd.set_target_x(abort_x);
+  prosecute_cmd.set_target_y(abort_y);
   prosecute_cmd.set_prosecute_duration(cfg_.prosecute_duration());
   prosecute_cmd.set_target_speed(0);
   prosecute_cmd.set_array_angle(60);
@@ -289,10 +291,10 @@ void LamssMissionManager::homing_prosecute()
 
 void  LamssMissionManager::update_abort_mission()
 {
-  double range = sqrt(pow(last_nav_.local_fix().x() - cfg_.abort_x(),2)  +
-		      pow(last_nav_.local_fix().y() - cfg_.abort_y(),2));
-  double heading = atan2(cfg_.abort_x() - last_nav_.local_fix().x(),  
-			 cfg_.abort_y() - last_nav_.local_fix().y()) * 180./M_PI;
+  double range = sqrt(pow(last_nav_.local_fix().x() - abort_x,2)  +
+		      pow(last_nav_.local_fix().y() - abort_y,2));
+  double heading = atan2(abort_x - last_nav_.local_fix().x(),  
+			 abort_y - last_nav_.local_fix().y()) * 180./M_PI;
   while (heading < 0)
     heading += 360;
   while (heading >= 360)
@@ -638,8 +640,16 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
     {
       double moos_x;
       double moos_y;
-      if(m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), moos_y, moos_x))
+      double camp_x;
+      double camp_y;
+      if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), 
+				      moos_y, moos_x) &&
+	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), vehicle_pos.camp_lon(), 
+				      camp_y, camp_x))
 	{    
+	  // update abort location
+	  abort_x = camp_x;
+	  abort_y = camp_y;
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"

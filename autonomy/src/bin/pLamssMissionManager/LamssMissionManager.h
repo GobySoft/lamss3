@@ -95,7 +95,11 @@ class LamssMissionManager : public GobyMOOSApp
     double last_homing_prosecute_;
     bool tracking_;
     double target_bearing_;
-
+    //
+    // Abort location
+    //
+    double abort_x;
+    double abort_y;
 };
 
 #endif
