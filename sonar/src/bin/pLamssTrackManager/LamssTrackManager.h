@@ -10,6 +10,7 @@
 #include "LamssTrackManager_fsm.h"
 #include "goby/moos/goby_moos_app.h"
 #include "LamssTrackManager_config.pb.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "MBUtils.h"
 #include "ivp/MOOSGeodesy.h"
 
@@ -52,7 +53,7 @@ class CReport
   std::vector<double> trk_snr;
 };
 
-
+/*
 class Mavg
 {
 	public:
@@ -72,6 +73,7 @@ class Mavg
 		std::deque<double>  svals;
 		std::deque<double>  cvals;
 };
+*/
 
 class TrackManagerException : public std::runtime_error
 {
@@ -186,8 +188,9 @@ class LamssTrackManager : public GobyMOOSApp
     
     int num_tracks;
     
-    Mavg *pitch_filter;
-    Mavg *heading_filter;
+    //    Mavg *pitch_filter;
+    //    Mavg *heading_filter;
+    CAngleAvg heading_filter;
     bool filt_set;
     int priority_threshold;
     int filt_len;
