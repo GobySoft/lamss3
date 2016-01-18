@@ -204,7 +204,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
-	      if (cfg_.homing_beacon() && 
+	      if (cfg_.homing_beacon() && last_deploy_cmd_.homing_enabled() && 
 		  (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
 		{
 		  abort_duration_ = remaining;
