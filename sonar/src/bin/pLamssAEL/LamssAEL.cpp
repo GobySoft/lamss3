@@ -58,6 +58,7 @@ LamssAEL::LamssAEL(LamssAELConfig& cfg)
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
     pitch_filter.configAvg(cfg_.filter_length());
+    roll_filter.configAvg(cfg_.filter_length());
     heading_filter.configAvg(cfg_.filter_length());
     filt_set_ = true;
 
