@@ -69,6 +69,8 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_target_bearing(const CMOOSMsg& msg);
     void handle_survey_flag(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
+    void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
+    
     void post_transit_route();
     // queue_event for FSM
     template<typename Event>
