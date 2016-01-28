@@ -749,6 +749,7 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
 
         case lamss::icex::protobuf::TrackingSignalUpdate::UNIT:
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,13500");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period,1");
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,35");
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,4");
