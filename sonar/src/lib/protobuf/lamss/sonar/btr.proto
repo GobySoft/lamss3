@@ -16,7 +16,6 @@ message BTR {
     optional int32 dest = 3 [(dccl.field).max=31,
                              (dccl.field).min=0,
                              (dccl.field).in_head=true];
-    
     repeated int32 beam_power_db  = 4 [(dccl.field).max=83,
                                         (dccl.field).min=20,
                                         (dccl.field).max_repeat=47];

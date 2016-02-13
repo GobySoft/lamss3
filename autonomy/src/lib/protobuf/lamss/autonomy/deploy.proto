@@ -74,7 +74,8 @@ message LAMSS_DEPLOY {
 	} 
 	optional double GPS_Interval = 27 [(dccl.field).max=2550.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, default = 0];
 	optional double Deploy_Duration = 28 [(dccl.field).max=204700.000000, (dccl.field).min=0.000000, (dccl.field).precision=-2, default=1800];
-	optional bool Auto_Prosecute = 29 [default = false]; 
-//	optional double Yoyo_Period = 30 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
-//	optional double Yoyo_Period_Segments = 31  [(dccl.field).max=63, (dccl.field).min=0, (dccl.field).precision=0];
+	optional bool Homing_Enabled = 29 [default = false]; 
+	optional bool Auto_Prosecute = 30 [default = false]; 
+//	optional double Yoyo_Period = 31 [(dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
+//	optional double Yoyo_Period_Segments = 32  [(dccl.field).max=63, (dccl.field).min=0, (dccl.field).precision=0];
 } 
