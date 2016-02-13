@@ -1,28 +1,28 @@
-import "@GOBY_MOOS_APP_PROTO@";
-import "@GOBY_OPTION_EXTENSIONS_PROTO@";
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/common/protobuf/option_extensions.proto";
 
 message iSerialNMEAConfig
 {
-  optional @GOBY_MOOS_APP_NAME@Config common = 1 [@GOBY_FIELD_DESCRIPTION@="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 
-  optional int32 fixed_depth = 2 [@GOBY_FIELD_DESCRIPTION@="Fix a depth for the vehicle", default=0];
-  required string vehicle_name = 3 [@GOBY_FIELD_DESCRIPTION@="Name of the vehicle whose information is begin read"];
-  required string vehicle_type = 4 [@GOBY_FIELD_DESCRIPTION@="Type of the vehicle being read"];
+  optional int32 fixed_depth = 2 [(goby.field).description="Fix a depth for the vehicle", default=0];
+  required string vehicle_name = 3 [(goby.field).description="Name of the vehicle whose information is begin read"];
+  required string vehicle_type = 4 [(goby.field).description="Type of the vehicle being read"];
 
-  optional uint32 wait = 5 [@GOBY_FIELD_DESCRIPTION@="blackout time between postings (in seconds)"];
+  optional uint32 wait = 5 [(goby.field).description="blackout time between postings (in seconds)"];
 
   enum InputType 
   {
     INPUT_PORT = 1;
     INPUT_MOOSDB = 2;
   }
-  optional InputType input = 6 [@GOBY_FIELD_DESCRIPTION@="What source to read serial stream from", default=INPUT_PORT];
+  optional InputType input = 6 [(goby.field).description="What source to read serial stream from", default=INPUT_PORT];
   
-  optional string raw_var_to_write = 9 [@GOBY_FIELD_DESCRIPTION@="MOOS variable to write raw output on (if input == INPUT_PORT"];
+  optional string raw_var_to_write = 9 [(goby.field).description="MOOS variable to write raw output on (if input == INPUT_PORT"];
   
-  optional string raw_var_to_read = 10 [@GOBY_FIELD_DESCRIPTION@="MOOS variable to read raw output on (if input == INPUT_MOOSDB"];
+  optional string raw_var_to_read = 10 [(goby.field).description="MOOS variable to read raw output on (if input == INPUT_MOOSDB"];
 
-  optional string out_status_var = 11 [@GOBY_FIELD_DESCRIPTION@="MOOS variable to write parsed node report on"];
+  optional string out_status_var = 11 [(goby.field).description="MOOS variable to write parsed node report on"];
   
   enum ConnectionType { CONNECTION_SERIAL = 1; // Modem is connected by a tty serial line (e.g. RS-232)
                         CONNECTION_TCP_AS_CLIENT = 2; // Modem is connected by ethernet and is serving clients
@@ -30,17 +30,17 @@ message iSerialNMEAConfig
                         CONNECTION_DUAL_UDP_BROADCAST = 4; // Presently unimplemented
   }
     
-  optional ConnectionType connection_type = 20 [default = CONNECTION_SERIAL, @GOBY_FIELD_DESCRIPTION@="Physical connection type from this computer (running Goby) to the GPS"];
+  optional ConnectionType connection_type = 20 [default = CONNECTION_SERIAL, (goby.field).description="Physical connection type from this computer (running Goby) to the GPS"];
   
   // required if connection_type == CONNECTION_SERIAL
-  optional string serial_port = 21 [@GOBY_FIELD_DESCRIPTION@="Serial port for CONNECTION_SERIAL", @GOBY_FIELD_EXAMPLE@="/dev/ttyS0"]; 
-  optional uint32 serial_baud = 22 [@GOBY_FIELD_DESCRIPTION@="Baud rate for CONNECTION_SERIAL", @GOBY_FIELD_EXAMPLE@="19200"]; 
+  optional string serial_port = 21 [(goby.field).description="Serial port for CONNECTION_SERIAL", (goby.field).example="/dev/ttyS0"]; 
+  optional uint32 serial_baud = 22 [(goby.field).description="Baud rate for CONNECTION_SERIAL", (goby.field).example="19200"]; 
 
   // required if connection_type == CONNECTION_TCP_AS_CLIENT
-  optional string tcp_server = 23 [@GOBY_FIELD_DESCRIPTION@="IP Address or domain name for the server if CONNECTION_TCP_AS_CLIENT", @GOBY_FIELD_EXAMPLE@="192.168.1.111"]; 
+  optional string tcp_server = 23 [(goby.field).description="IP Address or domain name for the server if CONNECTION_TCP_AS_CLIENT", (goby.field).example="192.168.1.111"]; 
 
   // required if connection_type == CONNECTION_TCP_AS_CLIENT or CONNECTION_TCP_AS_SERVER
-  optional uint32 tcp_port = 24 [@GOBY_FIELD_DESCRIPTION@="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", @GOBY_FIELD_EXAMPLE@="50010"];
+  optional uint32 tcp_port = 24 [(goby.field).description="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", (goby.field).example="50010"];
 
   optional bool require_checksum = 30 [default = true];
   
