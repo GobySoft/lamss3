@@ -49,7 +49,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       fsm_(scheduler_.create_processor<LamssTrackManagerFSM>()),
       num_tracks(0),
       collab_num_tracks(0),
-      filt_set(true),
+      filt_set(false),
       trk_beamno(0),
       track_delay(cfg_.track_delay()),
       prev_highest(-1),
@@ -86,6 +86,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_bearing_tracks, this);    
     subscribe("PROSECUTE_HEADING", 
 	      &LamssTrackManager::handle_prosecute_heading, this);    
+    subscribe("AEL_HEADING",
+	      &LamssTrackManager::handle_ael_heading, this);    
     subscribe("TRACK_STAT", 
 	      &LamssTrackManager::handle_track_stat, this);    
     subscribe("LAMSS_TRACK_IN", 
@@ -101,8 +103,10 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     subscribe("SONAR_CONTROL", 
 	      &LamssTrackManager::handle_sonar_control, this);    
 
-    heading_filter = new Mavg(cfg_.filter_length());
-    // reset collaborator tracks
+    //    heading_filter = new Mavg(cfg_.filter_length());
+    heading_filter.configAvg(cfg_.filter_length());
+    filt_set = true;
+   // reset collaborator tracks
     collab_new_track.clear();
     collab_Tracks.clear();
   
@@ -152,7 +156,8 @@ void LamssTrackManager::loop()
 
   if (dclt_enable_)
     {
-      heading = angle360(heading_filter->get_FVal());
+      //      heading = angle360(heading_filter->get_FVal());
+      heading = angle360(heading_filter.getAvg());
       postStateVars();
     }
 
@@ -478,8 +483,10 @@ void LamssTrackManager::handle_ael_heading(const CMOOSMsg& msg)
 		heading = raw_heading;
 		if (filt_set)
 		  {
-		    heading_filter->set_RawVal(raw_heading);
-		    heading = angle360(heading_filter->get_FVal());     //HS 2007/07/12
+     //		    heading_filter->set_RawVal(raw_heading);
+     //		    heading = angle360(heading_filter->get_FVal());     //HS 2007/07/12
+		    heading_filter.setVal(raw_heading);
+		    heading = angle360(heading_filter.getAvg());     //HS 2016/01/17
 		  }
 	      }
 
@@ -1272,6 +1279,7 @@ bool LamssTrackManager::dbl_vec2str(std::vector<double> numbers, std::string& ou
 //*                                                                         *
 //*************************************************************************** 
 
+/*
 Mavg::Mavg(int length)
 {
 
@@ -1337,6 +1345,7 @@ double Mavg::get_FVal()
     return(0.0);
 }
 
+*/
 
 bool CReport::initReport(int node, double x, double y, double spd, double hdg, double utc)
 {
