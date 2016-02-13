@@ -17,6 +17,9 @@
 
 #include "goby/moos/moos_protobuf_helpers.h"
 
+#include "goby/acomms/protobuf/driver_base.pb.h"
+#include "goby/acomms/protobuf/mm_driver.pb.h"
+
 using namespace lamss::shared::fsm;
 using namespace goby::common::logger;
 using namespace goby::common::logger_lock;
@@ -49,6 +52,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
       initial_deploy_done_(false),
+      abort_x(cfg_.abort_x()),
+      abort_y(cfg_.abort_y()),
       slow_loop_period_(10),
       last_slow_loop_t_(0)
 {
@@ -76,7 +81,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);    
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);    
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);    
-
+    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);    
+    subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -202,7 +208,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
-	      if (cfg_.homing_beacon() && 
+	      if (cfg_.homing_beacon() && last_deploy_cmd_.homing_enabled() && 
 		  (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
 		{
 		  abort_duration_ = remaining;
@@ -267,8 +273,8 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_destinationplatformid(vehicle_id_);
   prosecute_cmd.set_target_timestamp(current_time_);
   prosecute_cmd.set_target_number(2);
-  prosecute_cmd.set_target_x(cfg_.abort_x());
-  prosecute_cmd.set_target_y(cfg_.abort_y());
+  prosecute_cmd.set_target_x(abort_x);
+  prosecute_cmd.set_target_y(abort_y);
   prosecute_cmd.set_prosecute_duration(cfg_.prosecute_duration());
   prosecute_cmd.set_target_speed(0);
   prosecute_cmd.set_array_angle(60);
@@ -289,10 +295,10 @@ void LamssMissionManager::homing_prosecute()
 
 void  LamssMissionManager::update_abort_mission()
 {
-  double range = sqrt(pow(last_nav_.local_fix().x() - cfg_.abort_x(),2)  +
-		      pow(last_nav_.local_fix().y() - cfg_.abort_y(),2));
-  double heading = atan2(cfg_.abort_x() - last_nav_.local_fix().x(),  
-			 cfg_.abort_y() - last_nav_.local_fix().y()) * 180./M_PI;
+  double range = sqrt(pow(last_nav_.local_fix().x() - abort_x,2)  +
+		      pow(last_nav_.local_fix().y() - abort_y,2));
+  double heading = atan2(abort_x - last_nav_.local_fix().x(),  
+			 abort_y - last_nav_.local_fix().y()) * 180./M_PI;
   while (heading < 0)
     heading += 360;
   while (heading >= 360)
@@ -450,9 +456,12 @@ void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
   LAMSS_STATUS status_msg;
   parse_for_moos(msg.GetString(), &status_msg);
-  // If coming from topside count as being connected
+  // If coming from topside count as being connected 
+  // Disabled after ICEXTracker implemented. Only nav updates and commands count
+#if 0
   if (status_msg.node() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
+#endif
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
@@ -601,7 +610,7 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
   boost::mutex::scoped_try_lock lk(moos_mutex_);
   if (homing_mode_active_ && tracking_)
     {
-      abort_duration_ += current_time_ - last_homing_prosecute_;
+      abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
       double new_heading = target_bearing_;
       if (new_heading < 0)
 	new_heading += 360;
@@ -625,6 +634,43 @@ void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
       initial_deploy();
     }
 }
+
+void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
+{
+  lamss::icex::protobuf::VehiclePosition vehicle_pos;
+  parse_for_moos(msg.GetString(), &vehicle_pos);
+  // Only handle messages for me
+  if (vehicle_pos.dest() == vehicle_id_)
+    {
+      double moos_x;
+      double moos_y;
+      double camp_x;
+      double camp_y;
+      if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), 
+				      moos_y, moos_x) &&
+	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), vehicle_pos.camp_lon(), 
+				      camp_y, camp_x))
+	{    
+	  // update abort location
+	  abort_x = camp_x;
+	  abort_y = camp_y;
+	  // reset deploy duration counter
+	  last_acomms_ = MOOSTime();
+	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
+				  << " lat=" << vehicle_pos.lat()
+				  << " lon=" << vehicle_pos.lon()
+				  << " my_x=" << moos_x 
+				  << " my_y=" << moos_y 
+				  << " camp_x=" << moos_x 
+				  << " camp_y=" << moos_y 
+				  << std::endl;
+	}
+      else
+	{
+	  glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
+	}
+    }
+ }
 
 std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
 {
@@ -666,4 +712,50 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
   output += "DEPTH=" + doubleToString(node_dep,2);
 
   return(output);
+}
+
+void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg)
+{
+    goby::acomms::protobuf::DriverConfig cfg;
+    cfg.set_modem_id(msg.tracking_modem_id());
+
+    // just needs to be the start of a minute
+    const int even_reference_time = 1449763200;
+    const int odd_reference_time = even_reference_time + static_cast<int>(msg.ping_period())/2;
+    
+    switch(msg.current_vehicle())
+    {
+        case lamss::icex::protobuf::TrackingSignalUpdate::NONE:
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,0");
+            break;
+            
+        case lamss::icex::protobuf::TrackingSignalUpdate::EVEN_PLATFORM:
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,10500");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period," + goby::util::as<std::string>(msg.ping_period()));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,100");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.bandwidth_Hz,3000");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,3");
+            break;
+
+        case lamss::icex::protobuf::TrackingSignalUpdate::ODD_PLATFORM:
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,10500");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period," + goby::util::as<std::string>(msg.ping_period()));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.reference_time," + goby::util::as<std::string>(odd_reference_time));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,100");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.bandwidth_Hz,3000");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,3");
+            break;
+
+        case lamss::icex::protobuf::TrackingSignalUpdate::UNIT:
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,13500");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period,1");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,35");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,4");
+            break;
+    }
+    
+    publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
+    
 }

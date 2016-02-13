@@ -11,6 +11,9 @@
 #include "LamssMissionManager_fsm.h"
 #include "goby/moos/goby_moos_app.h"
 #include "LamssMissionManager_config.pb.h"
+
+#include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
+
 //#include "MBUtils.h"
 #include "ivp/MOOSGeodesy.h"
 
@@ -65,6 +68,9 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_tracking(const CMOOSMsg& msg);
     void handle_target_bearing(const CMOOSMsg& msg);
     void handle_survey_flag(const CMOOSMsg& msg);
+    void handle_tracking_message(const CMOOSMsg& msg);
+    void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
+    
     void post_transit_route();
     // queue_event for FSM
     template<typename Event>
@@ -91,7 +97,11 @@ class LamssMissionManager : public GobyMOOSApp
     double last_homing_prosecute_;
     bool tracking_;
     double target_bearing_;
-
+    //
+    // Abort location
+    //
+    double abort_x;
+    double abort_y;
 };
 
 #endif

@@ -30,5 +30,8 @@ message LamssMissionManagerConfig
   optional double homing_beacon_frequency = 16 [default = 0];
   optional double homing_interval = 17 [default = 600];
   optional double homing_duration = 18 [default = 300];
+  optional string tracking_message = 19 [default = "ICEX_TRACKING_VEHICLE_POS_IN"];
+  optional string track_signal_update_message = 20 [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
 }
+
 
