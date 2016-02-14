@@ -68,6 +68,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_tracking(const CMOOSMsg& msg);
     void handle_target_bearing(const CMOOSMsg& msg);
     void handle_survey_flag(const CMOOSMsg& msg);
+    void handle_gps_update(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     
