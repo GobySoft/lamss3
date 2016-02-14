@@ -81,6 +81,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);    
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);    
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);    
+    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);    
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);    
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);    
     // intialize MOOSGeodesy
@@ -462,6 +463,14 @@ void LamssMissionManager::handle_status(const CMOOSMsg& msg)
   if (status_msg.node() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
 #endif
+}
+
+void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
+{
+  glog.is(VERBOSE) && glog << "Received GPS update: " << msg.GetString() 
+			   << std::endl; 
+  // reset deploy duration when getting GPS update
+	last_acomms_ = MOOSTime();
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
