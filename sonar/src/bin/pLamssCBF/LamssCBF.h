@@ -36,11 +36,12 @@ class SteeringVector
   void put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag);
   bool get(double sv_pitch, double sv_ssp, Matrix & sv_real, Matrix & sv_imag);
 
+  double pitch;
+  double ssp;
+
  private:
   double pitch_tol;
   double ssp_tol;
-  double pitch;
-  double ssp;
   Matrix       steering_vector_real;
   Matrix       steering_vector_imag;    
 };

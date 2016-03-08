@@ -149,7 +149,7 @@ void LamssCBF::loop()
       {
 	if (curr_cfg_.angular_steering_type() != LamssCBFConfig::ARRAY_ANGLE)
 	  {
-	    // recompute steering_vectors if pich changed by more than 1 deg
+	    // recompute steering_vectors if pitch changed by more than 1 deg
 	    if (fabs(pitch_filter.getAvg()-prev_steering_pitch_) >= M_PI/180)
 	      compute_steering_vectors();
 	  }
@@ -280,7 +280,7 @@ void LamssCBF::handle_sound_speed(const CMOOSMsg& msg)
 {
   double sound_speed_prev = sound_speed_;
   sound_speed_ = msg.GetDouble();
-  if (fabs(sound_speed_ - sound_speed_prev) >= 1.0 )
+  if (fabs(sound_speed_ - sound_speed_prev) > 0.0 )
     compute_steering_vectors();
 }
 
@@ -1029,13 +1029,24 @@ void LamssCBF::compute_steering_vectors()
   //
   double ssp_tol = 5;
   double pitch_tol = M_PI/180.; // 1 deg
+  // for array angle pitch does not matter
+  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+    pitch_tol = M_PI/2;
   int iter = 0;
   bool got_it = false;
   double pitch = pitch_filter.getAvg();
+  glog.is(DEBUG1) && glog << "Seeking Steering Vectors, pitch = "
+			  << pitch << ", ssp = " << sound_speed_ << std::endl;
   while( iter < SteeringVectors.size() && !got_it)
     {
       got_it = SteeringVectors[iter].get(pitch, sound_speed_,
 				   steering_vector_real, steering_vector_imag);
+      if (got_it)
+	glog.is(DEBUG1) && glog 
+	  << "Found Steering Vectors, "
+	  << " pitch = " << SteeringVectors[iter].pitch 
+	  << ", ssp = " << SteeringVectors[iter].ssp 
+	  << std::endl;
       iter++;
     }
   if (!got_it)
