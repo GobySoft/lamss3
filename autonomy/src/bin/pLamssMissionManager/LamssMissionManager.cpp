@@ -657,7 +657,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
       double camp_y;
       if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), 
 				      moos_y, moos_x) &&
-	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), vehicle_pos.camp_lon(), 
+	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), 
+				      vehicle_pos.camp_lon(), 
 				      camp_y, camp_x))
 	{    
 	  // update abort location
@@ -670,8 +671,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				  << " lon=" << vehicle_pos.lon()
 				  << " my_x=" << moos_x 
 				  << " my_y=" << moos_y 
-				  << " camp_x=" << moos_x 
-				  << " camp_y=" << moos_y 
+				  << " camp_x=" << camp_x 
+				  << " camp_y=" << camp_y 
 				  << std::endl;
 	}
       else
