@@ -62,10 +62,7 @@ void CMeasAvg::setVal(double val)
 		sum +=vals[kk];
 	}
 
-	if (num_measurements>0)
-	  avg = sum/num_measurements;
-	else
-	  avg = 0;
+	avg = sum/num_measurements;
 }
 
 
@@ -129,8 +126,7 @@ void CAngleAvg::setVal(double val)
 		ssum +=svals[kk];
 	}
 
-	avg = atan2(ssum,csum)*180.0/M_PI;
-
+	avg = atan2(ssum/num_measurements,csum/num_measurements)*180.0/M_PI;
 //MOOSTrace("ssum = %f, csum = %f, average angle = %f\n",ssum,csum,avg);
 }
 
@@ -195,9 +191,8 @@ void CRadianAvg::setVal(double val)
 		ssum +=svals[kk];
 	}
 
-	avg = atan2(ssum,csum);
+	avg = atan2(ssum/num_measurements,csum/num_measurements);
 
-//MOOSTrace("ssum = %f, csum = %f, average angle = %f\n",ssum,csum,avg);
 }
 
 
