@@ -19,6 +19,8 @@
 #include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
 #include "lamss/lib_lamss_protobuf/ActiveSonarParameters.pb.h"
 #include "lamss/lib_lamss_protobuf/SonarProcessingCommand.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
+#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
 
 
 class CBFException : public std::runtime_error
@@ -36,11 +38,12 @@ class SteeringVector
   void put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag);
   bool get(double sv_pitch, double sv_ssp, Matrix & sv_real, Matrix & sv_imag);
 
+  double pitch;
+  double ssp;
+
  private:
   double pitch_tol;
   double ssp_tol;
-  double pitch;
-  double ssp;
   Matrix       steering_vector_real;
   Matrix       steering_vector_imag;    
 };
@@ -64,6 +67,7 @@ class LamssCBF : public GobyMOOSApp
 
     // mail handlers
 
+    void handle_vehicle_id(const CMOOSMsg& msg);
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_sonar_process(const CMOOSMsg& msg);
     void handle_sonar_processing_command(const CMOOSMsg& msg);
@@ -72,12 +76,15 @@ class LamssCBF : public GobyMOOSApp
     void handle_sonar_file_num(const CMOOSMsg& msg);
     void handle_sound_speed(const CMOOSMsg& msg);
     void handle_ael_pitch(const CMOOSMsg& msg);
-    void handle_homing_active(const CMOOSMsg& msg);
+    void handle_homing_mode(const CMOOSMsg& msg);
     void handle_homing_beacon_frequency(const CMOOSMsg& msg);
+    void handle_prosecute(const CMOOSMsg& msg);
+    void handle_deploy(const CMOOSMsg& msg);
 
+    void set_processing_mode(bool tone_processing_mode);
     void update_beamforming_vars();
     void array_configuration();
-    void handle_bin_list(std::string bin_list);
+    void handle_freq_list(std::string freq_list);
     void handle_fc_bw();
     // Processing modules
     bool LoadData(std::string);
@@ -120,6 +127,8 @@ class LamssCBF : public GobyMOOSApp
 
     CRadianAvg pitch_filter;
     CAngleAvg heading_filter;
+
+    int vehicle_id_;
 
     double prev_steering_pitch_;
     bool filt_set_;
@@ -209,7 +218,7 @@ class LamssCBF : public GobyMOOSApp
     double homing_beacon_frequency_;
     int homing_frequency_bin_;
     bool homing_mode_active_;
-    std::string homing_bin_list_;
+    std::string tone_freq_list_;
 };
 
 #endif
