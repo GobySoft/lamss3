@@ -347,6 +347,10 @@ void LamssMissionManager::initial_deploy()
       //  init_deploy_cmd.set__src_id(cfg_.topside_id());
       init_deploy_cmd.set__src_id(vehicle_id_);
       init_deploy_cmd.set_auto_prosecute(false);
+      // for auto redeploy, center at current abort location
+      // This is important for dynamic scenarios such as in ICEX
+      init_deploy_cmd.set_deploy_x(abort_x);
+      init_deploy_cmd.set_deploy_y(abort_y);
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);    
@@ -657,12 +661,14 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
       double camp_y;
       if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), 
 				      moos_y, moos_x) &&
-	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), vehicle_pos.camp_lon(), 
+	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), 
+				      vehicle_pos.camp_lon(), 
 				      camp_y, camp_x))
 	{    
 	  // update abort location
 	  abort_x = camp_x;
 	  abort_y = camp_y;
+
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
@@ -670,8 +676,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				  << " lon=" << vehicle_pos.lon()
 				  << " my_x=" << moos_x 
 				  << " my_y=" << moos_y 
-				  << " camp_x=" << moos_x 
-				  << " camp_y=" << moos_y 
+				  << " camp_x=" << camp_x 
+				  << " camp_y=" << camp_y 
 				  << std::endl;
 	}
       else
