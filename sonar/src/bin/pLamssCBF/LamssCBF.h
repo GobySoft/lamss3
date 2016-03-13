@@ -81,7 +81,7 @@ class LamssCBF : public GobyMOOSApp
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
 
-    void set_processing_mode(bool tone_processing_mode);
+    void set_processing_mode(bool homing_processing_mode);
     void update_beamforming_vars();
     void array_configuration();
     void handle_freq_list(std::string freq_list);

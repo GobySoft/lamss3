@@ -87,6 +87,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
 	      &LamssCBF::handle_homing_beacon_frequency, this);    
     subscribe("HOMING_ACTIVE", 
 	      &LamssCBF::handle_homing_mode, this);    
+    subscribe("VEHICLE_ID", &LamssCBF::handle_vehicle_id, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssCBF::handle_prosecute, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssCBF::handle_deploy, this);
 
@@ -346,6 +347,7 @@ void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
 	    cc << "," << doubleToString(prosecute_cmd.tone_2(),1) ;
 	  if (prosecute_cmd.tone_3() > 0)
 	    cc << "," << doubleToString(prosecute_cmd.tone_3(),1) ;
+	  curr_cfg_.set_frequency_bins(cc.str());
 	}
       else
 	{
@@ -376,8 +378,7 @@ void LamssCBF::set_processing_mode(bool homing_processing_mode)
       update_beamforming_vars();
       compute_steering_vectors();
       processing_enable_ = false;
-      if (processing_active_)
-	queue_event<EvProcessingReset>();
+      queue_event<EvProcessingReset>();
     }
   else if (!homing_processing_mode)
     {
@@ -393,8 +394,7 @@ void LamssCBF::set_processing_mode(bool homing_processing_mode)
       // compute steering vectors
       compute_steering_vectors();
       processing_enable_ = false;
-      if (processing_active_)
-	queue_event<EvProcessingReset>();
+      queue_event<EvProcessingReset>();
     }
 }
 
