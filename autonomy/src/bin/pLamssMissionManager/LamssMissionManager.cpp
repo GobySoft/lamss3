@@ -770,6 +770,18 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,4");
             break;
     }
+
+    if(msg.has_tx_power_level())
+    {
+        int tx_level = msg.tx_power_level();
+        cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "pwramp.txlevel," + goby::util::as<std::string>(tx_level));
+    }
+    
+    if(msg.has_mod_header_version())
+    {
+        int hdr_version = msg.mod_header_version();
+        cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
+    }
     
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
     
