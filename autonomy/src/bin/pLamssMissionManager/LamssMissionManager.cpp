@@ -20,6 +20,9 @@
 #include "goby/acomms/protobuf/driver_base.pb.h"
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 
+#include "ivp/NodeRecord.h"
+
+
 using namespace lamss::shared::fsm;
 using namespace goby::common::logger;
 using namespace goby::common::logger_lock;
@@ -669,6 +672,15 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	  abort_x = camp_x;
 	  abort_y = camp_y;
 
+          NodeRecord node_report("camp_sargo", "icecamp");
+
+          node_report.setX(camp_x);
+          node_report.setY(camp_y);
+          node_report.setLat(vehicle_pos.camp_lat());
+          node_report.setLon(vehicle_pos.camp_lon());
+          node_report.setDepth(100);
+          publish("NODE_REPORT", node_report.getSpec());
+          
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
