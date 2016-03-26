@@ -20,6 +20,9 @@
 #include "goby/acomms/protobuf/driver_base.pb.h"
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 
+#include "ivp/NodeRecord.h"
+
+
 using namespace lamss::shared::fsm;
 using namespace goby::common::logger;
 using namespace goby::common::logger_lock;
@@ -669,6 +672,15 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	  abort_x = camp_x;
 	  abort_y = camp_y;
 
+          NodeRecord node_report("camp_sargo", "icecamp");
+
+          node_report.setX(camp_x);
+          node_report.setY(camp_y);
+          node_report.setLat(vehicle_pos.camp_lat());
+          node_report.setLon(vehicle_pos.camp_lon());
+          node_report.setDepth(100);
+          publish("NODE_REPORT", node_report.getSpec());
+          
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
@@ -769,6 +781,18 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,35");
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,4");
             break;
+    }
+
+    if(msg.has_tx_power_level())
+    {
+        int tx_level = msg.tx_power_level();
+        cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "pwramp.txlevel," + goby::util::as<std::string>(tx_level));
+    }
+    
+    if(msg.has_mod_header_version())
+    {
+        int hdr_version = msg.mod_header_version();
+        cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
     }
     
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
