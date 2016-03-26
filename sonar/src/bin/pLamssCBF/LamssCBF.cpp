@@ -86,7 +86,10 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     subscribe("HOMING_BEACON_FREQUENCY", 
 	      &LamssCBF::handle_homing_beacon_frequency, this);    
     subscribe("HOMING_ACTIVE", 
-	      &LamssCBF::handle_homing_active, this);    
+	      &LamssCBF::handle_homing_mode, this);    
+    subscribe("VEHICLE_ID", &LamssCBF::handle_vehicle_id, this);
+    subscribe("LAMSS_PROSECUTE_IN", &LamssCBF::handle_prosecute, this);
+    subscribe("LAMSS_DEPLOY_IN", &LamssCBF::handle_deploy, this);
 
     scheduler_.initiate_processor(fsm_);  
   
@@ -103,7 +106,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
       handle_fc_bw();
     else if (curr_cfg_.processing_type() == LamssCBFConfig::TONES)
-      handle_bin_list(curr_cfg_.frequency_bins());
+      handle_freq_list(curr_cfg_.frequency_bins());
     // update data structures depending on num_bins_
     update_beamforming_vars();
     // compute steering vectors
@@ -300,48 +303,98 @@ void LamssCBF::handle_homing_beacon_frequency(const CMOOSMsg& msg)
   homing_beacon_frequency_ = msg.GetDouble();
   //  homing_frequency_bin_ = (int) homing_beacon_frequency_*curr_cfg_.fft_size()/
   //    curr_cfg_.sampling_frequency() + 1;
-  //  homing_bin_list_ = intToString(homing_frequency_bin_);
-  homing_bin_list_ = doubleToString(homing_beacon_frequency_);
+  //  tone_freq_list_ = intToString(homing_frequency_bin_);
 }
 
-void LamssCBF::handle_homing_active(const CMOOSMsg& msg)
+void LamssCBF::handle_homing_mode(const CMOOSMsg& msg)
 {
-  boost::mutex::scoped_try_lock lk(moos_mutex_);
-  if (!homing_mode_active_ && MOOSStrCmp(tolower(msg.GetString()),"true"))
+  bool homing_processing_mode = MOOSStrCmp(tolower(msg.GetString()),"true");
+  if (homing_processing_mode && (homing_beacon_frequency_ > 1.0))
     {
-      // Switch to homing mode, 
-      homing_mode_active_ = true;
-      if (homing_beacon_frequency_ > 1.0)
+      tone_freq_list_ = doubleToString(homing_beacon_frequency_);
+    }
+  else
+    curr_cfg_ = cfg_;
+  if (homing_mode_active_ != homing_processing_mode)
+    set_processing_mode(homing_processing_mode);
+}
+
+void LamssCBF::handle_deploy(const CMOOSMsg& msg)
+{
+  LAMSS_DEPLOY deploy_cmd;
+  parse_for_moos(msg.GetString(), &deploy_cmd);
+  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+    {
+      curr_cfg_ = cfg_;
+      set_processing_mode(false);
+    }
+}
+
+void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
+{
+  LAMSS_PROSECUTE prosecute_cmd;
+  parse_for_moos(msg.GetString(), &prosecute_cmd);
+  // Only handle messages for me
+  curr_cfg_ = cfg_;
+  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
+    {
+      if (prosecute_cmd.processing_type() == LAMSS_PROSECUTE::TONES)
 	{
 	  curr_cfg_.set_processing_type(LamssCBFConfig::TONES);
-	  curr_cfg_.set_frequency_bins(homing_bin_list_);
-	  // delete bins array before creating new
-	  delete [] bins;
-	  handle_bin_list(homing_bin_list_);
-	  update_beamforming_vars();
-	  compute_steering_vectors();
-	  processing_enable_ = false;
-	  if (processing_active_)
-	    queue_event<EvProcessingReset>();
+	  stringstream cc;
+	  cc << doubleToString(prosecute_cmd.tone_1(),1) ;
+	  if (prosecute_cmd.tone_2() > 0)
+	    cc << "," << doubleToString(prosecute_cmd.tone_2(),1) ;
+	  if (prosecute_cmd.tone_3() > 0)
+	    cc << "," << doubleToString(prosecute_cmd.tone_3(),1) ;
+	  curr_cfg_.set_frequency_bins(cc.str());
 	}
+      else
+	{
+	  curr_cfg_.set_processing_type(LamssCBFConfig::BROADBAND);
+	  curr_cfg_.set_center_frequency(prosecute_cmd.center_frequency());
+	  curr_cfg_.set_bandwidth(prosecute_cmd.bandwidth());
+	}
+      set_processing_mode(false);
+    }  
+}
+
+void LamssCBF::handle_vehicle_id(const CMOOSMsg& msg)
+{
+    vehicle_id_ = msg.GetDouble();
+}
+
+void LamssCBF::set_processing_mode(bool homing_processing_mode)
+{
+  if (homing_processing_mode)
+    {
+      // Switch to tone mode, 
+      homing_mode_active_ = true;
+      curr_cfg_.set_processing_type(LamssCBFConfig::TONES);
+      curr_cfg_.set_frequency_bins(tone_freq_list_);
+      // delete bins array before creating new
+      delete [] bins;
+      handle_freq_list(tone_freq_list_);
+      update_beamforming_vars();
+      compute_steering_vectors();
+      processing_enable_ = false;
+      queue_event<EvProcessingReset>();
     }
-  else if (homing_mode_active_ && MOOSStrCmp(tolower(msg.GetString()),"false"))
+  else if (!homing_processing_mode)
     {
       // Switch back to default processing mode
-      curr_cfg_ = cfg_;
       homing_mode_active_ = false;
       delete [] bins;
       if (curr_cfg_.processing_type() == LamssCBFConfig::BROADBAND)
 	handle_fc_bw();
       else if (curr_cfg_.processing_type() == LamssCBFConfig::TONES)
-	handle_bin_list(curr_cfg_.frequency_bins());
+	handle_freq_list(curr_cfg_.frequency_bins());
       // update data structures depending on num_bins_
       update_beamforming_vars();
       // compute steering vectors
       compute_steering_vectors();
       processing_enable_ = false;
-      if (processing_active_)
-	queue_event<EvProcessingReset>();
+      queue_event<EvProcessingReset>();
     }
 }
 
@@ -834,7 +887,7 @@ void LamssCBF::steering_parameters()
 }
 
 
-void LamssCBF::handle_bin_list(std::string sbin_list)
+void LamssCBF::handle_freq_list(std::string sfreq_list)
 {
   int sum_bins  = 0;
   string sbins;
@@ -849,7 +902,7 @@ void LamssCBF::handle_bin_list(std::string sbin_list)
   first.clear();
   last.clear();
   
-  sbins = MOOSChomp(sbin_list,",");
+  sbins = MOOSChomp(sfreq_list,",");
   while(!sbins.empty())
     {
       token = sbins;
@@ -859,12 +912,12 @@ void LamssCBF::handle_bin_list(std::string sbin_list)
 	slast=sfirst;
       //      first_temp = atoi(sfirst.c_str());
       //      last_temp = atoi(slast.c_str());
-      first_temp = round(atof(sfirst.c_str())*bin_factor+1);
-      last_temp = round(atof(slast.c_str())*bin_factor+1);
+      first_temp = floor(atof(sfirst.c_str())*bin_factor+1);
+      last_temp = ceil(atof(slast.c_str())*bin_factor+1);
       first.push_back(first_temp );
       last.push_back(last_temp);
       sum_bins += (last_temp-first_temp+1);        
-      sbins = MOOSChomp(sbin_list,",");
+      sbins = MOOSChomp(sfreq_list,",");
     }
   int num_blocks=first.size();
   num_bins_ = sum_bins;
