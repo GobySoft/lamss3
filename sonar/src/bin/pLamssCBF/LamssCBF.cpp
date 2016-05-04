@@ -82,7 +82,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
     subscribe("SONAR_DIR", &LamssCBF::handle_sonar_dir, this);    
     subscribe("SONAR_FILE_NUM", &LamssCBF::handle_sonar_file_num, this);    
     subscribe("SOUND_SPEED", &LamssCBF::handle_sound_speed, this);    
-    subscribe("AEL_PITCH", &LamssCBF::handle_ael_pitch, this);    
+    subscribe(cfg_.ael_pitch_variable(), &LamssCBF::handle_ael_pitch, this);    
     subscribe("HOMING_BEACON_FREQUENCY", 
 	      &LamssCBF::handle_homing_beacon_frequency, this);    
     subscribe("HOMING_ACTIVE", 

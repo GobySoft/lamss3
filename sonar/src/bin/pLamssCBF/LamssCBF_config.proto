@@ -84,6 +84,7 @@ message LamssCBFConfig
       PASSIVE = 1;
       ACTIVE = 2;
       }
+  optional string ael_pitch_variable = 41 [default = "AEL_PITCH"];
 }
 
 enum ProcessingStateEnum{
