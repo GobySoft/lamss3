@@ -94,7 +94,7 @@ void LamssAEL::loop()
     {
       std::string serialized;
       serialize_for_moos(&serialized,computeAEL());    
-      publish("AEL_NAV", serialized);
+      publish(cfg_.ael_preample()+"_NAV", serialized);
     }
   
    // process some events at a slower rate
