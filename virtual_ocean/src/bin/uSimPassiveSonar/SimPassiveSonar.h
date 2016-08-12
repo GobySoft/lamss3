@@ -197,6 +197,7 @@ class CSimPassiveSonar : public CMOOSApp
     double hydrophone_gain;
     double accel_gain;
 
+    std::string ownship;
     // output file location and name
     std::string base_dir_name;
     std::string acoustic_filename_prefix;

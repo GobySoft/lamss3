@@ -148,6 +148,8 @@ CSimPassiveSonar::CSimPassiveSonar()
   mseas_update_interval = 30;
   svp_range_resolution = 100;
   svp_depth_resolution = 20;
+
+  ownship = "me";
 }
 
 CSimPassiveSonar::~CSimPassiveSonar()
@@ -480,6 +482,7 @@ bool CSimPassiveSonar::OnConnectToServer()
   m_Comms.Register( "COVARIANCE_FILE",0);
 
   m_Comms.Register( "SVP_RESPONSE",0);
+  m_Comms.Register( "VEHICLE_NAME",0);
 
 
 
@@ -881,6 +884,10 @@ bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
     else if(Msg.m_sKey == "SVP_RESPONSE" )
       {
 	handleSVPResponse(Msg);
+      }
+    else if(Msg.m_sKey == "VEHICLE_NAME" )
+      {
+	ownship = Msg.m_sVal;
       }
     else if(Msg.m_sKey == "TARGET_SIM_LIST" )
       {
@@ -2073,7 +2080,7 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
 	      bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info = request.mutable_env()->mutable_adaptive_info();
 	      adaptive_info->set_contact(acoustic_contact);
 	      //  adaptive_info->set_ownship(receiver);
-	      adaptive_info->set_ownship(acoustic_contact);
+	      //adaptive_info->set_ownship(ownship);
 	      adaptive_info->set_look_ahead_seconds(1);
 	      adaptive_info->set_read_shd(false);
 	      adaptive_info->set_auto_receiver_ranges(false);
