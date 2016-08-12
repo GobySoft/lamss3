@@ -54,7 +54,7 @@ LamssAEL::LamssAEL(LamssAELConfig& cfg)
 
     // set up subscriptions before starting separate thread
     subscribe("IFS_DATA_IN", &LamssAEL::handle_ifs_data, this);    
-
+    //
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
     pitch_filter.configAvg(cfg_.filter_length());
@@ -95,6 +95,7 @@ void LamssAEL::loop()
       std::string serialized;
       serialize_for_moos(&serialized,computeAEL());    
       publish(cfg_.ael_preample()+"_NAV", serialized);
+      // publish_pb(cfg_.ael_preample()+"_NAV", computeAEL());
     }
   
    // process some events at a slower rate
