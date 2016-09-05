@@ -1,6 +1,6 @@
 // copyright 2010 H. Schmidt henrik@mit.edu
 // 
-// this file is part of moos-ivp-local/src-shared, a collection of MOOS
+// this file is part of lamss-shared-shared, a collection of MOOS
 // processes for underwater acoustic simulation
 //
 // This program is free software: you can redistribute it and/or modify
@@ -39,49 +39,112 @@ using goby::util::val_from_string;
 
 using namespace std;
 
-CSimPassiveSonar::CSimPassiveSonar()
+using namespace goby::common::logger;
+using namespace goby::common::logger_lock;
+namespace gpb = goby::moos::protobuf;
+using goby::common::goby_time;
+using goby::glog;
+
+const double pi = 3.14159;
+
+boost::shared_ptr<SimPassiveSonarConfig> master_config;
+SimPassiveSonar* SimPassiveSonar::inst_ = 0;
+void* SimPassiveSonar::driver_library_handle_= 0;
+
+int main(int argc, char * argv[])
 {
-  MOOSTrace("====================================\n");
-  MOOSTrace("\n");
-  MOOSTrace("          pSimPassiveSonar\n");
-  MOOSTrace("\n");
-  MOOSTrace("          V 2.0 9/29/2010 \n");
-  MOOSTrace("\n");
-  MOOSTrace("         Henrik Schmidt, MIT\n");
-  MOOSTrace("Sep. 2009, H. Schmidt. Multiple targets \n");
-  MOOSTrace("Jul. 2010, HS.:Adapted to DSOP convention \n");   
-  MOOSTrace("Sep. 2010, HS.:Interfaced to Bellhop for HiFi simulation \n");   
-  MOOSTrace("====================================\n");
+    return goby::moos::run<SimPassiveSonar>(argc, argv);
+}
 
-  // initialize a bunch of variables  
+SimPassiveSonar* SimPassiveSonar::get_instance()
+{
+    if(!inst_)    {
+        master_config.reset(new SimPassiveSonarConfig);
+        inst_ = new SimPassiveSonar(*master_config);
+    }
+    return inst_;
+}
 
+SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
+  : GobyMOOSApp(&cfg),
+    cfg_(cfg),
+    max_number_bounces(cfg_.max_number_bounces()),
+    num_array_elements(cfg_.num_array_elements()),
+    c_0(cfg_.svp_surface()),
+    c_grad(cfg_.svp_gradient()),
+    z_max(cfg_.max_rap_depth()),
+    water_c(cfg_.svp_surface()),
+    water_depth(cfg_.water_depth()),
+    bottom_loss(cfg_.bottom_loss()),
+    ray_acoustics(cfg_.ray_acoustics()),
+    rap_acoustics(cfg_.rap_acoustics()),
+  sampling_frequency(cfg_.sampling_frequency()),
+  noise_level(cfg_.noise_level()),
+  mseas_svp_updates(cfg_.mseas_svp_updates()), 
+  mseas_update_interval(cfg_.mseas_update_interval()), 
+  svp_range_resolution(cfg_.svp_range_resolution()), 
+  svp_depth_resolution(cfg_.svp_depth_resolution()),
+  base_dir_name(cfg_.base_dir_name()), 
+  acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
+  acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
+  nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
+  nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
+  sync_path(cfg_.sync_path()) 
+{
+
+  set_ignore_stale(false);
+  
+  // set up subscriptions before starting separate thread
+  subscribe("ARRAY_X", &SimPassiveSonar::handle_array_x, this);    
+  subscribe("ARRAY_Y", &SimPassiveSonar::handle_array_y, this);    
+  subscribe("ARRAY_Z", &SimPassiveSonar::handle_array_z, this);    
+  subscribe("ARRAY_DIR_X", &SimPassiveSonar::handle_array_dir_x, this);    
+  subscribe("ARRAY_DIR_Y", &SimPassiveSonar::handle_array_dir_y, this);    
+  subscribe("ARRAY_DIR_Z", &SimPassiveSonar::handle_array_dir_z, this);    
+  subscribe("ARRAY_HEADING", &SimPassiveSonar::handle_array_heading, this);    
+  subscribe("ARRAY_PITCH", &SimPassiveSonar::handle_array_pitch, this);    
+  subscribe("TARGET_SIM_LIST", &SimPassiveSonar::handle_target_sim_list, this);    
+  subscribe("AMBIENT_NL_DEPTH", &SimPassiveSonar::handle_ambient_nl_depth, this);    
+  subscribe("NOISE_VERT_DIR", &SimPassiveSonar::handle_noise_vert_dir, this);    
+  subscribe("COVARIANCE_FILE", &SimPassiveSonar::handle_covariance_file, this);    
+  subscribe("SVP_RESPONSE", &SimPassiveSonar::handle_svp_response, this);    
+  subscribe("VEHICLE_NAME", &SimPassiveSonar::handle_vehicle_name, this);    
+
+  //
+  glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+  //
+  // Initialize
+  //
+  
+  // intialize MOOSGeodesy
+  
+  m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
+  // Clear ray buffer
+  eig.clear();
+  
+  source_status = false; // default to the source being off.
+  
+  time_last = 0;
+  frame_number = 0;
+  
+  debug = false;
+  debug2 = false;
+
+  // Initialize
   t_control = false;
-  // The following is for multiple targets
-  // single target mode disabled. Should always be used with pMultiTargetSim
   multi_target = false;
   number_of_targets = 0;
-  max_number_bounces = 1;
-  // range change forcing new raytrace
   raytracing_interval = 30;
   vsa = false;
-  // linear svp, default isovelocity
-  c_0 = 1500;
-  c_grad = 0;
-  z_max = 5000;
-  water_c = c_0;
-  ray_acoustics =  false;
-  rap_acoustics =  false;
   ael_x = 0;
   ael_y = 0;
   ael_z = 0;
- 
   source_bb_spl = 0;
   source_bb_amp = 0;
   source_bb_freq = 0;
   source_bb_bw = 0;
-
   icnt_rot = 0;
-
   ok_array_heading = false;
   ok_array_pitch = false;
   ok_towx = false;
@@ -95,31 +158,13 @@ CSimPassiveSonar::CSimPassiveSonar()
   ok_dir_y = false;
   ok_dir_z = false;
   got_array_dir_info = false;
-
-  hydrophone_gain = 1;
-  accel_gain = 1;
-  
   ok_sourcex = false;
   ok_sourcey = false;
-  
   ok_source_bb_spl = false;
   ok_source_bb_freq = false;
   ok_source_bb_bw = false;
   got_source_bb_info = false;
-
-  sync = false;
-  sync_path = "mituser@gambero:/opt/missions-dsop/logs/simulation/DURIP";
-
-  // Clear ray buffer
-  eig.clear();
-  
-  source_status = false; // default to the source being off.
-
-  time_last = 0;
-  frame_number = 0;
-
-  debug = false;
-  debug2 = false;
+  sync = false; 
 
   // setup the random number generator
   gsl_rng_type_1 = gsl_rng_default;
@@ -137,367 +182,362 @@ CSimPassiveSonar::CSimPassiveSonar()
 
   // random number seed
   iseed = -123456;
-  noise_level = -1000;
   array_prev_pitch = -1000;
 
   minimum_frequency = 0;
   maximum_frequency = 1e20;
   noise_cov_built = false;
-
-  mseas_svp_updates =false;
-  mseas_update_interval = 30;
-  svp_range_resolution = 100;
-  svp_depth_resolution = 20;
-
+  noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);
   ownship = "me";
-}
 
-CSimPassiveSonar::~CSimPassiveSonar()
-{
-}
-
-bool CSimPassiveSonar::OnStartUp()
-{
-  string sVal;
+  if (cfg_.array_type() == SimPassiveSonarConfig::ARRAY_TYPE_VSA)
+    {
+      array_type = "VSA";
+      vsa = true;
+    }
+  else if (cfg_.array_type() == SimPassiveSonarConfig::ARRAY_TYPE_DURIP)
+    {
+      array_type = "DURIP";
+      vsa = false;
+    }
+  else
+    {
+      array_type = "DURIP";
+      vsa = false;
+    }
+  glog.is(VERBOSE) && glog << "Array Type: " << array_type << std::endl;
   
-  //Initialize m_Geodesy from lat lon origin in .moos file
-  double dfLatOrigin;
-  double dfLongOrigin;
+  glog.is(VERBOSE) && glog << "num_array_elements = " << num_array_elements << std::endl;
+  // Initialize some vectors now that the we know the number of elements
+  array_x.assign(num_array_elements,0);
+  array_y.assign(num_array_elements,0);
+  array_z.assign(num_array_elements,0);
+  array_heading.assign(num_array_elements,0);
+  array_pitch.assign(num_array_elements,0);
   
-  if(m_MissionReader.GetValue("LatOrigin",sVal))
-    {
-      dfLatOrigin = atof(sVal.c_str());
-      //IF_ASC_MOOSTRACE MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
-    }
-  else
-    {
-      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
+  hydrophone_gain = pow(10.0, cfg_.hydrophone_gain()/20.0);
+  accel_gain = pow(10.0, cfg_.accelerometer_gain()/20.0);
+  noise_std = pow(10.0, cfg_.noise_level()/20.0)*pow(10.0, -6.0)
+    *sqrt(sampling_frequency*0.5);
+
+  // Sampling
+  num_samples = cfg_.num_samples();
+  file_interval_time = double(num_samples)/sampling_frequency;
+  // Find an fft length (round to next highest power of 2)
+  unsigned int const v = num_samples; 
+  // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
+  float f = (float)(v - 1);  
+  nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
+  glog.is(VERBOSE) && glog << "nfft = " << nfft << std::endl;
+  // Build the dft of the signal in a format similar to 
+  // matlab (same as gsl), described in
+  // http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
+  num_freqs = nfft/2 + 1; 
+  glog.is(VERBOSE) && glog << "Each file represents about " << file_interval_time
+			   << "seconds of data" << std::endl;
   
-  if(m_MissionReader.GetValue("LongOrigin",sVal))
-    {
-      dfLongOrigin = atof(sVal.c_str());
-      //IF_ASC_MOOSTRACE MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
-    }
-  else
-    {
-      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
-  
-  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-    {
-      MOOSTrace("Geodesy Init inside pActiveSonarControl failed - FAIL\n");
-      return false;
-    }
-  //Done initializaing m_Geodesy
-  
-
-  if(m_MissionReader.GetConfigurationParam("mseas_svp_updates",sVal))
-   {
-     mseas_svp_updates = MOOSStrCmp(tolower(sVal),"true");
-   }
-
-  if(m_MissionReader.GetConfigurationParam("mseas_update_interval",sVal))
-   {
-     mseas_update_interval = atof(sVal.c_str());
-   }
-
-  if(m_MissionReader.GetConfigurationParam("svp_range_resolution",sVal))
-   {
-     svp_range_resolution = atof(sVal.c_str());
-   }
-
-  if(m_MissionReader.GetConfigurationParam("svp_depth_resolution",sVal))
-   {
-     svp_depth_resolution = atof(sVal.c_str());
-   }
-
-  if(m_MissionReader.GetConfigurationParam("minimum_frequency",sVal))
-  {
-    minimum_frequency = atof(sVal.c_str());
-    MOOSTrace("Minimum processing frequency: %f\n",minimum_frequency);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("maximum_frequency",sVal))
-  {
-    maximum_frequency = atof(sVal.c_str());
-    MOOSTrace("Maximum processing frequency: %f\n",maximum_frequency);
-  }
-
-  if (m_MissionReader.GetConfigurationParam("isotropic_noise",sVal))
-  {
-    ISOTROPIC = MOOSStrCmp(tolower(sVal),"true");
-    if (ISOTROPIC)
-      MOOSTrace("Using isotropic noice covariances\n");
-  }
-
-  if (m_MissionReader.GetConfigurationParam("ray_acoustics",sVal))
-  {
-    ray_acoustics = MOOSStrCmp(tolower(sVal),"true");
-    if (ray_acoustics)
-      MOOSTrace("Using Bellhop ray tracing\n");
-  }
-
-  if (m_MissionReader.GetConfigurationParam("rap_acoustics",sVal))
-  {
-    rap_acoustics = MOOSStrCmp(tolower(sVal),"true");
-    if (rap_acoustics)
-      MOOSTrace("Using RAP path ray tracing\n");
-  }
-
-  if(m_MissionReader.GetConfigurationParam("max_number_bounces",sVal))
-    {
-      max_number_bounces = atoi(sVal.c_str());
-      MOOSTrace("max_number_bounces = %d \n",max_number_bounces);
-    }
-  else
-    {
-      MOOSTrace("max_number_bounces not specified, using default = %d \n",max_number_bounces);
-    }
-
-  if(m_MissionReader.GetConfigurationParam("num_array_elements",sVal))
-  {
-    num_array_elements = atoi(sVal.c_str());
-    MOOSTrace("num_array_elements = %d \n",num_array_elements);
-    // Initialize some vectors now that the we know the number of elements
-    array_x.assign(num_array_elements,0);
-    array_y.assign(num_array_elements,0);
-    array_z.assign(num_array_elements,0);
-    array_heading.assign(num_array_elements,0);
-    array_pitch.assign(num_array_elements,0);
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: num_array_elements not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("base_dir_name",sVal))
-  {
-    base_dir_name = sVal.c_str();
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: base_dir_name not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("array_type",sVal))
-  {
-    array_type = sVal.c_str();
-    vsa = (array_type == "VSA");
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: array_type not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("acoustic_filename_prefix",sVal))
-  {
-    acoustic_filename_prefix = sVal.c_str();
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: acoustic_filename_prefix not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("acoustic_filename_suffix",sVal))
-  {
-    acoustic_filename_suffix = sVal.c_str();
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: acoustic_filename_suffix not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("nonacoustic_filename_prefix",sVal))
-  {
-    nonacoustic_filename_prefix = sVal.c_str();
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: nonacoustic_filename_prefix not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("nonacoustic_filename_suffix",sVal))
-  {
-    nonacoustic_filename_suffix = sVal.c_str();
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: nonacoustic_filename_suffix not specified - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("sync_path",sVal))
-    {
-      sync_path = sVal.c_str();
-      sync = true;
-    }
-
-  if(m_MissionReader.GetConfigurationParam("water_depth",sVal))
-  {
-    water_depth = atof(sVal.c_str());
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No water_depth - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-    if (m_MissionReader.GetValue("svp_surface",c_0) ||
-	m_MissionReader.GetValue("water_c",c_0)       )
-      {
-	water_c = c_0;
-	MOOSTrace("Surface Sound Speed = %f m/s\n",c_0);
-      }
-    else
-      MOOSTrace("No svp_surface or water_c specified, using default %f m/s \n",c_0);
-    
-    if(m_MissionReader.GetValue("svp_gradient",c_grad))
-      {
-	MOOSTrace("Sound Speed Gradient = %f (m/s)/m\n",c_grad); 
-      }
-    else
-      MOOSTrace("No svp_gradient specied, assuming isovelocity \n");
-
-    if(m_MissionReader.GetValue("max_rap_depth",z_max))
-      {
-	MOOSTrace("Max RAP Depth = %f m/s\n",z_max);
-      }
-    else
-      MOOSTrace("No max_rap_depth specified, using default %f m \n",z_max);
-    
-  if(m_MissionReader.GetConfigurationParam("bottom_loss",sVal))
-  {
-    bottom_loss = atof(sVal.c_str());
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No bottom_loss - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-
-  if(m_MissionReader.GetConfigurationParam("hydrophone_gain",sVal))
-  {
-    // hydrophone_gain = atof(sVal.c_str());
-
-    hydrophone_gain = pow(10.0, atof(sVal.c_str())/20.0);
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No hydrophone_gain - using default unity \n");
-  }
-
-  if(m_MissionReader.GetConfigurationParam("accelerometer_gain",sVal))
-  {
-    accel_gain = pow(10.0, atof(sVal.c_str())/20.0);
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No accelerometer_gain - Using default unity \n");
-  }
-
-  if(m_MissionReader.GetConfigurationParam("sampling_frequency",sVal))
-  {
-    sampling_frequency  = atof(sVal.c_str());
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: no sampling_frequency - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("noise_level",sVal))
-  {
-    noise_level  = atof(sVal.c_str());
-    // calculate the standard deviation of the Gaussian 
-    // distribution reqired to make the noise have a decibel
-    // level commensurate with the one specified in noise_level.
-    //noise_std = pow(10, noise_level/20)*pow(10, -6);
-    noise_std = pow(10.0, noise_level/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5);//Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: no noise_level- FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if(m_MissionReader.GetConfigurationParam("num_samples",sVal))
-  {
-    num_samples = atoi(sVal.c_str());
-    file_interval_time = double(num_samples)/sampling_frequency;
-    // Find an fft length (round to next highest power of 2)
-    unsigned int const v = num_samples; 
-    // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
-    float f = (float)(v - 1);  
-    nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
-    MOOSTrace("nfft = %u\n",nfft);
-    // Build the dft of the signal in a format similar to 
-    // matlab (same as gsl), described in
-    // http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
-    num_freqs = nfft/2 + 1; 
-    MOOSTrace("Each file represents about %0.3f seconds of data\n", file_interval_time);
-  }
-  else
-  {
-    MOOSTrace("pSimPassiveSonar:: No num_samples - FAIL\n");
-    exit(EXIT_FAILURE);
-  }
-
-
   // Now that we have some parameters, allocate some matricies
   sum_of_timeseries = gsl_matrix_calloc (num_array_elements,num_samples);
-    if (vsa)
+  if (vsa)
     {
       //Vector components
       sum_of_timeseries_x = gsl_matrix_calloc (num_array_elements,num_samples);
       sum_of_timeseries_y = gsl_matrix_calloc (num_array_elements,num_samples);
       sum_of_timeseries_z = gsl_matrix_calloc (num_array_elements,num_samples);
     }
-  return(true);
+  sync = (sync_path != "");
 }
 
-bool CSimPassiveSonar::OnConnectToServer()
+void SimPassiveSonar::handle_array_x(const CMOOSMsg& msg)
 {
-  m_Comms.Register( "ARRAY_X",0);
-  m_Comms.Register( "ARRAY_Y",0);
-  m_Comms.Register( "ARRAY_Z",0);
-  m_Comms.Register( "ARRAY_DIR_X",0);
-  m_Comms.Register( "ARRAY_DIR_Y",0);
-  m_Comms.Register( "ARRAY_DIR_Z",0);
-  m_Comms.Register( "ARRAY_HEADING",0);
-  m_Comms.Register( "ARRAY_PITCH",0);
-
-  m_Comms.Register( "TARGET_SIM_LIST",0);
-  m_Comms.Register( "AMBIENT_NL_DEPTH",0);
-  m_Comms.Register( "NOISE_VERT_DIR",0);
-  m_Comms.Register( "COVARIANCE_FILE",0);
-
-  m_Comms.Register( "SVP_RESPONSE",0);
-  m_Comms.Register( "VEHICLE_NAME",0);
-
-
-
-  return(true);
+  string s_hydrophone_x = msg.m_sVal;
+  int nx=str2dbl_vec(s_hydrophone_x, array_x_rel);
+  if (nx != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_X - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ael_x = vecUtils.mean(array_x_rel);
+  ok_hydx = true;
 }
 
-bool CSimPassiveSonar::Iterate()
+void SimPassiveSonar::handle_array_y(const CMOOSMsg& msg)
+{
+  string s_hydrophone_y = msg.m_sVal;
+  int ny=str2dbl_vec(s_hydrophone_y, array_y_rel);
+  if (ny != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_Y - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ael_y = vecUtils.mean(array_y_rel);
+  ok_hydy = true;
+}
+
+void SimPassiveSonar::handle_array_z(const CMOOSMsg& msg)
+{
+  string s_hydrophone_z = msg.m_sVal;
+  int nz=str2dbl_vec(s_hydrophone_z, array_z_rel);
+  if (nz != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_Z - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ael_z = vecUtils.mean(array_z_rel);
+  ok_hydz = true;
+}
+
+void SimPassiveSonar::handle_array_dir_x(const CMOOSMsg& msg)
+{
+  string s_dir_x = msg.m_sVal;
+  int nx=str2dbl_vec(s_dir_x, array_dir_x);
+  if (nx != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_DIR_X - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ok_dir_x = true;
+}
+
+void SimPassiveSonar::handle_array_dir_y(const CMOOSMsg& msg)
+{
+  string s_dir_y = msg.m_sVal;
+  int ny=str2dbl_vec(s_dir_y, array_dir_y);
+  if (ny != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_DIR_Y - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ok_dir_y = true;
+}
+
+void SimPassiveSonar::handle_array_dir_z(const CMOOSMsg& msg)
+{
+  string s_dir_z = msg.m_sVal;
+  int nz=str2dbl_vec(s_dir_z, array_dir_z);
+  if (nz != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_DIR_Z - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }	
+  ok_dir_z = true;
+}
+
+void SimPassiveSonar::handle_array_heading(const CMOOSMsg& msg)
+{
+  string s_array_heading = msg.m_sVal;
+  int nz=str2dbl_vec(s_array_heading, array_heading);
+  if (nz != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_HEADING - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  ok_array_heading = true;
+}
+
+void SimPassiveSonar::handle_array_pitch(const CMOOSMsg& msg)
+{
+  string s_array_pitch = msg.m_sVal;
+  int nz=str2dbl_vec(s_array_pitch, array_pitch);
+  if (nz != num_array_elements)
+    {
+      glog << "Array inconsistency ARRAY_HEADING - FAIL" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  double sum = 0;
+  for (int i = 0; i< nz; i++)
+    sum += array_pitch[i];
+  array_avg_pitch = sum/nz;
+  ok_array_pitch = true;
+}
+
+void SimPassiveSonar::handle_ambient_nl_depth(const CMOOSMsg& msg)
+{
+  // noise profile
+  noise_profile = parseNoiseProfile(msg.m_sVal, 
+					  depth_nl,
+					  noise_db);
+}
+
+void SimPassiveSonar::handle_noise_vert_dir(const CMOOSMsg& msg)
+{
+	// noise profile. Disabled until debugged
+
+  glog.is(VERBOSE) && glog << "Received NOISE_VERT_DIR..." << endl;
+  
+  noise_direct = parseNoiseDirectionality(msg.m_sVal, theta_deg, S_dB);
+  
+  if (noise_direct)
+    glog.is(VERBOSE) && glog << "noise_direct=true" << endl;
+  else
+    glog.is(VERBOSE) && glog << "noise_direct=false" << endl;
+
+}
+
+void SimPassiveSonar::handle_covariance_file(const CMOOSMsg& msg)
+{
+  //	if (noise_profile && noise_direct && noise_cov_built)
+  if (noise_direct && noise_cov_built)
+    {
+      string covmat_file = msg.m_sVal;
+      double t_req;
+      glog.is(VERBOSE) && glog << "Reading Covariance" << endl;
+      read_covmat_file(covmat_file, noise_level, t_req);
+      glog.is(VERBOSE) && glog << "Got Covariance, delay = " << MOOSTime()-t_req
+			       << " seconds" << endl;
+    }
+  else
+    glog.is(VERBOSE) && glog << "Noise covariance received, but not used" << endl; 
+}
+
+void SimPassiveSonar::handle_svp_response(const CMOOSMsg& msg)
+{
+  handleSVPResponse(msg);
+}
+
+void SimPassiveSonar::handle_vehicle_name(const CMOOSMsg& msg)
+{
+  ownship = msg.m_sVal;
+}
+
+void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
+{
+  multi_target = true;
+  vector<int> old_targets;
+  old_targets.clear();
+  
+  for (int i=0; i< m_target_number.size(); i++)
+    old_targets.push_back(m_target_number[i]);
+  int old_number_of_targets = old_targets.size();
+  
+  number_of_targets = str2int_vec(msg.m_sVal,m_target_number);
+  glog.is(VERBOSE) && glog << "Number of targets = " << number_of_targets << endl;
+  
+  CTarget Empty;
+  if (number_of_targets != old_number_of_targets )
+    {
+      Targets.clear();
+      ok_target_info.clear();
+      
+      for (int i = 0; i< number_of_targets; i++)
+	{
+	  glog.is(VERBOSE) && glog << "Target TGT_" << m_target_number[i] << endl;
+	  Targets.push_back(Empty);
+	  ok_target_info.push_back(false);
+	  Targets[i].target_number = m_target_number[i];
+	}
+      glog.is(DEBUG1) && glog << "Done resetting " << endl;
+    }
+  else
+    glog.is(DEBUG1) && glog << "No resetting " << endl;
+  
+  for (int i = 0; i< number_of_targets; i++)
+    {
+      bool register_done = false;
+      for (int j=0; j< old_targets.size(); j++)
+	register_done =  (old_targets[j] == m_target_number[i]);
+      
+      if ( !register_done )
+	{
+	  string target_id = Targets[i].target_id();
+	  
+	  string var =target_id+"_SIM_STATE";
+	  //	  m_Comms.Register(var,0);
+	  subscribe(var, &SimPassiveSonar::handle_target_sim_state, this);    
+
+	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
+	  glog.is(DEBUG1) && glog << "Target_id " << target_id << " registered" << endl;
+	  
+	  // Initialize random number generator with seed=target_number
+	  gsl_rng_tgt.push_back(gsl_rng_alloc (gsl_rng_type_1));
+	  gsl_rng_set(gsl_rng_tgt[gsl_rng_tgt.size()-1], (long unsigned int) m_target_number[i]);
+	  
+	  if (ray_acoustics)
+	    {
+	      
+	      string acoustic_contact = Targets[i].target_id() 
+		+"_SIM";
+	      
+	      var = acoustic_contact + "_ARR_FILE";
+	      //	      m_Comms.Register(var,0);
+	      subscribe(var, &SimPassiveSonar::handle_target_arrival_file, this);    
+
+	      glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
+	      
+	      CEigenRayTable buffer;
+	      buffer.clear();
+	      putAcousticContact(Targets[i].target_id(), buffer);
+	    }
+	}
+    }
+}
+
+void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
+{
+  for (int i = 0; i<number_of_targets; i++)
+    {
+      string target_id = Targets[i].target_id();;
+      glog.is(DEBUG2) && glog << "Looking for sim state of " << target_id << endl;
+      
+      string var =target_id+"_SIM_STATE";
+      if(msg.m_sKey == var)
+	{
+	  vector<double> values;
+	  int num_val = str2dbl_vec(msg.m_sVal,values);
+	  int tgt_num = int(values[0]);
+	  if (tgt_num != Targets[i].target_number)
+	    {
+	      glog << "Target number inconsistency - Aborting " << endl;
+		    exit(EXIT_FAILURE);
+	    }
+	  bool tgt_on = (int(values[1]) == 1);
+	  for (int j = 0; j < num_val-2;j++)
+	    values[j]=values[j+2];
+	  values.pop_back();
+	  values.pop_back();
+	  Targets[i].setTargetValues(tgt_num, tgt_on, values);
+	  // Targets[i].printTargetValues();
+	  //MOOSTrace("got %s\n", msg.m_sKey.c_str());
+	  // if first target info request svp from mseas
+	  if ( mseas_svp_updates && 
+	       (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		mseas_update_interval ))
+	    {
+	      requestSVPUpdate(target_id,
+			       m_target_number[i]);
+	    }
+	  ok_target_info[i] = true;
+	}
+    }
+}
+
+void SimPassiveSonar::handle_target_arrival_file(const CMOOSMsg& msg)
+{
+  for (int i = 0; i<number_of_targets; i++)
+    {
+      string target_id = Targets[i].target_id();;
+      glog.is(DEBUG2) && glog << "Looking for arr file for " << target_id << endl;
+      
+      string arr_file =target_id+"_SIM_ARR_FILE";
+      
+      if (msg.m_sKey == arr_file)
+	{
+	  eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
+	  putAcousticContact(target_id, eigenray_table);
+	}	
+    }
+}
+
+void SimPassiveSonar::loop()
 {
 
-  //  MOOSTrace("Iterate \n ");
+  double curr_time = MOOSTime();
+  
   got_array_info = (ok_hydx && ok_hydy 
-      && ok_hydz);
-
+		    && ok_hydz);
+  
   got_array_dir_info = (ok_dir_x && ok_dir_y && ok_dir_z);
-
+  
   if (got_array_dir_info)
     {
       array_dir.resize(num_array_elements);
@@ -505,7 +545,7 @@ bool CSimPassiveSonar::Iterate()
       for (unsigned int i = 0; i < num_array_elements; i++)
 	array_dir[i] = (pow(array_dir_x[i],2)
 			+pow(array_dir_y[i],2)
-			+pow(array_dir_x[i],2) > 1e-6);
+			+pow(array_dir_z[i],2) > 1e-6);
     }  
   else
     {
@@ -513,9 +553,7 @@ bool CSimPassiveSonar::Iterate()
       for (unsigned int i = 0; i < num_array_elements; i++)
 	array_dir[i] = false;
     }
-
-  // MOOSTrace("Iterate: got target info\n");
-
+  
   double t_now = MOOSTime();
   // Note that this timing scheme isn't perfect, but the processing chain
   // should be robust enough to handle it.
@@ -535,9 +573,8 @@ bool CSimPassiveSonar::Iterate()
       // Output error messages 
       if(!got_array_info)
 	{
-	  MOOSTrace("ARRAY_[X, Y or Z] *not* in the MOOSDB.\n");
-	  MOOSTrace("Waiting until all required variables are in the MOOSDB...\n\n");
-	  return(true);
+	  glog.is(VERBOSE) && glog << "ARRAY_[X, Y or Z] *not* in the MOOSDB. - Waiting" << endl;
+	  return;
 	}
       else
 	{
@@ -559,12 +596,13 @@ bool CSimPassiveSonar::Iterate()
 	      array_y.at(i) = array_y_rel.at(i);
 	      array_z.at(i) = array_z_rel.at(i);
 	    }
-
+	  
 	  // get the noise level and covariances if available
 	  
 	  double nl = getAmbientNoise(-ael_z, 
 				      depth_nl,noise_db); 
-	  MOOSTrace("Local ambient noise in dB: %f \n",nl);
+	  glog.is(VERBOSE) && glog << "Depth: " << -ael_z 
+				   << " NL: " << nl << endl;
 	  //noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0);
 	  //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
 	  noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5); 	  
@@ -574,25 +612,27 @@ bool CSimPassiveSonar::Iterate()
 	  
 	  // generate corrrelated  noise spectrum
 	  generate_corr_noise_spectrum();
-
+	  
 	  for (int i=0; i<number_of_targets; i++)
 	    {
-	      MOOSTrace("Handling target %d\n",i);
-
+	      glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
+	      
 	      bool ok_tgt_info = getTargetInfo(i);
 	      if (!ok_tgt_info)
 		{
-		  MOOSTrace("Waiting for TGT_%d info\n",m_target_number[i]);
-		  return(true);
+		  glog.is(VERBOSE) && glog << "Waiting for info for TGT_"
+					   << m_target_number[i] << endl;
+		  return;
 		}
 	      
-	      MOOSTrace("Got TGT_%d info \n",m_target_number[i]);
+	      glog.is(VERBOSE) && glog << "Got info for TGT_" << m_target_number[i]
+				       << endl;;
 	      
 	      double range_x = (ael_x - source_pos_x);
 	      double range_y = (ael_y - source_pos_y);
 	      double range_req = sqrt(range_x*range_x + range_y*range_y);
 	      double depth_req = -ael_z;
-
+	      
 	      if (!ray_acoustics)
 		{
 		  range_ref = range_req;
@@ -645,18 +685,22 @@ bool CSimPassiveSonar::Iterate()
 		  eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
 		  if (ray_acoustics)
 		    {
-		      MOOSTrace("Target range= %f, Raytracing range = %f\n", range_req,eig.range);
-		      MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
-		      MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
+		      glog.is(VERBOSE) && glog << "Target range = " << range_req
+					       << " Raytracing range = " << eig.range
+					       << endl;
+		      glog.is(VERBOSE) && glog << "Receiver depth = " << depth_req
+					       << " Raytracing depth = "
+					       << eig.receiver_depth << endl;
+		      glog.is(VERBOSE) && glog << "Number of eigenrays: " 
+					       << eig.num_rays << endl;
 		      tl_est = 1e-30;
 		      for (int iray = 0; iray < eig.num_rays; iray++)
 			{
 			  tl_est += pow(eig.bundle[iray].amp,2);
 			}
 		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
-		      MOOSTrace("Incoherent TL = %f\n", tl_est);
+		      glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
 		      
-		      //		      if (fabs(range_req - eig.range) > 0.5*raytracing_interval)
 		      if (fabs(range_req - acoustic_contacts[i].last_range) > raytracing_interval)
 			{
 			  double range_min;
@@ -675,20 +719,21 @@ bool CSimPassiveSonar::Iterate()
 					  source_bb_freq, m_target_number[i]);
 			  
 			}
-		    // if mseas_svp_updates, request SVP
+		      // if mseas_svp_updates, request SVP
 		      if ( mseas_svp_updates && 
 			   (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
 			    mseas_update_interval ) )
 			{
 			  requestSVPUpdate(Targets[i].target_id(),
-				       m_target_number[i]);
+					   m_target_number[i]);
 			}
 		    }
-
+		  
 		  generate_signal_spectrum(i);
-
-		  MOOSTrace("Target signal spectrum done -  target %s\n",Targets[i].target_id().c_str());
-
+		  
+		  glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
+					   << Targets[i].target_id() << endl;
+		  
 		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
 		  if(got_source_loc && i == icnt_rot)
 		    {
@@ -713,298 +758,49 @@ bool CSimPassiveSonar::Iterate()
 				  range_min, range_max, num_ranges, 
 				  depth_min, depth_max, num_depths,
 				  source_bb_freq, m_target_number[i]);
-
+		  
 		  // if mseas_svp_updates, request SVP
 		  if (mseas_svp_updates &&
-		      (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
+		      (t_now - acoustic_contacts[i].last_svp_request >= 
 		       mseas_update_interval) )
 		    {
 		      requestSVPUpdate(Targets[i].target_id(),
 				       m_target_number[i]);
 		    }
-
+		  
 		}
 	    }
 	  
 	  generate_spectral_timeseries();
 	  
-	  MOOSTrace("writing data files\n");
+	  glog.is(VERBOSE) && glog << "Writing data files " << endl;
 	  write_nas_file(t_now);
 	  write_nas_file_verbose(t_now);
 	  write_hyd_file();
 	  m_Comms.Notify("SONAR_DIR", base_dir_name);
 	  m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
 	  
-	  MOOSTrace("\n");
 	  frame_number++;
 	}
     }
-  return(true);
+  
+  // process some events at a slower rate
+  const int slow_loop_period = 10;
+  if(curr_time > last_slow_loop_t_ + slow_loop_period)
+    slow_loop(curr_time);
 }
 
-//-------------------------------------------------------------
-// Procedure: OnNewMail
-
-bool CSimPassiveSonar::OnNewMail(MOOSMSG_LIST &NewMail)
+void SimPassiveSonar::slow_loop(double curr_time)
 {
-  MOOSMSG_LIST::iterator p;
-  for(p = NewMail.begin(); p != NewMail.end(); p++) {
-    CMOOSMsg &Msg = *p;
-
-    if(Msg.m_sKey == "ARRAY_X")
-    {
-      string s_hydrophone_x = Msg.m_sVal;
-      int nx=str2dbl_vec(s_hydrophone_x, array_x_rel);
-      if (nx != num_array_elements)
-      {
-        MOOSTrace("Array inconsistency - FAIL\n");
-        exit(EXIT_FAILURE);
-      }	
-      ael_x = vecUtils.mean(array_x_rel);
-      ok_hydx = true;
-    }
-
-    else if(Msg.m_sKey == "ARRAY_Y")
-    {
-      string s_hydrophone_y = Msg.m_sVal;
-      int ny=str2dbl_vec(s_hydrophone_y, array_y_rel);
-      if (ny != num_array_elements)
-      {
-        MOOSTrace("Array inconsistency - FAIL\n");
-        exit(EXIT_FAILURE);
-      }
-      ael_y = vecUtils.mean(array_y_rel);
-      ok_hydy = true;
-    }
-
-    else if(Msg.m_sKey == "ARRAY_Z")
-    {
-      string s_hydrophone_z = Msg.m_sVal;
-      int nz=str2dbl_vec(s_hydrophone_z, array_z_rel);
-      if (nz != num_array_elements)
-      {
-        MOOSTrace("Array inconsistency - FAIL\n");
-        exit(EXIT_FAILURE);
-      }
-      ael_z = vecUtils.mean(array_z_rel);
-      ok_hydz = true;
-    }
-
-       else if(Msg.m_sKey == "ARRAY_DIR_X") 
-	 {
-	   string s_dir_x = Msg.m_sVal;
-	   int nx=str2dbl_vec(s_dir_x, array_dir_x);
-	   if (nx != num_array_elements) {
-	     MOOSTrace("Array inconsistency - FAIL\n");
-	     exit(EXIT_FAILURE); }	
-	   ok_dir_x = true;
-	 }
-       else if(Msg.m_sKey == "ARRAY_DIR_Y") 
-	 {
-	   string s_dir_y = Msg.m_sVal;
-	   int ny=str2dbl_vec(s_dir_y, array_dir_y);
-	   if (ny != num_array_elements) {
-	     MOOSTrace("Array inconsistency - FAIL\n");
-	     exit(EXIT_FAILURE); }	
-	   ok_dir_y = true;
-	 }
-       else if(Msg.m_sKey == "ARRAY_DIR_Z") 
-	 {
-	   string s_dir_z = Msg.m_sVal;
-	   int nz=str2dbl_vec(s_dir_z, array_dir_z);
-	   if (nz != num_array_elements) {
-	     MOOSTrace("Array inconsistency - FAIL\n");
-	     exit(EXIT_FAILURE); }	
-	   ok_dir_z = true;
-	 }
-    else if(Msg.m_sKey == "ARRAY_HEADING")
-    {
-      string s_array_heading = Msg.m_sVal;
-      int nz=str2dbl_vec(s_array_heading, array_heading);
-      if (nz != num_array_elements)
-      {
-        MOOSTrace("Array inconsistency - FAIL\n");
-        exit(EXIT_FAILURE);
-      }
-      ok_array_heading = true;
-    }
-
-    else if(Msg.m_sKey == "ARRAY_PITCH")
-    {
-      string s_array_pitch = Msg.m_sVal;
-      int nz=str2dbl_vec(s_array_pitch, array_pitch);
-      if (nz != num_array_elements)
-      {
-        MOOSTrace("Array inconsistency - FAIL\n");
-        exit(EXIT_FAILURE);
-      }
-      double sum = 0;
-      for (int i = 0; i< nz; i++)
-	sum += array_pitch[i];
-      array_avg_pitch = sum/nz;
-
-      ok_array_pitch = true;
-    }
-
-    else if(Msg.m_sKey == "AMBIENT_NL_DEPTH")
-      {
-	// noise profile
-	noise_profile = parseNoiseProfile(Msg.m_sVal, 
-					  depth_nl,
-					  noise_db);
-      }
-    else if(Msg.m_sKey == "NOISE_VERT_DIR")
-      {
-	// noise profile. Disabled until debugged
-
-	MOOSTrace("Received NOISE_VERT_DIR...");
-
-	noise_direct = parseNoiseDirectionality(Msg.m_sVal, theta_deg, S_dB);
-
-  	if (noise_direct)
-    	    MOOSTrace("noise_direct=true\n");
-  	else
-    	    MOOSTrace("noise_direct=false\n");
-
-      }
-    else if(Msg.m_sKey == "COVARIANCE_FILE")
-      {
-	//	if (noise_profile && noise_direct && noise_cov_built)
-	if (noise_direct && noise_cov_built)
-	  {
-	    string covmat_file = Msg.m_sVal;
-	    double t_req;
-	    MOOSTrace("Reading Covariance\n");
-	    read_covmat_file(covmat_file, noise_level, t_req);
-	    MOOSTrace("Got Covariance, delay = %f secs\n",MOOSTime()-t_req);
-	  }
-	else
-	  MOOSTrace("Noise covariance received, but not used\n"); 
-      }
-    else if(Msg.m_sKey == "SVP_RESPONSE" )
-      {
-	handleSVPResponse(Msg);
-      }
-    else if(Msg.m_sKey == "VEHICLE_NAME" )
-      {
-	ownship = Msg.m_sVal;
-      }
-    else if(Msg.m_sKey == "TARGET_SIM_LIST" )
-      {
-	multi_target = true;
-        vector<int> old_targets;
-	old_targets.clear();
-	
-	for (int i=0; i< m_target_number.size(); i++)
-	  old_targets.push_back(m_target_number[i]);
-	int old_number_of_targets = old_targets.size();
-
-	number_of_targets = str2int_vec(Msg.m_sVal,m_target_number);
-	MOOSTrace("Number of targets = %d\n",number_of_targets);
-
-	CTarget Empty;
-	if (number_of_targets != old_number_of_targets )
-	  {
-	    Targets.clear();
-	    ok_target_info.clear();
-
-	    for (int i = 0; i< number_of_targets; i++)
-	      {
-		MOOSTrace("Target TGT_%d\n",m_target_number[i]);
-		Targets.push_back(Empty);
-		ok_target_info.push_back(false);
-		Targets[i].target_number = m_target_number[i];
-	      }
-	    MOOSTrace("Done resetting \n");
-	  }
-	else
-	  MOOSTrace("No resetting \n");
-	
-	for (int i = 0; i< number_of_targets; i++)
-	  {
-	    bool register_done = false;
-	    for (int j=0; j< old_targets.size(); j++)
-	      register_done =  (old_targets[j] == m_target_number[i]);
-	    
-	    if ( !register_done )
-	      {
-		string target_id = Targets[i].target_id();
-		
-		string var =target_id+"_SIM_STATE";
-		m_Comms.Register(var,0);
-		MOOSTrace("Variable %s registered\n",var.c_str());
-		MOOSTrace("Target_id %s registered\n",target_id.c_str());
-
-		// Initialize random number generator with seed=target_number
-		gsl_rng_tgt.push_back(gsl_rng_alloc (gsl_rng_type_1));
-		gsl_rng_set(gsl_rng_tgt[gsl_rng_tgt.size()-1], (long unsigned int) m_target_number[i]);
-
-		if (ray_acoustics)
-		  {
-
-		    string acoustic_contact = Targets[i].target_id() 
-		      +"_SIM";
-
-		    var = acoustic_contact + "_ARR_FILE";
-		    m_Comms.Register(var,0);
-		    MOOSTrace("Variable %s registered\n",var.c_str());
-		    
-		    CEigenRayTable buffer;
-		    buffer.clear();
-		    putAcousticContact(Targets[i].target_id(), buffer);
-		  }
-	      }
-	  }
-      }
-    else
-      {
-	for (int i = 0; i<number_of_targets; i++)
-	  {
-	    string target_id = Targets[i].target_id();;
-	    //MOOSTrace("Looking for info on %s \n",target_id.c_str());
-	    
-	    string var =target_id+"_SIM_STATE";
-	    string arr_file =target_id+"_SIM_ARR_FILE";
-	    if(Msg.m_sKey == var)
-	      {
-		vector<double> values;
-		int num_val = str2dbl_vec(Msg.m_sVal,values);
-		int tgt_num = int(values[0]);
-		if (tgt_num != Targets[i].target_number)
-		  {
-		    MOOSTrace("Target number inconsistency - Aborting \n");
-		    return(false);
-		  }
-		bool tgt_on = (int(values[1]) == 1);
-		for (int j = 0; j < num_val-2;j++)
-		  values[j]=values[j+2];
-		values.pop_back();
-		values.pop_back();
-		Targets[i].setTargetValues(tgt_num, tgt_on, values);
-		// Targets[i].printTargetValues();
-		//MOOSTrace("got %s\n", Msg.m_sKey.c_str());
-		// if first target info request svp from mseas
-		if ( mseas_svp_updates && 
-		     (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
-		      mseas_update_interval ))
-		  {
-		    requestSVPUpdate(target_id,
-				     m_target_number[i]);
-		  }
-		ok_target_info[i] = true;
-	      }
-	    else if (Msg.m_sKey == arr_file)
-	      {
-		eigenray_table.readEigenRayTable(Msg.m_sVal, max_number_bounces);
-		putAcousticContact(target_id, eigenray_table);
-	      }	
-	  } 
-      }
-  }
-  return(true);
+  // Here we should add slow loop actions.
+  
+  last_slow_loop_t_ = curr_time;
 }
 
-bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
+
+
+
+bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 					   double& r_min,
 					   double& r_max,
 					   double& dep_min,
@@ -1054,8 +850,8 @@ bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       if (target.last_rate_update > 0)
 	{
 	  target.last_rate = (range-target.last_range)/delta_t;	    
-	  cout << endl << ">>> rate_update= " << target.last_rate << endl; 
-	  cout << ">>> delta_t = " << delta_t << endl << endl ;
+	  glog.is(DEBUG1) && glog << endl << ">>> rate_update= " << target.last_rate << endl; 
+	  glog.is(DEBUG1) && glog  << ">>> delta_t = " << delta_t << endl << endl ;
 	}
       else
 	target.last_rate = 0;
@@ -1066,7 +862,7 @@ bool CSimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
   return(false);
 }
 
-bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
+bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 {
   bool debug = false;
   if (got_source_loc && source_status && got_source_bb_info)
@@ -1156,14 +952,15 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-	  if (debug)
-	    {
-	      MOOSTrace("Receiver %d \n", phone_iter);
-	      MOOSTrace("Target range= %f, Raytracing range = %f\n", range,eig.range);
-	      MOOSTrace("Receiver depth= %f, Raytracing depth = %f\n", depth_req,eig.receiver_depth);
-	      MOOSTrace("Number of eigenrays: %d\n",eig.num_rays);
-	    }
-	  double delta_r = range - range_ray;
+	  glog.is(DEBUG1) && glog << "Receiver " << phone_iter << endl;
+	  glog.is(DEBUG1) && glog << "Target range= " << range
+				  << " Raytracing range = " << eig.range << endl;
+	  glog.is(DEBUG1) && glog << "Receiver depth= " << depth_req 
+				  << " Raytracing depth = " << eig.receiver_depth
+				  << endl;
+	  glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
+	
+          double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
 	  double delta_z = - delta_dep;
 
@@ -1259,8 +1056,10 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
 			  p_pha = - (omega * t0) - phase_pres;
 			  if (phone_iter == 0 && i_ray == 0)
 			    {
-			      MOOSTrace("adding tone f=%f, level=%f dB\n",
-					tone_freqs[tone_iter],20*log10(p_mag));
+			      glog.is(DEBUG2) && glog << "adding tone f= " 
+						      << tone_freqs[tone_iter] 
+						      << " ,level=" << 20*log10(p_mag)
+						      << endl;
 			    }
 			  if (vsa)
 			    {
@@ -1324,7 +1123,7 @@ bool CSimPassiveSonar::generate_signal_spectrum(int tgt_count)
   return true;
 }
 
-bool CSimPassiveSonar::generate_corr_noise_spectrum()
+bool SimPassiveSonar::generate_corr_noise_spectrum()
 {
   int sensors_per_element;
   int num_sensors;
@@ -1338,7 +1137,8 @@ bool CSimPassiveSonar::generate_corr_noise_spectrum()
 
   vector<complex<double> > noise_realization = vecUtils.zzeros(num_sensors,1);
   
-  MOOSTrace("Realization generation started, num covars=%d \n",noise_covar.size());
+  glog.is(VERBOSE) && glog << "Realization generation started, num covars="
+			   << noise_covar.size() << endl;
   for (int f_iter=1; f_iter < num_freqs; f_iter++)
     {
              
@@ -1350,7 +1150,7 @@ bool CSimPassiveSonar::generate_corr_noise_spectrum()
 	    noise_realization.push_back(realization[sensor_iter]);
 	}
     }
-  MOOSTrace("Realizations done\n");
+  glog.is(DEBUG1) && glog << "Realizations done" << endl;
  
   // array element loop
   for (int elem_iter=0; elem_iter < num_array_elements; elem_iter++)
@@ -1431,7 +1231,7 @@ bool CSimPassiveSonar::generate_corr_noise_spectrum()
   return true;
 }
 
-bool CSimPassiveSonar::generate_spectral_timeseries()
+bool SimPassiveSonar::generate_spectral_timeseries()
 {
   int sensors_per_element;
   int num_sensors;
@@ -1485,7 +1285,7 @@ bool CSimPassiveSonar::generate_spectral_timeseries()
   return true;
 }
 
-bool CSimPassiveSonar::initialize_spectrum()
+bool SimPassiveSonar::initialize_spectrum()
 {
 
   if (hydrophones.size() == num_array_elements && hydrophones[0].spectrum.size() == nfft)
@@ -1527,26 +1327,27 @@ bool CSimPassiveSonar::initialize_spectrum()
   return(true);
 }
 
-bool CSimPassiveSonar::print_vec(vector<double> temp)
+bool SimPassiveSonar::print_vec(vector<double> temp)
 {
   for (int i=0; i < temp.size(); i++)
-    MOOSTrace("%02d: %2.2f\n",i, temp.at(i));
+    glog.is(DEBUG2) && glog << "i:" << i << " temp(i):" << temp.at(i) << endl;
 
-  MOOSTrace("--done--\n");
+  //  MOOSTrace("--done--\n");
   return(true);
 }
 
-bool CSimPassiveSonar::print_array(double a[], int l)
+bool SimPassiveSonar::print_array(double a[], int l)
 {
   for (int i=0; i < l; i++)
-    MOOSTrace("%02d: %f\n",i, a[i]);
+    glog.is(DEBUG2) && glog << "i:" << i << " a(i):" << a[i] << endl;
+  //    MOOSTrace("%02d: %f\n",i, a[i]);
 
-  MOOSTrace("--done--\n");
+  //  MOOSTrace("--done--\n");
   return(true);
 }
 
 
-bool CSimPassiveSonar::write_hyd_file()
+bool SimPassiveSonar::write_hyd_file()
 {
   double deg2rad = M_PI/180;
   double rad2deg = 180.0/M_PI;
@@ -1567,8 +1368,10 @@ bool CSimPassiveSonar::write_hyd_file()
   FILE * data_file;
   if ( (data_file = fopen(acoustic_filename_buff, "wb")) == NULL)  
     {
-      MOOSTrace("\nUnable to open a file:  %s \nFAIL\n", acoustic_filename_buff);
-      MOOSTrace("Does the directory exist?\nDoes base_dir_name begin and end with a forward slash?\nDo you have permission to write to that directory?\n\n");
+      glog << "Unable to open a file: " <<  acoustic_filename_buff << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
       exit(EXIT_FAILURE);
     }
   
@@ -1646,7 +1449,7 @@ bool CSimPassiveSonar::write_hyd_file()
   
   fclose (data_file);
   
-  MOOSTrace("Wrote file: %s \n", acoustic_filename_buff);
+  glog.is(VERBOSE) && glog << "Wrote file: " << acoustic_filename_buff << endl;
  
   // The following was added by HS 111102 to eliminate the need for
   // the frame_count.inp file and iDAS in simulation, 
@@ -1659,9 +1462,10 @@ bool CSimPassiveSonar::write_hyd_file()
     {
       std::string acoustic_filename(acoustic_filename_buff);
       std::string cmd = "scp " + acoustic_filename + " " + sync_path;
-      MOOSTrace("Synching with: %s \n", cmd.c_str());
+      glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
       system(cmd.c_str());
-      MOOSTrace("Synched with: %s \n", cmd.c_str());
+      glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
+
     }
   
       /*
@@ -1685,7 +1489,7 @@ bool CSimPassiveSonar::write_hyd_file()
   return true;
 }
 
-bool CSimPassiveSonar::write_nas_file(double t_now)
+bool SimPassiveSonar::write_nas_file(double t_now)
 {
   double deg2rad = M_PI/180;
   char nonacoustic_filename_buff[1000]; 
@@ -1698,8 +1502,10 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
   FILE * nas_data_file;
   if ( (nas_data_file = fopen(nonacoustic_filename_buff, "wt")) == NULL)
     {
-      MOOSTrace("\nUnable to open a file:  %s \nFAIL\n", nonacoustic_filename_buff);
-      MOOSTrace("Does the directory exist?\nDoes base_dir_name begin and end with a forward slash?\nDo you have permission to write to that directory?\n\n");
+      glog << "Unable to open a file: " <<  nonacoustic_filename_buff << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
       exit(EXIT_FAILURE);
     }
   else
@@ -1772,14 +1578,14 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
 	}
       
       fclose (nas_data_file);
-      MOOSTrace("Wrote file: %s \n", nonacoustic_filename_buff);
+      glog.is(DEBUG1) && glog << "Wrote file: " << nonacoustic_filename_buff << endl;
       if (sync)
 	{
 	  std::string nonacoustic_filename(nonacoustic_filename_buff);
 	  std::string cmd = "scp -B " + nonacoustic_filename + " " + sync_path;
-	  MOOSTrace("Synching with: %s \n", cmd.c_str());
+	  glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
 	  system(cmd.c_str());
-	  MOOSTrace("Synched with: %s \n", cmd.c_str());
+	  glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
 	}
     }
   
@@ -1787,7 +1593,7 @@ bool CSimPassiveSonar::write_nas_file(double t_now)
 }
 
 
-bool CSimPassiveSonar::write_nas_file_verbose(double t_now) {
+bool SimPassiveSonar::write_nas_file_verbose(double t_now) {
 	double deg2rad = M_PI / 180;
 	char nonacoustic_filename_buff[1000];
 	// Sure hope nobody wants a filename longer than 1000 chars
@@ -1795,9 +1601,11 @@ bool CSimPassiveSonar::write_nas_file_verbose(double t_now) {
 
 	FILE *nas_data_file;
 	if ((nas_data_file = fopen(nonacoustic_filename_buff, "wt")) == NULL) {
-		MOOSTrace("\nUnable to open a file:  %s \nFAIL\n", nonacoustic_filename_buff);
-		MOOSTrace("Does the directory exist?\nDoes base_dir_name begin and end with a forward slash?\nDo you have permission to write to that directory?\n\n");
-		exit(EXIT_FAILURE);
+	  glog << "Unable to open a file: " <<  nonacoustic_filename_buff << endl;
+	  glog << "Does the directory exist?" << endl;
+	  glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+	  glog << "Do you have permission to write to that directory?" << endl;
+	  exit(EXIT_FAILURE);
 	} else {
 		fprintf(nas_data_file, "Verbose uSimPassiveSonar non-acoustic data file\n");
 		fprintf(nas_data_file, "\n--Data--\n");
@@ -1877,20 +1685,21 @@ bool CSimPassiveSonar::write_nas_file_verbose(double t_now) {
 		}
 		
 		fclose(nas_data_file);
-		MOOSTrace("Wrote file: %s \n", nonacoustic_filename_buff);
+		glog.is(DEBUG1) && glog << "Wrote file: " << nonacoustic_filename_buff
+					<< endl;
 		
 		if (sync) {
 			std::string nonacoustic_filename(nonacoustic_filename_buff);
 			std::string cmd = "scp -B " + nonacoustic_filename + " " + sync_path;
-			MOOSTrace("Synching with: %s \n", cmd.c_str());
+			glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
 			system(cmd.c_str());
-			MOOSTrace("Synched with: %s \n", cmd.c_str());
+			glog.is(DEBUG1) && glog << "Synched with: " << cmd << endl;
 		}
 	}
 }
 
 
-int CSimPassiveSonar::str2int_vec(string msg, vector<int>& values)
+int SimPassiveSonar::str2int_vec(string msg, vector<int>& values)
 {
   string bite;
   
@@ -1908,7 +1717,7 @@ int CSimPassiveSonar::str2int_vec(string msg, vector<int>& values)
   return(nz);
 }
 
-bool CSimPassiveSonar::getTargetInfo(int i)
+bool SimPassiveSonar::getTargetInfo(int i)
 {
   //  MOOSTrace("entering getTargetInfo. i=%d\n",i);
   if (i>=0 && i< Targets.size() && ok_target_info[i])
@@ -1921,7 +1730,9 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       // 1e-6 factor removed for compatibility with active simulator
       //      source_bb_amp = 1e-6*pow(10.0,source_bb_spl/20.0);
       source_bb_amp = pow(10.0,source_bb_spl/20.0);
-      MOOSTrace("target %d spl = %f, amp = %e \n", Targets[i].target_number, source_bb_spl,source_bb_amp);
+      glog.is(VERBOSE) && glog << "target: " << Targets[i].target_number
+			       << ", spl: " << source_bb_spl
+			       << ", amp: " << source_bb_amp << endl;
       source_bb_freq = Targets[i].target_freq;
       source_bb_bw = Targets[i].target_bw;
       // get tones
@@ -1951,7 +1762,7 @@ bool CSimPassiveSonar::getTargetInfo(int i)
       return(got_source_bb_info && got_source_loc);
 }
 
-bool CSimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_table)
+bool SimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_table)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -1974,13 +1785,13 @@ bool CSimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_tab
   new_contact.last_rate = 0;
   new_contact.last_rate_update = -1;
   acoustic_contacts.push_back(new_contact);
-  MOOSTrace("Contact %s eigenrays updated\n",cn.c_str());
-  MOOSTrace("Number of ranges: %d\n",eig_table.num_ranges);
-  MOOSTrace("Number of depths: %d\n",eig_table.num_depths);
+  glog.is(DEBUG1) && glog << "Contact " << cn << " eigenrays updated" << endl;
+  glog.is(DEBUG1) && glog << "Number of ranges: " << eig_table.num_ranges << endl;
+  glog.is(DEBUG1) && glog << "Number of depths: " << eig_table.num_depths << endl;
   return(true);
 }
 
-bool CSimPassiveSonar::putAcousticContactSVP(SVP::Response svp_response)
+bool SimPassiveSonar::putAcousticContactSVP(SVP::Response svp_response)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -1994,7 +1805,7 @@ bool CSimPassiveSonar::putAcousticContactSVP(SVP::Response svp_response)
   return(false);
 }
 
-bool CSimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_table )
+bool SimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_table )
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -2010,7 +1821,7 @@ bool CSimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_ta
   return(false);
 }
 
-bool CSimPassiveSonar::getAcousticContactSVP(std::string cn, 
+bool SimPassiveSonar::getAcousticContactSVP(std::string cn, 
 					     SVP::Response& svp_response )
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
@@ -2029,7 +1840,7 @@ bool CSimPassiveSonar::getAcousticContactSVP(std::string cn,
   return(false);
 }
 
-bool CSimPassiveSonar::readyAcousticContact(std::string cn)
+bool SimPassiveSonar::readyAcousticContact(std::string cn)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -2041,7 +1852,7 @@ bool CSimPassiveSonar::readyAcousticContact(std::string cn)
   return(false);
 }
 
-bool CSimPassiveSonar::readyAcousticContactSVP(std::string cn)
+bool SimPassiveSonar::readyAcousticContactSVP(std::string cn)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -2053,7 +1864,7 @@ bool CSimPassiveSonar::readyAcousticContactSVP(std::string cn)
   return(false);
 }
 
-bool CSimPassiveSonar::requestRayTrace(std::string cn, 
+bool SimPassiveSonar::requestRayTrace(std::string cn, 
 				       double r_min, double r_max, int num_r, 
 				       double dep_min, double dep_max, int num_dep,
 				       double freq, int target_number)
@@ -2124,7 +1935,7 @@ bool CSimPassiveSonar::requestRayTrace(std::string cn,
   return(false);
 }
 
-bool CSimPassiveSonar::requestSVPUpdate(std::string cn, 
+bool SimPassiveSonar::requestSVPUpdate(std::string cn, 
 					int target_number)
 {
 
@@ -2165,14 +1976,14 @@ bool CSimPassiveSonar::requestSVPUpdate(std::string cn,
   return(false);
 }
 
-bool CSimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
+bool SimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
 {
   std::string serialized_svp_response = msg.GetString();
   SVP::Response svp_response;
   parse_for_moos(serialized_svp_response, &svp_response);
   if (putAcousticContactSVP(svp_response))
     {
-      cout << "Got SVP update for source id " << svp_response.request_id() 
+      glog << "Got SVP update for source id " << svp_response.request_id() 
 	   << endl; 
       return(true);
     }
@@ -2181,7 +1992,7 @@ bool CSimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
   
 }
 
-double CSimPassiveSonar::getAmbientNoise(double depth, 
+double SimPassiveSonar::getAmbientNoise(double depth, 
 					  vector<double> dom_nl,
 					  vector<double> noise_db)
 {
@@ -2220,8 +2031,9 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	ndim = 4*num_array_elements;
       else
 	ndim = num_array_elements;
-      if (debug2)
-          MOOSTrace("nl=%lf, Fs=%lf, nfft=%d\n",nl,sampling_frequency,nfft);
+	glog.is(DEBUG1) && glog << "nl=" << nl
+				<< ", Fs=" << sampling_frequency
+				<< ", nfft=" << nfft << endl;
       double p_intens = 1e-12 * pow(10.0,nl/10) 
 	* sampling_frequency * 0.5 * nfft;
       double rho = 1000;
@@ -2252,8 +2064,10 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	      double k = 2*M_PI*freq/water_c;
 	      double a_intens = p_intens*pow(k,2.0)
 		/(3*pow(rho,2.0));
-	      if (debug2 && (i_frq==500 || i_frq==2000))
-		  MOOSTrace("p_intens=%lf, a_intens=%e, freq=%lf Hz\n", p_intens, a_intens, freq);
+	      if (i_frq==i_first || (i_frq== (i_first+i_last)/2) || i_frq==i_last)
+		glog.is(DEBUG1) && glog << "p_intens= " << p_intens
+					<< ", a_intens= " << a_intens
+					<< ", freq= " << freq <<  "Hz" << endl;
 	      for (int i=0; i< num_array_elements; i++)
 		{
 		  if (vsa)
@@ -2289,7 +2103,8 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	    {
 	      noise_covar[k].scaleCovMat(amp_fac);
 	    }
-	  MOOSTrace("Scaled covariance matrices, factor = %f\n",amp_fac);
+	  glog.is(DEBUG1) && glog << "Scaled covariance matrices, factor = "
+				  << amp_fac << endl;
 	}
       noise_level = nl;
 
@@ -2302,14 +2117,15 @@ double CSimPassiveSonar::getAmbientNoise(double depth,
 	  string req = "nfft=" + intToString(nfft) + ",sampling_frequency=" + doubleToString(sampling_frequency);   
 	  m_Comms.Notify("COVARIANCE_REQUEST",req);
 
-	  MOOSTrace("Requesting correlated noise covariances, i_first=%d, i_last=%d\n", i_first,i_last);
+	  glog.is(DEBUG1) && glog << "Requesting correlated noise covariances, i_first="
+				  << i_first << ", i_last=" << i_last << endl;
 	  array_prev_pitch = array_avg_pitch;
 	}
       //    }
   return(nl);
 }
 
-bool CSimPassiveSonar::parseNoiseProfile( string noise_in, 
+bool SimPassiveSonar::parseNoiseProfile( string noise_in, 
 					  vector<double>& dom_nl,
 					  vector<double>& noise_db)
 {
@@ -2363,7 +2179,7 @@ bool CSimPassiveSonar::parseNoiseProfile( string noise_in,
   return(true);
 }    
 
-bool CSimPassiveSonar::parseNoiseDirectionality( string noise_in, 
+bool SimPassiveSonar::parseNoiseDirectionality( string noise_in, 
 					  vector<double>& dom_nl,
 					  vector<double>& noise_db)
 {
@@ -2417,7 +2233,7 @@ bool CSimPassiveSonar::parseNoiseDirectionality( string noise_in,
   return(true);
 }    
 
-bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double& t_req)
+bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double& t_req)
 {
   char covmat_filename_buff[1000]; 
   // Sure hope nobody wants a filename longer than 1000 chars
@@ -2426,13 +2242,15 @@ bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, doubl
   FILE * cov_data_file;
   if ( (cov_data_file = fopen(covmat_filename_buff, "rb")) == NULL)
     {
-      MOOSTrace("\nUnable to open a file:  %s \nFAIL\n", covmat_filename_buff);
-      MOOSTrace("Does the directory exist?\nDoes base_dir_name begin and end with a forward slash?\nDo you have permission to write to that directory?\n\n");
+      glog << "Unable to open a file: " <<  covmat_filename_buff << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
       exit(EXIT_FAILURE);
     }
   else
     {
-      MOOSTrace("Start reading file\n");
+      glog.is(DEBUG2) && glog << "Start reading file" << endl;
       fread(&t_req, sizeof(double), 1 , cov_data_file);
 
       double nl_req;
@@ -2450,7 +2268,9 @@ bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, doubl
       int num_sensors;
 
       fread(&num_sensors, sizeof(int), 1 , cov_data_file);
-      MOOSTrace("Done reading header, i_first=%d, i_last=%d, num-sensors=%d\n",i_first,i_last,num_sensors);
+      glog.is(DEBUG1) && glog << "Done reading header, i_first=" << i_first
+			      << ", i_last=" << i_last
+			      << ", num-sensors=" << num_sensors<< endl;
       for (int f_iter=i_first; f_iter <= i_last; f_iter++)
 	{
 	  
@@ -2480,7 +2300,8 @@ bool CSimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, doubl
 	}
 
       fclose (cov_data_file);
-      MOOSTrace("Read Covariance file: %s \n", covmat_filename_buff);
+      glog.is(VERBOSE) && glog << "Read Covariance file: " << covmat_filename_buff 
+			       << endl;
     }
   return(true);  
 }

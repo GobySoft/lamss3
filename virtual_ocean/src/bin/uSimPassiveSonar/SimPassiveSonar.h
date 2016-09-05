@@ -7,6 +7,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
+#include "goby/moos/goby_moos_app.h"
 #include "ivp/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
@@ -19,6 +20,8 @@
 #include "lamss/lib_bellhop/svp_request_response.pb.h"
 #include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
+#include "SimPassiveSonar_config.pb.h"
+
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -60,16 +63,43 @@ class CAcousticContact
   SVP::Response svp_response;
 };
 
-class CSimPassiveSonar : public CMOOSApp
+class SimPassiveSonar : public GobyMOOSApp
 {
   public:
-    CSimPassiveSonar();
-    virtual ~CSimPassiveSonar();
+    static void* driver_library_handle_;
+    static SimPassiveSonar* get_instance();
 
-    bool Iterate();
-    bool OnNewMail(MOOSMSG_LIST &NewMail);
-    bool OnConnectToServer();
-    bool OnStartUp();
+  private:
+    SimPassiveSonar(SimPassiveSonarConfig& cfg);
+    ~SimPassiveSonar() { }
+
+    // synchronous event
+    void loop();    
+    void slow_loop(double curr_time);
+
+    // mail handlers
+
+    void handle_array_x(const CMOOSMsg& msg);
+    void handle_array_y(const CMOOSMsg& msg);
+    void handle_array_z(const CMOOSMsg& msg);
+    void handle_array_dir_x(const CMOOSMsg& msg);
+    void handle_array_dir_y(const CMOOSMsg& msg);
+    void handle_array_dir_z(const CMOOSMsg& msg);
+    void handle_array_heading(const CMOOSMsg& msg);
+    void handle_array_pitch(const CMOOSMsg& msg);
+    void handle_target_sim_list(const CMOOSMsg& msg);
+    void handle_target_sim_state(const CMOOSMsg& msg);
+    void handle_target_arrival_file(const CMOOSMsg& msg);
+    void handle_ambient_nl_depth(const CMOOSMsg& msg);
+    void handle_noise_vert_dir(const CMOOSMsg& msg);
+    void handle_svp_response(const CMOOSMsg& msg);
+    void handle_covariance_file(const CMOOSMsg& msg);
+    void handle_vehicle_name(const CMOOSMsg& msg);
+
+    SimPassiveSonarConfig& cfg_;
+    double last_slow_loop_t_;
+    
+    static SimPassiveSonar* inst_;    
 
   protected:
 
