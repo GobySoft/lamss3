@@ -78,7 +78,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     bottom_loss(cfg_.bottom_loss()),
     ray_acoustics(cfg_.ray_acoustics()),
     rap_acoustics(cfg_.rap_acoustics()),
-  sampling_frequency(cfg_.sampling_frequency()),
+    sampling_frequency(cfg_.sampling_frequency()),
   noise_level(cfg_.noise_level()),
   mseas_svp_updates(cfg_.mseas_svp_updates()), 
   mseas_update_interval(cfg_.mseas_update_interval()), 
