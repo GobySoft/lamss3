@@ -246,6 +246,9 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
       sum_of_timeseries_z = gsl_matrix_calloc (num_array_elements,num_samples);
     }
   sync = (sync_path != "");
+  svp_requests.clear();
+  slow_loop_period = mseas_update_interval; 
+
 }
 
 void SimPassiveSonar::handle_array_x(const CMOOSMsg& msg)
@@ -470,6 +473,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 	    }
 	}
     }
+  slow_loop_period = mseas_update_interval/(number_of_targets+1);
 }
 
 void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
@@ -785,7 +789,7 @@ void SimPassiveSonar::loop()
     }
   
   // process some events at a slower rate
-  const int slow_loop_period = 10;
+  //const int slow_loop_period = 10;
   if(curr_time > last_slow_loop_t_ + slow_loop_period)
     slow_loop(curr_time);
 }
@@ -793,7 +797,12 @@ void SimPassiveSonar::loop()
 void SimPassiveSonar::slow_loop(double curr_time)
 {
   // Here we should add slow loop actions.
-  
+  // request SVP from queue: last in first out!
+  if (svp_requests.size() > 0)
+    {
+      m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
+      svp_requests.pop_back();
+    }  
   last_slow_loop_t_ = curr_time;
 }
 
@@ -1965,7 +1974,9 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      
 	      
 	      serialize_for_moos(&serialized_svp_request, svp_request);
-	      m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
+	      //m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
+	      // Queue request for slow loop
+	      svp_requests.push_back(serialized_svp_request);
 	      // if not ready use old one
 	      acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    

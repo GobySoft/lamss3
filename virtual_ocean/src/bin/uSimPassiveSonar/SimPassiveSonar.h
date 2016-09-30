@@ -76,6 +76,7 @@ class SimPassiveSonar : public GobyMOOSApp
     // synchronous event
     void loop();    
     void slow_loop(double curr_time);
+    double slow_loop_period;
 
     // mail handlers
 
@@ -118,6 +119,7 @@ class SimPassiveSonar : public GobyMOOSApp
     double mseas_update_interval;
     double svp_range_resolution;
     double svp_depth_resolution;
+    std::vector<std::string> svp_requests;
 
     CmyVectorUtils vecUtils;
     // noise covariances
