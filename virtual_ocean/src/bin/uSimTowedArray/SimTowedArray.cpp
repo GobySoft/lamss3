@@ -535,7 +535,7 @@ bool CSimTowedArray::OnStartUp()
 	    for(int k=0; k < num_elements; k++)
 	      {
 		Array.phone_position.push_back(element_locations_temp[k]);
-		Array.phone_offset.push_back(element_locations_temp[k] + Array.first_phone_offset);
+		Array.phone_offset.push_back(element_locations_temp[k]);
 	      }
 	    Array.m_nelm =num_elements;
 	  }
@@ -1208,7 +1208,7 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y,
   // Array locations along array
   
   offset_to_array = cablel[array_section_number-2]  ; 
-  
+
   compass_offset_full.clear();
   depth_offset_full.clear();
   pitch_offset_full.clear();
