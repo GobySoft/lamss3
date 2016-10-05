@@ -617,6 +617,7 @@ void SimPassiveSonar::loop()
 	  // generate corrrelated  noise spectrum
 	  generate_corr_noise_spectrum();
 	  
+	  // Passive targets are added in the spectral domain
 	  for (int i=0; i<number_of_targets; i++)
 	    {
 	      glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
@@ -632,112 +633,12 @@ void SimPassiveSonar::loop()
 	      glog.is(VERBOSE) && glog << "Got info for TGT_" << m_target_number[i]
 				       << endl;;
 	      
-	      double range_x = (ael_x - source_pos_x);
-	      double range_y = (ael_y - source_pos_y);
-	      double range_req = sqrt(range_x*range_x + range_y*range_y);
-	      double depth_req = -ael_z;
-	      
-	      if (!ray_acoustics)
+
+	      if (generate_eigenray_table(Targets[i],acoustic_contacts[i]))
 		{
-		  range_ref = range_req;
-		  depth_ref = depth_req;
-		  water_c = c_0 + depth_ref * c_grad;
-		  ph_shift_ref = 0;
-		  if (rap_acoustics)
-		    {
-		      Rap.setEnv(c_0, c_grad, water_depth, z_max);
-		      Rap.rapRay(ael_x, ael_y, depth_ref,
-				 source_pos_x, source_pos_y, source_dep,
-				 dip_ref, p_ref, tau_ref , turn_ref);
-		      tl_est = - 20.0 * log10(p_ref);
-		      if (turn_ref)
-			ph_shift_ref = M_PI/2;
-		      
-		      double z_rap, r_rap;
-		      Rap.rapDepth(source_pos_x, source_pos_y, source_dep, 
-				   ael_x, ael_y, z_rap);
-		      Rap.rapRange(ael_x, ael_y, depth_ref, 
-				   source_dep, dip_ref, r_rap);
-		    }
-		  else
-		    {
-		      tau_ref = range_ref/c_0;
-		      double delta_k = bottom_loss/8686;
-		      double atten = exp(-delta_k*range_ref);
-		      p_ref = atten * (1/water_depth) * (1/sqrt(range_ref)); 
-		      tl_est = - 20.0 * log10(p_ref);
-		      // for waveguide acoustics, assume horizontal propagation.
-		      dip_ref = 0;
-		    }
-		  
-		  CRay ray;
-		  ray.amp = p_ref;
-		  ray.phase = ph_shift_ref;
-		  ray.tau = tau_ref;
-		  ray.dip_source = 0;
-		  ray.dip_receiver = - dip_ref *M_PI/180.0;
-		  ray.surface_bounces = 0;
-		  ray.bottom_bounces = 0;
-		  eigenray_table.putEigenRay(source_dep, depth_ref,source_bb_freq, range_ref,ray);
-		  putAcousticContact(Targets[i].target_id(),eigenray_table);
-		}
-	      // first get the ray table for this contact
-	      if (getAcousticContact(Targets[i].target_id(),eigenray_table))
-		{
-		  CEigenRay eig;
-		  // Get the closest eigenray bundle
-		  eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
-		  if (ray_acoustics)
-		    {
-		      glog.is(VERBOSE) && glog << "Target range = " << range_req
-					       << " Raytracing range = " << eig.range
-					       << endl;
-		      glog.is(VERBOSE) && glog << "Receiver depth = " << depth_req
-					       << " Raytracing depth = "
-					       << eig.receiver_depth << endl;
-		      glog.is(VERBOSE) && glog << "Number of eigenrays: " 
-					       << eig.num_rays << endl;
-		      tl_est = 1e-30;
-		      for (int iray = 0; iray < eig.num_rays; iray++)
-			{
-			  tl_est += pow(eig.bundle[iray].amp,2);
-			}
-		      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
-		      glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
-		      
-		      if (fabs(range_req - acoustic_contacts[i].last_range) > raytracing_interval)
-			{
-			  double range_min;
-			  double range_max;
-			  double depth_min;
-			  double depth_max;
-			  int num_ranges;
-			  int num_depths;
-			  defineRayTracingBox(acoustic_contacts[i],
-					      range_min,range_max,
-					      depth_min,depth_max,
-					      num_ranges,num_depths);
-			  requestRayTrace(Targets[i].target_id(), 
-					  range_min, range_max, num_ranges, 
-					  depth_min, depth_max, num_depths,
-					  source_bb_freq, m_target_number[i]);
-			  
-			}
-		      // if mseas_svp_updates, request SVP
-		      if ( mseas_svp_updates && 
-			   (MOOSTime() - acoustic_contacts[i].last_svp_request >= 
-			    mseas_update_interval ) )
-			{
-			  requestSVPUpdate(Targets[i].target_id(),
-					   m_target_number[i]);
-			}
-		    }
-		  
-		  generate_signal_spectrum(i);
-		  
+		  generate_signal_spectrum(i);  
 		  glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
 					   << Targets[i].target_id() << endl;
-		  
 		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
 		  if(got_source_loc && i == icnt_rot)
 		    {
@@ -746,33 +647,7 @@ void SimPassiveSonar::loop()
 		      m_Comms.Notify("TARGET_YPOS",source_pos_y);
 		    }
 		}
-	      else if (ray_acoustics && (MOOSTime() - acoustic_contacts[i].last_request > 30.0))
-		{
-		  double range_min;
-		  double range_max;
-		  double depth_min;
-		  double depth_max;
-		  int num_ranges;
-		  int num_depths;
-		  defineRayTracingBox(acoustic_contacts[i],
-				      range_min,range_max,
-				      depth_min,depth_max,
-				      num_ranges,num_depths);
-		  requestRayTrace(Targets[i].target_id(), 
-				  range_min, range_max, num_ranges, 
-				  depth_min, depth_max, num_depths,
-				  source_bb_freq, m_target_number[i]);
-		  
-		  // if mseas_svp_updates, request SVP
-		  if (mseas_svp_updates &&
-		      (t_now - acoustic_contacts[i].last_svp_request >= 
-		       mseas_update_interval) )
-		    {
-		      requestSVPUpdate(Targets[i].target_id(),
-				       m_target_number[i]);
-		    }
-		  
-		}
+
 	    }
 	  
 	  generate_spectral_timeseries();
@@ -806,8 +681,143 @@ void SimPassiveSonar::slow_loop(double curr_time)
   last_slow_loop_t_ = curr_time;
 }
 
+bool SimPassiveSonar::generate_eigenray_table(CTarget& Source, 
+					      CAcousticContact& acoustic_contact)
+{
+  bool eigenrays_ready = false;
 
+  double range_x = (ael_x - source_pos_x);
+  double range_y = (ael_y - source_pos_y);
+  double range_req = sqrt(range_x*range_x + range_y*range_y);
+  double depth_req = -ael_z;
+	      
+  if (!ray_acoustics)
+    {
+      range_ref = range_req;
+      depth_ref = depth_req;
+      water_c = c_0 + depth_ref * c_grad;
+      ph_shift_ref = 0;
+      if (rap_acoustics)
+	{
+	  Rap.setEnv(c_0, c_grad, water_depth, z_max);
+	  Rap.rapRay(ael_x, ael_y, depth_ref,
+		     source_pos_x, source_pos_y, source_dep,
+		     dip_ref, p_ref, tau_ref , turn_ref);
+	  tl_est = - 20.0 * log10(p_ref);
+	  if (turn_ref)
+	    ph_shift_ref = M_PI/2;
+		      
+	  double z_rap, r_rap;
+	  Rap.rapDepth(source_pos_x, source_pos_y, source_dep, 
+		       ael_x, ael_y, z_rap);
+	  Rap.rapRange(ael_x, ael_y, depth_ref, 
+		       source_dep, dip_ref, r_rap);
+	}
+      else
+	{
+	  tau_ref = range_ref/c_0;
+	  double delta_k = bottom_loss/8686;
+	  double atten = exp(-delta_k*range_ref);
+	  p_ref = atten * (1/water_depth) * (1/sqrt(range_ref)); 
+	  tl_est = - 20.0 * log10(p_ref);
+	  // for waveguide acoustics, assume horizontal propagation.
+	  dip_ref = 0;
+	}
+		  
+      CRay ray;
+      ray.amp = p_ref;
+      ray.phase = ph_shift_ref;
+      ray.tau = tau_ref;
+      ray.dip_source = 0;
+      ray.dip_receiver = - dip_ref *M_PI/180.0;
+      ray.surface_bounces = 0;
+      ray.bottom_bounces = 0;
+      eigenray_table.putEigenRay(source_dep, depth_ref,source_bb_freq, range_ref,ray);
+      putAcousticContact(Source.target_id(),eigenray_table);
+    }
+  // first get the ray table for this contact
+  if (getAcousticContact(Source.target_id(),eigenray_table))
+    {
+      CEigenRay eig;
+      // Get the closest eigenray bundle
+      eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
+      if (ray_acoustics)
+	{
+	  glog.is(VERBOSE) && glog << "Target range = " << range_req
+				   << " Raytracing range = " << eig.range
+				   << endl;
+	  glog.is(VERBOSE) && glog << "Receiver depth = " << depth_req
+				   << " Raytracing depth = "
+				   << eig.receiver_depth << endl;
+	  glog.is(VERBOSE) && glog << "Number of eigenrays: " 
+				   << eig.num_rays << endl;
+	  tl_est = 1e-30;
+	  for (int iray = 0; iray < eig.num_rays; iray++)
+	    {
+	      tl_est += pow(eig.bundle[iray].amp,2);
+	    }
+	  tl_est = - 10.0 * log10(tl_est/eig.num_rays);
+	  glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
+		      
+	  if (fabs(range_req - acoustic_contact.last_range) > raytracing_interval)
+	    {
+	      double range_min;
+	      double range_max;
+	      double depth_min;
+	      double depth_max;
+	      int num_ranges;
+	      int num_depths;
+	      defineRayTracingBox(acoustic_contact,
+				  range_min,range_max,
+				  depth_min,depth_max,
+				  num_ranges,num_depths);
+	      requestRayTrace(Source.target_id(), 
+			      range_min, range_max, num_ranges, 
+			      depth_min, depth_max, num_depths,
+			      source_bb_freq, Source.target_number);
+	    }
+	  // if mseas_svp_updates, request SVP
+	  if ( mseas_svp_updates && 
+	       (MOOSTime() - acoustic_contact.last_svp_request >= 
+		mseas_update_interval ) )
+	    {
+	      requestSVPUpdate(Source.target_id(),
+			       Source.target_number);
+	    }
+	}
+      eigenrays_ready = true;
+    }
+  else if (ray_acoustics && (MOOSTime() - acoustic_contact.last_request > 30.0))
+    {
+      double range_min;
+      double range_max;
+      double depth_min;
+      double depth_max;
+      int num_ranges;
+      int num_depths;
+      defineRayTracingBox(acoustic_contact,
+			  range_min,range_max,
+			  depth_min,depth_max,
+			  num_ranges,num_depths);
+      requestRayTrace(Source.target_id(), 
+		      range_min, range_max, num_ranges, 
+		      depth_min, depth_max, num_depths,
+		      source_bb_freq, Source.target_number);
+		  
+      // if mseas_svp_updates, request SVP
+      if (mseas_svp_updates &&
+	  (MOOSTime() - acoustic_contact.last_svp_request >= 
+	   mseas_update_interval) )
+	{
+	  requestSVPUpdate(Source.target_id(),
+			   Source.target_number);
+	}
+		  
+    }
 
+  return(eigenrays_ready);
+
+}
 
 bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 					   double& r_min,

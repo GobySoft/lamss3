@@ -321,6 +321,8 @@ class SimPassiveSonar : public GobyMOOSApp
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
 
+    bool generate_eigenray_table(CTarget& Source, 
+				 CAcousticContact& acoustic_contact);
     bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
     bool generate_spectral_timeseries();
