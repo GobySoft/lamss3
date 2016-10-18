@@ -80,6 +80,9 @@ class SimPassiveSonar : public GobyMOOSApp
 
     // mail handlers
 
+    void handle_ael_heading(const CMOOSMsg& msg);
+    void handle_ael_pitch(const CMOOSMsg& msg);
+    void handle_nav_speed(const CMOOSMsg& msg);
     void handle_array_x(const CMOOSMsg& msg);
     void handle_array_y(const CMOOSMsg& msg);
     void handle_array_z(const CMOOSMsg& msg);
@@ -96,6 +99,7 @@ class SimPassiveSonar : public GobyMOOSApp
     void handle_svp_response(const CMOOSMsg& msg);
     void handle_covariance_file(const CMOOSMsg& msg);
     void handle_vehicle_name(const CMOOSMsg& msg);
+    void handle_sound_speed(const CMOOSMsg& msg);
 
     SimPassiveSonarConfig& cfg_;
     double last_slow_loop_t_;
@@ -120,6 +124,7 @@ class SimPassiveSonar : public GobyMOOSApp
     double svp_range_resolution;
     double svp_depth_resolution;
     std::vector<std::string> svp_requests;
+    double sound_speed;
 
     CmyVectorUtils vecUtils;
     // noise covariances
@@ -130,6 +135,7 @@ class SimPassiveSonar : public GobyMOOSApp
     CRapRays Rap;
  
     //---Declare variables that get their valies directly from the .moos file---
+    bool getPingerInfo();
 
     // Target control. true= SourceSim, false = prosecute message
     bool t_control; 
@@ -141,6 +147,7 @@ class SimPassiveSonar : public GobyMOOSApp
 
     bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
+    int findAcousticContact(std::string cn);
     bool readyAcousticContact(std::string cn);
     bool requestRayTrace(std::string cn, 
 			 double r_min, double r_max, int num_r, 
@@ -244,6 +251,10 @@ class SimPassiveSonar : public GobyMOOSApp
     double ael_x;
     double ael_y;
     double ael_z;
+    double ael_heading;
+    double ael_speed;
+    double ael_pitch;
+    double ael_yaw;
 
     std::vector<double> array_x_rel; // x coordinates of array elements
     // relative to tow position (what's in the MOOSDB)
@@ -253,7 +264,9 @@ class SimPassiveSonar : public GobyMOOSApp
     double source_pos_x;
     double source_pos_y;
     double source_dep;
-
+    double source_spd;
+    double source_hdg;
+    bool got_source_loc;
     bool source_status;
 
     double source_bb_spl;
@@ -278,7 +291,12 @@ class SimPassiveSonar : public GobyMOOSApp
     CEigenRay eig;
  
     // --- Declare other variables ---
-    bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, ok_array_pitch, ok_array_heading, ok_sourcex, ok_sourcey, got_array_info, got_source_loc, ok_source_bb_spl, ok_source_bb_freq, ok_source_bb_bw, got_source_bb_info;
+    bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, 
+      ok_array_pitch, ok_array_heading, 
+      ok_pinger_x, ok_pinger_y, 
+      got_array_info, 
+      ok_source_bb_spl, ok_source_bb_freq, 
+      ok_source_bb_bw, got_source_bb_info;
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
     double noise_std;
@@ -321,12 +339,26 @@ class SimPassiveSonar : public GobyMOOSApp
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
 
-    bool generate_eigenray_table(CTarget& Source, 
+    bool generate_eigenray_table(int cn_num, 
 				 CAcousticContact& acoustic_contact);
     bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
     bool generate_spectral_timeseries();
     bool initialize_spectrum();
+    bool ray_arrivals(CEigenRay eig, 
+		      double rcv_range,
+		      double rcv_depth, 
+		      std::vector<double> & cos_Src,
+		      std::vector<double> & cos_Rcv,
+		      std::vector<double> & delays, 
+		      std::vector<double> & amplitudes);
+
+    void ray_doppler_vel(double v_S, double a_S,double e_S, 
+				double v_R, double a_R, double e_R, 
+				double& vr_S, double& vr_R );
+    void array_ray_arrivals(std::vector<std::vector<double> > & delays,
+			    std::vector<std::vector<double> > & amplitudes,
+			    std::vector<std::vector<double> > & doppler);
 
     bool write_hyd_file();
     bool write_nas_file(double t_now);

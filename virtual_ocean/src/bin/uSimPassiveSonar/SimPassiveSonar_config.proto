@@ -36,6 +36,12 @@ message SimPassiveSonarConfig
   optional double mseas_update_interval = 24 [default = 60];
   optional double svp_range_resolution = 25 [default = 200];
   optional double svp_depth_resolution = 26 [default = 20];
+  optional bool   pinger_enabled = 27 [default = false];
+  optional double pinger_x = 28 [default = 0];
+  optional double pinger_y = 29 [default = 0];
+  optional double pinger_depth = 30 [default = 0];
+  optional double pinger_db = 31 [default = 130];
+  optional string pinger_replica = 32 [default = ""];
 }
 
 
