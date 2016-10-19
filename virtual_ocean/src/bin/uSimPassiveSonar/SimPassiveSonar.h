@@ -21,6 +21,7 @@
 #include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "SimPassiveSonar_config.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
 
 
 // from lib_henrik_util
@@ -100,6 +101,7 @@ class SimPassiveSonar : public GobyMOOSApp
     void handle_covariance_file(const CMOOSMsg& msg);
     void handle_vehicle_name(const CMOOSMsg& msg);
     void handle_sound_speed(const CMOOSMsg& msg);
+    void handle_pinger_command(const CMOOSMsg& msg);
 
     SimPassiveSonarConfig& cfg_;
     double last_slow_loop_t_;
@@ -135,7 +137,15 @@ class SimPassiveSonar : public GobyMOOSApp
     CRapRays Rap;
  
     //---Declare variables that get their valies directly from the .moos file---
+    LAMSS_PINGER_COMMAND pinger_command;
     bool getPingerInfo();
+    void generate_pinger_waveform(std::vector<double>& source_waveform);
+    std::string pinger_id;
+    double pingtime;
+    double ping_center_frequency;
+    double ping_bandwidth;
+    double ping_pulsewidth;
+    std::vector<double> waveform;
 
     // Target control. true= SourceSim, false = prosecute message
     bool t_control; 

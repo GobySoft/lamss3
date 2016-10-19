@@ -41,7 +41,13 @@ message SimPassiveSonarConfig
   optional double pinger_y = 29 [default = 0];
   optional double pinger_depth = 30 [default = 0];
   optional double pinger_db = 31 [default = 130];
-  optional string pinger_replica = 32 [default = ""];
+  optional WindowShading replica_window = 32 [default = WINDOW_TUKEY];
+  enum WindowShading {
+     WINDOW_TUKEY = 1;
+     WINDOW_HANN = 2;
+     WINDOW_NONE = 3;
+  }
+  optional string pinger_replica_file = 33 [default = ""];
 }
 
 
