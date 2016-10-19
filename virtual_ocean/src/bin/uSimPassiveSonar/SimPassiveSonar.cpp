@@ -114,7 +114,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   subscribe("VEHICLE_NAME", &SimPassiveSonar::handle_vehicle_name, this);    
   subscribe("SOUND_SPEED", &SimPassiveSonar::handle_sound_speed, this);    
   subscribe("SOUND_SPEED_GRAM", &SimPassiveSonar::handle_sound_speed, this);    
-  subscribe("PINGER_COMMAND", &SimPassiveSonar::handle_pinger_command, this);    
+  subscribe("LAMSS_PINGER_COMMAND_IN", &SimPassiveSonar::handle_pinger_command, this);    
 
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
@@ -2378,7 +2378,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   ping_center_frequency = pinger_command.center_frequency();
   ping_bandwidth = pinger_command.bandwidth();
   ping_pulsewidth = pinger_command.pulsewidth();
-  if (pinger_command.pingtime() <= 1)
+  if (pinger_command.pingtime() < 1)
     pingtime = pinger_command._time();
   else
     pingtime = pinger_command.pingtime();
