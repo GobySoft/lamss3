@@ -751,7 +751,16 @@ void SimPassiveSonar::loop()
 		  // vector<double> waveform: contains waveform updated 
 		  // when new pinger_command is received
 		  // pingtime: UTC of ping transmission.
-
+		  // sum_of_timeseries(num_array_elements,num_samples): Total hydrophone timeseries
+		  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
+		    for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
+		      {
+			// doppler scaled waveform, sampled at sampling_frequency
+			vector<double> dop_waveform; 
+			generate_doppler_waveform(dop_waveform, 
+						  arr_doppler[i_elem][i_ray]);
+			// add to sum_timeseries if inside current time frame.
+		      }
 		}
 	    }
 
@@ -1415,12 +1424,14 @@ void SimPassiveSonar::ray_doppler_vel(double v_S, double a_S,double e_S, double 
 }
 
 //function to create Waveform and replica files
-void SimPassiveSonar::generate_pinger_waveform(std::vector<double>& source_waveform)
+void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_waveform,
+double dop_fac)
 {
-
+  // doppler_fac > 1 diverging src/rcv, < 1 converging
   //--first create time vector
+  double dop_pulsewidth = dop_fac*ping_pulsewidth;
   std::vector<double> t_src;
-  int num_samples = ceil(ping_pulsewidth*sampling_frequency);
+  int num_samples = int(dop_pulsewidth*sampling_frequency);
   t_src.resize(num_samples); 
   double delta_t = 1.0/sampling_frequency;
   for(int k=0; k < num_samples; k++)
@@ -1453,30 +1464,33 @@ void SimPassiveSonar::generate_pinger_waveform(std::vector<double>& source_wavef
 
   source_waveform.resize(t_src.size());
 
+  double dop_center_frequency = ping_center_frequency/dop_fac;
+  double dop_bandwidth = ping_bandwidth/dop_fac;
+
   if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
     {
       glog.is(DEBUG1) && glog <<"Generating CW waveform" << endl;
       for( int k=0;k<t_src.size(); k++)
 	{
-	  source_waveform[k] = sin(2*M_PI*ping_center_frequency*t_src[k])*
+	  source_waveform[k] = sin(2*M_PI*dop_center_frequency*t_src[k])*
 				    source_strength*source_window[k];
 	}
     }
   else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FM)
     {
       glog.is(DEBUG1) && glog << "Generating LFM waveform" << endl;
-      double max_lfm_frequency = ping_center_frequency + 0.5* ping_bandwidth;
-      double min_lfm_frequency = ping_center_frequency - 0.5* ping_bandwidth;
+      double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+      double min_lfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
       for( int k=0;k<t_src.size();k++)
 	{ 
-	  double K = (max_lfm_frequency-min_lfm_frequency)/ping_pulsewidth;
+	  double K = (max_lfm_frequency-min_lfm_frequency)/dop_pulsewidth;
 	  source_waveform[k] = sin(2*M_PI*t_src[k]*(min_lfm_frequency+(K*t_src[k]*0.5)))*
 	    source_strength*source_window[k];
 	}
     }
   else
     {
-      // Here we need to read the waveform from file
+      // Here we need to read the waveform from file and stretch by dop_fac
     }
 }
 
@@ -2408,8 +2422,8 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
     pingtime = pinger_command._time();
   else
     pingtime = pinger_command.pingtime();
-  // Generate replica
-  generate_pinger_waveform(waveform);
+  // Generate no-doppler replica in case we want to save for MF
+  generate_doppler_waveform(waveform,1.0);
 
 }
 

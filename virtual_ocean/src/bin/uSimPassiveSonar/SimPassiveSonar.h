@@ -142,7 +142,7 @@ class SimPassiveSonar : public GobyMOOSApp
     //---Declare variables that get their valies directly from the .moos file---
     LAMSS_PINGER_COMMAND pinger_command;
     bool getPingerInfo();
-    void generate_pinger_waveform(std::vector<double>& source_waveform);
+    void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
     std::string pinger_id;
     double pingtime;
     double ping_center_frequency;
