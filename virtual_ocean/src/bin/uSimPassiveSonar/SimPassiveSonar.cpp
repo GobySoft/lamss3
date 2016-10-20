@@ -629,7 +629,13 @@ void SimPassiveSonar::loop()
   // should be robust enough to handle it.
   if ( (t_now - time_last) > file_interval_time)
     {
-      time_last = t_now;
+      if (time_last < 1)
+	timestamp = floor(t_now);
+      else
+	timestamp = timestamp + file_interval_time;
+
+      time_last = timestamp;
+
       if (cfg_.pinger_enabled())
 	getPingerInfo();
       else if (multi_target && number_of_targets >0)
@@ -750,14 +756,14 @@ void SimPassiveSonar::loop()
 		  // Global variables:
 		  // vector<double> waveform: contains waveform updated 
 		  // when new pinger_command is received
+		  // timestamp: UTC of current file start
 		  // pingtime: UTC of ping transmission.
 		  // sum_of_timeseries(num_array_elements,num_samples): Total hydrophone timeseries
 		  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
 		    for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
 		      {
 			// doppler scaled waveform, sampled at sampling_frequency
-			vector<double> dop_waveform; 
-			generate_doppler_waveform(dop_waveform, 
+			generate_doppler_waveform(waveform, 
 						  arr_doppler[i_elem][i_ray]);
 			// add to sum_timeseries if inside current time frame.
 		      }
@@ -765,8 +771,8 @@ void SimPassiveSonar::loop()
 	    }
 
 	  glog.is(VERBOSE) && glog << "Writing data files " << endl;
-	  write_nas_file(t_now);
-	  write_nas_file_verbose(t_now);
+	  write_nas_file(timestamp);
+	  write_nas_file_verbose(timestamp);
 	  write_hyd_file();
 	  m_Comms.Notify("SONAR_DIR", base_dir_name);
 	  m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
@@ -1860,7 +1866,7 @@ bool SimPassiveSonar::write_hyd_file()
   return true;
 }
 
-bool SimPassiveSonar::write_nas_file(double t_now)
+bool SimPassiveSonar::write_nas_file(double timestamp)
 {
   double deg2rad = M_PI/180;
   char nonacoustic_filename_buff[1000]; 
@@ -1882,7 +1888,7 @@ bool SimPassiveSonar::write_nas_file(double t_now)
   else
     {
       // The following was copied from SealabDataSim2.m
-      fprintf (nas_data_file, "%f\n", t_now);              // Current time
+      fprintf (nas_data_file, "%f\n", timestamp);              // Current time
       
       // The format string used to be "%f\n", but this results in some random
       // number being written to the non acoustic data file. Changed this to
@@ -1940,7 +1946,7 @@ bool SimPassiveSonar::write_nas_file(double t_now)
 
 
 	  // Also, print out the uptime, and the x,y,z positions of the sensors
-	  fprintf (nas_data_file, "%f\n", (t_now-start_time));
+	  fprintf (nas_data_file, "%f\n", (timestamp-start_time));
 	  for (int jj=0; jj < num_array_elements; jj++)
 	    {
 	      fprintf(nas_data_file, "%8.4f %8.4f %8.4f\n",
@@ -1964,7 +1970,7 @@ bool SimPassiveSonar::write_nas_file(double t_now)
 }
 
 
-bool SimPassiveSonar::write_nas_file_verbose(double t_now) {
+bool SimPassiveSonar::write_nas_file_verbose(double timestamp) {
 	double deg2rad = M_PI / 180;
 	char nonacoustic_filename_buff[1000];
 	// Sure hope nobody wants a filename longer than 1000 chars
@@ -1981,8 +1987,8 @@ bool SimPassiveSonar::write_nas_file_verbose(double t_now) {
 		fprintf(nas_data_file, "Verbose uSimPassiveSonar non-acoustic data file\n");
 		fprintf(nas_data_file, "\n--Data--\n");
 		fprintf(nas_data_file, "%d \t\t! file number\n", frame_number); 
-		fprintf(nas_data_file, "%8.4f ! current time\n", t_now); 
-		fprintf(nas_data_file, "%8.4f \t! array uptime\n", (t_now - start_time));
+		fprintf(nas_data_file, "%8.4f ! current time\n", timestamp); 
+		fprintf(nas_data_file, "%8.4f \t! array uptime\n", (timestamp - start_time));
 		fprintf(nas_data_file, "%d \t\t! samples per file\n", num_samples);
 		fprintf(nas_data_file, "%8.4f \t! sampling rate\n", sampling_frequency);		
 		fprintf(nas_data_file, "%8.4f \t! file time interval (sec)\n", file_interval_time);

@@ -149,7 +149,8 @@ class SimPassiveSonar : public GobyMOOSApp
     double ping_bandwidth;
     double ping_pulsewidth;
     std::vector<double> waveform;
-
+    // Time stam for each recorded file
+    double timestamp;
     // Target control. true= SourceSim, false = prosecute message
     bool t_control; 
 
@@ -376,8 +377,8 @@ class SimPassiveSonar : public GobyMOOSApp
 			    std::vector<std::vector<double> > & doppler);
 
     bool write_hyd_file();
-    bool write_nas_file(double t_now);
-    bool write_nas_file_verbose(double t_now);
+    bool write_nas_file(double timestamp);
+    bool write_nas_file_verbose(double timestamp);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
       
 };
