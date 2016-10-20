@@ -52,6 +52,9 @@ class CAcousticContact
 {
  public:
   std::string contact;
+  double contact_x;
+  double contact_y;
+  double contact_depth;
   bool ready;
   double last_request;
   double last_range;
@@ -155,7 +158,9 @@ class SimPassiveSonar : public GobyMOOSApp
     int str2int_vec(std::string, std::vector<int>&);
     bool getTargetInfo(int i);
 
-    bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
+    bool putAcousticContact(std::string cn, double contact_x,
+			    double contact_y, double contact_depth,
+			    CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
     int findAcousticContact(std::string cn);
     bool readyAcousticContact(std::string cn);

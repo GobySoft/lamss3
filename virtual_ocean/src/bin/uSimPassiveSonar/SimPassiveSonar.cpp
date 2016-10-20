@@ -203,7 +203,10 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
       pinger_id = "PINGER";
       CEigenRayTable buffer;
       buffer.clear();
-      putAcousticContact(pinger_id, buffer);
+      putAcousticContact(pinger_id, cfg_.pinger_x(),
+			 cfg_.pinger_y(),
+			 cfg_.pinger_depth(), 
+			 buffer);
       glog.is(DEBUG1) && glog << "Pinger " 
 			      << " asigned acoustic contact number "
 			      << findAcousticContact(pinger_id) << std::endl;
@@ -520,7 +523,11 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 	      
 	      CEigenRayTable buffer;
 	      buffer.clear();
-	      putAcousticContact(Targets[i].target_id(), buffer);
+	      putAcousticContact(Targets[i].target_id(),
+				 Targets[i].target_x,
+				 Targets[i].target_y,
+				 Targets[i].target_dep,
+				 buffer);
 	      glog.is(DEBUG1) && glog << "Target " << Targets[i].target_id()
 				       << " asigned acoustic contact number "
 				       << findAcousticContact(Targets[i].target_id()) << std::endl;
@@ -582,7 +589,11 @@ void SimPassiveSonar::handle_target_arrival_file(const CMOOSMsg& msg)
       if (msg.m_sKey == arr_file)
 	{
 	  eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
-	  putAcousticContact(target_id, eigenray_table);
+	  putAcousticContact(target_id, 
+			     Targets[i].target_x,
+			     Targets[i].target_y,
+			     Targets[i].target_dep,
+			     eigenray_table);
 	}	
     }
 }
@@ -825,7 +836,11 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
       ray.surface_bounces = 0;
       ray.bottom_bounces = 0;
       eigenray_table.putEigenRay(source_dep, depth_ref,source_bb_freq, range_ref,ray);
-      putAcousticContact(acoustic_contact.contact,eigenray_table);
+      putAcousticContact(acoustic_contact.contact,
+			 source_pos_x,
+			 source_pos_y,
+			 source_dep,
+			 eigenray_table);
     }
   // first get the ray table for this contact
   if (getAcousticContact(acoustic_contact.contact,eigenray_table))
@@ -2126,12 +2141,19 @@ bool SimPassiveSonar::getTargetInfo(int i)
       return(got_source_bb_info && got_source_loc);
 }
 
-bool SimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_table)
+bool SimPassiveSonar::putAcousticContact(std::string cn, 
+					 double cn_x,
+					 double cn_y,
+					 double cn_depth,
+					 CEigenRayTable eig_table)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
       if (MOOSStrCmp(acoustic_contacts[i].contact,cn))
 	{
+	  acoustic_contacts[i].contact_x = cn_x;
+	  acoustic_contacts[i].contact_y = cn_y;
+	  acoustic_contacts[i].contact_depth = cn_depth;
 	  acoustic_contacts[i].ray_table = eig_table;
 	  acoustic_contacts[i].ready = true;
 	  return(true); 
@@ -2140,6 +2162,9 @@ bool SimPassiveSonar::putAcousticContact(std::string cn, CEigenRayTable eig_tabl
   // make new contact
   CAcousticContact new_contact;
   new_contact.contact = cn;
+  new_contact.contact_x = cn_x;
+  new_contact.contact_y = cn_y;
+  new_contact.contact_depth = cn_depth;
   new_contact.ready = false;
   new_contact.ray_table = eig_table;
   new_contact.svp_ready = false;
@@ -2330,7 +2355,8 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      svp_request.set_request_id(contact_number);
 	      svp_request.set_utc_time(MOOSTime());
 	      m_Geodesy.UTM2LatLong(ael_x,ael_y,ael_lat,ael_lon); 
-	      m_Geodesy.UTM2LatLong(source_pos_x,source_pos_y,
+	      m_Geodesy.UTM2LatLong(acoustic_contacts[i].contact_x,
+				    acoustic_contacts[i].contact_y,
 				    source_pos_lat,source_pos_lon); 
 	      
 	      svp_request.set_receiver_lat(ael_lat);
