@@ -3,7 +3,7 @@
 # Author(s):                               H. Schmidt
 #--------------------------------------------------------
 
-#set (CMAKE_CXX_FLAGS_RELEASE "-g")
+set (CMAKE_CXX_FLAGS_RELEASE "-g")
 
 file(GLOB PROTOS *.proto)  
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} )

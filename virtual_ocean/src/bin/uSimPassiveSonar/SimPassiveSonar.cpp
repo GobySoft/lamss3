@@ -621,7 +621,7 @@ void SimPassiveSonar::loop()
       time_last = t_now;
       if (cfg_.pinger_enabled())
 	getPingerInfo();
-      if (multi_target && number_of_targets >0)
+      else if (multi_target && number_of_targets >0)
 	getTargetInfo(0);
       else
 	{
@@ -1461,7 +1461,7 @@ void SimPassiveSonar::generate_pinger_waveform(std::vector<double>& source_wavef
     }
   else
     {
-      // Here we need to read replica from file
+      // Here we need to read the waveform from file
     }
 }
 
@@ -2330,7 +2330,7 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      svp_request.set_request_id(contact_number);
 	      svp_request.set_utc_time(MOOSTime());
 	      m_Geodesy.UTM2LatLong(ael_x,ael_y,ael_lat,ael_lon); 
-	      m_Geodesy.UTM2LatLong(Targets[i].target_x,Targets[i].target_y,
+	      m_Geodesy.UTM2LatLong(source_pos_x,source_pos_y,
 				    source_pos_lat,source_pos_lon); 
 	      
 	      svp_request.set_receiver_lat(ael_lat);

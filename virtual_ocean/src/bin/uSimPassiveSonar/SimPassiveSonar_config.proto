@@ -47,7 +47,7 @@ message SimPassiveSonarConfig
      WINDOW_HANN = 2;
      WINDOW_NONE = 3;
   }
-  optional string pinger_replica_file = 33 [default = ""];
+  optional string pinger_waveform_file = 33 [default = ""];
 }
 
 
