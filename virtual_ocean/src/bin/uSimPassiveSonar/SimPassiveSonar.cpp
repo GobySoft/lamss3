@@ -200,6 +200,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
 
   if (cfg_.pinger_enabled())
     {
+      pinger_active = false;
       pinger_id = "PINGER";
       CEigenRayTable buffer;
       buffer.clear();
@@ -725,8 +726,8 @@ void SimPassiveSonar::loop()
 	  
 	  generate_spectral_timeseries();
 	  
-	  // here we add the PINGER timeseries
-	  if (cfg_.pinger_enabled())
+	  // here we add the PINGER timeseries in time domain
+	  if (cfg_.pinger_enabled() && pinger_active)
 	    {
 	      
 	      glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
@@ -1482,7 +1483,7 @@ double dop_fac)
 				    source_strength*source_window[k];
 	}
     }
-  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FM)
+  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
     {
       glog.is(DEBUG1) && glog << "Generating LFM waveform" << endl;
       double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
@@ -1492,6 +1493,18 @@ double dop_fac)
 	  double K = (max_lfm_frequency-min_lfm_frequency)/dop_pulsewidth;
 	  source_waveform[k] = sin(2*M_PI*t_src[k]*(min_lfm_frequency+(K*t_src[k]*0.5)))*
 	    source_strength*source_window[k];
+	}
+    }
+  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_HFM)
+    {
+      double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+      double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
+      double r = (dop_max_hfm_frequency-dop_min_hfm_frequency)/dop_pulsewidth;
+      double p1 = dop_min_hfm_frequency*dop_max_hfm_frequency/r;
+      for( int k=0;k<t_src.size();k++)
+	{ 
+	  source_waveform[k] = sin(2*PI*(-p1*log(1-r/dop_max_hfm_frequency*t_src[k])))*
+				 source_strength*source_window[k];
 	}
     }
   else
@@ -2430,7 +2443,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
     pingtime = pinger_command.pingtime();
   // Generate no-doppler replica in case we want to save for MF
   generate_doppler_waveform(waveform,1.0);
-
+  pinger_active = pinger_command.pinger_active();
 }
 
 double SimPassiveSonar::getAmbientNoise(double depth, 

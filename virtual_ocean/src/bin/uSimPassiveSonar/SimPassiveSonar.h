@@ -143,6 +143,7 @@ class SimPassiveSonar : public GobyMOOSApp
     LAMSS_PINGER_COMMAND pinger_command;
     bool getPingerInfo();
     void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
+    bool pinger_active;
     std::string pinger_id;
     double pingtime;
     double ping_center_frequency;
