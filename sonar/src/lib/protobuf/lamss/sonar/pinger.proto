@@ -15,7 +15,8 @@ message LAMSS_PINGER_COMMAND {
        WAVEFORM_CW = 1;
        WAVEFORM_LFM = 2;
        WAVEFORM_HFM = 3;
-       WAVEFORM_FILE = 4;
+       WAVEFORM_IMP = 4;
+       WAVEFORM_FILE = 5;
        }
     optional double center_frequency = 8 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=100];
     optional double bandwidth = 9 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=100];
