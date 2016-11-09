@@ -360,7 +360,8 @@ class SimPassiveSonar : public GobyMOOSApp
 				 CAcousticContact& acoustic_contact);
     bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
-    bool generate_spectral_timeseries();
+    bool save_spectral_timeseries();
+    bool add_pinger_timeseries();
     bool initialize_spectrum();
     bool ray_arrivals(CEigenRay eig, 
 		      double rcv_range,

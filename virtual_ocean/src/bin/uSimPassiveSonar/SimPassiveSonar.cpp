@@ -724,13 +724,10 @@ void SimPassiveSonar::loop()
 
 	    }
 	  
-	  generate_spectral_timeseries();
-	  
 	  // here we add the PINGER timeseries in time domain
 	  if (cfg_.pinger_enabled() && pinger_active)
 	    {
-	      
-	      glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
+       	      glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
 	  
 	      bool ok_pinger_info = getPingerInfo();
 	      
@@ -742,33 +739,15 @@ void SimPassiveSonar::loop()
 		}
 	      glog.is(VERBOSE) && glog << "Got info for PINGER" 
 				       << endl;;
-	      int cn_num = findAcousticContact(pinger_id);
-	      if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
+	      if (add_pinger_timeseries())
 		{
-		  // Here goes the timeseries generation for pinger
-		  // First compute all ray delays, amplitudes and doppler
-		  std::vector<vector<double> > arr_delays;
-		  std::vector<vector<double> > arr_amplitudes;
-		  std::vector<vector<double> > arr_doppler;
-		  array_ray_arrivals(arr_delays,
-				     arr_amplitudes,
-				     arr_doppler);
-		  // Here goes the merging of the waveform response (Kristen)
-		  // Global variables:
-		  // vector<double> waveform: contains waveform updated 
-		  // when new pinger_command is received
-		  // timestamp: UTC of current file start
-		  // pingtime: UTC of ping transmission.
-		  // sum_of_timeseries(num_array_elements,num_samples): Total hydrophone timeseries
-		  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
-		    for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
-		      {
-			// doppler scaled waveform, sampled at sampling_frequency
-			generate_doppler_waveform(waveform, 
-						  arr_doppler[i_elem][i_ray]);
-			// add to sum_timeseries if inside current time frame.
-		      }
+		  glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
+				       << endl;;
 		}
+	    }
+	  else
+	    {
+	      save_spectral_timeseries();
 	    }
 
 	  glog.is(VERBOSE) && glog << "Writing data files " << endl;
@@ -1507,6 +1486,23 @@ double dop_fac)
 				 source_strength*source_window[k];
 	}
     }
+  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
+    {
+      double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+      double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
+      double a = 0.5*dop_bandwidth;
+      for( int k=0;k<t_src.size();k++)
+	{ 
+	  double w;
+	  if (k==0)
+	    w = 1;
+	  else
+	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
+	  
+	  source_waveform[k] = w*cos(2*PI*(dop_center_frequency*t_src[k]))*
+	    source_strength;
+	}
+    }
   else
     {
       // Here we need to read the waveform from file and stretch by dop_fac
@@ -1621,28 +1617,75 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
   return true;
 }
 
-bool SimPassiveSonar::generate_spectral_timeseries()
+bool SimPassiveSonar::add_pinger_timeseries()
 {
-  int sensors_per_element;
-  int num_sensors;
-  if (vsa) 
-    sensors_per_element = 4;
+  int cn_num = findAcousticContact(pinger_id);
+  if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
+    {
+      // Here goes the timeseries generation for pinger
+      // First compute all ray delays, amplitudes and doppler
+      std::vector<vector<double> > arr_delays;
+      std::vector<vector<double> > arr_amplitudes;
+      std::vector<vector<double> > arr_doppler;
+      array_ray_arrivals(arr_delays,
+			 arr_amplitudes,
+			 arr_doppler);
+      // Here goes the merging of the waveform response (Kristen)
+      // Global variables:
+      // vector<double> waveform: contains waveform updated 
+      // when new pinger_command is received
+      // timestamp: UTC of current file start
+      // pingtime: UTC of ping transmission.
+      // sum_of_timeseries(num_array_elements,num_samples): Total hydrophone timeseries
+      double max_delay = 0;
+      double file_duration = num_samples/sampling_frequency;
+      for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
+	for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
+	  max_delay = std::max(max_delay,arr_delays[i_elem][i_ray]);
+      
+      if ((pingtime+ping_pulsewidth >= timestamp) &&
+	  (max_delay+pingtime < timestamp + file_duration))
+	{ 
+	  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
+	    {
+	      std::vector<double> ts_hyd = hydrophones[i_elem].timeseries();
+	      for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
+		{
+		  // doppler scaled waveform, sampled at sampling_frequency
+		  generate_doppler_waveform(waveform, 
+					    arr_doppler[i_elem][i_ray]);
+		  // add to sum_timeseries if inside current time frame.
+		  double t1 = pingtime + arr_delays[i_elem][i_ray] - 
+		    timestamp;
+		  int indx_1 = t1*sampling_frequency;
+		  int indx_2 = indx_1 + waveform.size()-1;
+		  if (indx_1 < num_samples && indx_2 >=0)
+		    {
+		      int indx_offset = -indx_1;
+		      indx_1 = std::max(indx_1,0);
+		      indx_2 = std::min(indx_2,num_samples-1);
+		      for (int i=indx_1; i<=indx_2; i++)
+			ts_hyd[i] += waveform[i+indx_offset];
+		    }
+		}
+	      for(int i_samp=0; i_samp < num_samples; i_samp++)
+		{
+		  gsl_matrix_set(sum_of_timeseries, i_elem, i_samp, 
+				 ts_hyd[i_samp]);
+		}
+	    }
+	}
+      return(true);
+    }
   else
-    sensors_per_element = 1;
-  num_sensors = sensors_per_element*num_array_elements;
-  
+    return(false);
+}
+
+bool SimPassiveSonar::save_spectral_timeseries()
+{
   // array element loop
   for (int elem_iter=0; elem_iter < num_array_elements; elem_iter++)
     {
-      // Project absolute vs response onto physical orientation
-      double deg2rad = M_PI/180;
-      double hd_ang = array_heading.at(elem_iter)*deg2rad;
-      double el_ang = array_pitch.at(elem_iter);
-      double vs_costh = cos(hd_ang);
-      double vs_sinth = sin(hd_ang);
-      double vs_cosel = cos(el_ang);
-      double vs_sinel = sin(el_ang);
-
       vector<double> ts_hyd;
       vector<double> ts_x;
       vector<double> ts_y;
