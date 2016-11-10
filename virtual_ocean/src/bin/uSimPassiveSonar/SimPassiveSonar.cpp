@@ -1495,7 +1495,8 @@ double dop_fac)
 	{ 
 	  double w;
 	  if (k==0)
-	    w = 1;
+	    w = 2*a;
+	  //        w = 1;
 	  else
 	    w = sin(2*PI*a*t_src[k])/(PI*t_src[k]);
 	  //	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
