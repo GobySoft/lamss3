@@ -1497,7 +1497,8 @@ double dop_fac)
 	  if (k==0)
 	    w = 1;
 	  else
-	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
+	    w = sin(2*PI*a*t_src[k])/(PI*t_src[k]);
+	  //	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
 	  
 	  source_waveform[k] = w*cos(2*PI*(dop_center_frequency*t_src[k]))*
 	    source_strength;
