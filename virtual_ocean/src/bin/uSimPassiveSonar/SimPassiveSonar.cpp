@@ -966,7 +966,8 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       // Raytracing resolution less critical for horizontal variability 
       num_r = int((r_max-r_min)/(10*spacing)) + 3;
       num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 3;
-
+      glog.is(DEBUG1) && glog << "Ray Tracing box: num ranges: " << num_r
+			      << ", num depths: " << num_dep << std::endl;
       double delta_t = MOOSTime() - target.last_rate_update; 
       if (target.last_rate_update > 0)
 	{
