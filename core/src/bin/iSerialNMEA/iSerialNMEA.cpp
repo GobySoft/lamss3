@@ -73,13 +73,13 @@ CiSerialNMEA::CiSerialNMEA()
     for (int i=0; i<SPEED_POINTS; i++)
         m_speed[i] = 0;
 
-    glogger() << "reading our configuration..." << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "reading our configuration..." << std::endl;
     read_configuration();
-    glogger() << "\t...success." << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "\t...success." << std::endl;
 
-    glogger() << "doing subscriptions..." << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "doing subscriptions..." << std::endl;
     do_subscriptions();
-    glogger() << "\t...success." << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "\t...success." << std::endl;
 }
 
 void CiSerialNMEA::inbox(const CMOOSMsg& msg)
@@ -105,7 +105,7 @@ void CiSerialNMEA::loop()
 
 void CiSerialNMEA::handleNMEA(const std::string& s)
 {
-    glogger() << group("serial") << s << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << group("serial") << s << std::endl;
     try
     {    
       goby::util::NMEASentence::strategy strat = cfg_.require_checksum() ? 
@@ -117,7 +117,7 @@ void CiSerialNMEA::handleNMEA(const std::string& s)
     }
     catch(std::runtime_error& e)
     {
-        glogger() << warn << e.what() << std::endl;
+        goby::glog.is(VERBOSE) && goby::glog  << warn << e.what() << std::endl;
     }
 }
 
@@ -134,43 +134,43 @@ void CiSerialNMEA::read_configuration()
         if(cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_SERIAL)
         {            
             serial_ = new goby::util::SerialClient(cfg_.serial_port(), cfg_.serial_baud());
-            glogger()  << "opening serial port " << cfg_.serial_port()
+            goby::glog.is(VERBOSE) && goby::glog   << "opening serial port " << cfg_.serial_port()
                        << " @ " << cfg_.serial_baud()  << std::endl;
 
         }
         else if(cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_TCP_AS_CLIENT)
         {            
-            glogger() << "opening tcp client: " << cfg_.tcp_server() << ":" << cfg_.tcp_port() << std::endl;            
+            goby::glog.is(VERBOSE) && goby::glog  << "opening tcp client: " << cfg_.tcp_server() << ":" << cfg_.tcp_port() << std::endl;            
             serial_ = new goby::util::TCPClient(cfg_.tcp_server(), cfg_.tcp_port());
         }
         else if(cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_TCP_AS_SERVER)
         {            
-            glogger() << "opening tcp server: " << cfg_.tcp_port() << std::endl;            
+            goby::glog.is(VERBOSE) && goby::glog  << "opening tcp server: " << cfg_.tcp_port() << std::endl;            
             serial_ = new goby::util::TCPServer(cfg_.tcp_port());
         }
         else
         {
-            glogger() << die << "unsupported connection type" << std::endl;
+            goby::glog.is(VERBOSE) && goby::glog  << die << "unsupported connection type" << std::endl;
         }
         
         serial_->start();
     }
     
-    glogger() << "reading in geodesy information: " << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "reading in geodesy information: " << std::endl;
     if (!cfg_.common().has_lat_origin() || !cfg_.common().has_lon_origin())
     {
-        glogger() << die << "no lat_origin or lon_origin specified in configuration. this is required for geodesic conversion" << std::endl;
+        goby::glog.is(VERBOSE) && goby::glog  << die << "no lat_origin or lon_origin specified in configuration. this is required for geodesic conversion" << std::endl;
     }
     else
     {
         if(m_geodesy.Initialise(cfg_.common().lat_origin(), cfg_.common().lon_origin()))
-            glogger() << "success!" << std::endl;
+            goby::glog.is(VERBOSE) && goby::glog  << "success!" << std::endl;
         else
-            glogger() << die << "could not initialize geodesy" << std::endl;
+            goby::glog.is(VERBOSE) && goby::glog  << die << "could not initialize geodesy" << std::endl;
     }
 
-    glogger().add_group("serial", Colors::lt_magenta, "serial feed");
-    glogger().add_group("report", Colors::lt_blue, "report feed");
+    goby::glog.add_group("serial", Colors::lt_magenta, "serial feed");
+    goby::glog.add_group("report", Colors::lt_blue, "report feed");
 }
 
 void CiSerialNMEA::do_subscriptions()
@@ -294,7 +294,7 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
                                           cfg_.has_fixed_depth() ? cfg_.fixed_depth() : m_depth);
         
 
-        glogger() << group("report") << summary << std::endl;        
+        goby::glog.is(VERBOSE) && goby::glog  << group("report") << summary << std::endl;        
         m_Comms.Notify(cfg_.out_status_var(), summary);
       
         m_last_post_time = moos_time;
@@ -310,7 +310,7 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
 // 
 bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: GGA type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: GGA type string" << std::endl;
     
     if(nmea.size() < 6)
       return false;
@@ -363,7 +363,7 @@ bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
 // 
 bool CiSerialNMEA::processRMC(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: RMC type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: RMC type string" << std::endl;
     
     if(nmea.size() < 6)
       return false;
@@ -418,7 +418,7 @@ bool CiSerialNMEA::processRMC(const goby::util::NMEASentence& nmea)
 // $INGLL,4405.66432,N,00951.68295,E,134322.30,A,D*77
 bool CiSerialNMEA::processGLL(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: GLL type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: GLL type string" << std::endl;
 
     
     if(nmea.size() < 5)
@@ -477,7 +477,7 @@ bool CiSerialNMEA::processGLL(const goby::util::NMEASentence& nmea)
 // parse PASHR string
 bool CiSerialNMEA::processPASHR(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: PASHR type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: PASHR type string" << std::endl;
 
     if (MOOSStrCmp(nmea[1], "ATT"))
     {
@@ -496,7 +496,7 @@ bool CiSerialNMEA::processPASHR(const goby::util::NMEASentence& nmea)
 // parse HDT string
 bool CiSerialNMEA::processHDT(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: HDT type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: HDT type string" << std::endl;
     m_nav_heading = atof(nmea[1].c_str());
     return true;
 }
@@ -504,7 +504,7 @@ bool CiSerialNMEA::processHDT(const goby::util::NMEASentence& nmea)
 // parse VTG string - track made good
 bool CiSerialNMEA::processVTG(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: VTG type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: VTG type string" << std::endl;
     m_nav_heading = atof(nmea[1].c_str());
     return true;
 }
@@ -514,7 +514,7 @@ bool CiSerialNMEA::processVTG(const goby::util::NMEASentence& nmea)
 // parse OEX PSIMSSB string
 bool  CiSerialNMEA::processPSIMSSB(const goby::util::NMEASentence& nmea)
 {
-    glogger() << "iSerialNMEA: OEX PSIMSSB type string" << std::endl;
+    goby::glog.is(VERBOSE) && goby::glog  << "iSerialNMEA: OEX PSIMSSB type string" << std::endl;
     
     if(MOOSStrCmp(nmea[3], "V") || MOOSStrCmp(nmea[4], "NRy"))
         return MOOSFail("iSerialNMEA: PSIMSSB string no good\n");
