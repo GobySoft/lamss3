@@ -57,6 +57,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       initial_deploy_done_(false),
       abort_x(cfg_.abort_x()),
       abort_y(cfg_.abort_y()),
+      abort_x_offset(cfg_.abort_x()),
+      abort_y_offset(cfg_.abort_y()),
       slow_loop_period_(10),
       last_slow_loop_t_(0)
 {
@@ -672,8 +674,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				      camp_y, camp_x))
 	{    
 	  // update abort location
-	  abort_x = camp_x;
-	  abort_y = camp_y;
+	  abort_x = camp_x + abort_x_offset;
+	  abort_y = camp_y + abort_y_offset;
 
           NodeRecord node_report("camp_sargo", "icecamp");
 

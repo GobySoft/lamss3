@@ -103,6 +103,9 @@ class LamssMissionManager : public GobyMOOSApp
     //
     double abort_x;
     double abort_y;
+    // Offset of abort point (hydrohole) from origin (camp)
+    double abort_x_offset;
+    double abort_y_offset;
 };
 
 #endif
