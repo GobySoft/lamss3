@@ -317,6 +317,9 @@ void  LamssMissionManager::update_abort_mission()
   std::stringstream ss2;
   ss2 << "depth=" << cfg_.abort_depth() ;
   publish("ABORT_DEPTH", ss2.str());
+  std::stringstream ss3;
+  ss3 << "points=" << abort_x << "," << abort_y;
+  publish("ABORT_LOCATION", ss3.str());
   abort_duration_ = duration;
 }  
 
