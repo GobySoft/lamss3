@@ -56,8 +56,10 @@ namespace lamss
 	    // Surfacing event
             struct EvGotoSurface : boost::statechart::event< EvGotoSurface > { };
             struct EvEnableDiving : boost::statechart::event< EvEnableDiving > { };
+	    // Return events
+            struct EvReturnToBase : boost::statechart::event< EvReturnToBase > { };
 
-	    // Homing events
+	    // Abort Homing events
             struct EvUpdateHeading : boost::statechart::event< EvUpdateHeading > { };
             struct EvResumeAbort : boost::statechart::event< EvResumeAbort > { };
 
@@ -68,6 +70,8 @@ namespace lamss
 
 	    // Deploy States
             struct Deploy;
+	    struct Survey;
+	    struct Return;
 
 	    // Prosecute States 
             struct Prosecute;
@@ -241,7 +245,7 @@ namespace lamss
 		  };
 
             // /Mission/Diving/Deploy
-            struct Deploy : boost::statechart::simple_state<Deploy, Diving >,
+            struct Deploy : boost::statechart::simple_state<Deploy, Diving, Survey >,
                 StateNotify<MISSION_STATE_DEPLOY> 
             {
 	      Deploy() 
@@ -267,6 +271,55 @@ namespace lamss
 		}
 	      
             };
+
+            // /Mission/Diving/Deploy/Survey
+            struct Survey : boost::statechart::simple_state<Survey, Deploy >
+            {
+	      Survey() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "Entering Survey Deploy Mode..."
+			       << std::endl;
+		  
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "success..." 
+			       << std::endl;
+                }
+	      ~Survey() 
+		{
+		}
+
+	      typedef boost::mpl::list<
+		boost::statechart::transition< EvReturnToBase, Return  >
+		> reactions;
+	      
+            };
+	    
+            // /Mission/Diving/Deploy/Return
+            struct Return : boost::statechart::simple_state<Return, Deploy >
+            {
+	      Return() 
+                {
+		  boost::mutex::scoped_lock lock(moos_mutex_);
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "Entering Return Deploy Mode..."
+			       << std::endl;
+		  
+		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		    goby::glog << group("fsm") 
+			       << "success..." 
+			       << std::endl;
+                }
+	      ~Return() 
+		{
+		}
+	      
+            };
+	    
 	    
 	    // Prosecute states
 
