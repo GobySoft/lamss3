@@ -95,6 +95,7 @@ class LamssMissionManager : public GobyMOOSApp
     std::vector<double> transit_x;
     std::vector<double> transit_y;
     
+    bool homing_beacon;
     double last_homing_prosecute_;
     bool tracking_;
     double target_bearing_;

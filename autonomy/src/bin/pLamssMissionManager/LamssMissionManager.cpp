@@ -59,6 +59,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       abort_y(cfg_.abort_y()),
       abort_x_offset(cfg_.abort_x()),
       abort_y_offset(cfg_.abort_y()),
+      homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
       slow_loop_period_(10),
       last_slow_loop_t_(0)
 {
@@ -214,14 +215,17 @@ void LamssMissionManager::slow_loop(double curr_time)
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
-	      if (cfg_.homing_beacon() && last_deploy_cmd_.homing_enabled() && 
-		  (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
+	      // If homing using towed array go to prosecute homing state
+	      if (cfg_.homing_array() == LamssMissionManagerConfig::TOWED)
 		{
-		  abort_duration_ = remaining;
-		  homing_prosecute();
+		  if (homing_beacon && last_deploy_cmd_.homing_enabled() && 
+		      (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
+		    {
+		      abort_duration_ = remaining;
+		      homing_prosecute();
+		    }
 		}
 	    }
-
 	  /*	  // Let the helm finish the ABORT
 
 	  else
@@ -414,14 +418,27 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       
       publish("SURVEY_COMPLETED","FALSE");
 
+      if (deploy_cmd.homing_enabled() &&
+	  cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+	publish("USBL_ENABLED","TRUE");
+	else
+	publish("USBL_ENABLED","FALSE");
+
+      // Queue state transitions
       if (mission_active_)
 	queue_event<EvNewMission>();
+
       if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
 	{
 	  // allow auv to get to abort depth before homing
 	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	  update_abort_mission();
 	  queue_event<EvStartAbort>();
+	}
+      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+	{
+	  queue_event<EvStartDeploy>();
+	  queue_event<EvReturnToBase>();
 	}
       else
 	{
