@@ -149,7 +149,7 @@ ArrayNavigation LamssAEL::computeAEL()
       double ael_x = nav_x + cfg_.array_center_offset()*cos(theta)*cos(nav_pitch);
       double ael_y = nav_y + cfg_.array_center_offset()*sin(theta)*cos(nav_pitch);
       double ael_heading = nav_hdg;
-      double ael_pitch = nav_pitch*180/M_PI;
+      double ael_pitch = nav_pitch;
       publish(cfg_.ael_preample()+"_PITCH",ael_pitch);
       publish(cfg_.ael_preample()+"_HEADING",ael_heading);
       publish(cfg_.ael_preample()+"_X",ael_x);

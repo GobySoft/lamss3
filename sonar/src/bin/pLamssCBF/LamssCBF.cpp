@@ -839,6 +839,7 @@ void LamssCBF::steering_parameters()
 				      (curr_cfg_.number_beams_azimuth()-1) );
             }
         }
+      beam_angles.clear();
       for (int mm=0; mm<curr_cfg_.number_beams_azimuth();mm++)
 	beam_angles.push_back(azimuthal_beams(mm+1)*180.0/M_PI);
     }
@@ -873,16 +874,19 @@ void LamssCBF::steering_parameters()
 	    }
 	}
       if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ELEVATION_ONLY)  
-	for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
-	  beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
+	{
+	  beam_angles.clear();
+	  for (int mm=0; mm<curr_cfg_.number_beams_elevation();mm++)
+	    beam_angles.push_back(elevation_beams(mm+1)*180.0/M_PI);
+	}
     }
   else //AZIMUTH_ONLY
-    elevation_beams(1)=curr_cfg_.min_elevation() * M_PI/180.0;
+      elevation_beams(1)=curr_cfg_.min_elevation() * M_PI/180.0;
 
-    string sbeam_data;
-    dbl_vec2str(beam_angles,sbeam_data);
-    publish("BEAM_ANGLES",sbeam_data);
-    
+  string sbeam_data;
+  dbl_vec2str(beam_angles,sbeam_data);
+  publish("BEAM_ANGLES",sbeam_data);
+  
   return ;
 }
 
@@ -1120,11 +1124,14 @@ void LamssCBF::compute_steering_vectors()
 		{
 		  for (int m=1; m <= num_elements_used_; m++)
 		    {
-		      // When computing the steering vector, I assume that the array elements 
+		      // When computing the steering vector, 
+		      // I assume that the array elements 
 		      // are aligned along the array axis with the mth
-		      // element used at position -nominal_element_locations(array_elements_used[m]).  
+		      // element used at position 
+		      // -nominal_element_locations(array_elements_used[m]).  
 		      // Note the minus sign.
-		      // This is used in order to have the conical angles referenced from forward endfire. 
+		      // This is used in order to have the conical 
+		      // angles referenced from forward endfire. 
 		      double temp=-constant2*nominal_element_locations(array_elements_used[m])*beam_cosines(z)*bin_center_frequencies(k);
 		      steering_vector_real(k+(z-1)*num_bins_, m)=cos(temp)*win_spatial(m);
 		      steering_vector_imag(k+(z-1)*num_bins_, m)=sin(temp)*win_spatial(m);
