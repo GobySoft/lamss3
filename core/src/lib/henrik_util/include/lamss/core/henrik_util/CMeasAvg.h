@@ -43,4 +43,23 @@ class CAngleAvg
 		std::deque<double>  cvals;
 };
 
+class CRadianAvg
+{
+	public:
+
+		void configAvg(int length);
+
+		double getAvg();
+		void setVal(double);
+
+	protected:
+
+		int len;
+		int num_measurements;
+		double avg;
+
+		std::deque<double>  svals;
+		std::deque<double>  cvals;
+};
+
 #endif /* _CMEASAVG_HEADER */
