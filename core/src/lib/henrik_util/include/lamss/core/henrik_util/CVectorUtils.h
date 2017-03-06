@@ -23,9 +23,9 @@
 #ifndef __CVECTORUTILS_HEADER
 #define __CVECTORUTILS_HEADER
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <iostream>
 #include <string>
@@ -70,6 +70,8 @@ class CmyVectorUtils
 
   //added by sdanesh
   std:: vector<double> hann(int N);
+
+  std:: vector<double> tukey(int N,double r);
   int NN(double num, std::vector<double> myvec);
   std::vector<std::vector<double> > zero_matrix(int n, int m);
 

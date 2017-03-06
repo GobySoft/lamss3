@@ -279,6 +279,7 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
 	      eigenray_table.push_back(eigbuf);
 	    }
 	}
+      arr_file.close();
     }
 
   return(eigenray_table);
