@@ -1,0 +1,23 @@
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+message LamssAELConfig
+{
+  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+
+  optional ArrayTypeEnum array_type = 2 [default = ARRAY_TYPE_FIXED];
+  enum ArrayTypeEnum {
+    ARRAY_TYPE_FIXED = 1; 
+    ARRAY_TYPE_TOWED = 2; 
+  }
+  optional double array_center_offset = 3 [default = 0];
+  optional int32 filter_length = 5 [default = 15];
+  optional bool   is_mooring = 11 [default = false];  
+  optional double deploy_x = 12 [default = 0];  
+  optional double deploy_y = 13 [default = 0];  
+  optional double deploy_depth = 14 [default = 0];  
+  optional double deploy_heading = 15 [default = 0];
+  optional string ael_preample = 40 [default = "AEL"];
+}
+

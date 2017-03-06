@@ -1,4 +1,4 @@
-#include <MOOSLIB/MOOSLib.h>
+#include <MOOS/libMOOS/MOOSLib.h>
 #include "GeoTracker.h"
 
 int main(int argc ,char * argv[])

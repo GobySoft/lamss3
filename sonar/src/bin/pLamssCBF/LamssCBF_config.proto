@@ -1,0 +1,95 @@
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+message LamssCBFConfig
+{
+  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+
+  optional ArrayTypeEnum  array_type = 2 [default = HYD];
+  enum ArrayTypeEnum {
+  VSA = 1;
+  DURIP = 2;
+  HYD = 3;
+  SLITA = 4;
+  SINGLE = 5;
+  DUAL = 6;
+  TEE = 7;
+  VOLUME = 8;
+  }
+  optional SamplingEnum  sampling   = 3 [default = EQUALLY_SPACED_WAVENUMBER];
+  enum SamplingEnum {
+    EQUALLY_SPACED_WAVENUMBER = 1;
+    EQUALLY_SPACED_THETA = 2;
+  }
+  optional ArrayDefinitionEnum  array_configuration  = 4 [default = UNIFORM_SPACING];
+  enum ArrayDefinitionEnum {
+     UNIFORM_SPACING = 0;
+     GROUP_SPACING =1;
+     ELEMENT_LOCATIONS = 2;
+     VOLUMETRIC = 3;
+  } 
+  optional int32  number_elements  = 5 [default = 1];
+  optional double element_spacing  = 6 [default = 1.0];
+  optional int32  number_spacing_groups  = 7 [default = 3];
+  optional double spacing_group_1  = 8 [default = 1];
+  optional int32  number_spacings_group_1  = 9 [default = 1];
+  optional double spacing_group_2  = 10 [default = 1];
+  optional int32  number_spacings_group_2  = 11 [default = 1];
+  optional double spacing_group_3  = 12 [default = 1];
+  optional int32  number_spacings_group_3  = 13 [default = 1];
+  optional string array_element_locations = 14;
+  optional string volumetric_array_x = 51;
+  optional string volumetric_array_y = 52;
+  optional string volumetric_array_z = 53;
+  optional int32  number_samples  = 15 [default = 1];
+  optional double sampling_frequency  = 16 [default = 4000];
+  optional int32  fft_size  = 17 [default = 1024];
+  optional int32  number_beams  = 18 [default = 47];
+  optional double overlap  = 19 [default = 50];
+  optional double hydrophone_gain = 20 [default = 1];
+  optional double integration_time  = 21 [default = 1];
+  optional double sound_speed  = 22 [default = 1500];
+  optional string array_elements_used = 23;
+
+  optional AngularSteeringTypeEnum angular_steering_type = 24;
+  enum AngularSteeringTypeEnum {
+     ARRAY_ANGLE = 1;
+     AZIMUTH_ONLY = 2;
+     ELEVATION_ONLY = 3;
+     AZIMUTH_AND_ELEVATION = 4;
+  }
+  optional int32  number_beams_azimuth = 25 [default = 47];
+  optional int32 min_azimuth = 61 [default = 0];
+  optional int32 max_azimuth = 62 [default = 360];
+
+  optional int32  number_beams_elevation = 26 [default =1];
+  optional int32 min_elevation = 71 [default = 0];
+  optional int32 max_elevation = 72 [default = 90];
+
+  optional bool   delete_data_files = 27 [default = false];
+  optional bool   check_consecutive_zeros = 28 [default = false];
+
+  optional ProcessingTypeEnum processing_type = 29 [default =  BROADBAND];
+  enum ProcessingTypeEnum {
+     BROADBAND = 1;
+     TONES = 2;
+  }
+  optional double center_frequency  = 30 [default = 900];
+  optional double bandwidth  = 31 [default = 200];
+  optional string frequency_bins = 32;
+  optional bool   save_beam_stft = 33 [default = false];    
+  optional SonarModeEnum sonar_mode = 34;
+  enum SonarModeEnum {
+      PASSIVE = 1;
+      ACTIVE = 2;
+      }
+  optional string ael_pitch_variable = 41 [default = "AEL_PITCH"];
+}
+
+enum ProcessingStateEnum{
+  PROCESSING_STATE_IDLE = 0;
+  PROCESSING_STATE_PROCESSING = 1;
+  PROCESSING_STATE_BROADBAND = 2;
+  PROCESSING_STATE_TONES = 3;
+}

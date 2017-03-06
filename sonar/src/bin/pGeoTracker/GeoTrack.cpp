@@ -42,10 +42,10 @@ CGeoTrack::CGeoTrack()
 CGeoTrack::~CGeoTrack()
 {
   //give back memory
-  free(vposx);
-  free(vposy);
-  free(bearings);
-  free(dt);
+  delete [] vposx;
+  delete [] vposy;
+  delete [] bearings;
+  delete [] dt;
 }
 
 void CGeoTrack::reset()
@@ -139,6 +139,7 @@ status CGeoTrack::get_track()
   double x[nvar];	
   double new_range,x_r,y_r,x_v,y_v, sor;
 
+  new_range = 0;
   status stat;
 
   /*
@@ -324,7 +325,6 @@ double *CGeoTrack::grad_track(int n,double x[],double grad[])
 
 void CGeoTrack::initialize()
 {
-  
   xtmp    = new dbl[nvar];
   gtmp    = new dbl[nvar];	
   h       = new dbl[nvar*nvar];
@@ -461,19 +461,19 @@ dbl CGeoTrack::Wolfe_line_search(dbl *xinit, dbl *d)
 
 void CGeoTrack::terminate()
 {
-	free(xtmp);
-	free(gtmp);
-	free(h);
-	free(dl);
-	free(gm);
-	free(dg);
-	free(gd);
-	free(matq);
-	free(hnew);	
-	free(xnew);
-	free(grad);
-	free(gradnew);
-	free(d);
+	delete [] xtmp;
+	delete [] gtmp;
+	delete [] h;
+	delete [] dl;
+	delete [] gm;
+	delete [] dg;
+	delete [] gd;
+	delete [] matq;
+	delete [] hnew;	
+	delete [] xnew;
+	delete [] grad;
+	delete [] gradnew;
+	delete [] d;
 }
 
 status CGeoTrack::QuasiNewtonMethod(int n, dbl *xinit, dbl *fopt, int timeout, dbl eps)
