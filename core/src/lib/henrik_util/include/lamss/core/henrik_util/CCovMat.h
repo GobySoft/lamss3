@@ -24,9 +24,9 @@
 #ifndef __CCOVMAT_HEADER__
 #define __CCOVMAT_HEADER__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <math.h>
 #include <time.h>

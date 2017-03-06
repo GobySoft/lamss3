@@ -24,9 +24,9 @@
 #ifndef __CTARGET_h__
 #define __CTARGET_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <math.h>
 #include <time.h>
@@ -65,7 +65,7 @@ class CTarget
   std::vector<double> tone_dbl;
   
 
-  double target_amp() {pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
+  double target_amp() {return pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
 
 };
 

@@ -1,9 +1,9 @@
 #ifndef __tgt_decode_h__
 #define __tgt_decode_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <stdlib.h>
 #include <string.h>
