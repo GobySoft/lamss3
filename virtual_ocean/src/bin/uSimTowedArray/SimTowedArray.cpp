@@ -27,8 +27,10 @@ CSimTowedArray::CSimTowedArray()
 
   // Tow point offset default for Unicorn
   tow_off_x = 0;
-  tow_off_y = -2.1;
-  tow_off_z = -0.25;
+  //  tow_off_y = -2.1;
+  //  tow_off_z = -0.25;
+  tow_off_y = 0;
+  tow_off_z = 0;
 
     tow_pos_x = 0;
     tow_pos_y = 0;
@@ -115,6 +117,10 @@ bool CSimTowedArray::OnStartUp()
     string sVal;
     double dfLatOrigin;
     double dfLongOrigin;
+    
+    ok_local_dir_x = false;
+    ok_local_dir_y = false;
+    ok_local_dir_z = false;
     
     if(m_MissionReader.GetValue("LatOrigin",sVal))
     {
@@ -529,7 +535,7 @@ bool CSimTowedArray::OnStartUp()
 	    for(int k=0; k < num_elements; k++)
 	      {
 		Array.phone_position.push_back(element_locations_temp[k]);
-		Array.phone_offset.push_back(element_locations_temp[k] + Array.first_phone_offset);
+		Array.phone_offset.push_back(element_locations_temp[k]);
 	      }
 	    Array.m_nelm =num_elements;
 	  }
@@ -559,7 +565,8 @@ bool CSimTowedArray::OnConnectToServer()
     m_Comms.Register( "NAV_Y",0);
     m_Comms.Register( "NAV_Z",0);
     m_Comms.Register( "NAV_SPEED",0);
-    m_Comms.Register( "NAV_YAW",0);
+    //    m_Comms.Register( "NAV_YAW",0);
+    m_Comms.Register( "NAV_HEADING",0);
     m_Comms.Register( "NAV_PITCH",0);
     m_Comms.Register( "LOCAL_ARRAY_X",0);
     m_Comms.Register( "LOCAL_ARRAY_Y",0);
@@ -913,7 +920,7 @@ bool CSimTowedArray::Iterate()
 				 tow_vel_x, tow_vel_y, tow_vel_z, nav_yaw,  
 				 ael_heading, ael_pitch );
 
-	    m_Comms.Notify("CABLE_TENSION",0);
+	    m_Comms.Notify("CABLE_TENSION",0.0);
 	    m_Comms.Notify("ARRAY_HEADING",Array.arr_heading);
 	    m_Comms.Notify("ARRAY_PITCH",  Array.arr_pitch);  
 	    m_Comms.Notify("CABLE_SHAPE_X",Array.x_array);
@@ -975,9 +982,18 @@ bool CSimTowedArray::OnNewMail(MOOSMSG_LIST &NewMail)
 	ok_z = true;
       }
 
+      /*
       if(Msg.m_sKey == "NAV_YAW")
       {
 	nav_yaw = Msg.m_dfVal; 
+	ok_yaw = true;
+	got_yaw = true;
+      }
+      */
+
+      if(Msg.m_sKey == "NAV_HEADING")
+      {
+	nav_yaw = -Msg.m_dfVal*M_PI/180.0; 
 	ok_yaw = true;
 	got_yaw = true;
       }
@@ -1155,12 +1171,11 @@ CArrayModel::CArrayModel()
     old_InvJacob.clear();
     old_Jacobo.clear();
 
-  array_head.clear();
-  array_pitch.clear();
-  dtfilt_length = 20;
+    array_head.clear();
+    array_pitch.clear();
+    dtfilt_length = 20;
 
-  m_nelm = 0;
-
+    m_nelm = 0;
 }
 
 CArrayModel::~CArrayModel()
@@ -1193,7 +1208,7 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y,
   // Array locations along array
   
   offset_to_array = cablel[array_section_number-2]  ; 
-  
+
   compass_offset_full.clear();
   depth_offset_full.clear();
   pitch_offset_full.clear();

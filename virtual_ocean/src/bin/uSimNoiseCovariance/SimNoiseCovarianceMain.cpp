@@ -1,5 +1,5 @@
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "SimNoiseCovariance.h"
 
 int main(int argc , char * argv[])

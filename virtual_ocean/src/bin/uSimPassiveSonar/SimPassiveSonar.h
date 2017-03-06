@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 #include <math.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
+#include "goby/moos/goby_moos_app.h"
+#include "ivp/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
 #include <lamss/lib_henrik_util/CEigenRays.h>
@@ -15,6 +17,12 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
+#include "lamss/lib_bellhop/svp_request_response.pb.h"
+#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "goby/moos/moos_protobuf_helpers.h"
+#include "SimPassiveSonar_config.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
+
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -44,21 +52,64 @@ class CAcousticContact
 {
  public:
   std::string contact;
+  double contact_x;
+  double contact_y;
+  double contact_depth;
   bool ready;
   double last_request;
+  double last_range;
+  double last_rate;
+  double last_rate_update;
+  bool svp_ready;
+  int svp_request_id;
+  double last_svp_request;
   CEigenRayTable  ray_table;
+  SVP::Response svp_response;
 };
 
-class CSimPassiveSonar : public CMOOSApp
+class SimPassiveSonar : public GobyMOOSApp
 {
   public:
-    CSimPassiveSonar();
-    virtual ~CSimPassiveSonar();
+    static void* driver_library_handle_;
+    static SimPassiveSonar* get_instance();
 
-    bool Iterate();
-    bool OnNewMail(MOOSMSG_LIST &NewMail);
-    bool OnConnectToServer();
-    bool OnStartUp();
+  private:
+    SimPassiveSonar(SimPassiveSonarConfig& cfg);
+    ~SimPassiveSonar() { }
+
+    // synchronous event
+    void loop();    
+    void slow_loop(double curr_time);
+    double slow_loop_period;
+
+    // mail handlers
+
+    void handle_ael_heading(const CMOOSMsg& msg);
+    void handle_ael_pitch(const CMOOSMsg& msg);
+    void handle_nav_speed(const CMOOSMsg& msg);
+    void handle_array_x(const CMOOSMsg& msg);
+    void handle_array_y(const CMOOSMsg& msg);
+    void handle_array_z(const CMOOSMsg& msg);
+    void handle_array_dir_x(const CMOOSMsg& msg);
+    void handle_array_dir_y(const CMOOSMsg& msg);
+    void handle_array_dir_z(const CMOOSMsg& msg);
+    void handle_array_heading(const CMOOSMsg& msg);
+    void handle_array_pitch(const CMOOSMsg& msg);
+    void handle_target_sim_list(const CMOOSMsg& msg);
+    void handle_target_sim_state(const CMOOSMsg& msg);
+    void handle_target_arrival_file(const CMOOSMsg& msg);
+    void handle_ambient_nl_depth(const CMOOSMsg& msg);
+    void handle_noise_vert_dir(const CMOOSMsg& msg);
+    void handle_svp_response(const CMOOSMsg& msg);
+    void handle_covariance_file(const CMOOSMsg& msg);
+    void handle_vehicle_name(const CMOOSMsg& msg);
+    void handle_sound_speed(const CMOOSMsg& msg);
+    void handle_pinger_command(const CMOOSMsg& msg);
+
+    SimPassiveSonarConfig& cfg_;
+    double last_slow_loop_t_;
+    
+    static SimPassiveSonar* inst_;    
 
   protected:
 
@@ -72,6 +123,14 @@ class CSimPassiveSonar : public CMOOSApp
     std::vector<CSensor> z_accelerometers;
 
 
+    CMOOSGeodesy m_Geodesy;
+    bool mseas_svp_updates;
+    double mseas_update_interval;
+    double svp_range_resolution;
+    double svp_depth_resolution;
+    std::vector<std::string> svp_requests;
+    double sound_speed;
+
     CmyVectorUtils vecUtils;
     // noise covariances
     std::vector<CovMat> noise_covar;
@@ -81,7 +140,18 @@ class CSimPassiveSonar : public CMOOSApp
     CRapRays Rap;
  
     //---Declare variables that get their valies directly from the .moos file---
-
+    LAMSS_PINGER_COMMAND pinger_command;
+    bool getPingerInfo();
+    void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
+    bool pinger_active;
+    std::string pinger_id;
+    double pingtime;
+    double ping_center_frequency;
+    double ping_bandwidth;
+    double ping_pulsewidth;
+    std::vector<double> waveform;
+    // Time stam for each recorded file
+    double timestamp;
     // Target control. true= SourceSim, false = prosecute message
     bool t_control; 
 
@@ -90,10 +160,16 @@ class CSimPassiveSonar : public CMOOSApp
     int str2int_vec(std::string, std::vector<int>&);
     bool getTargetInfo(int i);
 
-    bool putAcousticContact(std::string cn, CEigenRayTable eig_table);
+    bool putAcousticContact(std::string cn, double contact_x,
+			    double contact_y, double contact_depth,
+			    CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
+    int findAcousticContact(std::string cn);
     bool readyAcousticContact(std::string cn);
-    bool requestRayTrace(std::string cn, double range, double depth, double freq);
+    bool requestRayTrace(std::string cn, 
+			 double r_min, double r_max, int num_r, 
+			 double dep_min, double dep_max, int num_dep,
+			 double freq, int target_number);
     double getAmbientNoise(double depth, 
 			   std::vector<double> dom_nl,
 			   std::vector<double> noise_db);
@@ -103,6 +179,20 @@ class CSimPassiveSonar : public CMOOSApp
     bool parseNoiseDirectionality( std::string noise_in, 
 			   std::vector<double>& theta_deg,
 			   std::vector<double>& S_dB);
+    bool requestSVPUpdate(std::string cn, 
+			  int target_number);
+    bool readyAcousticContactSVP(std::string cn);
+    bool putAcousticContactSVP(SVP::Response svp_response);
+    bool getAcousticContactSVP(std::string cn, 
+			       SVP::Response& svp_response );
+    bool handleSVPResponse(const CMOOSMsg& msg);
+    bool defineRayTracingBox(CAcousticContact& target,
+			     double& r_min,
+			     double& r_max,
+			     double& dep_min,
+			     double& dep_max,
+			     int& num_r,
+			     int& num_dep);
 
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -163,6 +253,7 @@ class CSimPassiveSonar : public CMOOSApp
     double hydrophone_gain;
     double accel_gain;
 
+    std::string ownship;
     // output file location and name
     std::string base_dir_name;
     std::string acoustic_filename_prefix;
@@ -177,6 +268,10 @@ class CSimPassiveSonar : public CMOOSApp
     double ael_x;
     double ael_y;
     double ael_z;
+    double ael_heading;
+    double ael_speed;
+    double ael_pitch;
+    double ael_yaw;
 
     std::vector<double> array_x_rel; // x coordinates of array elements
     // relative to tow position (what's in the MOOSDB)
@@ -186,7 +281,9 @@ class CSimPassiveSonar : public CMOOSApp
     double source_pos_x;
     double source_pos_y;
     double source_dep;
-
+    double source_spd;
+    double source_hdg;
+    bool got_source_loc;
     bool source_status;
 
     double source_bb_spl;
@@ -211,7 +308,12 @@ class CSimPassiveSonar : public CMOOSApp
     CEigenRay eig;
  
     // --- Declare other variables ---
-    bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, ok_array_pitch, ok_array_heading, ok_sourcex, ok_sourcey, got_array_info, got_source_loc, ok_source_bb_spl, ok_source_bb_freq, ok_source_bb_bw, got_source_bb_info;
+    bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, 
+      ok_array_pitch, ok_array_heading, 
+      ok_pinger_x, ok_pinger_y, 
+      got_array_info, 
+      ok_source_bb_spl, ok_source_bb_freq, 
+      ok_source_bb_bw, got_source_bb_info;
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
     double noise_std;
@@ -247,21 +349,40 @@ class CSimPassiveSonar : public CMOOSApp
     // gsl random number generator
     const gsl_rng_type * gsl_rng_type_1;
     gsl_rng * gsl_rng_1;
+    std::vector<gsl_rng *> gsl_rng_tgt;
 
     // --- Functions ---
     //    int get_values(std::string, std::vector<double>& values);
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
 
-    bool generate_signal_spectrum();
+    bool generate_eigenray_table(int cn_num, 
+				 CAcousticContact& acoustic_contact);
+    bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
-    bool generate_spectral_timeseries();
+    bool save_spectral_timeseries();
+    bool add_pinger_timeseries();
     bool initialize_spectrum();
+    bool ray_arrivals(CEigenRay eig, 
+		      double rcv_range,
+		      double rcv_depth, 
+		      std::vector<double> & cos_Src,
+		      std::vector<double> & cos_Rcv,
+		      std::vector<double> & delays, 
+		      std::vector<double> & amplitudes);
+
+    void ray_doppler_vel(double v_S, double a_S,double e_S, 
+				double v_R, double a_R, double e_R, 
+				double& vr_S, double& vr_R );
+    void array_ray_arrivals(std::vector<std::vector<double> > & delays,
+			    std::vector<std::vector<double> > & amplitudes,
+			    std::vector<std::vector<double> > & doppler);
 
     bool write_hyd_file();
-    bool write_nas_file(double t_now);
+    bool write_nas_file(double timestamp);
+    bool write_nas_file_verbose(double timestamp);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
-
+      
 };
 
 #endif 

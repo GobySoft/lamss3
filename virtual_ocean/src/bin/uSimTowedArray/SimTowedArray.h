@@ -2,9 +2,9 @@
 #include <string>
 #include <vector>
 #include <math.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+#include "ivp/MOOSGeodesy.h"
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CVectorUtils.h>
