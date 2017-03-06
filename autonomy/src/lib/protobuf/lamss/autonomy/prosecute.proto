@@ -1,4 +1,4 @@
-import "goby/acomms/protobuf/dccl_option_extensions.proto";
+import "dccl/protobuf/option_extensions.proto";
 import "goby/common/protobuf/option_extensions.proto";
 message LAMSS_PROSECUTE { 
 	option (dccl.msg).id = 19;
@@ -7,7 +7,12 @@ message LAMSS_PROSECUTE {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PROSECUTE", (dccl.field).static_value="LAMSS_PROSECUTE", (dccl.field).codec="_static"];
-	optional Prosecute_TypeEnum Prosecute_Type = 5;
+	optional Prosecute_MissionEnum Prosecute_Mission = 15 [default=PROSECUTE_MISSION_TRACK_ONLY];
+	enum Prosecute_MissionEnum{ 
+		 PROSECUTE_MISSION_TRACK_ONLY = 0; 
+		 PROSECUTE_MISSION_TRACK_CLASSIFY = 1; 
+	} 
+	optional Prosecute_TypeEnum Prosecute_Type = 5 [default=PROSECUTE_TYPE_ADAPTIVE];
 	enum Prosecute_TypeEnum{ 
 		 PROSECUTE_TYPE_ADAPTIVE = 0; 
 		 PROSECUTE_TYPE_TMA_ZIGZAG = 1; 
@@ -17,13 +22,23 @@ message LAMSS_PROSECUTE {
 	optional int32 Target_Number = 7 [(dccl.field).max=255, (dccl.field).min=0];
 	optional double Target_X = 8 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
 	optional double Target_Y = 9 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional int32 Target_Depth = 10 [(dccl.field).max=255, (dccl.field).min=0];
-	optional double Target_Heading = 11 [(dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Target_Speed = 12 [(dccl.field).max=12.8, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double Array_Angle = 13 [(dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional Array_Angle_ModeEnum Array_Angle_Mode = 14;
+	optional int32 Target_Depth = 10 [default= 10, (dccl.field).max=255, (dccl.field).min=0];
+	optional double Target_Heading = 11 [default=0.0, (dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Target_Speed = 12 [default=0.0, (dccl.field).max=12.8, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double Array_Angle = 13 [default=80.0, (dccl.field).max=360.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional Array_Angle_ModeEnum Array_Angle_Mode = 14 [default=ARRAY_ANGLE_MODE_dual];
 	enum Array_Angle_ModeEnum{ 
 		 ARRAY_ANGLE_MODE_dual = 0; 
 		 ARRAY_ANGLE_MODE_quad = 1; 
 	} 
+  optional ProcessingTypeEnum processing_type = 29 [default =  BROADBAND];
+  enum ProcessingTypeEnum {
+     BROADBAND = 1;
+     TONES = 2;
+  }
+  optional double center_frequency  = 30 [default = 900, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+  optional double bandwidth  = 31 [default = 200, (dccl.field).max=1000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+  optional double tone_1 = 33 [default = 900, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+  optional double tone_2 = 34 [default = 0, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+  optional double tone_3 = 35 [default = 0, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
 } 
