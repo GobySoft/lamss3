@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <list>
 #include <sys/time.h>
-#include "MOOSLIB/MOOSLib.h"
-#include "MOOSGenLib/MOOSGenLib.h"
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+#include "ivp/MOOSGeodesy.h"
 #include "iBackSeatServer.h"
 #include "lamss/lib_anrp_util/CommServer.h"
 #include "lamss/lib_anrp_util/NMEAMessage.h"
@@ -594,9 +594,7 @@ string CiBackSeatServer::SecondsSinceMidnight(int nDigits)
     ss << setw(2) << setfill('0') << today.tm_min;
     ss << setw(2) << setfill('0') << today.tm_sec;
     ss << ".";
-// Replaced pow10 with pow.  OS X doesn't have pow10.
-//   ss << setw(nDigits) << setfill('0') << round(tv.tv_usec*pow10(nDigits-6));
-    ss << setw(nDigits) << setfill('0') << round(tv.tv_usec*pow(10.0, nDigits-6));
+    ss << setw(nDigits) << setfill('0') << floor(tv.tv_usec*pow(10.0, nDigits-6));
     ss >> sVar;
 
     return sVar;
