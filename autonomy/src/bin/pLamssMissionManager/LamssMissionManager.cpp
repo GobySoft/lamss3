@@ -218,7 +218,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      // If homing using towed array go to prosecute homing state
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::TOWED)
 		{
-		  if (homing_beacon && last_deploy_cmd_.homing_enabled() && 
+		  if (homing_beacon && 
+		      last_deploy_cmd_.homing_enabled() && 
 		      (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
 		    {
 		      abort_duration_ = remaining;
@@ -288,6 +289,8 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_prosecute_duration(cfg_.prosecute_duration());
   prosecute_cmd.set_target_speed(0);
   prosecute_cmd.set_array_angle(60);
+  prosecute_cmd.set_center_frequency(cfg_.prosecute_center_frequency());
+  prosecute_cmd.set_bandwidth(cfg_.prosecute_bandwidth());
 
   publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
   publish("TRACKER_COMMAND","RESET");
@@ -418,7 +421,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       
       publish("SURVEY_COMPLETED","FALSE");
 
-      if (deploy_cmd.homing_enabled() &&
+      if (deploy_cmd.homing_enabled() && 
 	  cfg_.homing_array() == LamssMissionManagerConfig::USBL)
 	publish("USBL_ENABLED","TRUE");
 	else
