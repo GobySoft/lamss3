@@ -1,4 +1,4 @@
-import "goby/acomms/protobuf/dccl_option_extensions.proto";
+import "dccl/protobuf/option_extensions.proto";
 import "goby/common/protobuf/option_extensions.proto";
 message LAMSS_STATUS_NMEA_BUOY { 
 	option (dccl.msg).id = 22;
