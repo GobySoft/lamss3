@@ -23,7 +23,7 @@
 #ifndef __CRAPRAYS_h__
 #define __CRAPRAYS_h__
 
-#include "MOOSLIB/MOOSLib.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 // #include "AngleUtils.h"
 
 #include <math.h>
