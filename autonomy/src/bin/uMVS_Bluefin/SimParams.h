@@ -40,7 +40,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 
 
 #include <string>

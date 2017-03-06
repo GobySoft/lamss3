@@ -120,6 +120,11 @@ IvPFunction *BHV_ConstantAltitude::onRunState()
     postMessage("CONST_ALT_STATUS", "Missing NAV_ALTITUDE info");
     return(0);
   }
+  else if (curr_altitude <= 0.1)
+    {
+    postMessage("CONST_ALT_STATUS", "Invalid NAV_ALTITUDE info");
+    return(0);
+    }
 
   // check here for bottom altitude and change max depth if necessary
   double curr_water_depth = curr_depth + curr_altitude;

@@ -232,9 +232,9 @@ IvPFunction *BHV_SmartYoyo::onRunState()
     }
   ZAIC_PEAK zaic_depth(m_domain, "depth");
   zaic_depth.setSummit(new_depth);
-  zaic_depth.setBaseWidth(5.0);
-  zaic_depth.setPeakWidth(1.0);
-  zaic_depth.setSummitDelta(60.0);
+  zaic_depth.setBaseWidth(5000.0);
+  zaic_depth.setPeakWidth(2.0);
+  zaic_depth.setSummitDelta(50.0);
   zaic_depth.setMinMaxUtil(0, 100);
   
   IvPFunction *ipf_depth = zaic_depth.extractOF();

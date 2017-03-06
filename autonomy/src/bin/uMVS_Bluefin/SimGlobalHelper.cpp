@@ -32,7 +32,7 @@
 #endif
 
 #include "SimGlobalHelper.h"
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <MOOS/libMOOS/Utils/MOOSUtils.h>
 #ifndef PI
 	#define PI 3.141592653589793
 #endif
