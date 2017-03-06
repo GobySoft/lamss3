@@ -41,7 +41,7 @@
 
 #include "iSerialNMEA_config.pb.h"
 
-#include "MOOSUtilityLib/MOOSGeodesy.h"
+#include "ivp/MOOSGeodesy.h"
 
 // number of last speeds to average (where a speed is the time between two GPS points)
 #define SPEED_POINTS 5
