@@ -1008,43 +1008,42 @@ bool LamssTrackManager::postStateVars()
 	// If ambiguity is broken, go to Tracking	  
 	if (trk_state == ABSOLUTE )
 	  {
+	    // Publish target bearing and broadside heading
+	    publish("TARGET_BEARING",angle360(trk_bearing));
+	    double broadside_heading = angle360(trk_bearing + 90.0);
+	    if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
+		fabs(broadside_heading - prosecute_heading) >= 270.0)
+	      publish("BROADSIDE_HEADING","heading="+
+		      doubleToString(broadside_heading,1));
+	    else
+	      publish("BROADSIDE_HEADING","heading="+
+		      doubleToString(angle360(broadside_heading + 180.0)));
+	    
+	    // set tracking depth to current depth for non-adaptive tracking
+	    std::string tracking_depth_update = "depth=" 
+	      + doubleToString(last_nav_.global_fix().depth());
+	    publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
 	    if (localization_active_)
+	      queue_event<EvToTracking>();
+	    else
+	      queue_event<EvJumpToTracking>();
+
+	    //
+	    // Update parameters for Auto Prosecute
+	    //
+	    if (deploy_mode_active_ && auto_prosecute_ )
 	      {
-		// Publish target bearing and broadside heading
-		publish("TARGET_BEARING",angle360(trk_bearing));
-		double broadside_heading = angle360(trk_bearing + 90.0);
-		if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
-		    fabs(broadside_heading - prosecute_heading) >= 270.0)
-		  publish("BROADSIDE_HEADING","heading="+
-			  doubleToString(broadside_heading,1));
-		else
-		  publish("BROADSIDE_HEADING","heading="+
-			  doubleToString(angle360(broadside_heading + 180.0)));
-		
-		// set tracking depth to current depth for non-adaptive tracking
-		std::string tracking_depth_update = "depth=" 
-		  + doubleToString(last_nav_.global_fix().depth());
-		publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
-		queue_event<EvToTracking>();
-		// m_Comms.Notify ("TRACKING","TRACKING");
-  //
-  // Update parameters for Auto Prosecute
-  //
-		if (deploy_mode_active_ && auto_prosecute_ )
-		  {
-		    auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
-						     sin(trk_bearing*M_PI/180.0) + 
-						     last_nav_.local_fix().x());
-		    auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
-						     cos(trk_bearing*M_PI/180.0) + 
-						     last_nav_.local_fix().y());
-		    auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
-		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
-		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
-		    auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
-		    prosecute_pending_ = true;
-		    //		    send_prosecute();
-		  }
+		auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
+						 sin(trk_bearing*M_PI/180.0) + 
+						 last_nav_.local_fix().x());
+		auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
+						 cos(trk_bearing*M_PI/180.0) + 
+						 last_nav_.local_fix().y());
+		auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
+		auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
+		auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+		prosecute_pending_ = true;
 	      }
 	  }
 	else if (trk_state == RELATIVE)
