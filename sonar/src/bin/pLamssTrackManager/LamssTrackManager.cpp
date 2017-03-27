@@ -363,6 +363,8 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
 		  auto_prosecute_cmd_.set_target_heading(track_heading);
 		  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
 		  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+		  auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
+		  auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
 		  send_prosecute();
 		}
 	      else
