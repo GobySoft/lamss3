@@ -1028,8 +1028,10 @@ bool LamssTrackManager::postStateVars()
 	    if (localization_active_)
 	      queue_event<EvToTracking>();
 	    else
-	      queue_event<EvJumpToTracking>();
-
+	      {
+		queue_event<EvToLocalization>();
+		queue_event<EvToTracking>();
+	      }
 	    //
 	    // Update parameters for Auto Prosecute
 	    //
