@@ -51,7 +51,6 @@ namespace lamss
 	    struct EvToLocalization : boost::statechart::event< EvToLocalization > { };
 	    // Tracking Sequence Events
             struct EvToTracking : boost::statechart::event< EvToTracking > { };
-            struct EvJumpToTracking : boost::statechart::event< EvJumpToTracking > { };
             struct EvToSingle : boost::statechart::event< EvToSingle > { };
             struct EvToMultiple : boost::statechart::event< EvToMultiple > { };
  	    // Prosecute events
@@ -237,8 +236,7 @@ namespace lamss
 		    }
 		  
 		  typedef boost::mpl::list<
-                    boost::statechart::transition< EvToLocalization, Localization >,
-		    boost::statechart::transition< EvJumpToTracking, Tracking >
+                    boost::statechart::transition< EvToLocalization, Localization >
                     > reactions;
 		};
 
