@@ -949,10 +949,15 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 	  dep_max = std::max(depth,dep_max);
 	  for (int j=0; j < i; j++)
 	    {
-	      spacing = std::min(sqrt(pow(array_x.at(j)-array_x.at(i),2)
+	      double spacing_ij = sqrt(pow(array_x.at(j)-array_x.at(i),2)
 				      + pow(array_y.at(j)-array_y.at(i),2)
-				      + pow(array_z.at(j)-array_z.at(i),2)),
-				 spacing);
+				       + pow(array_z.at(j)-array_z.at(i),2));
+	      if (spacing_ij > 0)
+		spacing = std::min(spacing_ij,spacing);
+	      else
+		glog.is(VERBOSE) && glog << "Warning: array elements " 
+					 << i << " and " << j 
+					 << " are co-located" << std::endl;
 	    }
 	}
       double range = 0.5*(r_min+r_max);
@@ -966,7 +971,10 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       // Raytracing resolution less critical for horizontal variability 
       num_r = int((r_max-r_min)/(10*spacing)) + 3;
       num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 3;
-      glog.is(DEBUG1) && glog << "Ray Tracing box: num ranges: " << num_r
+      glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
+			      << " r_max: " << r_max
+			      << " spacing: " << spacing
+			      << " num ranges: " << num_r
 			      << ", num depths: " << num_dep << std::endl;
       double delta_t = MOOSTime() - target.last_rate_update; 
       if (target.last_rate_update > 0)
