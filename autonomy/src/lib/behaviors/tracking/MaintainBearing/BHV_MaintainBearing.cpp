@@ -164,7 +164,7 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   crs_zaic.setSummit(leftabs);
   crs_zaic.setValueWrap(true);
   crs_zaic.setPeakWidth(width);
-  crs_zaic.setBaseWidth(90.0 - width);
+  crs_zaic.setBaseWidth(180.0 - width);
   crs_zaic.setSummitDelta(50.0);
   crs_zaic.setMinMaxUtil(0,100);
 
@@ -173,7 +173,7 @@ IvPFunction *BHV_MaintainBearing::onRunState()
       int new_index = crs_zaic.addComponent();  
       crs_zaic.setSummit(rightabs, new_index);
       crs_zaic.setPeakWidth(width, new_index);
-      crs_zaic.setBaseWidth(90.0 - width,new_index);
+      crs_zaic.setBaseWidth(180.0 - width,new_index);
       crs_zaic.setSummitDelta(50.0, new_index);
       crs_zaic.setMinMaxUtil(0,100,new_index);
       if (bearing_mode == "quad" && desired_angle != 90.0 && desired_angle != 270.0)
