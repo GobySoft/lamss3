@@ -361,10 +361,6 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
 		  auto_prosecute_cmd_.set_target_y(track_y);
 		  auto_prosecute_cmd_.set_target_speed(track_speed);
 		  auto_prosecute_cmd_.set_target_heading(track_heading);
-		  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
-		  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
-		  auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
-		  auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
 		  send_prosecute();
 		}
 	      else
@@ -591,6 +587,10 @@ void LamssTrackManager::send_prosecute()
   auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
   auto_prosecute_cmd_.set_target_timestamp(current_time_);
   auto_prosecute_cmd_.set_target_number(1);
+  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+  auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
+  auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
   cue_utc_ = auto_prosecute_cmd_.target_timestamp();
   cue_x_ = auto_prosecute_cmd_.target_x();
   cue_y_ = auto_prosecute_cmd_.target_y();
