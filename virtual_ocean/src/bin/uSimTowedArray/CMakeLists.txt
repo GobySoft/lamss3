@@ -3,6 +3,9 @@
 # Author(s):                               Henrik Schmidt
 #--------------------------------------------------------
 
+set (CMAKE_CXX_FLAGS_RELEASE "-g")
+
+
 FILE(GLOB SRC *.cpp)
 
 ADD_EXECUTABLE(uSimTowedArray ${SRC})
