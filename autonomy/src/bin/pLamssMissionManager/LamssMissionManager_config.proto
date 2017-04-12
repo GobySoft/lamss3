@@ -3,6 +3,7 @@ import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/common/protobuf/option_extensions.proto";
 import "lamss_deploy.proto";
 import "lamss_transit.proto";
+import "lamss_targetsim.proto";
 
 
 message LamssMissionManagerConfig
@@ -39,6 +40,8 @@ message LamssMissionManagerConfig
   optional string track_signal_update_message = 20 [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
   optional double prosecute_center_frequency = 21 [default = 900];
   optional double prosecute_bandwidth = 22 [default = 200];
+  optional bool self_noise = 23 [default = false];
+  optional LAMSS_SIMULATE_TARGET self_noise_spl = 24;
 }
 
 
