@@ -59,7 +59,7 @@ bool CSimTargets::OnConnectToServer()
 {
   source_control = true;
 
-  m_Comms.Register ("T_STATE", 0);
+  m_Comms.Register ("TGT_STATE", 0);
   m_Comms.Register ("NAV_X", 1);
   m_Comms.Register ("NAV_Y", 1);
   return true;
@@ -82,11 +82,11 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &Msg = *p;
     
 
-    if(Msg.m_sKey == "T_STATE")
+    if(Msg.m_sKey == "TGT_STATE")
       {	
 	if (source_control)
 	  {
-	    MOOSTrace("Got T_STATE message");
+	    MOOSTrace("Got TGT_STATE message");
 	    string val;
 	    val = Msg.m_sVal;
 
