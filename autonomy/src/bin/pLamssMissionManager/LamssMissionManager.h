@@ -60,6 +60,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_prosecute(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
     void handle_vehicle_name(const CMOOSMsg& msg);
+    void handle_collaborator_id(const CMOOSMsg& msg);
     void handle_mission_state(const CMOOSMsg& msg);
     void handle_opbox_distance(const CMOOSMsg& msg);
     void handle_transit_route(const CMOOSMsg& msg);
@@ -99,6 +100,8 @@ class LamssMissionManager : public GobyMOOSApp
     double last_homing_prosecute_;
     bool tracking_;
     double target_bearing_;
+    int collaborator_id_;
+
     //
     // Abort location
     //

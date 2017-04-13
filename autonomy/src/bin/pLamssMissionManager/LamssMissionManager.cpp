@@ -79,6 +79,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
+    subscribe("COLLABORATOR_ID", 
+	      &LamssMissionManager::handle_collaborator_id, this);    
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
     subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);    
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
@@ -133,13 +135,17 @@ void LamssMissionManager::loop()
     if(curr_time > last_slow_loop_t_ + slow_loop_period_)
         slow_loop(curr_time);
 
+}
+
+void LamssMissionManager::slow_loop(double curr_time)
+{
     if (cfg_.self_noise())
       {
 	// Publish self-noise msg
 	self_noise_msg_ = cfg_.self_noise_spl();
 	self_noise_msg_.set_tgt_utc(MOOSTime());
-	self_noise_msg_.set__src_id(vehicle_id_);
-	self_noise_msg_.set__rcv_id(0);
+	//	self_noise_msg_.set__src_id(collaborator_id_);
+	self_noise_msg_.set__rcv_id(collaborator_id_);
 	self_noise_msg_.set_tgt_num(vehicle_id_);
 	self_noise_msg_.set_tgt_x(last_nav_.local_fix().x());
 	self_noise_msg_.set_tgt_y(last_nav_.local_fix().y());
@@ -148,12 +154,9 @@ void LamssMissionManager::loop()
 	self_noise_msg_.set_tgt_spd(last_nav_.speed());
 	std::string serialized;
 	serialize_for_moos(&serialized,self_noise_msg_);    
-	publish("SELF_NOISE_SPL", serialized);
+	publish("SELF_NOISE_MSG", serialized);
       }
-}
 
-void LamssMissionManager::slow_loop(double curr_time)
-{
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
@@ -525,6 +528,11 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+}
+
+void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
+{
+    collaborator_id_ = msg.GetDouble();
 }
 
 void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
