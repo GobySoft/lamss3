@@ -822,6 +822,15 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,35");
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,4");
             break;
+
+        case lamss::icex::protobuf::TrackingSignalUpdate::TOPSIDE_HOMING:
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,8250");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period,1");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.duration_msx10,200");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.bandwidth_Hz,1500");
+            cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,3");
+            break;
     }
 
     if(msg.has_tx_power_level())
