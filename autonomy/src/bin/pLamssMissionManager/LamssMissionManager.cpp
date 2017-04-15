@@ -139,24 +139,6 @@ void LamssMissionManager::loop()
 
 void LamssMissionManager::slow_loop(double curr_time)
 {
-    if (cfg_.self_noise())
-      {
-	// Publish self-noise msg
-	self_noise_msg_ = cfg_.self_noise_spl();
-	self_noise_msg_.set_tgt_utc(MOOSTime());
-	//	self_noise_msg_.set__src_id(collaborator_id_);
-	self_noise_msg_.set__rcv_id(collaborator_id_);
-	self_noise_msg_.set_tgt_num(vehicle_id_);
-	self_noise_msg_.set_tgt_x(last_nav_.local_fix().x());
-	self_noise_msg_.set_tgt_y(last_nav_.local_fix().y());
-	self_noise_msg_.set_tgt_dep(last_nav_.global_fix().depth());
-	self_noise_msg_.set_tgt_hdg(last_nav_.pose().heading());
-	self_noise_msg_.set_tgt_spd(last_nav_.speed());
-	std::string serialized;
-	serialize_for_moos(&serialized,self_noise_msg_);    
-	publish("SELF_NOISE_MSG", serialized);
-      }
-
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 

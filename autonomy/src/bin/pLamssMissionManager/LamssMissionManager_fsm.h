@@ -33,7 +33,6 @@
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_targetsim.pb.h" // DCCL message for self noise
 
 namespace lamss
 {
@@ -99,7 +98,6 @@ namespace lamss
 	    extern LAMSS_TRANSIT last_transit_route_;    
 	    extern LAMSS_DEPLOY last_deploy_cmd_;    
 	    extern LAMSS_PROSECUTE last_prosecute_cmd_;    
-	    extern LAMSS_SIMULATE_TARGET self_noise_msg_;
             
             extern int vehicle_id_;
 	    extern std::string vehicle_name_;

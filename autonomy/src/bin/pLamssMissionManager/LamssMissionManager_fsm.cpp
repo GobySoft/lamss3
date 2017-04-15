@@ -48,5 +48,4 @@ double lamss::shared::fsm::abort_duration_ = 0;
 LAMSS_TRANSIT lamss::shared::fsm::last_transit_route_;
 LAMSS_DEPLOY lamss::shared::fsm::last_deploy_cmd_;
 LAMSS_PROSECUTE lamss::shared::fsm::last_prosecute_cmd_;
-LAMSS_SIMULATE_TARGET lamss::shared::fsm::self_noise_msg_;
 
