@@ -1,7 +1,7 @@
-// Copyright 2014 
+// Copyright 2014
 // Henrik Schmidt
-// Toby Schneider 
-// Massachusetts Institute of Technology 
+// Toby Schneider
+// Massachusetts Institute of Technology
 
 #include <dlfcn.h>
 
@@ -79,27 +79,27 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
-    subscribe("COLLABORATOR_ID", 
-	      &LamssMissionManager::handle_collaborator_id, this);    
-    subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);    
-    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);    
-    subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);    
-    subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);    
-    subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);    
-    subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);    
-    subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);    
-    subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);    
-    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);    
-    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);    
-    subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);    
+    subscribe("COLLABORATOR_ID",
+	      &LamssMissionManager::handle_collaborator_id, this);
+    subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
+    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
+    subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);
+    subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);
+    subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);
+    subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);
+    subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);
+    subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
+    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
+    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
+    subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
 
-    scheduler_.initiate_processor(fsm_);  
-  
+    scheduler_.initiate_processor(fsm_);
+
     fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
-  
+
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
     // Avoid abort on startup
@@ -107,7 +107,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     mission_start_time_ = MOOSTime();
 
     if (cfg_.homing_beacon_frequency() > 0)
-      publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
+      publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());
 
 }
 
@@ -145,36 +145,36 @@ void LamssMissionManager::slow_loop(double curr_time)
 
   if (prosecute_mode_active_)
     {
-    double station_range = 
+    double station_range =
       sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
 	   pow(last_nav_.local_fix().y() - last_deploy_cmd_.deploy_y(),2));
-    if (cfg_.operation_radius() > 0 && 
+    if (cfg_.operation_radius() > 0 &&
 	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
 	  {
 	    send_deploy();
 	    publish("SURVEY_COMPLETED","TRUE");
-	    goby::glog << group("helm") 
+	    goby::glog << group("helm")
 		       << "DEPLOY Executed: Approaching op_radius during prosecute"
-		       <<"station_range = " << station_range 
+		       <<"station_range = " << station_range
 		       <<", operation_radius = "<< cfg_.operation_radius()
 		       << std::endl;
 	  }
 
-    double remaining = last_prosecute_cmd_.target_timestamp() + 
-      last_prosecute_cmd_.prosecute_duration() - 
+    double remaining = last_prosecute_cmd_.target_timestamp() +
+      last_prosecute_cmd_.prosecute_duration() -
       curr_time;
     if (remaining <= 0.0)
       {
 	//	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
 	send_deploy();
 	publish("SURVEY_COMPLETED","TRUE");
-	goby::glog << group("helm") 
-		   << "Prosecute duration exceeded - commanding Deploy" 
+	goby::glog << group("helm")
+		   << "Prosecute duration exceeded - commanding Deploy"
 		   << std::endl;
       }
-    else 
+    else
       {
-	goby::glog << group("helm") 
+	goby::glog << group("helm")
 		   << "Prosecute time remaining: " << remaining
 		   << std::endl;
 	publish("PROSECUTE_REMAINING",remaining);
@@ -189,18 +189,18 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
 	  if (remaining <= 0.0)
-	    { 
-	      goby::glog << group("helm") 
-			 << "Deploy duration exceeded - initiating Abort" 
+	    {
+	      goby::glog << group("helm")
+			 << "Deploy duration exceeded - initiating Abort"
 			 << std::endl;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
-	  else 
+	  else
 	    {
-	      goby::glog << group("helm") 
+	      goby::glog << group("helm")
 			 << "Deploy time remaining: " << remaining
 			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
@@ -212,15 +212,15 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  double remaining =  abort_duration_ - (curr_time - abort_time_);
 	  if (remaining > 0.0)
 	    {
-	      goby::glog << group("helm") 
+	      goby::glog << group("helm")
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
 	      // If homing using towed array go to prosecute homing state
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::TOWED)
 		{
-		  if (homing_beacon && 
-		      last_deploy_cmd_.homing_enabled() && 
+		  if (homing_beacon &&
+		      last_deploy_cmd_.homing_enabled() &&
 		      (curr_time - last_homing_prosecute_) >= cfg_.homing_interval())
 		    {
 		      abort_duration_ = remaining;
@@ -240,14 +240,14 @@ void LamssMissionManager::slow_loop(double curr_time)
     }
   else if (homing_mode_active_)
     {
-      if (curr_time - last_homing_prosecute_ >= 
+      if (curr_time - last_homing_prosecute_ >=
 	  cfg_.homing_duration() - slow_loop_period_)
 	{
 	  // Finish homing prosecute and extend abort duration
 	      queue_event<EvResumeAbort>();
 	      abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
 	      std::stringstream ss;
-	      ss << "duration=" << abort_duration_ ; 
+	      ss << "duration=" << abort_duration_ ;
 	      publish("ABORT_HEADING", ss.str());
 	}
     }
@@ -273,7 +273,7 @@ void LamssMissionManager::send_deploy()
     }
   // Auto prosecute only on initial deploy
   redeploy.set_auto_prosecute(false);
-  serialize_for_moos(&serialized,redeploy);    
+  serialize_for_moos(&serialized,redeploy);
   publish("LAMSS_DEPLOY_OUT", serialized);
 
 }
@@ -293,7 +293,7 @@ void LamssMissionManager::homing_prosecute()
   prosecute_cmd.set_center_frequency(cfg_.prosecute_center_frequency());
   prosecute_cmd.set_bandwidth(cfg_.prosecute_bandwidth());
 
-  publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());  
+  publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());
   publish("TRACKER_COMMAND","RESET");
   std::stringstream ss2;
   ss2 << "depth=" << cfg_.abort_depth() ;
@@ -301,9 +301,9 @@ void LamssMissionManager::homing_prosecute()
   publish("SENSOR_DEPTH_DEPLOY",ss2.str());
 
   std::string serialized;
-  serialize_for_moos(&serialized,prosecute_cmd);    
+  serialize_for_moos(&serialized,prosecute_cmd);
   publish("LAMSS_PROSECUTE_OUT", serialized);
-  glog.is(DEBUG1) && glog << "Homing Prosecute requested" 
+  glog.is(DEBUG1) && glog << "Homing Prosecute requested"
 			  << std::endl;
 }
 
@@ -311,7 +311,7 @@ void  LamssMissionManager::update_abort_mission()
 {
   double range = sqrt(pow(last_nav_.local_fix().x() - abort_x,2)  +
 		      pow(last_nav_.local_fix().y() - abort_y,2));
-  double heading = atan2(abort_x - last_nav_.local_fix().x(),  
+  double heading = atan2(abort_x - last_nav_.local_fix().x(),
 			 abort_y - last_nav_.local_fix().y()) * 180./M_PI;
   while (heading < 0)
     heading += 360;
@@ -319,7 +319,7 @@ void  LamssMissionManager::update_abort_mission()
     heading -= 360;
   double duration = range/cfg_.abort_speed();
   std::stringstream ss;
-  ss << "heading=" << heading << "#duration=" << duration ; 
+  ss << "heading=" << heading << "#duration=" << duration ;
   publish("ABORT_HEADING", ss.str());
   std::stringstream ss1;
   ss1 << "speed=" << cfg_.abort_speed() ;
@@ -331,12 +331,12 @@ void  LamssMissionManager::update_abort_mission()
   ss3 << "points=" << abort_x << "," << abort_y;
   publish("ABORT_LOCATION", ss3.str());
   abort_duration_ = duration;
-}  
+}
 
 void LamssMissionManager::try_publish()
 {
     boost::mutex::scoped_try_lock lk(moos_mutex_);
-    if(lk.owns_lock())   
+    if(lk.owns_lock())
     {
         while(!publish_queue_.empty())
 	{
@@ -369,7 +369,7 @@ void LamssMissionManager::initial_deploy()
       init_deploy_cmd.set_deploy_y(abort_y);
     }
   std::string serialized;
-  serialize_for_moos(&serialized,init_deploy_cmd);    
+  serialize_for_moos(&serialized,init_deploy_cmd);
   publish("LAMSS_DEPLOY_OUT", serialized);
 }
 
@@ -385,7 +385,7 @@ void LamssMissionManager::initial_transit()
   init_transit_cmd.set_destinationplatformid(vehicle_id_);
 
   std::string serialized;
-  serialize_for_moos(&serialized,init_transit_cmd);    
+  serialize_for_moos(&serialized,init_transit_cmd);
   publish("LAMSS_TRANSIT_OUT", serialized);
 }
 
@@ -419,14 +419,19 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
-      
+
       publish("SURVEY_COMPLETED","FALSE");
 
-      if (deploy_cmd.homing_enabled() && 
-	  cfg_.homing_array() == LamssMissionManagerConfig::USBL)
-	publish("USBL_ENABLED","TRUE");
-	else
-	publish("USBL_ENABLED","FALSE");
+      // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
+      if (last_deploy_cmd_.homing_enabled() &&
+         last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
+         cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+        publish("USBL_ENABLED","TRUE");
+      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
+         cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+        publish("USBL_ENABLED","TRUE");
+      else
+        publish("USBL_ENABLED","FALSE");
 
       // Queue state transitions
       if (mission_active_)
@@ -460,7 +465,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_prosecute_cmd_ = prosecute_cmd;
-      
+
       if (prosecute_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
       // prosecute only accepted if already in active mission
@@ -479,18 +484,18 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 	}
       else
 	{
-	  goby::glog << group("fsm") 
+	  goby::glog << group("fsm")
 		     << "Not in active mission -  Prosecute ignored"
 		     << std::endl;
 	}
-    }  
+    }
 }
 
 void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
   LAMSS_STATUS status_msg;
   parse_for_moos(msg.GetString(), &status_msg);
-  // If coming from topside count as being connected 
+  // If coming from topside count as being connected
   // Disabled after ICEXTracker implemented. Only nav updates and commands count
 #if 0
   if (status_msg.node() == cfg_.topside_id())
@@ -500,8 +505,8 @@ void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 {
-  glog.is(VERBOSE) && glog << "Received GPS update: " << msg.GetString() 
-			   << std::endl; 
+  glog.is(VERBOSE) && glog << "Received GPS update: " << msg.GetString()
+			   << std::endl;
   // reset deploy duration when getting GPS update
 	last_acomms_ = MOOSTime();
 }
@@ -538,14 +543,14 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
 }
 
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
-{ 
+{
   double opreg_perimeter_distance = msg.GetDouble();
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
   if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
     {
       send_deploy();
       publish("SURVEY_COMPLETED","TRUE");
-      goby::glog << group("helm") 
+      goby::glog << group("helm")
 	<< "DEPLOY Executed: Too close to Opregion Perimeter"
 	<< std::endl;
     }
@@ -587,11 +592,11 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
 
 void LamssMissionManager::post_transit_route()
 {
- 
+
   if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
     {
       // remove trailing zero waypoints from transit route
-      
+
       std::stringstream transit_route;
       std::string hash = "#";
       std::string colon = ":";
@@ -599,8 +604,8 @@ void LamssMissionManager::post_transit_route()
       int n = transit_x.size();
       if (n>0)
 	{
-	  transit_route << "speed=" << last_transit_route_.transit_speed() 
-			<< "#points=" 
+	  transit_route << "speed=" << last_transit_route_.transit_speed()
+			<< "#points="
 			<< last_nav_.local_fix().x() << comma
 			<< last_nav_.local_fix().y() << colon
 ;
@@ -631,7 +636,7 @@ void LamssMissionManager::post_transit_route()
       else
 	publish("TRANSIT_MODE", "DIRECT");
 
-    } 
+    }
   else
     publish("TRANSIT_MODE", "DIRECT");
 }
@@ -662,7 +667,7 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
       if (new_heading < 0)
 	new_heading += 360;
       std::stringstream ss;
-      ss << "heading=" << new_heading << "#duration=" << abort_duration_ ; 
+      ss << "heading=" << new_heading << "#duration=" << abort_duration_ ;
       publish("ABORT_HEADING", ss.str());
       queue_event<EvResumeAbort>();
     }
@@ -693,12 +698,12 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
       double moos_y;
       double camp_x;
       double camp_y;
-      if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(), 
+      if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(),
 				      moos_y, moos_x) &&
-	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(), 
-				      vehicle_pos.camp_lon(), 
+	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(),
+				      vehicle_pos.camp_lon(),
 				      camp_y, camp_x))
-	{    
+	{
 	  // update abort location
 	  abort_x = camp_x + abort_x_offset;
 	  abort_y = camp_y + abort_y_offset;
@@ -711,16 +716,16 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
           node_report.setLon(vehicle_pos.camp_lon());
           node_report.setDepth(100);
           publish("NODE_REPORT", node_report.getSpec());
-          
+
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
 				  << " lat=" << vehicle_pos.lat()
 				  << " lon=" << vehicle_pos.lon()
-				  << " my_x=" << moos_x 
-				  << " my_y=" << moos_y 
-				  << " camp_x=" << camp_x 
-				  << " camp_y=" << camp_y 
+				  << " my_x=" << moos_x
+				  << " my_y=" << moos_y
+				  << " camp_x=" << camp_x
+				  << " camp_y=" << camp_y
 				  << std::endl;
 	}
       else
@@ -740,9 +745,9 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
 
   if (!m_Geodesy.UTM2LatLong(node_x,node_y,node_lat,node_lon))
     {
-      glog.is(DEBUG2) && glog 
+      glog.is(DEBUG2) && glog
 	<< "Error in UTM2LatLong conversion" << std::endl;
-      return("Error in UTM2LatLong conversion\n");	  
+      return("Error in UTM2LatLong conversion\n");
     }
 
   output += "UTC_TIME=" + doubleToString(MOOSTime(),1);
@@ -780,13 +785,13 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
     // just needs to be the start of a minute
     const int even_reference_time = 1449763200;
     const int odd_reference_time = even_reference_time + static_cast<int>(msg.ping_period())/2;
-    
+
     switch(msg.current_vehicle())
     {
         case lamss::icex::protobuf::TrackingSignalUpdate::NONE:
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.mode,0");
             break;
-            
+
         case lamss::icex::protobuf::TrackingSignalUpdate::EVEN_PLATFORM:
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.carrier_Hz,10500");
             cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "nav.trackping.period," + goby::util::as<std::string>(msg.ping_period()));
@@ -828,13 +833,13 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
         int tx_level = msg.tx_power_level();
         cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "pwramp.txlevel," + goby::util::as<std::string>(tx_level));
     }
-    
+
     if(msg.has_mod_header_version())
     {
         int hdr_version = msg.mod_header_version();
         cfg.AddExtension(micromodem::protobuf::Config::nvram_cfg, "psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
     }
-    
+
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
-    
+
 }
