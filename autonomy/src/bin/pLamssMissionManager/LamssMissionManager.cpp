@@ -195,6 +195,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << std::endl;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
+	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+		publish("USBL_ENABLED","TRUE");
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
