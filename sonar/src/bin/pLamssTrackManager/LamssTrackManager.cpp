@@ -435,6 +435,9 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
       publish("SONAR_PROCESS","ON");   
     }
 
+  if (last_prosecute_cmd_.reset_tracker())
+    reset_tracking();
+
   std::string buff = "heading=" + doubleToString(new_heading,1);
   publish("INIT_TRACK_HEADING",buff);   
   
