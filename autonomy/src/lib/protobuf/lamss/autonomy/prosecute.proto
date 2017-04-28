@@ -41,4 +41,5 @@ message LAMSS_PROSECUTE {
   optional double tone_1 = 33 [default = 900, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
   optional double tone_2 = 34 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
   optional double tone_3 = 35 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+  optional bool reset_tracker = 36 [default = false];
 } 
