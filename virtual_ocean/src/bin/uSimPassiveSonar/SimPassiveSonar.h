@@ -261,7 +261,7 @@ class SimPassiveSonar : public GobyMOOSApp
     std::string nonacoustic_filename_prefix;
     std::string nonacoustic_filename_suffix;
     std::string sync_path;
-    std::string sync_missions_root;
+    std::string sync_password;
     bool sync;
 
     //---Variables that get their value from the MOOSDB---

@@ -79,17 +79,18 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     ray_acoustics(cfg_.ray_acoustics()),
     rap_acoustics(cfg_.rap_acoustics()),
     sampling_frequency(cfg_.sampling_frequency()),
-  noise_level(cfg_.noise_level()),
-  mseas_svp_updates(cfg_.mseas_svp_updates()), 
-  mseas_update_interval(cfg_.mseas_update_interval()), 
-  svp_range_resolution(cfg_.svp_range_resolution()), 
-  svp_depth_resolution(cfg_.svp_depth_resolution()),
-  base_dir_name(cfg_.base_dir_name()), 
-  acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
-  acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
-  nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
-  nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
-  sync_path(cfg_.sync_path()) 
+    noise_level(cfg_.noise_level()),
+    mseas_svp_updates(cfg_.mseas_svp_updates()), 
+    mseas_update_interval(cfg_.mseas_update_interval()), 
+    svp_range_resolution(cfg_.svp_range_resolution()), 
+    svp_depth_resolution(cfg_.svp_depth_resolution()),
+    base_dir_name(cfg_.base_dir_name()), 
+    acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
+    acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
+    nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
+    nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
+    sync_path(cfg_.sync_path()), 
+    sync_password(cfg_.sync_password())
 {
 
   set_ignore_stale(false);
@@ -1904,15 +1905,21 @@ bool SimPassiveSonar::write_hyd_file()
   // Now transfer file to client if on separate host
   if (sync)
     {
-      std::string acoustic_filename(acoustic_filename_buff);
-      std::string cmd = "scp " + acoustic_filename + " " + sync_path;
-      glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
-      system(cmd.c_str());
-      glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
-
-    }
-  
       /*
+	std::string acoustic_filename(acoustic_filename_buff);
+	std::string cmd = "scp " + acoustic_filename + " " + sync_path;
+	glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
+	system(cmd.c_str());
+	glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
+      */
+      std::string sync_cmd = "bash -c 'RSYNC_PASSWORD=" + sync_password 
+	+ " rsync "
+	+ acoustic_filename_buff + " " + sync_path + "/'";
+      glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+      system(sync_cmd.c_str());
+    }
+
+/*
   char frame_filename_buff[1000]; 
   sprintf(frame_filename_buff,"%s/frame_count.inp",base_dir_name.c_str());
   
@@ -1929,8 +1936,8 @@ bool SimPassiveSonar::write_hyd_file()
       fprintf (frame_file, "%d\n", 0);
       fclose (frame_file);
     }
-      */
-  return true;
+*/
+return true;
 }
 
 bool SimPassiveSonar::write_nas_file(double timestamp)

@@ -31,7 +31,6 @@ message SimPassiveSonarConfig
   optional string acoustic_filename_suffix = 19 [default = ".DAT"];
   optional string nonacoustic_filename_prefix = 20 [default = "NAS"];
   optional string nonacoustic_filename_suffix = 21 [default = ".DAT"];
-  optional string sync_path = 22 [default = ""];
   optional bool   mseas_svp_updates = 23 [default = false];
   optional double mseas_update_interval = 24 [default = 60];
   optional double svp_range_resolution = 25 [default = 200];
@@ -48,6 +47,8 @@ message SimPassiveSonarConfig
      WINDOW_NONE = 3;
   }
   optional string pinger_waveform_file = 33 [default = ""];
+  optional string sync_path = 22 [default = ""];
+  optional string sync_password = 34 [default = "REDACTED"];
 }
 
 
