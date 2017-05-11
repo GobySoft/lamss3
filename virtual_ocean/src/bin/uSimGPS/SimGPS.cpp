@@ -186,7 +186,7 @@ void CSimGPS::gps_update()
 
  sMsg=MOOSFormat("Timestamp=%d,Latitude=%f,Longitude=%f",iTime,gps_lat,gps_lon);
 
- m_Comms.Notify("GPS_UPDATE_RECEIVED",sMsg);
+ m_Comms.Notify("GPS_SIM_UPDATE_RECEIVED",sMsg);
  m_Comms.Notify("GPS_X",nav_x);
  m_Comms.Notify("GPS_Y",nav_y);
  m_Comms.Notify("GPS_LONG",gps_lon);
