@@ -65,6 +65,8 @@ private:
 	double yw_time;
 
 	bool msgack;
+
+        double last_gps_sim_update_time;
       
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 

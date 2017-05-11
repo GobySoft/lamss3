@@ -59,6 +59,7 @@ CiBackSeatServer::CiBackSeatServer()
   pit_time = 0;
 
   msgack = false;
+  last_gps_sim_update_time = 0;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -184,8 +185,10 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 	tcp_server->write(Msg.GetString() + "\r\n");
     }
     
-    
-
+    if(Msg.m_sKey == "GPS_SIM_UPDATE_RECEIVED")
+    {
+        last_gps_sim_update_time = curr_time;
+    }
   }
 
   
@@ -279,7 +282,8 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("BUOYANCY_REPORT",0);
   m_Comms.Register("TRIM_REPORT",0);
   m_Comms.Register("INJECT_TO_BACKSEAT",0);
-
+  m_Comms.Register("GPS_SIM_UPDATE_RECEIVED",0);  
+  
   return true;
 }
 
@@ -396,9 +400,9 @@ string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",Running*";
       else if (lon_degrees < 100)
 	longitude_str = "0" + longitude_str;
       
+      std::string gps_status = (last_gps_sim_update_time > (MOOSTime()-2)) ? "1" : "0";
       
-      
-      string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+",1,"+altitude_str+","+depth+","+heading+",0,"+pitch+","+SecondsSinceMidnight(3)+"*";
+      string data_packet = "$BFNVG,"+SecondsSinceMidnight(3)+","+lattitude_str+","+Lat_a+","+longitude_str+","+Long_b+","+gps_status+","+altitude_str+","+depth+","+heading+",0,"+pitch+","+SecondsSinceMidnight(3)+"*";
       
       //string data_packet ="$BFSIMNVG,"+SecondsSinceMidnight(3)+","+navx+","+navy+","+navz+","+heading+","+depth+","+speed+","+yaw+","+pitch+","+altitude_str+"*";
       
