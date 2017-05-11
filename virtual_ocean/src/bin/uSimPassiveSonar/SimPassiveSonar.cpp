@@ -1806,7 +1806,6 @@ bool SimPassiveSonar::write_hyd_file()
 	  acoustic_filename_suffix.c_str()); 
   sprintf(hydrophone_filename_buff,"%s/HYD%09d%s",base_dir_name.c_str(),
 	  frame_number, acoustic_filename_suffix.c_str()); 
-  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
 
   // Got this filename stuff from CpBearingTrack
   
@@ -1919,6 +1918,7 @@ bool SimPassiveSonar::write_hyd_file()
       system(sync_cmd.c_str());
     }
 
+  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
 /*
   char frame_filename_buff[1000]; 
   sprintf(frame_filename_buff,"%s/frame_count.inp",base_dir_name.c_str());
@@ -1937,7 +1937,7 @@ bool SimPassiveSonar::write_hyd_file()
       fclose (frame_file);
     }
 */
-return true;
+  return true;
 }
 
 bool SimPassiveSonar::write_nas_file(double timestamp)
