@@ -1534,7 +1534,8 @@ bool LamssCBF::Process_Data()
 	    btr_msg.set_ambiguous(true);
 	  else if ( curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_ONLY ||
 		    curr_cfg_.angular_steering_type() == LamssCBFConfig::AZIMUTH_AND_ELEVATION )
-	      btr_msg.set_ambiguous(curr_cfg_.max_azimuth() == 180);
+	    btr_msg.set_ambiguous(!(curr_cfg_.min_azimuth() < -10 || 
+				    curr_cfg_.max_azimuth() > 190));
 	  else
 	      btr_msg.set_ambiguous(curr_cfg_.max_elevation() == 180);
           btr_msg.set_wavenumber(curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER);
