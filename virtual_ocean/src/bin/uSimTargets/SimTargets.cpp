@@ -23,7 +23,7 @@ using namespace std;
 
 CSimTargets::CSimTargets()
 {
-  source_control = false;    
+  source_control = true;    
   Targets.clear();
   target_number = 0;
   target_init = false;
@@ -57,13 +57,9 @@ CSimTargets::~CSimTargets()
 
 bool CSimTargets::OnConnectToServer()
 {
-  source_control = false;
+  source_control = true;
 
-  m_Comms.Register ("TARGET_CONTROL", 0);
-  m_Comms.Register ("TARGET_CUE", 0);
-  m_Comms.Register ("TARGET_FREQ", 0);
-  m_Comms.Register ("TARGET_BW", 0);
-  m_Comms.Register ("TARGET_SPL", 0);
+  m_Comms.Register ("TGT_STATE", 0);
   m_Comms.Register ("NAV_X", 1);
   m_Comms.Register ("NAV_Y", 1);
   return true;
@@ -86,58 +82,11 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
     CMOOSMsg &Msg = *p;
     
 
-    if(Msg.m_sKey == "TARGET_CUE")
-      {	
-	if (!source_control)
-	  {
-	    //MOOSTrace("Got TARGET_CUE message");
-	    string val;
-	    val = Msg.m_sVal;
-
-	    parse_tgt_stat(val, 
-		   target_number,
-		   target_x_start,
-		   target_y_start,
-		   target_depth,
-		   target_heading,
-		   target_speed,
-		   target_utc,
-		   target_freq,
-		   target_bw,
-		   target_spl,
-		   target_str,
-		   tone_freq,
-		   tone_dbl);
-
-
-	    //	    target_number+=1;
-	    if (target_number > 0)
-	      {
-		updateTargetList();
-		postTargetList();
-	      }
-	    else if (target_number < 0)
-	      {
-		CTarget SimTgt;
-		SimTgt.target_number = -target_number;
-		string tstr = SimTgt.target_id();
-		cancelTarget(tstr);
-		postTargetList();
-
-	      }
-	    else
-	      MOOSTrace("Target ID  ignored\n");
-
-	    last_time = target_utc;
-	    target_set = true;
-	    m_Comms.Notify("TARGET_RESET","TRUE");
-	  }
-      }
-    else if(Msg.m_sKey == "T_STATE")
+    if(Msg.m_sKey == "TGT_STATE")
       {	
 	if (source_control)
 	  {
-	    MOOSTrace("Got T_STATE message");
+	    MOOSTrace("Got TGT_STATE message");
 	    string val;
 	    val = Msg.m_sVal;
 
@@ -188,15 +137,6 @@ bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
       {	
 	auv_y = Msg.m_dfVal;
 	got_y = true;
-      }
-    else if(Msg.m_sKey == "TARGET_CONTROL")
-      {	
-	string source = Msg.m_sVal;
-	source_control = MOOSStrCmp(source,"ON");
-	if (source_control)
-	  {
-	    m_Comms.Register ("T_STATE", 0);
-	  }
       }
     else
       MOOSTrace("Unrecognized command: [%s]\n",Msg.m_sKey.c_str());  

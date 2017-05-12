@@ -79,17 +79,18 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     ray_acoustics(cfg_.ray_acoustics()),
     rap_acoustics(cfg_.rap_acoustics()),
     sampling_frequency(cfg_.sampling_frequency()),
-  noise_level(cfg_.noise_level()),
-  mseas_svp_updates(cfg_.mseas_svp_updates()), 
-  mseas_update_interval(cfg_.mseas_update_interval()), 
-  svp_range_resolution(cfg_.svp_range_resolution()), 
-  svp_depth_resolution(cfg_.svp_depth_resolution()),
-  base_dir_name(cfg_.base_dir_name()), 
-  acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
-  acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
-  nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
-  nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
-  sync_path(cfg_.sync_path()) 
+    noise_level(cfg_.noise_level()),
+    mseas_svp_updates(cfg_.mseas_svp_updates()), 
+    mseas_update_interval(cfg_.mseas_update_interval()), 
+    svp_range_resolution(cfg_.svp_range_resolution()), 
+    svp_depth_resolution(cfg_.svp_depth_resolution()),
+    base_dir_name(cfg_.base_dir_name()), 
+    acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
+    acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
+    nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
+    nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
+    sync_path(cfg_.sync_path()), 
+    sync_password(cfg_.sync_password())
 {
 
   set_ignore_stale(false);
@@ -949,10 +950,15 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 	  dep_max = std::max(depth,dep_max);
 	  for (int j=0; j < i; j++)
 	    {
-	      spacing = std::min(sqrt(pow(array_x.at(j)-array_x.at(i),2)
+	      double spacing_ij = sqrt(pow(array_x.at(j)-array_x.at(i),2)
 				      + pow(array_y.at(j)-array_y.at(i),2)
-				      + pow(array_z.at(j)-array_z.at(i),2)),
-				 spacing);
+				       + pow(array_z.at(j)-array_z.at(i),2));
+	      if (spacing_ij > 0)
+		spacing = std::min(spacing_ij,spacing);
+	      else
+		glog.is(VERBOSE) && glog << "Warning: array elements " 
+					 << i << " and " << j 
+					 << " are co-located" << std::endl;
 	    }
 	}
       double range = 0.5*(r_min+r_max);
@@ -966,7 +972,10 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       // Raytracing resolution less critical for horizontal variability 
       num_r = int((r_max-r_min)/(10*spacing)) + 3;
       num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 3;
-      glog.is(DEBUG1) && glog << "Ray Tracing box: num ranges: " << num_r
+      glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
+			      << " r_max: " << r_max
+			      << " spacing: " << spacing
+			      << " num ranges: " << num_r
 			      << ", num depths: " << num_dep << std::endl;
       double delta_t = MOOSTime() - target.last_rate_update; 
       if (target.last_rate_update > 0)
@@ -1797,7 +1806,6 @@ bool SimPassiveSonar::write_hyd_file()
 	  acoustic_filename_suffix.c_str()); 
   sprintf(hydrophone_filename_buff,"%s/HYD%09d%s",base_dir_name.c_str(),
 	  frame_number, acoustic_filename_suffix.c_str()); 
-  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
 
   // Got this filename stuff from CpBearingTrack
   
@@ -1896,15 +1904,22 @@ bool SimPassiveSonar::write_hyd_file()
   // Now transfer file to client if on separate host
   if (sync)
     {
-      std::string acoustic_filename(acoustic_filename_buff);
-      std::string cmd = "scp " + acoustic_filename + " " + sync_path;
-      glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
-      system(cmd.c_str());
-      glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
-
-    }
-  
       /*
+	std::string acoustic_filename(acoustic_filename_buff);
+	std::string cmd = "scp " + acoustic_filename + " " + sync_path;
+	glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
+	system(cmd.c_str());
+	glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
+      */
+      std::string sync_cmd = "bash -c 'RSYNC_PASSWORD=" + sync_password 
+	+ " rsync "
+	+ acoustic_filename_buff + " " + sync_path + "/'";
+      glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+      system(sync_cmd.c_str());
+    }
+
+  m_Comms.Notify("SONAR_FILENAME",acoustic_filename_buff);
+/*
   char frame_filename_buff[1000]; 
   sprintf(frame_filename_buff,"%s/frame_count.inp",base_dir_name.c_str());
   
@@ -1921,7 +1936,7 @@ bool SimPassiveSonar::write_hyd_file()
       fprintf (frame_file, "%d\n", 0);
       fclose (frame_file);
     }
-      */
+*/
   return true;
 }
 
