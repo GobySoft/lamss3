@@ -361,8 +361,6 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
 		  auto_prosecute_cmd_.set_target_y(track_y);
 		  auto_prosecute_cmd_.set_target_speed(track_speed);
 		  auto_prosecute_cmd_.set_target_heading(track_heading);
-		  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
-		  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
 		  send_prosecute();
 		}
 	      else
@@ -436,6 +434,9 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
       publish("SONAR_CONTROL","ON");   
       publish("SONAR_PROCESS","ON");   
     }
+
+  if (last_prosecute_cmd_.reset_tracker())
+    reset_tracking();
 
   std::string buff = "heading=" + doubleToString(new_heading,1);
   publish("INIT_TRACK_HEADING",buff);   
@@ -589,6 +590,10 @@ void LamssTrackManager::send_prosecute()
   auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
   auto_prosecute_cmd_.set_target_timestamp(current_time_);
   auto_prosecute_cmd_.set_target_number(1);
+  auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+  auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+  auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
+  auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
   cue_utc_ = auto_prosecute_cmd_.target_timestamp();
   cue_x_ = auto_prosecute_cmd_.target_x();
   cue_y_ = auto_prosecute_cmd_.target_y();
@@ -1008,43 +1013,44 @@ bool LamssTrackManager::postStateVars()
 	// If ambiguity is broken, go to Tracking	  
 	if (trk_state == ABSOLUTE )
 	  {
+	    // Publish target bearing and broadside heading
+	    publish("TARGET_BEARING",angle360(trk_bearing));
+	    double broadside_heading = angle360(trk_bearing + 90.0);
+	    if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
+		fabs(broadside_heading - prosecute_heading) >= 270.0)
+	      publish("BROADSIDE_HEADING","heading="+
+		      doubleToString(broadside_heading,1));
+	    else
+	      publish("BROADSIDE_HEADING","heading="+
+		      doubleToString(angle360(broadside_heading + 180.0)));
+	    
+	    // set tracking depth to current depth for non-adaptive tracking
+	    std::string tracking_depth_update = "depth=" 
+	      + doubleToString(last_nav_.global_fix().depth());
+	    publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
 	    if (localization_active_)
+	      queue_event<EvToTracking>();
+	    else
 	      {
-		// Publish target bearing and broadside heading
-		publish("TARGET_BEARING",angle360(trk_bearing));
-		double broadside_heading = angle360(trk_bearing + 90.0);
-		if (fabs(broadside_heading - prosecute_heading) <= 90.0 || 
-		    fabs(broadside_heading - prosecute_heading) >= 270.0)
-		  publish("BROADSIDE_HEADING","heading="+
-			  doubleToString(broadside_heading,1));
-		else
-		  publish("BROADSIDE_HEADING","heading="+
-			  doubleToString(angle360(broadside_heading + 180.0)));
-		
-		// set tracking depth to current depth for non-adaptive tracking
-		std::string tracking_depth_update = "depth=" 
-		  + doubleToString(last_nav_.global_fix().depth());
-		publish("SENSOR_DEPTH_TRACKING",tracking_depth_update);
+		queue_event<EvToLocalization>();
 		queue_event<EvToTracking>();
-		// m_Comms.Notify ("TRACKING","TRACKING");
-  //
-  // Update parameters for Auto Prosecute
-  //
-		if (deploy_mode_active_ && auto_prosecute_ )
-		  {
-		    auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
-						     sin(trk_bearing*M_PI/180.0) + 
-						     last_nav_.local_fix().x());
-		    auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
-						     cos(trk_bearing*M_PI/180.0) + 
-						     last_nav_.local_fix().y());
-		    auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
-		    auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
-		    auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
-		    auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
-		    prosecute_pending_ = true;
-		    //		    send_prosecute();
-		  }
+	      }
+	    //
+	    // Update parameters for Auto Prosecute
+	    //
+	    if (deploy_mode_active_ && auto_prosecute_ )
+	      {
+		auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
+						 sin(trk_bearing*M_PI/180.0) + 
+						 last_nav_.local_fix().x());
+		auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
+						 cos(trk_bearing*M_PI/180.0) + 
+						 last_nav_.local_fix().y());
+		auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
+		auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
+		auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
+		auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
+		prosecute_pending_ = true;
 	      }
 	  }
 	else if (trk_state == RELATIVE)
