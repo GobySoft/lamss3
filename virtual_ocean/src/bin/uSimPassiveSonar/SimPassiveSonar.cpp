@@ -1913,7 +1913,7 @@ bool SimPassiveSonar::write_hyd_file()
       */
       std::string sync_cmd = "bash -c 'RSYNC_PASSWORD=" + sync_password 
 	+ " rsync "
-	+ acoustic_filename_buff + " " + sync_path + "/'";
+	+ acoustic_filename_buff + " " + sync_path + "/ --daemon'";
       glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
       system(sync_cmd.c_str());
     }
