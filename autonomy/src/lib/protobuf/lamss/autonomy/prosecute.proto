@@ -3,9 +3,9 @@ import "goby/common/protobuf/option_extensions.proto";
 message LAMSS_PROSECUTE { 
 	option (dccl.msg).id = 19;
 	option (dccl.msg).max_bytes = 32;
-	optional double Target_Timestamp = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
-	optional int32 DestinationPlatformId = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PROSECUTE", (dccl.field).static_value="LAMSS_PROSECUTE", (dccl.field).codec="_static"];
 	optional Prosecute_MissionEnum Prosecute_Mission = 15 [default=PROSECUTE_MISSION_TRACK_ONLY];
 	enum Prosecute_MissionEnum{ 
