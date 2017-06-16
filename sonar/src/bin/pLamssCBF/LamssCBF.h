@@ -21,6 +21,7 @@
 #include "lamss/lib_lamss_protobuf/SonarProcessingCommand.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
+#include "lamss/lib_lamss_protobuf/lamss_processing.pb.h" // DCCL message
 
 
 class CBFException : public std::runtime_error
@@ -79,6 +80,7 @@ class LamssCBF : public GobyMOOSApp
     void handle_homing_mode(const CMOOSMsg& msg);
     void handle_homing_beacon_frequency(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
+    void handle_processing(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
 
     void set_processing_mode(bool homing_processing_mode);

@@ -89,6 +89,7 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
 	      &LamssCBF::handle_homing_mode, this);    
     subscribe("VEHICLE_ID", &LamssCBF::handle_vehicle_id, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssCBF::handle_prosecute, this);
+    subscribe("LAMSS_PROCESSING_IN", &LamssCBF::handle_processing, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssCBF::handle_deploy, this);
 
     scheduler_.initiate_processor(fsm_);  
@@ -323,7 +324,7 @@ void LamssCBF::handle_deploy(const CMOOSMsg& msg)
 {
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
-  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+  if (deploy_cmd._rcv_id() == vehicle_id_)
     {
       curr_cfg_ = cfg_;
       set_processing_mode(false);
@@ -336,7 +337,7 @@ void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   // Only handle messages for me
   curr_cfg_ = cfg_;
-  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
+  if (prosecute_cmd._rcv_id() == vehicle_id_)
     {
       if (prosecute_cmd.processing_type() == LAMSS_PROSECUTE::TONES)
 	{
@@ -354,6 +355,35 @@ void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
 	  curr_cfg_.set_processing_type(LamssCBFConfig::BROADBAND);
 	  curr_cfg_.set_center_frequency(prosecute_cmd.center_frequency());
 	  curr_cfg_.set_bandwidth(prosecute_cmd.bandwidth());
+	}
+      set_processing_mode(false);
+    }  
+}
+
+void LamssCBF::handle_processing(const CMOOSMsg& msg)
+{
+  LAMSS_PROCESSING processing_cmd;
+  parse_for_moos(msg.GetString(), &processing_cmd);
+  // Only handle messages for me
+  curr_cfg_ = cfg_;
+  if (processing_cmd._rcv_id() == vehicle_id_)
+    {
+      if (processing_cmd.processing_type() == LAMSS_PROCESSING::TONES)
+	{
+	  curr_cfg_.set_processing_type(LamssCBFConfig::TONES);
+	  stringstream cc;
+	  cc << doubleToString(processing_cmd.tone_1(),1) ;
+	  if (processing_cmd.tone_2() > 0)
+	    cc << "," << doubleToString(processing_cmd.tone_2(),1) ;
+	  if (processing_cmd.tone_3() > 0)
+	    cc << "," << doubleToString(processing_cmd.tone_3(),1) ;
+	  curr_cfg_.set_frequency_bins(cc.str());
+	}
+      else
+	{
+	  curr_cfg_.set_processing_type(LamssCBFConfig::BROADBAND);
+	  curr_cfg_.set_center_frequency(processing_cmd.center_frequency());
+	  curr_cfg_.set_bandwidth(processing_cmd.bandwidth());
 	}
       set_processing_mode(false);
     }  
