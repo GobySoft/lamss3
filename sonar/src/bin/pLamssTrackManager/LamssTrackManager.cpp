@@ -310,7 +310,7 @@ void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
 {
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
-  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+  if (deploy_cmd._rcv_id() == vehicle_id_)
     {
       last_deploy_cmd_ = deploy_cmd;
       sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
@@ -383,12 +383,12 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
 {
   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
-  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
+  if (prosecute_cmd._rcv_id() == vehicle_id_)
     last_prosecute_cmd_ = prosecute_cmd;
 
   // set up  search parameters from target cue
 
-  cue_utc_ = last_prosecute_cmd_.target_timestamp();
+  cue_utc_ = last_prosecute_cmd_._time();
   cue_x_ = last_prosecute_cmd_.target_x();
   cue_y_ = last_prosecute_cmd_.target_y();
   cue_heading_= last_prosecute_cmd_.target_heading();
@@ -565,9 +565,9 @@ void LamssTrackManager::send_deploy()
 {
   LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
   std::string serialized;
-  redeploy.set_timestamp(MOOSTime());
+  redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
-  redeploy.set_destinationplatformid(vehicle_id_);
+  redeploy.set__rcv_id(vehicle_id_);
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssTrackManagerConfig::STATION)
     {
@@ -587,14 +587,14 @@ void LamssTrackManager::send_deploy()
 void LamssTrackManager::send_prosecute()
 {
   auto_prosecute_cmd_.set__src_id(vehicle_id_);
-  auto_prosecute_cmd_.set_destinationplatformid(vehicle_id_);
-  auto_prosecute_cmd_.set_target_timestamp(current_time_);
+  auto_prosecute_cmd_.set__rcv_id(vehicle_id_);
+  auto_prosecute_cmd_.set__time(current_time_);
   auto_prosecute_cmd_.set_target_number(1);
   auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
   auto_prosecute_cmd_.set_array_angle(cfg_.auto_prosecute_array_angle());
   auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
   auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
-  cue_utc_ = auto_prosecute_cmd_.target_timestamp();
+  cue_utc_ = auto_prosecute_cmd_._time();
   cue_x_ = auto_prosecute_cmd_.target_x();
   cue_y_ = auto_prosecute_cmd_.target_y();
   cue_heading_= auto_prosecute_cmd_.target_heading();
