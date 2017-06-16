@@ -160,7 +160,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 		       << std::endl;
 	  }
 
-    double remaining = last_prosecute_cmd_.target_timestamp() +
+    double remaining = last_prosecute_cmd_._time() +
       last_prosecute_cmd_.prosecute_duration() -
       curr_time;
     if (remaining <= 0.0)
@@ -261,9 +261,9 @@ void LamssMissionManager::send_deploy()
 {
   LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
   std::string serialized;
-  redeploy.set_timestamp(MOOSTime());
+  redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
-  redeploy.set_destinationplatformid(vehicle_id_);
+  redeploy.set__rcv_id(vehicle_id_);
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssMissionManagerConfig::CURRENT)
     {
@@ -284,8 +284,8 @@ void LamssMissionManager::homing_prosecute()
 {
   LAMSS_PROSECUTE prosecute_cmd;
   prosecute_cmd.set__src_id(vehicle_id_);
-  prosecute_cmd.set_destinationplatformid(vehicle_id_);
-  prosecute_cmd.set_target_timestamp(current_time_);
+  prosecute_cmd.set__rcv_id(vehicle_id_);
+  prosecute_cmd.set__time(current_time_);
   prosecute_cmd.set_target_number(2);
   prosecute_cmd.set_target_x(abort_x);
   prosecute_cmd.set_target_y(abort_y);
@@ -353,9 +353,9 @@ void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
-  init_deploy_cmd.set_timestamp(MOOSTime());
+  init_deploy_cmd.set__time(MOOSTime());
 
-  init_deploy_cmd.set_destinationplatformid(vehicle_id_);
+  init_deploy_cmd.set__rcv_id(vehicle_id_);
 
   // Auto prosecute only on initial deploy
   if (initial_deploy_done_)
@@ -384,7 +384,7 @@ void LamssMissionManager::initial_transit()
   // Note that the initial will have topside origin to allow resetting
   // deploy_duration by poking for no-modem use.
   init_transit_cmd.set__src_id(cfg_.topside_id());
-  init_transit_cmd.set_destinationplatformid(vehicle_id_);
+  init_transit_cmd.set__rcv_id(vehicle_id_);
 
   std::string serialized;
   serialize_for_moos(&serialized,init_transit_cmd);
@@ -407,7 +407,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
   // Only handle messages for me
-  if (deploy_cmd.destinationplatformid() == vehicle_id_)
+  if (deploy_cmd._rcv_id() == vehicle_id_)
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_deploy_cmd_ = deploy_cmd;
@@ -463,7 +463,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   // Only handle messages for me
-  if (prosecute_cmd.destinationplatformid() == vehicle_id_)
+  if (prosecute_cmd._rcv_id() == vehicle_id_)
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_prosecute_cmd_ = prosecute_cmd;
