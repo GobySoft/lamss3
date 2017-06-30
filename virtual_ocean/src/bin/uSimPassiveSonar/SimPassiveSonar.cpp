@@ -1913,7 +1913,7 @@ bool SimPassiveSonar::write_hyd_file()
       */
       std::string sync_cmd = "bash -c 'RSYNC_PASSWORD=" + sync_password 
 	+ " rsync "
-	+ acoustic_filename_buff + " " + sync_path + "/ --daemon'";
+	+ acoustic_filename_buff + " " + sync_path + "/'";
       glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
       system(sync_cmd.c_str());
     }
@@ -2032,11 +2032,13 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
       glog.is(DEBUG1) && glog << "Wrote file: " << nonacoustic_filename_buff << endl;
       if (sync)
 	{
+
 	  std::string nonacoustic_filename(nonacoustic_filename_buff);
-	  std::string cmd = "scp -B " + nonacoustic_filename + " " + sync_path;
-	  glog.is(DEBUG1) && glog << "Synching with: " << cmd << endl;
-	  system(cmd.c_str());
-	  glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
+	  std::string sync_cmd = "bash -c 'RSYNC_PASSWORD=" + sync_password 
+	    + " rsync "
+	    + nonacoustic_filename + " " + sync_path + "/'";
+	  glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+	  system(sync_cmd.c_str());
 	}
     }
   
