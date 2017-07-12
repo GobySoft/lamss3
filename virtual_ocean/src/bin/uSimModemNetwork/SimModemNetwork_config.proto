@@ -1,0 +1,21 @@
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/common/protobuf/option_extensions.proto";
+
+message SimModemNetworkConfig
+{
+  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+  optional double acomms_frequency = 10 [default = 3500];
+  optional int32  max_number_bounces = 11  [default = 1];
+  optional double raytracing_interval = 12 [default = 30];
+  optional double raytracing_range_box = 13 [default = 50];
+  optional bool   mseas_svp_updates = 23 [default = false];
+  optional double mseas_update_interval = 24 [default = 60];
+  optional double svp_range_resolution = 25 [default = 200];
+  optional double svp_depth_resolution = 26 [default = 20];
+
+  repeated string node = 30;
+
+}
+
+

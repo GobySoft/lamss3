@@ -1,0 +1,850 @@
+// copyright 2010 H. Schmidt henrik@mit.edu
+// 
+// this file is part of lamss-shared-shared, a collection of MOOS
+// processes for underwater acoustic simulation
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "SimModemNetwork.h"
+#include <sstream>
+#include <cstring>
+#include <boost/lexical_cast.hpp>
+#include <boost/assign.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
+#include <boost/math/special_functions.hpp>
+
+
+#include "goby/version.h"
+#if GOBY_VERSION_MAJOR >= 2
+#include "goby/moos/moos_string.h"
+using goby::moos::val_from_string;
+#else
+#include "goby/util/string.h"
+using goby::util::val_from_string;
+#endif
+
+//#include "goby/util/time.h"
+
+using namespace std;
+
+using namespace goby::common::logger;
+using namespace goby::common::logger_lock;
+namespace gpb = goby::moos::protobuf;
+using goby::common::goby_time;
+using goby::glog;
+
+const double pi = 3.14159;
+
+boost::shared_ptr<SimModemNetworkConfig> master_config;
+SimModemNetwork* SimModemNetwork::inst_ = 0;
+void* SimModemNetwork::driver_library_handle_= 0;
+
+int main(int argc, char * argv[])
+{
+    return goby::moos::run<SimModemNetwork>(argc, argv);
+}
+
+SimModemNetwork* SimModemNetwork::get_instance()
+{
+    if(!inst_)    {
+        master_config.reset(new SimModemNetworkConfig);
+        inst_ = new SimModemNetwork(*master_config);
+    }
+    return inst_;
+}
+
+SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
+  : GobyMOOSApp(&cfg),
+    cfg_(cfg),
+    max_number_bounces(cfg_.max_number_bounces()),
+    mseas_svp_updates(cfg_.mseas_svp_updates()), 
+    mseas_update_interval(cfg_.mseas_update_interval()), 
+    svp_range_resolution(cfg_.svp_range_resolution()), 
+    svp_depth_resolution(cfg_.svp_depth_resolution()),
+    sound_speed(1500.0)
+{
+
+  set_ignore_stale(false);
+  
+  // set up subscriptions before starting separate thread
+  subscribe("BELLHOP_RESPONSE", &SimModemNetwork::handle_bellhop_response, this);    
+  subscribe("SVP_RESPONSE", &SimModemNetwork::handle_svp_response, this);    
+  subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
+  subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
+
+  //
+  glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+  //
+  // Initialize
+  //
+  
+  m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
+  // Clear ray buffer
+  eig.clear();
+  
+  time_last = 0;
+  frame_number = 0;
+  
+  debug = false;
+  debug2 = false;
+
+  start_time = MOOSTime();
+
+  svp_requests.clear();
+  slow_loop_period = 10; 
+
+  // Initilize nodes and acoustic contacts connections)
+  // fixed to 2 nodes, generalize for dynamic allocation
+  Nodes.resize(cfg_.node_size());
+  acoustic_contacts.clear();
+  for (int i=0; i<Nodes.size(); i++ ) 
+    {
+      Nodes[i].name = cfg_.node(i); 
+      Nodes[i].ok_info = false;
+      for (int j=0; j<Nodes.size() ; j++ )
+	{
+	  if (i != j)
+	    {
+	      CAcousticContact New;
+	      New.ownship = cfg_.node(i);
+	      New.contact = cfg_.node(j);
+	      New.ready = false;
+	      New.svp_ready = false;
+	      New.last_request = 0;
+	      New.last_svp_request = 0;
+	      acoustic_contacts.push_back(New);
+	      glog.is(VERBOSE) && glog << "Creating contact " << New.contact
+				       << "->" << New.ownship << endl;
+	    }
+	} 
+    }
+}
+
+void SimModemNetwork::handle_bellhop_response(const CMOOSMsg& msg)
+{
+  iBellhopResponse bellhop_response;
+  std::string serialized_bellhop_response = msg.GetString();
+  parse_for_moos(serialized_bellhop_response, &bellhop_response);
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      bool my_resp = 
+	(bellhop_response.requestor() == "uSimModemNetwork") &&
+	(bellhop_response.request_number() == acoustic_contacts[i].bellhop_request_id) ;
+      
+      if (my_resp)
+	{      
+	  if (bellhop_response.has_output_file())
+	    {
+	      std::string bellhop_in = bellhop_response.output_file();
+	       glog.is(VERBOSE) && glog << "Bellhop response " 
+			<< acoustic_contacts[i].bellhop_request_id 
+			<< " --- " << bellhop_in << std::endl;
+	      
+	      acoustic_contacts[i].ready = 
+		acoustic_contacts[i].ray_table.readEigenRayTable(bellhop_in, 
+								 max_number_bounces);
+	      if (acoustic_contacts[i].ready)
+		{
+		  //		  number_depths = eigenray_table.getDepths(depth);
+		  // Clear request id so we don't reprocess later
+		  acoustic_contacts[i].bellhop_request_id = 0;
+		}
+	      else
+		 glog.is(VERBOSE) && glog << "error reading eigenray table " << std::endl;
+	      
+	    }
+	}
+    }
+}
+
+void SimModemNetwork::handle_svp_response(const CMOOSMsg& msg)
+{
+  handleSVPResponse(msg);
+}
+
+void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
+{
+  std::string node_report = msg.GetString();
+  std::string node_name;
+  MOOSValFromString(node_name,node_report,"NAME");
+  for (int i=0; i<Nodes.size(); i++)
+    {
+      if ( MOOSStrCmp(tolower(node_name),tolower(Nodes[i].name)) )
+	{
+	  bool got_node_utc = MOOSValFromString(Nodes[i].utc,
+						node_report,"UTC_TIME");
+	  bool got_node_x = MOOSValFromString(Nodes[i].x,node_report,"X");
+	  bool got_node_y = MOOSValFromString(Nodes[i].y,node_report,"Y");
+	  bool got_node_dep = MOOSValFromString(Nodes[i].depth,node_report,"DEPTH");
+	  bool got_node_spd = MOOSValFromString(Nodes[i].speed,node_report,"SPD");
+	  if (!got_node_spd)
+	    Nodes[i].speed = 0;
+	  bool got_node_hdg = MOOSValFromString(Nodes[i].heading,node_report,"HDG");
+	  if (!got_node_hdg)
+	    Nodes[i].heading = 0;
+	  Nodes[i].ok_info = got_node_utc & got_node_x & got_node_y & got_node_dep;
+	  glog.is(DEBUG1) && glog << "Got info for node: " 
+				  << node_name << endl;
+	}
+    }
+}
+
+void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
+{
+  ImpulseRequest request;
+  std::string serialized_impulse_request = msg.GetString();
+  parse_for_moos(serialized_impulse_request, &request);
+  int con = findAcousticContact(request.source(),request.receiver()); 
+  bool got_info = getNodeInfo(acoustic_contacts[con].ownship,ownship_x,ownship_y,
+				  ownship_depth,ownship_heading,ownship_speed) &&
+    getNodeInfo(acoustic_contacts[con].contact,contact_x,contact_y,
+		contact_depth,contact_heading,contact_speed) ; 
+  if (got_info && generate_eigenray_table(acoustic_contacts[con]))  
+    {
+      ImpulseResponse message;
+      message.set_source(acoustic_contacts[con].contact);
+      message.set_receiver(acoustic_contacts[con].ownship);
+      std::vector<double> delay;
+      std::vector<double> amplitude;
+      std::vector<double> doppler;
+      modem_ray_arrivals(acoustic_contacts[con].ray_table,
+			 delay,amplitude,doppler);
+      ImpulseResponse::RayTrace* raytrace = 0;
+      for (int j = 0; j < delay.size(); j++)
+	{
+	  raytrace = message.add_raytrace();
+	  raytrace -> set_delay(delay[j]);
+	  raytrace -> set_amplitude(amplitude[j]);
+	  raytrace -> set_doppler(doppler[j]);
+	}
+      std::string serialized_impulse_response;
+      serialize_for_moos(&serialized_impulse_response,message);
+      m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
+    }
+}
+
+void SimModemNetwork::loop()
+{
+  
+  double curr_time = MOOSTime();
+  
+  // request SVP from queue: last in first out!
+  if (svp_requests.size() > 0)
+    {
+      m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
+      svp_requests.pop_back();
+    }  
+
+  // request BELLHOP from queue: last in first out!
+  if (bellhop_requests.size() > 0)
+    {
+      m_Comms.Notify("BELLHOP_REQUEST", bellhop_requests[bellhop_requests.size()-1]);
+      bellhop_requests.pop_back();
+    }  
+
+  // process some events at a slower rate
+  //const int slow_loop_period = 10;
+
+  if(curr_time > last_slow_loop_t_ + slow_loop_period)
+    slow_loop(curr_time);
+  
+}
+
+void SimModemNetwork::slow_loop(double curr_time)
+{
+  // Update all acoustic contacts and extract requested impulse responses 
+
+  for (int i=0; i< acoustic_contacts.size(); i++)
+    {
+      bool got_info = getNodeInfo(acoustic_contacts[i].ownship,ownship_x,ownship_y,
+				  ownship_depth,ownship_heading,ownship_speed) &&
+	getNodeInfo(acoustic_contacts[i].contact,contact_x,contact_y,
+		    contact_depth,contact_heading,contact_speed) ; 
+      if (got_info && generate_eigenray_table(acoustic_contacts[i]))  
+	{
+	  glog.is(VERBOSE) && glog << "Updated ray table for " 
+				   << acoustic_contacts[i].contact
+				   << "->" << acoustic_contacts[i].ownship << endl;
+	}
+      else
+	{
+	  glog.is(VERBOSE) && glog << "Waiting for info for " 
+				   << acoustic_contacts[i].contact
+				   << "->" << acoustic_contacts[i].ownship << endl;
+	}
+    }
+
+  // Here we should add slow loop actions.
+  last_slow_loop_t_ = curr_time;
+}
+
+bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact)
+{
+  bool eigenrays_ready = false;
+  
+  double range_x = (ownship_x - contact_x);
+  double range_y = (ownship_y - contact_y);
+  double range_req = sqrt(range_x*range_x + range_y*range_y);
+  double depth_req = ownship_depth;
+  
+  
+  // first get the ray table for this contact
+  if (getAcousticContact(acoustic_contact.ownship,
+			 acoustic_contact.contact,
+			 eigenray_table))
+    {
+      CEigenRay eig;
+      // Get the closest eigenray bundle
+      eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
+      
+      glog.is(VERBOSE) && glog << "Contact range = " << range_req
+			       << " Raytracing range = " << eig.range
+			       << endl;
+      glog.is(VERBOSE) && glog << "Ownship depth = " << depth_req
+			       << " Raytracing depth = "
+			       << eig.receiver_depth << endl;
+      glog.is(VERBOSE) && glog << "Number of eigenrays: " 
+			       << eig.num_rays << endl;
+      tl_est = 1e-30;
+      for (int iray = 0; iray < eig.num_rays; iray++)
+	{
+	  tl_est += pow(eig.bundle[iray].amp,2);
+	}
+      tl_est = - 10.0 * log10(tl_est/eig.num_rays);
+      glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
+      
+      if (fabs(range_req - acoustic_contact.last_range) > cfg_.raytracing_range_box())
+	{
+	  double range_min;
+	  double range_max;
+	  double depth_min;
+	  double depth_max;
+	  int num_ranges;
+	  int num_depths;
+	  defineRayTracingBox(acoustic_contact,
+			      range_min,range_max,
+			      depth_min,depth_max,
+			      num_ranges,num_depths);
+	  requestRayTrace(acoustic_contact.ownship,acoustic_contact.contact, 
+			  range_min, range_max, num_ranges, 
+			  depth_min, depth_max, num_depths,
+			  cfg_.acomms_frequency());
+	}
+      // if mseas_svp_updates, request SVP
+      if ( mseas_svp_updates && 
+	   (MOOSTime() - acoustic_contact.last_svp_request >= 
+	    mseas_update_interval ) )
+	{
+	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
+	}
+      eigenrays_ready = true;
+    }
+  else if (MOOSTime() - acoustic_contact.last_request > cfg_.raytracing_interval())
+    {
+      double range_min;
+      double range_max;
+      double depth_min;
+      double depth_max;
+      int num_ranges;
+      int num_depths;
+      defineRayTracingBox(acoustic_contact,
+			  range_min,range_max,
+			  depth_min,depth_max,
+			  num_ranges,num_depths);
+      requestRayTrace(acoustic_contact.ownship, acoustic_contact.contact, 
+		      range_min, range_max, num_ranges, 
+		      depth_min, depth_max, num_depths,
+		      cfg_.acomms_frequency());
+		  
+      // if mseas_svp_updates, request SVP
+      if (mseas_svp_updates &&
+	  (MOOSTime() - acoustic_contact.last_svp_request >= 
+	   mseas_update_interval) )
+	{
+	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
+	}
+		  
+    }
+
+  return(eigenrays_ready);
+
+}
+
+bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
+					  double& r_min,
+					  double& r_max,
+					  double& dep_min,
+					  double& dep_max,
+					  int& num_r,
+					  int& num_dep)
+ {
+   r_min = 1e8;
+   r_max = -1e8;
+   dep_min = 1e8;
+   dep_max = -1e8;
+   double spacing=1e8;
+   
+   double range_x = (ownship_x - contact_x);
+   double range_y = (ownship_y - contact_y);
+   double range = sqrt(range_x*range_x + range_y*range_y) ;
+   double depth = ownship_depth; 
+   r_min = std::min(range,r_min);
+   r_max = std::max(range,r_max);
+   dep_min = std::min(depth,dep_min);
+   dep_max = std::max(depth,dep_max);
+   
+   if (acoustic_contact.last_rate <= 0)
+     r_min -= 2*cfg_.raytracing_range_box();
+   if (acoustic_contact.last_rate >= 0)
+     r_max += 2*cfg_.raytracing_range_box();
+   
+   // Raytracing resolution less critical for horizontal variability 
+   num_r = 3;
+   num_dep = 3;
+   glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
+			   << " r_max: " << r_max
+			   << " spacing: " << spacing
+			   << " num ranges: " << num_r
+			   << ", num depths: " << num_dep << std::endl;
+   double delta_t = MOOSTime() - acoustic_contact.last_rate_update; 
+   if (acoustic_contact.last_rate_update > 0)
+     {
+       acoustic_contact.last_rate = (range-acoustic_contact.last_range)/delta_t;	    
+       glog.is(DEBUG1) && glog << endl << ">>> rate_update= " 
+			       << acoustic_contact.last_rate << endl; 
+       glog.is(DEBUG1) && glog  << ">>> delta_t = " << delta_t << endl << endl ;
+     }
+   else
+     acoustic_contact.last_rate = 0;
+   acoustic_contact.last_range = range;
+   acoustic_contact.last_rate_update = MOOSTime();
+   return(true);
+   
+}
+ 
+ 
+ void SimModemNetwork::modem_ray_arrivals(CEigenRayTable eigenray_table,
+					  std::vector<double> & delay,
+					  std::vector<double> & amplitude,
+					  std::vector<double> & doppler)
+{
+  // Project absolute vs response onto physical orientation
+  double deg2rad = M_PI/180;
+  double hd_ang = ownship_heading*deg2rad;
+  double el_ang = ownship_pitch;
+  double vs_costh = cos(hd_ang);
+  double vs_sinth = sin(hd_ang);
+  double vs_cosel = cos(el_ang);
+  double vs_sinel = sin(el_ang);
+      
+  double range_x = (ownship_x - contact_x);
+  double range_y = (ownship_y - contact_y);
+  double range = sqrt(range_x*range_x + range_y*range_y);
+      
+  // Get eigenrays closesst to phone
+  double range_ref, depth_ref;
+  CEigenRay eig;
+      
+  double depth_req = ownship_depth;
+  eigenray_table.getEigenRays(range, depth_req, 
+			      range_ref, depth_ref, eig);
+  double range_ray = eig.range;
+  double depth_ray = eig.receiver_depth;
+  int num_rays     = eig.num_rays;
+  glog.is(DEBUG1) && glog << "Source range= " << range
+			  << " Raytracing range = " << eig.range << endl;
+  glog.is(DEBUG1) && glog << "Receiver depth= " << depth_req 
+			  << " Raytracing depth = " << eig.receiver_depth
+			  << endl;
+  glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
+	
+  double delta_r = range - range_ray;
+  double delta_dep = ownship_depth - depth_ray;  
+  double delta_z = - delta_dep;
+
+  // Computing vector components in absolute coordinates
+  double costh = cos(atan2(range_y, range_x));
+  double sinth = sin(atan2(range_y, range_x));
+  // Get eigenray delays for sensor
+  std::vector<double> ray_delays;
+  std::vector<double> ray_amplitudes;
+  std::vector<double> rcv_ray_cos;
+  std::vector<double> src_ray_cos;
+  ray_arrivals(eig, 
+	       range,
+	       depth_req,
+	       src_ray_cos,
+	       rcv_ray_cos,
+	       ray_delays, 
+	       ray_amplitudes); 
+  // doppler_corrections
+  double vr_S;
+  double vr_R;
+  ray_doppler_vel(contact_speed, (90.0-contact_heading)*M_PI/180.0, 
+		  contact_pitch,
+		  ownship_speed, (90.0-ownship_heading)*M_PI/180.0, 
+		  ownship_pitch,
+		  vr_S,vr_R);
+  std::vector<double> ray_doppler;
+  ray_doppler.resize(eig.num_rays);
+  
+  double oneossp = 1/sound_speed;
+      
+  for (int i_ray=0; i_ray < eig.num_rays; i_ray++)
+    {
+      ray_delays[i_ray] = ray_delays[i_ray]*
+	(1.0+vr_R*rcv_ray_cos[i_ray]*oneossp);
+      ray_doppler[i_ray] = 1 + (src_ray_cos[i_ray]*vr_S - 
+				rcv_ray_cos[i_ray]*vr_R)*oneossp;
+    }
+  delay = ray_delays;
+  amplitude = ray_amplitudes;
+  doppler= ray_doppler;
+}
+
+ 
+ bool SimModemNetwork::ray_arrivals(CEigenRay eig, 
+				    double rcv_range,
+				    double rcv_depth, 
+				   std::vector<double> & cos_Src,
+				   std::vector<double> & cos_Rcv,
+				   std::vector<double> & delays, 
+				   std::vector<double> & amplitudes)
+{
+  int num_eig_rays = eig.num_rays;
+  //1. calculate velocities of each array elements in x, y, and z directions
+  cos_Src.resize(num_eig_rays);
+  cos_Rcv.resize(num_eig_rays);
+  std::vector<double>sin_Rcv;
+  sin_Rcv.resize(num_eig_rays);
+  std::vector<double>amp;
+  amp.resize(num_eig_rays);
+  if (num_eig_rays>0)
+    {
+      // Vertical ray angles
+      for(int i_ray=0; i_ray<num_eig_rays; i_ray++)
+	{ cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
+	  cos_Rcv[i_ray] = cos(eig.bundle[i_ray].dip_receiver);
+	  sin_Rcv[i_ray] = sin(-eig.bundle[i_ray].dip_receiver);
+	  // free surface reflection handled by change of sign
+	  if(abs(abs(eig.bundle[i_ray].phase)-M_PI)<=0.1) 
+	    amp[i_ray] = -eig.bundle[i_ray].amp;
+	  else
+	    amp[i_ray] = eig.bundle[i_ray].amp;
+	}
+      
+      double ref_range = eig.range;
+      double ref_depth = eig.receiver_depth;
+
+      double dz = rcv_depth - ref_depth;
+      double dr = rcv_range - ref_range;
+      double oneossp = 1/sound_speed;
+      delays.resize(num_eig_rays);
+      amplitudes.resize(num_eig_rays);
+      for(int ray_iter=0; ray_iter<num_eig_rays; ray_iter++)
+	{
+	      delays[ray_iter] = (eig.bundle[ray_iter].tau + 
+				  (((dr*cos_Rcv[ray_iter]) + 
+				    (dz*sin_Rcv[ray_iter]))*
+				   oneossp));
+	      amplitudes[ray_iter] = amp[ray_iter];    
+	}
+      return(true);
+    }
+  return(false);
+}
+
+void SimModemNetwork::ray_doppler_vel(double v_S, double a_S,double e_S, 
+				      double v_R, double a_R, double e_R, 
+				      double& vr_S, double& vr_R )
+{
+  //
+  // Computes the projected doppler velocities for an eigenray
+  //
+  double dt=0;
+
+  double vx_S=v_S*cos(e_S)*cos(a_S);
+  double vy_S=v_S*cos(e_S)*sin(a_S);
+  double xp_S=contact_x+vx_S*dt;
+  double yp_S=contact_y+vy_S*dt;
+  // and current receiver locations
+  double vx_R=v_R*cos(e_R)*cos(a_R);
+  double vy_R=v_R*cos(e_R)*sin(a_R);
+  double xp_R=ownship_x+vx_R*dt;
+  double yp_R=ownship_y+vy_R*dt;
+  
+  // projected relative velocities
+  double dist_TR = sqrt(pow((xp_R - xp_S),2) +pow((yp_R - yp_S),2));
+  vr_S = ((vx_S*(xp_R - xp_S)) + (vy_S*(yp_R - yp_S)))/dist_TR;
+  vr_R = ((vx_R*(xp_R - xp_S)) + (vy_R*(yp_R - yp_S)))/dist_TR;
+}
+
+bool SimModemNetwork::getNodeInfo(std::string node_name,
+				  double& node_x ,
+				  double& node_y ,
+				  double& node_depth , 
+				  double& node_heading ,
+				  double& node_speed )
+{
+  for (int i =  0; i < Nodes.size(); i++) 
+    if (MOOSStrCmp(node_name,Nodes[i].name) && Nodes[i].ok_info)
+      {
+	node_name = Nodes[i].name;
+	node_x = Nodes[i].x;
+	node_y = Nodes[i].y;
+	node_depth = Nodes[i].depth;
+	node_heading = Nodes[i].heading;
+	node_speed = Nodes[i].speed;
+	double utc = MOOSTime();
+	node_x = node_x+node_speed*sin(node_heading*M_PI/80.0)*(utc-Nodes[i].utc);
+	node_y = node_y+node_speed*cos(node_heading*M_PI/80.0)*(utc-Nodes[i].utc);
+	return true;
+      }
+  return false;
+}
+
+int SimModemNetwork::findAcousticContact(std::string os,
+					 std::string cn)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  return(i); 
+	}
+    }
+  // not found, something wrong, return -1
+  return(-1);
+}
+
+bool SimModemNetwork::putAcousticContactSVP(SVP::Response svp_response)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (svp_response.request_id() == acoustic_contacts[i].svp_request_id)
+	{
+	  acoustic_contacts[i].svp_response = svp_response;
+	  acoustic_contacts[i].svp_ready = true;
+	  return(true); 
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::getAcousticContact(std::string os, 
+					 std::string cn, 
+					 CEigenRayTable& eig_table )
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  eig_table = acoustic_contacts[i].ray_table;
+	  if (eig_table.num_ranges > 0 && eig_table.num_depths > 0)
+	    return(true);
+	  else
+	    return(false);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::getAcousticContactSVP(std::string os, 
+					    std::string cn, 
+					    SVP::Response& svp_response )
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  if(acoustic_contacts[i].svp_ready)
+	    {
+	      svp_response = acoustic_contacts[i].svp_response;
+	      return(true);
+	    }
+	  else
+	    return(false);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::readyAcousticContact(std::string os, std::string cn)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  return(acoustic_contacts[i].ready);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::readyAcousticContactSVP(std::string os, std::string cn)
+{
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  return(acoustic_contacts[i].svp_ready);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,  
+				       double r_min, double r_max, int num_r, 
+				       double dep_min, double dep_max, int num_dep,
+				       double freq)
+{
+
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  // if we waited more than twice the interval, iBellhop must have missed request
+	  if (readyAcousticContact(os,cn) || (MOOSTime() - acoustic_contacts[i].last_request) > 2*cfg_.raytracing_interval())
+	    {
+	      // Request raytracing
+	      string acoustic_contact = cn;
+
+	      //	      double direct_theta = atan2(depth,range)*180.0/M_PI;
+	      double theta_max = 60.0;
+	      //	      if (direct_theta > 0.5*theta_max)
+	      //		theta_max = 0.5*(direct_theta+90.0);
+
+	      iBellhopRequest request;
+
+	      bellhop::protobuf::Environment::AdaptiveInfo* 
+		adaptive_info = request.mutable_env()->mutable_adaptive_info();
+	      adaptive_info->set_contact(acoustic_contact);
+	      //  adaptive_info->set_ownship(receiver);
+	      //adaptive_info->set_ownship(ownship);
+	      adaptive_info->set_look_ahead_seconds(1);
+	      adaptive_info->set_read_shd(false);
+	      adaptive_info->set_auto_receiver_ranges(false);
+	      adaptive_info->set_auto_source_depth(true);
+	      bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
+	      output->set_type(bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+	      bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
+	      receivers->set_number_in_depth(num_dep);
+	      receivers->set_number_in_range(num_r);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
+	      first->set_range(r_min);
+	      first->set_depth(dep_min);
+	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
+	      last->set_range(r_max);
+	      last->set_depth(dep_max);
+	      bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
+	      beams->set_theta_min(int(-theta_max));
+	      beams->set_theta_max(int(theta_max));
+	      beams->set_number(3500);
+	      bellhop::protobuf::Environment* env = request.mutable_env();
+	      env->set_freq(cfg_.acomms_frequency());
+	      // Generate random request id
+	      int request_id =   int(1e9 * rand()/RAND_MAX);
+	      acoustic_contacts[i].bellhop_request_id  = request_id;
+	       glog.is(VERBOSE) && glog << "Bellhoprequest " << request_id << std::endl;
+	      request.set_request_number(acoustic_contacts[i].bellhop_request_id);
+	      // mseas svp updates
+	      if (mseas_svp_updates && acoustic_contacts[i].svp_ready)
+		{
+		  request.mutable_env()->mutable_water_column()->
+		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
+		  request.set_water_column_action(iBellhopRequest::OVERWRITE);
+		}
+	      std::string serialized_bellhop_request;
+	      serialize_for_moos(&serialized_bellhop_request,request);
+	      // Queue request for slow loop
+	      bellhop_requests.push_back(serialized_bellhop_request);
+
+	      // Wait for Bellhop before making next request
+	      
+	      acoustic_contacts[i].ready = false;
+	      acoustic_contacts[i].last_request = MOOSTime();
+	    } 
+	  return(true);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
+{
+
+  for (int i = 0; i < acoustic_contacts.size(); i++)
+    {
+      if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	{
+	  if (readyAcousticContactSVP(os,cn) || acoustic_contacts[i].last_svp_request <= 0 )
+	    {
+
+	      SVP::Request svp_request;
+	      std::string serialized_svp_request;
+	      double ownship_lat, ownship_lon, contact_lat, contact_lon;
+	      int request_number = int(1e9 * rand()/RAND_MAX);
+	      acoustic_contacts[i].svp_request_id = request_number;
+	      svp_request.set_request_id(request_number);
+	      svp_request.set_utc_time(MOOSTime());
+	      m_Geodesy.UTM2LatLong(ownship_x,ownship_y,ownship_lat,ownship_lon); 
+	      m_Geodesy.UTM2LatLong(contact_x,contact_y,contact_lat,contact_lon); 
+	      
+	      svp_request.set_receiver_lat(ownship_lat);
+	      svp_request.set_receiver_lon(ownship_lon);
+	      svp_request.set_source_lat(contact_lat);
+	      svp_request.set_source_lon(contact_lon);
+	      svp_request.set_delta_range(svp_range_resolution);
+	      svp_request.set_delta_depth(svp_depth_resolution);
+	      
+	      
+	      serialize_for_moos(&serialized_svp_request, svp_request);
+	      //m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
+	      // Queue request for slow loop
+	      svp_requests.push_back(serialized_svp_request);
+	      // if not ready use old one
+	      acoustic_contacts[i].svp_ready = false;
+	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
+	    }
+	  return(true);
+	}
+    }
+  return(false);
+}
+
+bool SimModemNetwork::handleSVPResponse(const CMOOSMsg& msg)
+{
+  std::string serialized_svp_response = msg.GetString();
+  SVP::Response svp_response;
+  parse_for_moos(serialized_svp_response, &svp_response);
+  if (putAcousticContactSVP(svp_response))
+    {
+      glog << "Got SVP update for request id " << svp_response.request_id() 
+	   << endl; 
+      return(true);
+    }
+  else
+    return(false);
+  
+}
+
