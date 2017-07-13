@@ -184,20 +184,22 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
     {
       if ( MOOSStrCmp(tolower(node_name),tolower(Nodes[i].name)) )
 	{
-	  bool got_node_utc = MOOSValFromString(Nodes[i].utc,
+	  CAcousticNode update;
+	  bool got_node_utc = MOOSValFromString(update.utc,
 						node_report,"UTC_TIME");
-	  bool got_node_x = MOOSValFromString(Nodes[i].x,node_report,"X");
-	  bool got_node_y = MOOSValFromString(Nodes[i].y,node_report,"Y");
-	  bool got_node_dep = MOOSValFromString(Nodes[i].depth,node_report,"DEPTH");
-	  bool got_node_spd = MOOSValFromString(Nodes[i].speed,node_report,"SPD");
-	  if (!got_node_spd)
-	    Nodes[i].speed = 0;
-	  bool got_node_hdg = MOOSValFromString(Nodes[i].heading,node_report,"HDG");
-	  if (!got_node_hdg)
-	    Nodes[i].heading = 0;
-	  Nodes[i].ok_info = got_node_utc & got_node_x & got_node_y & got_node_dep;
-	  glog.is(DEBUG1) && glog << "Got info for node: " 
+	  bool got_node_x = MOOSValFromString(update.x,node_report,"X");
+	  bool got_node_y = MOOSValFromString(update.y,node_report,"Y");
+	  bool got_node_dep = MOOSValFromString(update.depth,node_report,"DEPTH");
+	  bool got_node_spd = MOOSValFromString(update.speed,node_report,"SPD");
+	  bool got_node_hdg = MOOSValFromString(update.heading,node_report,"HDG");
+	  update.ok_info = got_node_utc & got_node_x & got_node_y & got_node_dep & got_node_spd & got_node_hdg;
+	  // Make sure it is latest and full node report (ignore fill-ins)
+	  if (update.ok_info && update.utc > Nodes[i].utc)
+	    {
+	      Nodes[i] = update;
+	      glog.is(DEBUG1) && glog << "Got info for node: " 
 				  << node_name << endl;
+	    }
 	}
     }
 }
