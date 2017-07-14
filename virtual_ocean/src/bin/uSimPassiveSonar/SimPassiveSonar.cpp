@@ -2471,7 +2471,7 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      // Queue request for slow loop
 	      svp_requests.push_back(serialized_svp_request);
 	      // if not ready use old one
-	      acoustic_contacts[i].svp_ready = false;
+	      // acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
 	    }
 	  return(true);

@@ -73,7 +73,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     mseas_update_interval(cfg_.mseas_update_interval()), 
     svp_range_resolution(cfg_.svp_range_resolution()), 
     svp_depth_resolution(cfg_.svp_depth_resolution()),
-    sound_speed(1500.0)
+    sound_speed(1500.0),
+    acomms_frequency(cfg_.acomms_frequency())
 {
 
   set_ignore_stale(false);
@@ -185,6 +186,7 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
       if ( MOOSStrCmp(tolower(node_name),tolower(Nodes[i].name)) )
 	{
 	  CAcousticNode update;
+	  update.name = tolower(node_name);
 	  bool got_node_utc = MOOSValFromString(update.utc,
 						node_report,"UTC_TIME");
 	  bool got_node_x = MOOSValFromString(update.x,node_report,"X");
@@ -192,7 +194,7 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 	  bool got_node_dep = MOOSValFromString(update.depth,node_report,"DEPTH");
 	  bool got_node_spd = MOOSValFromString(update.speed,node_report,"SPD");
 	  bool got_node_hdg = MOOSValFromString(update.heading,node_report,"HDG");
-	  update.ok_info = got_node_utc & got_node_x & got_node_y & got_node_dep & got_node_spd & got_node_hdg;
+	  update.ok_info = got_node_utc && got_node_x && got_node_y && got_node_dep && got_node_spd && got_node_hdg;
 	  // Make sure it is latest and full node report (ignore fill-ins)
 	  if (update.ok_info && update.utc > Nodes[i].utc)
 	    {
@@ -343,7 +345,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	  requestRayTrace(acoustic_contact.ownship,acoustic_contact.contact, 
 			  range_min, range_max, num_ranges, 
 			  depth_min, depth_max, num_depths,
-			  cfg_.acomms_frequency());
+			  acomms_frequency);
 	}
       // if mseas_svp_updates, request SVP
       if ( mseas_svp_updates && 
@@ -369,7 +371,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
       requestRayTrace(acoustic_contact.ownship, acoustic_contact.contact, 
 		      range_min, range_max, num_ranges, 
 		      depth_min, depth_max, num_depths,
-		      cfg_.acomms_frequency());
+		      acomms_frequency);
 		  
       // if mseas_svp_updates, request SVP
       if (mseas_svp_updates &&
@@ -762,7 +764,7 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 	      beams->set_theta_max(int(theta_max));
 	      beams->set_number(3500);
 	      bellhop::protobuf::Environment* env = request.mutable_env();
-	      env->set_freq(cfg_.acomms_frequency());
+	      env->set_freq(acomms_frequency);
 	      // Generate random request id
 	      int request_id =   int(1e9 * rand()/RAND_MAX);
 	      acoustic_contacts[i].bellhop_request_id  = request_id;
@@ -825,7 +827,7 @@ bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 	      // Queue request for slow loop
 	      svp_requests.push_back(serialized_svp_request);
 	      // if not ready use old one
-	      acoustic_contacts[i].svp_ready = false;
+	      //acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
 	    }
 	  return(true);

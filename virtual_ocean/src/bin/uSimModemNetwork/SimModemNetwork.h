@@ -97,6 +97,7 @@ class SimModemNetwork : public GobyMOOSApp
     std::vector<std::string> svp_requests;
     std::vector<std::string> bellhop_requests;
     double sound_speed;
+    double acomms_frequency;
 
     CmyVectorUtils vecUtils;
  
