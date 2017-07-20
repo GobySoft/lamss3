@@ -1,5 +1,5 @@
-#ifndef SIMPASSIVESONAR_HEADER
-#define SIMPASSIVESONAR_HEADER
+#ifndef SIMMODEMNETWORK_HEADER
+#define SIMMODEMNETWORK_HEADER
 
 #include <string>
 #include <vector>
