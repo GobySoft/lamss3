@@ -228,7 +228,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
   ImpulseRequest request;
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
-  int con = findAcousticContact(request.source(),request.receiver()); 
+  int con = findAcousticContact(request.receiver(),request.source()); 
   bool got_info = getNodeInfo(acoustic_contacts[con].ownship,ownship_x,ownship_y,
 				  ownship_depth,ownship_heading,ownship_speed) &&
     getNodeInfo(acoustic_contacts[con].contact,contact_x,contact_y,
