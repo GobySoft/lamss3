@@ -656,7 +656,8 @@ bool SimModemNetwork::getAcousticContact(std::string os,
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
       if (MOOSStrCmp(acoustic_contacts[i].ownship,os) &&
-	  MOOSStrCmp(acoustic_contacts[i].contact,cn))
+	  MOOSStrCmp(acoustic_contacts[i].contact,cn) &&
+	  acoustic_contacts[i].ready)
 	{
 	  eig_table = acoustic_contacts[i].ray_table;
 	  if (eig_table.num_ranges > 0 && eig_table.num_depths > 0)
