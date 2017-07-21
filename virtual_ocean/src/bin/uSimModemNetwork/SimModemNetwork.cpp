@@ -84,6 +84,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   subscribe("SVP_RESPONSE", &SimModemNetwork::handle_svp_response, this);    
   subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
   subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
+  subscribe("TRANSMIT_TEST", &SimModemNetwork::handle_transmit_test, this);
 
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
@@ -131,6 +132,22 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 				       << "->" << New.ownship << endl;
 	    }
 	} 
+    }
+}
+
+void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
+{
+  int cn = msg.GetDouble();
+  if (cn < acoustic_contacts.size())
+    {
+      TransmitRequest transmit_request;
+      transmit_request.set_source(acoustic_contacts[cn].ownship);
+      transmit_request.set_receiver(acoustic_contacts[cn].contact);
+      transmit_request.set_pingtime(MOOSTime());
+      transmit_request.set_replica_path("./test.dat");
+      std::string serialized_transmit_request;
+      serialize_for_moos(&serialized_transmit_request,transmit_request);
+      m_Comms.Notify("TRANSMIT_REQUEST", serialized_transmit_request);
     }
 }
 

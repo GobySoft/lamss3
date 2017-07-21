@@ -74,6 +74,7 @@ class SimModemNetwork : public GobyMOOSApp
 
     // mail handlers
 
+    void handle_transmit_test(const CMOOSMsg& msg);
     void handle_bellhop_response(const CMOOSMsg& msg);
     void handle_svp_response(const CMOOSMsg& msg);
     void handle_node_report(const CMOOSMsg& msg);
