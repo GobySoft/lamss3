@@ -255,6 +255,20 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       serialize_for_moos(&serialized_impulse_response,message);
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
     }
+  else
+    {
+      glog.is(VERBOSE) && glog << "Insufficient info for impulse response "
+			       << acoustic_contacts[con].contact 
+			       << "->" 
+			       << acoustic_contacts[con].ownship << endl;
+      ImpulseResponse message;
+      message.set_source(acoustic_contacts[con].contact);
+      message.set_receiver(acoustic_contacts[con].ownship);
+      std::string serialized_impulse_response;
+      serialize_for_moos(&serialized_impulse_response,message);
+      m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
+    }
+
 }
 
 void SimModemNetwork::loop()
