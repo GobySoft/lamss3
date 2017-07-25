@@ -24,6 +24,7 @@
 #define GATEWAY_HEADER
 
 #include "MOOS/libMOOS/MOOSLib.h"
+#include "MBUtils.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "ivp/MOOSGeodesy.h"
 #include <string>
@@ -47,7 +48,7 @@ class CGateway : public CMOOSApp
   double start_time,deploy_x,deploy_y, deploy_spd, deploy_hdg,deploy_depth,depth_trigger;
   double deploy_lat,deploy_lon;
   int dest_addr;
-
+  std::string ship_name;
   //  bool UTM2LatLong(double, double, double&, double& );
   double latitude, longitude;
 

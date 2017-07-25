@@ -134,7 +134,7 @@ bool CGateway::OnStartUp()
 
 bool CGateway::OnConnectToServer()
 {
-  
+  m_Comms.Register("VEHICLE_NAME");  
   return(true);
 }
 
@@ -154,6 +154,33 @@ bool CGateway::Iterate()
   m_Comms.Notify("NAV_LAT",deploy_lat);
   m_Comms.Notify("NAV_LONG",deploy_lon);
 
+  // Create NODE_REPORT
+  string output="NAME=" + ship_name +  ",TYPE=ship,";
+
+  output += "UTC_TIME=" + doubleToString(curr_time,1);
+  output += ",";
+
+  output += "X=" + doubleToString(deploy_x,2);
+  output += ",";
+
+  output += "Y=" + doubleToString(deploy_y,2);
+  output += ",";
+
+  output += "LAT=" + doubleToString(deploy_lat,6);
+  output += ",";
+
+  output += "LON=" + doubleToString(deploy_lon,6);
+  output += ",";
+
+  output += "SPD=" + doubleToString(d_spd,2);
+  output += ",";
+
+  output += "HDG=" + doubleToString(d_hdg,2);
+  output += ",";
+
+  output += "DEPTH=" + doubleToString(deploy_depth,2);
+
+  m_Comms.Notify("NODE_REPORT_NMEA_SHIP",output);
   return(true);
 }
 
@@ -164,53 +191,19 @@ bool CGateway::Iterate()
 bool CGateway::OnNewMail(MOOSMSG_LIST &NewMail)
 
 {
-  return(true);
-}
-
-/*
-bool CGateway::UTM2LatLong(double x_in, double y_in, double& new_lat, double& new_lon)
-{
-  double lat, lon, new_x, new_y ;
-
-  double err = 1e20;
-  double x=x_in;
-  double y=y_in;
-
-  while (err > 1)
-    { 
-      // first guess geodesic
-      if (!m_Geodesy.UTM2LatLong(x,y,lat,lon))
-	return(false);
-
-      // MOOSTrace("x=%f lon = %f\n",x,lon);
-      
-      // now convert latlong to UTM
-      if (!m_Geodesy.LatLong2LocalUTM(lat,lon,new_y,new_x))
-	return(false);
-
-      // MOOSTrace("new_x=%f \n",new_x);
-      
-      // how different
-      double diff_x = new_x -x_in;
-      double diff_y = new_y -y_in;
-      // subtract difference and reconvert
-      
-      x = x - diff_x;
-      y = y - diff_y;
-
-      // MOOSTrace("corr_x=%f \n",x);
-
-      err = sqrt(pow(new_x-x_in,2)+pow(new_y-y_in,2));
-
-      MOOSTrace("UTM2LatLong: error = %f\n",err); 
-    }
-
-  if (!m_Geodesy.UTM2LatLong(x, y, new_lat, new_lon))
-    return(false);
-
-  //  latitude = new_lat;
-  //  longitude = new_lon;
+  CMOOSMsg Msg;
   
+  MOOSMSG_LIST::reverse_iterator p;
+  for(p = NewMail.rbegin(); p != NewMail.rend(); p++) 
+    {
+      CMOOSMsg &Msg = *p;
+      
+      
+      if(Msg.m_sKey == "VEHICLE_NAME")
+	{	
+	  ship_name = Msg.m_sVal;
+	}
+    }
   return(true);
 }
-*/
+
