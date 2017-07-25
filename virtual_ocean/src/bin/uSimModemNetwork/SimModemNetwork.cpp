@@ -773,9 +773,9 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 
 	      bellhop::protobuf::Environment::AdaptiveInfo* 
 		adaptive_info = request.mutable_env()->mutable_adaptive_info();
-	      adaptive_info->set_contact(acoustic_contact);
+	      adaptive_info->set_contact(cn);
 	      //  adaptive_info->set_ownship(receiver);
-	      //adaptive_info->set_ownship(ownship);
+	      adaptive_info->set_ownship(os);
 	      adaptive_info->set_look_ahead_seconds(1);
 	      adaptive_info->set_read_shd(false);
 	      adaptive_info->set_auto_receiver_ranges(false);
