@@ -144,7 +144,7 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
       transmit_request.set_source(acoustic_contacts[cn].ownship);
       transmit_request.set_receiver(acoustic_contacts[cn].contact);
       transmit_request.set_pingtime(MOOSTime());
-      transmit_request.set_replica_path("./test.dat");
+      transmit_request.set_replica_path("../.tmp/test.dat");
       std::string serialized_transmit_request;
       serialize_for_moos(&serialized_transmit_request,transmit_request);
       m_Comms.Notify("TRANSMIT_REQUEST", serialized_transmit_request);
