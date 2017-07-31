@@ -543,6 +543,42 @@ bool CmyVectorUtils::interp(vector<double> x, vector<double> y, vector<double> x
   return(true);
 }
 
+void CmyVectorUtils::vpair_sort(std::vector<double> x, 
+				std::vector<double> y,
+				std::vector<double> x_sort,
+				std::vector<double> y_sort)
+
+{
+  // Note that sorting can be done in-place
+  int n = x.size();
+  std::vector<double> xs;
+  std::vector<double> ys;
+  xs.resize(n);
+  ys.resize(n);
+  std::vector<bool> done;
+  done.resize(n);
+  for (int i=0; i<n; i++)
+    done[i] = false;
+  for (int i=0; i<n; i++)
+    {
+      double minx=1e200;
+      int minj;
+      for (int j=0; j<n;  j++)
+	{
+	  if (!done[i] && x[j] < minx)
+	    {
+	      minx=x[j];
+	      minj=j;
+	    }
+	}
+      xs[i] = x[minj];
+      ys[i] = y[minj];
+      done[minj]=true;
+    }
+  x_sort = xs;
+  y_sort = ys;
+}
+
 // >>>>>>>> Complex arithmetic <<<<<<<
 
   complex<double> CmyVectorUtils::zmul(complex<double> a, complex<double> b)
