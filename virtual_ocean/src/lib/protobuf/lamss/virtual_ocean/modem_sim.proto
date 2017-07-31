@@ -1,0 +1,48 @@
+import "goby/common/protobuf/option_extensions.proto";
+
+message ImpulseResponse
+{
+  required string source = 1 ;
+  required string receiver = 2 ;
+  repeated RayTrace raytrace = 4 ;
+  message RayTrace
+    {
+       required double delay = 1 [(goby.field).description="Seconds"];
+       required double amplitude = 2 [(goby.field).description="Pascal"];
+       optional double doppler = 3 [(goby.field).description="Doppler blueshift  factor", default=1.0 ];
+       optional double elevation = 4 [(goby.field).description="Degrees", default = 0];
+    }
+}
+
+message ImpulseRequest
+{
+  required string source = 1 ;
+  required string receiver = 2 ;
+}
+
+message TransmitResponse
+{
+  required string source = 1 ;
+  required string receiver = 2 ;
+  optional double timestamp = 3;
+  optional string file = 4; // augments replica_path with contact names
+}
+
+message TransmitRequest
+{
+  required string source = 1 ;
+  required string receiver = 2 ;
+  required double pingtime = 3;
+  required string replica_path = 4; // Must have extension .dat
+}
+
+message ArrayGain
+{
+  repeated BeamGain beam_gain = 1 ;
+  message BeamGain
+  {
+    required double elevation = 1 [(goby.field).description="Arrival beam elevation in degrees"];
+    required double gain_db = 2 [(goby.field).description="dB"];
+  }
+}  
+
