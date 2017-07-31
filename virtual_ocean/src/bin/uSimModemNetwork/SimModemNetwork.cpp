@@ -241,8 +241,9 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       std::vector<double> delay;
       std::vector<double> amplitude;
       std::vector<double> doppler;
+      std::vector<double> elevation;
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
-			 delay,amplitude,doppler);
+			 delay,amplitude,doppler,elevation);
       ImpulseResponse::RayTrace* raytrace = 0;
       for (int j = 0; j < delay.size(); j++)
 	{
@@ -250,6 +251,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	  raytrace -> set_delay(delay[j]);
 	  raytrace -> set_amplitude(amplitude[j]);
 	  raytrace -> set_doppler(doppler[j]);
+	  raytrace -> set_elevation(elevation[j]*180.0/M_PI);
 	}
       std::string serialized_impulse_response;
       serialize_for_moos(&serialized_impulse_response,message);
@@ -474,7 +476,8 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
  void SimModemNetwork::modem_ray_arrivals(CEigenRayTable eigenray_table,
 					  std::vector<double> & delay,
 					  std::vector<double> & amplitude,
-					  std::vector<double> & doppler)
+					  std::vector<double> & doppler,
+					  std::vector<double> & elevation)
 {
   // Project absolute vs response onto physical orientation
   double deg2rad = M_PI/180;
@@ -545,9 +548,19 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
       ray_doppler[i_ray] = 1 + (src_ray_cos[i_ray]*vr_S - 
 				rcv_ray_cos[i_ray]*vr_R)*oneossp;
     }
+
+  // ray receiver elevations
+  std::vector<double> ray_elevations;
+  ray_elevations.resize(eig.num_rays);
+  for (int i_ray=0; i_ray < eig.num_rays; i_ray++)
+    {
+      ray_elevations[i_ray] = eig.bundle[i_ray].dip_receiver;
+    }
+
   delay = ray_delays;
   amplitude = ray_amplitudes;
   doppler= ray_doppler;
+  elevation= ray_elevations;
 }
 
  

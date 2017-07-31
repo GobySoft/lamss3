@@ -195,9 +195,10 @@ class SimModemNetwork : public GobyMOOSApp
 				double v_R, double a_R, double e_R, 
 				double& vr_S, double& vr_R );
     void modem_ray_arrivals(CEigenRayTable eigenray_table,
-		      std::vector<double> & delay,
-		      std::vector<double> & amplitude,
-		      std::vector<double> & doppler);
+			    std::vector<double> & delay,
+			    std::vector<double> & amplitude,
+			    std::vector<double> & doppler,
+			    std::vector<double> & elevation);
     
       
 };
