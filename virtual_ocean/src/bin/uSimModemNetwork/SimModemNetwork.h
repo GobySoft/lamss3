@@ -13,6 +13,7 @@
 #include <lamss/lib_henrik_util/CEigenRays.h>
 #include "lamss/lib_bellhop/svp_request_response.pb.h"
 #include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "lamss/lib_lamss_protobuf/modem_sim.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "SimModemNetwork_config.pb.h"
 
