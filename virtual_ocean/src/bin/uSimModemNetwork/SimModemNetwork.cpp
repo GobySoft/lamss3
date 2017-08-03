@@ -385,7 +385,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	   (MOOSTime() - acoustic_contact.last_svp_request >= 
 	    mseas_update_interval ) )
 	{
-	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
+	  requestSVPUpdate(acoustic_contact.contact,acoustic_contact.ownship);
 	}
       eigenrays_ready = true;
     }
@@ -411,7 +411,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	  (MOOSTime() - acoustic_contact.last_svp_request >= 
 	   mseas_update_interval) )
 	{
-	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
+	  requestSVPUpdate(acoustic_contact.contact,acoustic_contact.ownship);
 	}
 		  
     }
