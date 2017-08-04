@@ -51,6 +51,7 @@ class CAcousticContact
   double last_rate;
   double last_rate_update;
   int bellhop_request_id;
+  bool new_svp_requested;
   bool svp_ready;
   int svp_request_id;
   double last_svp_request;
@@ -97,7 +98,9 @@ class SimModemNetwork : public GobyMOOSApp
     double svp_range_resolution;
     double svp_depth_resolution;
     std::vector<std::string> svp_requests;
+    std::vector<double> svp_request_id;
     std::vector<std::string> bellhop_requests;
+    bool svp_requested;
     double sound_speed;
     double acomms_frequency;
 

@@ -71,6 +71,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     max_number_bounces(cfg_.max_number_bounces()),
     mseas_svp_updates(cfg_.mseas_svp_updates()), 
     mseas_update_interval(cfg_.mseas_update_interval()), 
+    svp_requested(false),
     svp_range_resolution(cfg_.svp_range_resolution()), 
     svp_depth_resolution(cfg_.svp_depth_resolution()),
     sound_speed(1500.0),
@@ -105,9 +106,6 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 
   start_time = MOOSTime();
 
-  svp_requests.clear();
-  slow_loop_period = 10; 
-
   // Initilize nodes and acoustic contacts connections)
   // fixed to 2 nodes, generalize for dynamic allocation
   Nodes.resize(cfg_.node_size());
@@ -125,6 +123,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 	      New.contact = cfg_.node(j);
 	      New.ready = false;
 	      New.svp_ready = false;
+	      New.new_svp_requested = false;
 	      New.last_request = 0;
 	      New.last_svp_request = 0;
 	      acoustic_contacts.push_back(New);
@@ -133,6 +132,11 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 	    }
 	} 
     }
+
+  svp_requests.clear();
+  svp_request_id.clear();
+  slow_loop_period = mseas_update_interval/acoustic_contacts.size(); 
+
 }
 
 void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
@@ -190,7 +194,8 @@ void SimModemNetwork::handle_bellhop_response(const CMOOSMsg& msg)
 
 void SimModemNetwork::handle_svp_response(const CMOOSMsg& msg)
 {
-  handleSVPResponse(msg);
+  glog << "Received SVP_RESPONSE" << endl;
+  svp_requested = !handleSVPResponse(msg); // reset flag to be ready for next request
 }
 
 void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
@@ -278,13 +283,6 @@ void SimModemNetwork::loop()
   
   double curr_time = MOOSTime();
   
-  // request SVP from queue: last in first out!
-  if (svp_requests.size() > 0)
-    {
-      m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
-      svp_requests.pop_back();
-    }  
-
   // request BELLHOP from queue: last in first out!
   if (bellhop_requests.size() > 0)
     {
@@ -302,6 +300,16 @@ void SimModemNetwork::loop()
 
 void SimModemNetwork::slow_loop(double curr_time)
 {
+  // request SVP from queue: last in first out!
+  if (svp_requests.size() > 0 && !svp_requested)
+    {
+      m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
+      glog << "Published SVP_REQUEST id " << (int) svp_request_id[svp_request_id.size()-1] << endl;
+      svp_requests.pop_back();
+      svp_request_id.pop_back();
+      svp_requested = true;
+    }  
+
   // Update all acoustic contacts and extract requested impulse responses 
 
   for (int i=0; i< acoustic_contacts.size(); i++)
@@ -451,6 +459,8 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    // Raytracing resolution less critical for horizontal variability 
    num_r = 3;
    num_dep = 3;
+   spacing = (dep_max-dep_min)/(num_dep-1);
+
    glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
 			   << " r_max: " << r_max
 			   << " spacing: " << spacing
@@ -683,10 +693,13 @@ bool SimModemNetwork::putAcousticContactSVP(SVP::Response svp_response)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
-      if (svp_response.request_id() == acoustic_contacts[i].svp_request_id)
+      glog.is(DEBUG1) && glog << "Checking " << (int) svp_response.request_id() << endl;
+      glog.is(DEBUG1) && glog << "request_id " << (int) acoustic_contacts[i].svp_request_id << endl; 
+	if (svp_response.request_id() == (int) acoustic_contacts[i].svp_request_id)
 	{
 	  acoustic_contacts[i].svp_response = svp_response;
 	  acoustic_contacts[i].svp_ready = true;
+	  acoustic_contacts[i].new_svp_requested = false;
 	  return(true); 
 	}
     }
@@ -848,32 +861,37 @@ bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 	{
 	  if (readyAcousticContactSVP(os,cn) || acoustic_contacts[i].last_svp_request <= 0 )
 	    {
-
-	      SVP::Request svp_request;
-	      std::string serialized_svp_request;
-	      double ownship_lat, ownship_lon, contact_lat, contact_lon;
-	      int request_number = int(1e9 * rand()/RAND_MAX);
-	      acoustic_contacts[i].svp_request_id = request_number;
-	      svp_request.set_request_id(request_number);
-	      svp_request.set_utc_time(MOOSTime());
-	      m_Geodesy.UTM2LatLong(ownship_x,ownship_y,ownship_lat,ownship_lon); 
-	      m_Geodesy.UTM2LatLong(contact_x,contact_y,contact_lat,contact_lon); 
-	      
-	      svp_request.set_receiver_lat(ownship_lat);
-	      svp_request.set_receiver_lon(ownship_lon);
-	      svp_request.set_source_lat(contact_lat);
-	      svp_request.set_source_lon(contact_lon);
-	      svp_request.set_delta_range(svp_range_resolution);
-	      svp_request.set_delta_depth(svp_depth_resolution);
-	      
-	      
-	      serialize_for_moos(&serialized_svp_request, svp_request);
-	      //m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
-	      // Queue request for slow loop
-	      svp_requests.push_back(serialized_svp_request);
-	      // if not ready use old one
-	      //acoustic_contacts[i].svp_ready = false;
-	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
+	      // if an update has been requested, don't request a new one
+	      if (!acoustic_contacts[i].new_svp_requested)
+		{
+		  SVP::Request svp_request;
+		  std::string serialized_svp_request;
+		  double ownship_lat, ownship_lon, contact_lat, contact_lon;
+		  int request_number = int(1e9 * rand()/RAND_MAX);
+		  acoustic_contacts[i].svp_request_id = request_number;
+		  svp_request.set_request_id(request_number);
+		  svp_request.set_utc_time(MOOSTime());
+		  m_Geodesy.UTM2LatLong(ownship_x,ownship_y,ownship_lat,ownship_lon); 
+		  m_Geodesy.UTM2LatLong(contact_x,contact_y,contact_lat,contact_lon); 
+		  
+		  svp_request.set_receiver_lat(ownship_lat);
+		  svp_request.set_receiver_lon(ownship_lon);
+		  svp_request.set_source_lat(contact_lat);
+		  svp_request.set_source_lon(contact_lon);
+		  svp_request.set_delta_range(svp_range_resolution);
+		  svp_request.set_delta_depth(svp_depth_resolution);
+		  
+		  
+		  serialize_for_moos(&serialized_svp_request, svp_request);
+		  //m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
+		  // Queue request for slow loop
+		  svp_requests.push_back(serialized_svp_request);
+		  svp_request_id.push_back(request_number);
+		  // if not ready use old one
+		  acoustic_contacts[i].new_svp_requested = true;
+		  acoustic_contacts[i].last_svp_request = MOOSTime();	    
+		  glog << "Queued SVP request id " << request_number << endl;
+		} 
 	    }
 	  return(true);
 	}
