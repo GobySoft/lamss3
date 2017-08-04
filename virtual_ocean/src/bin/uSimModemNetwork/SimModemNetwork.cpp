@@ -135,7 +135,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 
   svp_requests.clear();
   svp_request_id.clear();
-  slow_loop_period = mseas_update_interval/acoustic_contacts.size(); 
+  slow_loop_period = std::min(mseas_update_interval/acoustic_contacts.size(),
+			      10.0); 
 
 }
 
@@ -303,8 +304,13 @@ void SimModemNetwork::slow_loop(double curr_time)
   // request SVP from queue: last in first out!
   if (svp_requests.size() > 0 && !svp_requested)
     {
-      m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
-      glog << "Published SVP_REQUEST id " << (int) svp_request_id[svp_request_id.size()-1] << endl;
+      m_Comms.Notify("SVP_REQUEST", svp_requests[0]);
+      glog << "Published SVP_REQUEST id " << (int) svp_request_id[0] << endl;
+      for (int i=0; i<svp_requests.size()-1; i++)
+	{
+	  svp_requests[i] = svp_requests[i+1];
+	  svp_request_id[i] = svp_request_id[i+1];
+	}
       svp_requests.pop_back();
       svp_request_id.pop_back();
       svp_requested = true;
@@ -393,7 +399,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	   (MOOSTime() - acoustic_contact.last_svp_request >= 
 	    mseas_update_interval ) )
 	{
-	  requestSVPUpdate(acoustic_contact.contact,acoustic_contact.ownship);
+	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
 	}
       eigenrays_ready = true;
     }
@@ -419,7 +425,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	  (MOOSTime() - acoustic_contact.last_svp_request >= 
 	   mseas_update_interval) )
 	{
-	  requestSVPUpdate(acoustic_contact.contact,acoustic_contact.ownship);
+	  requestSVPUpdate(acoustic_contact.ownship,acoustic_contact.contact);
 	}
 		  
     }
@@ -890,7 +896,8 @@ bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 		  // if not ready use old one
 		  acoustic_contacts[i].new_svp_requested = true;
 		  acoustic_contacts[i].last_svp_request = MOOSTime();	    
-		  glog << "Queued SVP request id " << request_number << endl;
+		  glog << "Queued SVP request id " << request_number 
+		       << " " << cn << "->" << os << endl;
 		} 
 	    }
 	  return(true);
