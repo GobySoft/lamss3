@@ -24,8 +24,9 @@ message TransmitResponse
 {
   required string source = 1 ;
   required string receiver = 2 ;
-  optional double timestamp = 3;
-  optional string file = 4; // augments replica_path with contact names
+  required double pingtime = 3;
+  optional double timestamp = 4;
+  optional string file = 5; // augments replica_path with contact names
 }
 
 message TransmitRequest
