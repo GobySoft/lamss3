@@ -15,7 +15,7 @@
 #include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
 
 //#include "MBUtils.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 
 class TrackManagerException : public std::runtime_error
 {
