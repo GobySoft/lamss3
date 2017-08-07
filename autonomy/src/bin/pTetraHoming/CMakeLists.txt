@@ -17,8 +17,8 @@ ADD_EXECUTABLE(pTetraHoming ${SRC})
 
 TARGET_LINK_LIBRARIES(pTetraHoming
    ${MOOS_LIBRARIES}
-   geometry
-   mbutil
+   ${IVP_GEOMETRY_LIBRARY}
+   ${IVP_MBUTIL_LIBRARY}
    m
    pthread)
 
