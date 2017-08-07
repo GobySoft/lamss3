@@ -8,7 +8,7 @@
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
 #include <lamss/lib_henrik_util/CEigenRays.h>

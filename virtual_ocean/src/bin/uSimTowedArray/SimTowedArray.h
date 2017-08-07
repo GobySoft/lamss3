@@ -4,7 +4,7 @@
 #include <math.h>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CVectorUtils.h>
