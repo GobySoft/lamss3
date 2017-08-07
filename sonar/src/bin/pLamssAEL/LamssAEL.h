@@ -8,7 +8,7 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "goby/moos/moos_protobuf_helpers.h"
