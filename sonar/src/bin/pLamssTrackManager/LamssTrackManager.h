@@ -12,7 +12,7 @@
 #include "LamssTrackManager_config.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "MBUtils.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CTrack.h>
