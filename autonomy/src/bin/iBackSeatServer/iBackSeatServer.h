@@ -5,7 +5,7 @@
 
 #include <memory>
 #include "MOOS/libMOOS/MOOSLib.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 #include <string>
 #include "lamss/lib_anrp_util/NMEAMessage.h"
 #include "goby/util/linebasedcomms.h"
