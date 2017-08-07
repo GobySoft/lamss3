@@ -26,7 +26,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "ivp/MOOSGeodesy.h"
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 #include <string>
 
 
