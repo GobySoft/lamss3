@@ -850,7 +850,7 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 
 	      // Wait for Bellhop before making next request
 	      
-	      acoustic_contacts[i].ready = false;
+	      //	      acoustic_contacts[i].ready = false;
 	      acoustic_contacts[i].last_request = MOOSTime();
 	    } 
 	  return(true);
