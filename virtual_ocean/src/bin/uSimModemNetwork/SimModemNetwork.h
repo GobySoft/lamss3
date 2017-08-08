@@ -103,7 +103,7 @@ class SimModemNetwork : public GobyMOOSApp
     bool svp_requested;
     double sound_speed;
     double acomms_frequency;
-
+    std::string replica_path;
     CmyVectorUtils vecUtils;
  
     //---Declare variables that get their valies directly from the .moos file---

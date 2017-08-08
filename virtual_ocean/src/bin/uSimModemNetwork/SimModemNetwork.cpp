@@ -75,7 +75,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     svp_range_resolution(cfg_.svp_range_resolution()), 
     svp_depth_resolution(cfg_.svp_depth_resolution()),
     sound_speed(1500.0),
-    acomms_frequency(cfg_.acomms_frequency())
+    acomms_frequency(cfg_.acomms_frequency()),
+    replica_path(cfg_.test_replica())
 {
 
   set_ignore_stale(false);
@@ -149,7 +150,8 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
       transmit_request.set_source(acoustic_contacts[cn].ownship);
       transmit_request.set_receiver(acoustic_contacts[cn].contact);
       transmit_request.set_pingtime(MOOSTime());
-      transmit_request.set_replica_path("../.tmp/test.dat");
+      //      transmit_request.set_replica_path("../.tmp/test.dat");
+      transmit_request.set_replica_path(replica_path);
       std::string serialized_transmit_request;
       serialize_for_moos(&serialized_transmit_request,transmit_request);
       m_Comms.Notify("TRANSMIT_REQUEST", serialized_transmit_request);

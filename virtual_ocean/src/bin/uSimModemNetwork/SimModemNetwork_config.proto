@@ -6,9 +6,10 @@ message SimModemNetworkConfig
 {
   optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
   optional double acomms_frequency = 10 [default = 3500];
-  optional int32  max_number_bounces = 11  [default = 1];
-  optional double raytracing_interval = 12 [default = 30];
-  optional double raytracing_range_box = 13 [default = 50];
+  optional string test_replica = 11 [default = "../.tmp/test.dat"];
+  optional int32  max_number_bounces = 20  [default = 1];
+  optional double raytracing_interval = 21 [default = 30];
+  optional double raytracing_range_box = 22 [default = 50];
   optional bool   mseas_svp_updates = 23 [default = false];
   optional double mseas_update_interval = 24 [default = 60];
   optional double svp_range_resolution = 25 [default = 200];
