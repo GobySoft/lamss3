@@ -55,7 +55,7 @@ message LAMSS_DEPLOY {
 	optional double Loiter_Radius = 16 [default=100, (dccl.field).max=2047, (dccl.field).min=0, (dccl.field).precision=0];
 	optional int32 Loiter_Segments = 17 [default=6, (dccl.field).max=31, (dccl.field).min=0];
 	optional double Survey_Heading = 18 [default=0, (dccl.field).max=360, (dccl.field).min=0, (dccl.field).precision=0];
-	optional double Survey_Length = 19 [default=500, (dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
+	optional double Survey_Length = 19 [default=500, (dccl.field).max=20470.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1];
 	optional double Survey_Width = 20 [default=100, (dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double Survey_Period = 21 [default=200, (dccl.field).max=4095, (dccl.field).min=0, (dccl.field).precision=0];
 	optional bool Clockwise = 22 [default=true];
