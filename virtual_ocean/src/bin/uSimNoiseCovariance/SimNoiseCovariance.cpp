@@ -621,8 +621,23 @@ bool CSimNoiseCovariance::parseNoiseProfile( string noise_in,
 
   std::string depths_nl, nls;    
   val_from_string(depths_nl, noise_in, "depths");
-  val_from_string(nls, noise_in, "NL");
-  
+
+  bool delta;
+  if (val_from_string(nls, noise_in, "NL"))
+    {
+      delta = false;
+    }
+  else if (val_from_string(nls, noise_in, "delta"))
+    {
+      delta = true;
+    }
+  else
+    {
+      cout << "Error parsing Noise Directionality" << endl;
+      return(false);
+    }
+
+
   std::vector<std::string> depth_nl_vec;
   std::vector<std::string> nl_vec;
   boost::split(depth_nl_vec, depths_nl, boost::is_any_of(","));
@@ -647,6 +662,8 @@ bool CSimNoiseCovariance::parseNoiseProfile( string noise_in,
 	  else
             {
 	      double d = boost::lexical_cast<double>(s);
+	      if (delta) 
+		d += noise_level;
 	      if(d > max_noise)
 		max_noise = d;
 	      noise_db.push_back(d);
@@ -682,9 +699,22 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
   else
     return(false);
 
-  if ( !val_from_string(nls, noise_in, "S"))
-    return(false);
-  
+  bool got_it = false;
+  if ( val_from_string(nls, noise_in, "S")  )
+    {
+      got_it = true;
+    }
+  else if ( val_from_string(nls, noise_in, "delta") )
+    {
+      got_it = true;
+    }
+  else 
+    {
+      got_it = false;
+      cout << "Error parsing Noise Directionality" << endl;
+      return(false);
+    }
+
   std::vector<std::string> depth_nl_vec;
   std::vector<std::string> nl_vec;
   boost::split(depth_nl_vec, depths_nl, boost::is_any_of(","));
