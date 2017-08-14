@@ -87,6 +87,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
   subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
   subscribe("TRANSMIT_TEST", &SimModemNetwork::handle_transmit_test, this);
+  subscribe("AMBIENT_NL_DEPTH", &SimModemNetwork::handle_ambient_nl_depth, this);    
 
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
@@ -261,6 +262,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	  raytrace -> set_doppler(doppler[j]);
 	  raytrace -> set_elevation(elevation[j]*180.0/M_PI);
 	}
+      message.set_noise_level(acoustic_contacts[con].noise_level);
       std::string serialized_impulse_response;
       serialize_for_moos(&serialized_impulse_response,message);
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
@@ -279,6 +281,45 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
     }
 
+}
+
+void SimModemNetwork::handle_ambient_nl_depth(const CMOOSMsg& msg)
+{
+  // noise depth profile
+  noise_profile = parseNoiseProfile(msg.m_sVal, 
+				    depth_nl,
+				    noise_db);
+}
+
+double SimModemNetwork::get_ambient_noise(double depth, 
+					  vector<double> dom_nl,
+					  vector<double> noise_db)
+{
+  double nl;
+
+  if (noise_profile)
+    {
+      int m = dom_nl.size();
+      
+      if (depth <= dom_nl[0]) 
+	nl = noise_db[0];
+      else if (depth >= dom_nl[m-1]) 
+	nl= noise_db[m-1];
+      else
+	{
+	  for (int j = 1; j < m; j++)
+	    {
+	      if (depth <= dom_nl[j] && depth > dom_nl[j-1])
+		nl = noise_db[j-1] 
+		  + (depth - dom_nl[j-1])/(dom_nl[j]-dom_nl[j-1])
+		  *(noise_db[j] - noise_db[j-1]); 
+	    }
+	}
+    }
+  else
+    nl = cfg_.noise_level();
+
+  return(nl);
 }
 
 void SimModemNetwork::loop()
@@ -328,6 +369,8 @@ void SimModemNetwork::slow_loop(double curr_time)
 		    contact_depth,contact_heading,contact_speed) ; 
       if (got_info && generate_eigenray_table(acoustic_contacts[i]))  
 	{
+	  acoustic_contacts[i].noise_level = get_ambient_noise(ownship_depth,
+							       depth_nl,noise_db);
 	  glog.is(VERBOSE) && glog << "Updated ray table for " 
 				   << acoustic_contacts[i].contact
 				   << "->" << acoustic_contacts[i].ownship << endl;
@@ -923,4 +966,75 @@ bool SimModemNetwork::handleSVPResponse(const CMOOSMsg& msg)
     return(false);
   
 }
+
+bool SimModemNetwork::parseNoiseProfile( string noise_in, 
+					 vector<double>& dom_nl,
+					 vector<double>& noise_db)
+{
+  // read the ambient noise profile
+  dom_nl.clear();
+  noise_db.clear();
+
+  std::string depths_nl, nls;    
+  val_from_string(depths_nl, noise_in, "depths");
+
+  bool delta;
+  if (val_from_string(nls, noise_in, "NL"))
+    {
+      delta = false;
+    }
+  else if (val_from_string(nls, noise_in, "delta"))
+    {
+      delta = true;
+    }
+  else
+    {
+      glog << "Error parsing Noise Depth Profile" << endl;
+      return(false);
+    }
+
+
+  std::vector<std::string> depth_nl_vec;
+  std::vector<std::string> nl_vec;
+  boost::split(depth_nl_vec, depths_nl, boost::is_any_of(","));
+  boost::split(nl_vec, nls, boost::is_any_of(","));
+  
+  try
+    {
+      
+      BOOST_FOREACH(const std::string& s, depth_nl_vec)
+        {
+	  if(s=="inf")
+	    dom_nl.push_back(std::numeric_limits<double>::infinity());
+	  else
+	    dom_nl.push_back(boost::lexical_cast<double>(s));
+        }
+      
+      double max_noise = 0;
+      BOOST_FOREACH(const std::string& s, nl_vec)
+        {
+	  if(s=="inf")
+	    noise_db.push_back(std::numeric_limits<double>::infinity());
+	  else
+            {
+	      double d = boost::lexical_cast<double>(s);
+	      if (delta) 
+		d += cfg_.noise_level();
+	      if(d > max_noise)
+		max_noise = d;
+	      noise_db.push_back(d);
+            }
+        }
+      
+      // remove infinity values in favor of MAX non infinite TL.
+      BOOST_FOREACH(double& d, noise_db)
+        {
+	  if(d == std::numeric_limits<double>::infinity())
+	    d = max_noise;
+        }
+    }
+  catch (boost::bad_lexical_cast&)
+    { return false; }
+  return(true);
+}    
 

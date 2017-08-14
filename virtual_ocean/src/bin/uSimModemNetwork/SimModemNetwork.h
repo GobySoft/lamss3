@@ -57,6 +57,7 @@ class CAcousticContact
   double last_svp_request;
   CEigenRayTable  ray_table;
   SVP::Response svp_response;
+  double noise_level;
 };
 
 class SimModemNetwork : public GobyMOOSApp
@@ -81,6 +82,7 @@ class SimModemNetwork : public GobyMOOSApp
     void handle_svp_response(const CMOOSMsg& msg);
     void handle_node_report(const CMOOSMsg& msg);
     void handle_impulse_request(const CMOOSMsg& msg);
+    void handle_ambient_nl_depth(const CMOOSMsg& msg);
 
     SimModemNetworkConfig& cfg_;
     double last_slow_loop_t_;
@@ -138,6 +140,17 @@ class SimModemNetwork : public GobyMOOSApp
 		     double& node_depth, 
 		     double& node_heading,
 		     double& node_speed);
+    bool parseNoiseProfile( std::string noise_in, 
+			   std::vector<double>& dom_nl,
+			   std::vector<double>& noise_db);
+    double get_ambient_noise(double depth, 
+			     vector<double> dom_nl,
+			     vector<double> noise_db);
+    double noise_level;
+    bool noise_profile;
+    std::vector<double> depth_nl;
+    std::vector<double> noise_db;
+
     
     std::vector<CAcousticContact> acoustic_contacts;
 
