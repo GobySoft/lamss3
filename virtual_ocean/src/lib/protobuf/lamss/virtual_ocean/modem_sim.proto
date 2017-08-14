@@ -12,6 +12,7 @@ message ImpulseResponse
        optional double doppler = 3 [(goby.field).description="Doppler blueshift  factor", default=1.0 ];
        optional double elevation = 4 [(goby.field).description="Degrees", default = 0];
     }
+  optional double noise_level = 5;
 }
 
 message ImpulseRequest
