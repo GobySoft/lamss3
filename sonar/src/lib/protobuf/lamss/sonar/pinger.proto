@@ -9,7 +9,7 @@ message LAMSS_PINGER_COMMAND {
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PINGER_COMMAND", (dccl.field).static_value="LAMSS_PINGER_COMMAND", (dccl.field).codec="_static"];
     optional bool pinger_active = 5 [default = true];
-    optional double pingtime = 6 [(dccl.field).codec="_time", (dccl.field).in_head=false, default=0];
+    optional double pingtime = 6 [(dccl.field).codec="dccl_time2", (dccl.field).in_head=false, default=0];
     optional WaveformEnum waveform = 7 [default=WAVEFORM_LFM];
     enum WaveformEnum {
        WAVEFORM_CW = 1;
