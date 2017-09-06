@@ -198,32 +198,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   ownship = "me";
  
   // If active pinger exists, create acoustic contact
-
-  if (cfg_.pinger_enabled())
-    {
-      pinger_active = false;
-      pinger_id = "PINGER";
-      CEigenRayTable buffer;
-      buffer.clear();
-      putAcousticContact(pinger_id, cfg_.pinger_x(),
-			 cfg_.pinger_y(),
-			 cfg_.pinger_depth(), 
-			 buffer);
-      glog.is(DEBUG1) && glog << "Pinger " 
-			      << " asigned acoustic contact number "
-			      << findAcousticContact(pinger_id) << std::endl;
-      if (ray_acoustics)
-	{
-	  string acoustic_contact = pinger_id 
-	    +"_SIM";
-	  
-	  std::string var = acoustic_contact + "_ARR_FILE";
-	  subscribe(var, &SimPassiveSonar::handle_target_arrival_file, this);    
-	  
-	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
-	  
-	}
-    }
+  // Must be moved to handle_pinger_command
 
   if (cfg_.array_type() == SimPassiveSonarConfig::ARRAY_TYPE_VSA)
     {
@@ -638,7 +613,7 @@ void SimPassiveSonar::loop()
 
       time_last = timestamp;
 
-      if (cfg_.pinger_enabled())
+      if (pinger_enabled)
 	getPingerInfo();
       else if (multi_target && number_of_targets >0)
 	getTargetInfo(0);
@@ -647,7 +622,7 @@ void SimPassiveSonar::loop()
 	  got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
 				ok_source_bb_bw);
 	  //	  got_source_loc = (ok_pinger_x && ok_pinger_y);
-	  got_source_loc = cfg_.pinger_enabled();
+	  got_source_loc = pinger_enabled;
 	}
       
       // Output error messages 
@@ -726,7 +701,7 @@ void SimPassiveSonar::loop()
 	    }
 	  
 	  // here we add the PINGER timeseries in time domain
-	  if (cfg_.pinger_enabled() && pinger_active)
+	  if (pinger_enabled && pinger_active)
 	    {
        	      glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
 	  
@@ -1434,11 +1409,11 @@ double dop_fac)
     t_src[k] = k*delta_t;
 
   std::vector<double> source_window;
-  if (cfg_.replica_window() == SimPassiveSonarConfig::WINDOW_HANN)
+  if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_HANN)
     {
       source_window = vecUtils.hann(t_src.size());
     }
-  else if (cfg_.replica_window() == SimPassiveSonarConfig::WINDOW_TUKEY)
+  else if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
     {
       double raised_cosine_ratio;
       source_window = vecUtils.tukey(t_src.size(),raised_cosine_ratio);
@@ -1454,7 +1429,7 @@ double dop_fac)
 
   //--create waveform depending on type ---
   source_waveform.clear();
-  double source_strength = pow(10.0,cfg_.pinger_db()/20.0);
+  double source_strength = pow(10.0,pinger_db/20.0);
   glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
   glog.is(DEBUG2) && glog << "t_src.size() : " << t_src.size() << endl;
 
@@ -2175,12 +2150,12 @@ int SimPassiveSonar::str2int_vec(string msg, vector<int>& values)
 
 bool SimPassiveSonar::getPingerInfo()
 {
-  if (cfg_.pinger_enabled())
+  if (pinger_enabled)
     {
-      source_pos_x = cfg_.pinger_x();
-      source_pos_y = cfg_.pinger_y();
-      source_dep = cfg_.pinger_depth();
-      source_bb_amp = pow(10.0,cfg_.pinger_db()/20.0);
+      source_pos_x = pinger_x;
+      source_pos_y = pinger_y;
+      source_dep = pinger_depth;
+      source_bb_amp = pow(10.0,pinger_db/20.0);
       got_source_bb_info = true;
       got_source_loc = true;
       source_status = true;
@@ -2500,16 +2475,47 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 {
   std::string serialized_pinger_command = msg.GetString();
   parse_for_moos(serialized_pinger_command,&pinger_command);
-  ping_center_frequency = pinger_command.center_frequency();
-  ping_bandwidth = pinger_command.bandwidth();
-  ping_pulsewidth = pinger_command.pulsewidth();
+
+  pinger_active = pinger_command.pinger_active();
+  if (pinger_active)
+    {
+      pinger_id = "PINGER";
+      pinger_x = pinger_command.pinger_x();
+      pinger_y = pinger_command.pinger_y();
+      pinger_depth = pinger_command.pinger_depth();
+      pinger_db = pinger_command.pinger_db();
+
+      ping_center_frequency = pinger_command.center_frequency();
+      ping_bandwidth = pinger_command.bandwidth();
+      ping_pulsewidth = pinger_command.pulsewidth();
+      CEigenRayTable buffer;
+      buffer.clear();
+      putAcousticContact(pinger_id, pinger_x,
+			 pinger_y,
+			 pinger_depth, 
+			 buffer);
+      glog.is(DEBUG1) && glog << "Pinger " 
+			      << " asigned acoustic contact number "
+			      << findAcousticContact(pinger_id) << std::endl;
+      if (!pinger_enabled && ray_acoustics)
+	{
+	  string acoustic_contact = pinger_id 
+	    +"_SIM";
+	  
+	  std::string var = acoustic_contact + "_ARR_FILE";
+	  subscribe(var, &SimPassiveSonar::handle_target_arrival_file, this);    
+	  
+	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
+	  pinger_enabled = true;
+	}
+    }
+
   if (pinger_command.pingtime() < 1)
     pingtime = pinger_command._time();
   else
     pingtime = pinger_command.pingtime();
   // Generate no-doppler replica in case we want to save for MF
   generate_doppler_waveform(waveform,1.0);
-  pinger_active = pinger_command.pinger_active();
 }
 
 double SimPassiveSonar::getAmbientNoise(double depth, 
