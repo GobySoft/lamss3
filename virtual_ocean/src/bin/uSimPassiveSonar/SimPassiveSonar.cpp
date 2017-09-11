@@ -1063,6 +1063,7 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  eigenray_table.getEigenRays(range, depth_req, 
 				      range_ref, depth_ref, eig);
 
+	  // push array eigenray table. Delay adjusted later.
 	  if (tgt_count == 0)
 	    {
 	      array_ray_table.push_back(eig);
@@ -1113,6 +1114,11 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	      double rhow = 1000;
 	      // double g = 9.806; //Removed g. AJP 11/16/2010
 	      
+	      // adjust array eigenray delay
+	      if (tgt_count == 0)
+		array_ray_table[phone_iter].bundle[i_ray].tau += 
+		  delta_r/(water_c*cosel);
+
 	      double fac_dir = 1;
 	      if (array_dir[phone_iter])
 		{
