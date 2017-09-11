@@ -259,6 +259,7 @@ class SimPassiveSonar : public GobyMOOSApp
     double hydrophone_gain;
     double accel_gain;
 
+
     std::string ownship;
     // output file location and name
     std::string base_dir_name;
@@ -283,6 +284,7 @@ class SimPassiveSonar : public GobyMOOSApp
     // relative to tow position (what's in the MOOSDB)
     std::vector<double> array_y_rel;
     std::vector<double> array_z_rel;
+    std::vector<CEigenRay> array_ray_table;
 
     double source_pos_x;
     double source_pos_y;
@@ -387,6 +389,7 @@ class SimPassiveSonar : public GobyMOOSApp
     bool write_hyd_file();
     bool write_nas_file(double timestamp);
     bool write_nas_file_verbose(double timestamp);
+    bool write_eigenray_file();
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
       
 };

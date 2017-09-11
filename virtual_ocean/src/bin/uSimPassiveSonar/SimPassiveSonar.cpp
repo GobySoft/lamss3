@@ -730,6 +730,7 @@ void SimPassiveSonar::loop()
 	  write_nas_file(timestamp);
 	  write_nas_file_verbose(timestamp);
 	  write_hyd_file();
+	  write_eigenray_file();
 	  m_Comms.Notify("SONAR_DIR", base_dir_name);
 	  m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
 	  
@@ -1032,6 +1033,12 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
       double delta_f = sampling_frequency/nfft;
       double tone_fac = nfft*0.5;
 
+      // Save eigenray tables for tgt_count 0 for IMP file
+      if (tgt_count == 0)
+	{
+	  array_ray_table.clear();
+	}
+
       // array element loop
       for (int phone_iter=0; phone_iter < num_array_elements; phone_iter++)
 	{
@@ -1055,6 +1062,12 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double depth_req = -array_z.at(phone_iter);
 	  eigenray_table.getEigenRays(range, depth_req, 
 				      range_ref, depth_ref, eig);
+
+	  if (tgt_count == 0)
+	    {
+	      array_ray_table.push_back(eig);
+	    }
+
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
@@ -1915,6 +1928,50 @@ bool SimPassiveSonar::write_hyd_file()
   return true;
 }
 
+bool SimPassiveSonar::write_eigenray_file()
+{
+  char filename_buff[1000]; 
+
+  std::string filename;
+  // Sure hope nobody wants a filename longer than 1000 chars
+  sprintf(filename_buff,"%s/%s%09d%s",base_dir_name.c_str(),
+	  "RAY",frame_number,
+	  acoustic_filename_suffix.c_str()); 
+  
+  FILE * data_file;
+  if ( (data_file = fopen(filename_buff, "wb")) == NULL)  
+    {
+      glog << "Unable to open a file: " <<  filename_buff << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
+      exit(EXIT_FAILURE);
+    }
+  else
+    {
+      double timestamp = MOOSTime();
+      fwrite(&timestamp, sizeof(double), 1 , data_file);
+      int num_phones = array_ray_table.size();
+      fwrite(&num_phones, sizeof(int), 1 , data_file);
+
+      for (int i = 0; i<num_phones; i++)
+	{
+	  int num_rays = array_ray_table[i].num_rays;
+	  fwrite(&num_rays, sizeof(int), 1 , data_file);
+	  for (int j=0; j<num_rays; j++)
+	    {
+	      fwrite(&array_ray_table[i].bundle[j].tau, sizeof(double), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].amp, sizeof(double), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].phase, sizeof(double), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].surface_bounces, sizeof(int), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].bottom_bounces, sizeof(int), 1 , data_file);
+	    }
+	}
+      fclose(data_file);
+    }
+  return(true);
+}
+
 bool SimPassiveSonar::write_nas_file(double timestamp)
 {
   double deg2rad = M_PI/180;
@@ -2016,7 +2073,6 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
 	  system(sync_cmd.c_str());
 	}
     }
-  
   
 }
 
