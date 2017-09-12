@@ -10,24 +10,24 @@ message LAMSS_PINGER_COMMAND {
 	optional string MessageType = 4 [default="LAMSS_PINGER_COMMAND", (dccl.field).static_value="LAMSS_PINGER_COMMAND", (dccl.field).codec="_static"];
     optional bool pinger_active = 5 [default = true];
     optional double pingtime = 6 [(dccl.field).codec="dccl.time2", (dccl.field).in_head=false, default=0];
-    optional WaveformEnum waveform = 7 [default=WAVEFORM_LFM];
+    optional double pinger_x = 7 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+    optional double pinger_y = 8 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+    optional double pinger_depth = 9 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
+    optional WaveformEnum waveform = 12 [default=WAVEFORM_LFM];
     enum WaveformEnum {
        WAVEFORM_CW = 1;
        WAVEFORM_LFM = 2;
        WAVEFORM_HFM = 3;
        WAVEFORM_IMP = 4;
        }
-    optional double pinger_x = 9 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-    optional double pinger_y = 10 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-    optional double pinger_depth = 11 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
-    optional double pinger_db = 12 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
     optional WindowShading replica_window = 13 [default = WINDOW_TUKEY];
     enum WindowShading {
      WINDOW_TUKEY = 1;
      WINDOW_HANN = 2;
      WINDOW_NONE = 3;
     }
-    optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=100];
-    optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=100];
-    optional double pulsewidth = 16 [(dccl.field).max=60, (dccl.field).min=0, (dccl.field).precision=3, default=1];
+    optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
+    optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
+    optional double pulsewidth = 16 [(dccl.field).max=1, (dccl.field).min=0, (dccl.field).precision=3, default=1];
+    optional double pinger_db = 17 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
 } 
