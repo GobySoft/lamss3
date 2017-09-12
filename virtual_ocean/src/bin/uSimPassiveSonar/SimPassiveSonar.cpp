@@ -1033,12 +1033,6 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
       double delta_f = sampling_frequency/nfft;
       double tone_fac = nfft*0.5;
 
-      // Save eigenray tables for tgt_count 0 for IMP file
-      if (tgt_count == 0)
-	{
-	  array_ray_table.clear();
-	}
-
       // array element loop
       for (int phone_iter=0; phone_iter < num_array_elements; phone_iter++)
 	{
@@ -1063,11 +1057,6 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  eigenray_table.getEigenRays(range, depth_req, 
 				      range_ref, depth_ref, eig);
 
-	  // push array eigenray table. Delay adjusted later.
-	  if (tgt_count == 0)
-	    {
-	      array_ray_table.push_back(eig);
-	    }
 
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
@@ -1114,11 +1103,6 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	      double rhow = 1000;
 	      // double g = 9.806; //Removed g. AJP 11/16/2010
 	      
-	      // adjust array eigenray delay
-	      if (tgt_count == 0)
-		array_ray_table[phone_iter].bundle[i_ray].tau += 
-		  (delta_r*cosel+delta_z*sinel)/water_c;
-
 	      double fac_dir = 1;
 	      if (array_dir[phone_iter])
 		{
@@ -1262,7 +1246,10 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double> > & del
       amplitudes.resize(num_array_elements);
       doppler.resize(num_array_elements);
 
-      // array element loop
+     // Save eigenray tables for IMP file
+	  array_ray_table.clear();
+
+       // array element loop
       for (int phone_iter=0; phone_iter < num_array_elements; phone_iter++)
 	{
 	  // Project absolute vs response onto physical orientation
@@ -1296,6 +1283,11 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double> > & del
 				  << endl;
 	  glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
 	
+	  // push array eigenray table. Delay adjusted later.
+
+	  array_ray_table.push_back(eig);
+
+
           double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
 	  double delta_z = - delta_dep;
@@ -1331,6 +1323,9 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double> > & del
 		(1.0+vr_R*rcv_ray_cos[i_ray]*oneossp);
 	      ray_doppler[i_ray] = 1 + (src_ray_cos[i_ray]*vr_S - 
 					rcv_ray_cos[i_ray]*vr_R)*oneossp;
+	  // adjust array eigenray delay
+	      array_ray_table[phone_iter].bundle[i_ray].tau = ray_delays[i_ray]; 
+	
 	    }
 	  delays[phone_iter] = ray_delays;
 	  amplitudes[phone_iter] = ray_amplitudes;
