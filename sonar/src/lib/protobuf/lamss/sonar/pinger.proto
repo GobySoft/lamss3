@@ -13,6 +13,8 @@ message LAMSS_PINGER_COMMAND {
     optional double pinger_x = 7 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
     optional double pinger_y = 8 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
     optional double pinger_depth = 9 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
+    optional int32 pinger_heading = 10 [(dccl.field).max=359, (dccl.field).min=0];
+    optional double pinger_speed = 11 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];    
     optional WaveformEnum waveform = 12 [default=WAVEFORM_LFM];
     enum WaveformEnum {
        WAVEFORM_CW = 1;
