@@ -1117,7 +1117,7 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	      // adjust array eigenray delay
 	      if (tgt_count == 0)
 		array_ray_table[phone_iter].bundle[i_ray].tau += 
-		  delta_r/(water_c*cosel);
+		  (delta_r*cosel+delta_z*sinel)/water_c;
 
 	      double fac_dir = 1;
 	      if (array_dir[phone_iter])
