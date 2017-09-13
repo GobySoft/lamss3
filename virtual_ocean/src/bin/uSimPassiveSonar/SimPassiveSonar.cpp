@@ -575,6 +575,23 @@ void SimPassiveSonar::handle_target_arrival_file(const CMOOSMsg& msg)
     }
 }
 
+void SimPassiveSonar::handle_pinger_arrival_file(const CMOOSMsg& msg)
+{
+      glog.is(DEBUG2) && glog << "Looking for arr file for " << pinger_id << endl;
+      
+      string arr_file =pinger_id+"_SIM_ARR_FILE";
+      
+      if (msg.m_sKey == arr_file)
+	{
+	  eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
+	  putAcousticContact(pinger_id, 
+			     pinger_x,
+			     pinger_y,
+			     pinger_depth,
+			     eigenray_table);
+	}	
+}
+
 void SimPassiveSonar::loop()
 {
 
@@ -753,6 +770,7 @@ void SimPassiveSonar::slow_loop(double curr_time)
       m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
       svp_requests.pop_back();
     }  
+
   last_slow_loop_t_ = curr_time;
 }
 
@@ -866,7 +884,7 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
 	}
       eigenrays_ready = true;
     }
-  else if (ray_acoustics && (MOOSTime() - acoustic_contact.last_request > 30.0))
+  else if (ray_acoustics && (MOOSTime() - acoustic_contact.last_request > 10))
     {
       double range_min;
       double range_max;
@@ -2551,6 +2569,12 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 			 pinger_y,
 			 pinger_depth, 
 			 buffer);
+      int cn_num = findAcousticContact(pinger_id);
+      if (MOOSTime() - acoustic_contacts[cn_num].last_request > 10)
+	{
+	  // force fresh raytracing
+	  acoustic_contacts[cn_num].ready = false;
+	}
       glog.is(DEBUG1) && glog << "Pinger " 
 			      << " asigned acoustic contact number "
 			      << findAcousticContact(pinger_id) << std::endl;
@@ -2560,7 +2584,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 	    +"_SIM";
 	  
 	  std::string var = acoustic_contact + "_ARR_FILE";
-	  subscribe(var, &SimPassiveSonar::handle_target_arrival_file, this);    
+	  subscribe(var, &SimPassiveSonar::handle_pinger_arrival_file, this);    
 	  
 	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
 	  pinger_enabled = true;

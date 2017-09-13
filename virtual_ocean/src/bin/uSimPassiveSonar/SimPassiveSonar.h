@@ -98,6 +98,7 @@ class SimPassiveSonar : public GobyMOOSApp
     void handle_target_sim_list(const CMOOSMsg& msg);
     void handle_target_sim_state(const CMOOSMsg& msg);
     void handle_target_arrival_file(const CMOOSMsg& msg);
+    void handle_pinger_arrival_file(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
     void handle_noise_vert_dir(const CMOOSMsg& msg);
     void handle_svp_response(const CMOOSMsg& msg);
