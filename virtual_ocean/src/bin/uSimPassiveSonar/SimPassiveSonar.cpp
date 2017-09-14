@@ -1984,8 +1984,8 @@ bool SimPassiveSonar::write_eigenray_file()
 	      fwrite(&array_ray_table[i].bundle[j].phase, sizeof(double), 1 , data_file);
 	      fwrite(&array_ray_table[i].bundle[j].surface_bounces, sizeof(int), 1 , data_file);
 	      fwrite(&array_ray_table[i].bundle[j].bottom_bounces, sizeof(int), 1 , data_file);
-	      fwrite(&array_ray_table[i].bundle[j].dip_source, sizeof(int), 1 , data_file);
-	      fwrite(&array_ray_table[i].bundle[j].dip_receiver, sizeof(int), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].dip_source, sizeof(double), 1 , data_file);
+	      fwrite(&array_ray_table[i].bundle[j].dip_receiver, sizeof(double), 1 , data_file);
 	    }
 	}
       fclose(data_file);
