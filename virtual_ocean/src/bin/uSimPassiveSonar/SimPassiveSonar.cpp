@@ -506,7 +506,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 				 Targets[i].target_dep,
 				 buffer);
 	      glog.is(DEBUG1) && glog << "Target " << Targets[i].target_id()
-				       << " asigned acoustic contact number "
+				       << " assigned acoustic contact number "
 				       << findAcousticContact(Targets[i].target_id()) << std::endl;
 	    }
 	}
@@ -822,7 +822,7 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
       eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
       if (ray_acoustics)
 	{
-	  glog.is(VERBOSE) && glog << "Target range = " << range_req
+	  glog.is(VERBOSE) && glog << "Source range = " << range_req
 				   << " Raytracing range = " << eig.range
 				   << endl;
 	  glog.is(VERBOSE) && glog << "Receiver depth = " << depth_req
@@ -2552,7 +2552,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 			 pinger_depth, 
 			 buffer);
       glog.is(DEBUG1) && glog << "Pinger " 
-			      << " asigned acoustic contact number "
+			      << " assigned acoustic contact number "
 			      << findAcousticContact(pinger_id) << std::endl;
       if (!pinger_enabled && ray_acoustics)
 	{
