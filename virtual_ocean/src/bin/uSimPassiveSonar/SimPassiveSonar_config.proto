@@ -36,7 +36,7 @@ message SimPassiveSonarConfig
   optional double svp_range_resolution = 25 [default = 200];
   optional double svp_depth_resolution = 26 [default = 20];
   optional string sync_path = 22 [default = ""];
-  optional string sync_password = 34 [default = "REDACTED"];
+//  optional string sync_password = 34 [default = "REDACTED"];
 }
 
 
