@@ -1919,12 +1919,20 @@ bool SimPassiveSonar::write_hyd_file()
 	system(cmd.c_str());
 	glog.is(VERBOSE) && glog << "Synched with: " << cmd << endl;
       */
-      //      std::string sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + sync_password 
-      //	+ "; rsync "
-      //	+ acoustic_filename + " " + sync_path + "/'";
-
-      std::string sync_cmd = " rsync "
+      std::string sync_cmd;
+      if (cfg_.has_sync_password())
+	{
+	  std::string pling = "\'";
+	  std::string setpw = "export RSYNC_PASSWORD=" + pling +
+	    cfg_.sync_password() + pling;
+	  sync_cmd = "bash -c '" + 
+	  setpw + "; rsync " + 
+	  acoustic_filename + " " + sync_path + "/'";
+	}
+      else
+	sync_cmd = "rsync "
       	+ acoustic_filename + " " + sync_path + "/";
+
       glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
       system(sync_cmd.c_str());
     }
@@ -2091,11 +2099,16 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
 	{
 
 	  std::string nonacoustic_filename(nonacoustic_filename_buff);
-	  //std::string sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + sync_password 
-	  //  + "; rsync "
-	  //  + nonacoustic_filename + " " + sync_path + "/'";
-	   std::string sync_cmd = " rsync "
-	    + nonacoustic_filename + " " + sync_path + "/";
+
+	  std::string sync_cmd;
+	  if (cfg_.has_sync_password())
+	    sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + 
+	      cfg_.sync_password() + "; rsync " + 
+	      nonacoustic_filename + " " + sync_path + "/'";
+	  else
+	    sync_cmd = "rsync "
+	      + nonacoustic_filename + " " + sync_path + "/";
+	  
 	  glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
 	  system(sync_cmd.c_str());
 	}
@@ -2201,15 +2214,20 @@ bool SimPassiveSonar::write_nas_file_verbose(double timestamp) {
 		
 		if (sync) {
 
-
 		  std::string nonacoustic_filename(nonacoustic_filename_buff);
-		  //std::string sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + sync_password 
-		  //  + "; rsync "
-		  //  + nonacoustic_filename + " " + sync_path + "/'";
 
-		  std::string sync_cmd = " rsync "
-		    + nonacoustic_filename + " " + sync_path + "/";
-		  glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+		  std::string sync_cmd;
+		  if (cfg_.has_sync_password())
+		    sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + 
+		      cfg_.sync_password() + "; rsync " + 
+		      nonacoustic_filename + " " + sync_path + "/'";
+		  else
+		    sync_cmd = "rsync "
+		      + nonacoustic_filename + " " + sync_path + "/";
+		  
+		  
+		  glog.is(DEBUG1) && glog << "Synching with: " << 
+		    sync_cmd.c_str() << endl;
 		  system(sync_cmd.c_str());
 		}
 	}
