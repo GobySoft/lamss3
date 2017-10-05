@@ -1144,6 +1144,7 @@ void LamssCBF::compute_steering_vectors()
 	{
 	  //1D beamformer
 	  glog.is(DEBUG1) && glog << "Computing Steering Vectors - " << std::endl;
+	  glog.is(DEBUG1) && glog << "num_bins = " << num_bins_ << std::endl;
 	  double constant2 = (2*M_PI/sound_speed_);
 	  steering_vector_real.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
 	  steering_vector_imag.ReSize(curr_cfg_.number_beams()*num_bins_, num_elements_used_);
@@ -1178,6 +1179,12 @@ void LamssCBF::compute_steering_vectors()
 	  ColumnVector h(4);
 	  ColumnVector tau;
 	  Matrix nominal_positions123;  
+	  glog.is(DEBUG1) && glog << "Computing Steering Vectors - " << std::endl;
+	  glog.is(DEBUG1) && glog << "num_bins = " << num_bins_ << std::endl;
+	  glog.is(DEBUG1) && glog << "Elevation beams : " << 
+	    curr_cfg_.number_beams_elevation() <<std::endl;
+	  glog.is(DEBUG1) && glog << "Azimuth beams : " << 
+	    curr_cfg_.number_beams_azimuth() <<std::endl;
 	  
 	  steering_vector_real.ReSize(num_elements_used_,
 				      curr_cfg_.number_beams_elevation()*
