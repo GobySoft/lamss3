@@ -44,7 +44,7 @@ class CTarget
 
   bool setTargetValues(int tgt_num, bool tgt_on, std::vector<double> values);
   bool getTargetValues(int& tgt_num, bool& tgt_on, std::vector<double>& values);
-  bool printTargetValues();
+  std::string printTargetValues();
   std::string target_id();
   std::string target_state();
 

@@ -88,27 +88,28 @@ bool CTarget::getTargetValues(int& tgt_num, bool& tgt_on, vector<double>& values
   return(true);
 }
 
-bool CTarget::printTargetValues()
+string CTarget::printTargetValues()
 {
-  MOOSTrace("target_number = %d\n",target_number);
-
-  MOOSTrace("target_utc= %f\n",target_utc);
-  MOOSTrace("target_x = %f\n",target_x);
-  MOOSTrace("target_y = %f\n",target_y);  
-  MOOSTrace("target_spd = %f\n",target_spd);
-  MOOSTrace("target_hdg = %f\n",target_hdg);  
-  MOOSTrace("target_dep = %f\n",target_dep);
-  MOOSTrace("target_spl = %f\n",target_spl);
-  MOOSTrace("target_str = %f\n",target_str);
-  MOOSTrace("target_freq = %f \n",target_freq);
-  MOOSTrace("target_bw = %f\n",target_bw);
+  stringstream cc;
+  cc << "target_number " << target_number
+     << ",utc=" << target_utc
+     << ",x=" << target_x
+     << ",y=" << target_y  
+     << ",spd=" << target_spd
+     << ",hdg=" << target_hdg  
+     << ",dep=" << target_dep
+     << ",spl=" << target_spl
+     << ",str=" << target_str
+     << ",freq=" << target_freq
+     << ",bw=" << target_bw;
 
   for (int i=0; i<tone_freq.size();i++)
 	  {
-	    MOOSTrace("tone_freq=%f, tone_dbl=%f\n",tone_freq[i],tone_dbl[i]);
+	    cc << ",tone" << i+1 << "=" << tone_freq[i] << ",db=" << tone_dbl[i];
 	  }
+  cc << endl;
 
-  return(true);
+  return(cc.str());
 }
 
 string CTarget::target_id()
