@@ -1,21 +1,22 @@
-#ifndef SIMTARGETS_HEADER
-#define SIMTARGETS_HEADER
+// Copyright 2015 
+// Henrik Schmidt
+// Toby Schneider 
+// Massachusetts Institute of Technology 
 
+#ifndef SimTargets20171006H
+#define SimTargets20171006H
 
-//#include "lamss/lib_newmat10D/newmatap.h"
-//#include <sys/time.h>
-//#include <deque>
-
-#include "MOOS/libMOOS/MOOSLib.h"
+#include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include <math.h>
-#include <time.h>
-#include <iostream>
-#include <fstream>
-#include <stdlib.h>
-#include <string.h>
-#include <vector>
+#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+
+#include "goby/moos/moos_protobuf_helpers.h"
+#include "goby/moos/protobuf/frontseat.pb.h"
+#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+
+#include "SimTargets_config.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_targetsim.pb.h" // DCCL message for self noise
+#include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/CTarget.h>
@@ -24,50 +25,71 @@
 
 using namespace std;
 
-
-
-class CSimTargets : public CMOOSApp
+class TargetsException : public std::runtime_error
 {
- public:
+  public:
+  TargetsException(const std::string& what) : std::runtime_error(what)
+    { }
+};
 
-  CSimTargets();
-  virtual ~CSimTargets();
+class SimTargets : public GobyMOOSApp
+{
+  public:
+    static void* driver_library_handle_;
+    static SimTargets* get_instance();
 
-  bool OnNewMail(MOOSMSG_LIST &NewMail);
-  bool Iterate();
-  bool OnConnectToServer();
-  bool OnStartUp();
+  private:
+    SimTargets(SimTargetsConfig& cfg);
+    ~SimTargets() { }
+
+    // synchronous event
+    void loop();    
+    void slow_loop(double curr_time);
+
+    // mail handlers
+
+    void handle_tgt_state(const CMOOSMsg& msg);
+    void handle_nav_x(const CMOOSMsg& msg);
+    void handle_nav_y(const CMOOSMsg& msg);
+
+    SimTargetsConfig& cfg_;
+    double last_slow_loop_t_;
+
+    static SimTargets* inst_;    
 
  protected:
 
-  void updateTargetList();
-  void cancelTarget(std::string);
-  void postTargetList();
+    void update_target(LAMSS_SIMULATE_TARGET tgt_msg);
 
-  bool prosecuting,target_set;
-  bool target_init;
-
-  double target_utc,target_x,target_y,target_heading,target_speed;
-  double time_now,auv_x,auv_y,target_depth,last_time,current_time;
-  double elapsed, source_range, rangeCrit, target_x_start, target_y_start;
-  int deploy_mission,prosecute_mode, target_number, t_num; 
-  bool source_control;
-
-  double target_freq;
-  double target_spl;
-  double target_str;
-  double target_bw;
-  double dest_id;
-  vector<double> tone_freq;
-  vector<double> tone_dbl;
-
-  bool got_x;
-  bool got_y;
-  bool noRangeCrit;
-
-  std::vector<CTarget> Targets;
-
-
+    void updateTargetList();
+    void cancelTarget(std::string);
+    void postTargetList();
+    std::string target_AIS(int indx);
+    
+    bool prosecuting,target_set;
+    bool target_init;
+    
+    double target_utc,target_x,target_y,target_heading,target_speed;
+    double time_now,auv_x,auv_y,target_depth,last_time,current_time;
+    double elapsed, source_range, rangeCrit, target_x_start, target_y_start;
+    int deploy_mission,prosecute_mode, target_number, t_num; 
+    bool source_control;
+    
+    double target_freq;
+    double target_spl;
+    double target_str;
+    double target_bw;
+    double dest_id;
+    vector<double> tone_freq;
+    vector<double> tone_dbl;
+    
+    bool got_x;
+    bool got_y;
+    bool noRangeCrit;
+    
+    CMOOSGeodesy m_Geodesy;
+    std::vector<CTarget> Targets;
+    
 };
 
-#endif 
+#endif

@@ -1,319 +1,258 @@
-//SimTargets.cpp    Henrik Schmidt, MIT, Oct 2008
+// Copyright 2015 
+// Henrik Schmidt
+// Massachusetts Institute of Technology 
 
-/*This program, SimTargets, is used in conjuction the array an acoustic simulators. 
-It is a multitarget generalization of pTargetSim.
-SimTargets listens for messages
-published by pNaFCon (or an adhoc message from the iRemote key binding 
-feature) that gives a Target_State of x,y,depth,heading,speed,time, 
-and a Prosecute_State equal to prosecute, abort or false. If the state is prosecute,
-and Target_State values are given, SimTargets will publish TARGET_XPOS and 
-TARGET_YPOS, the current x and y positions of the target. 
-*/
+#include <dlfcn.h>
+
+#include <numeric>
+
+#include <boost/thread.hpp>
+
+#include "goby/common/logger.h"
+#include "goby/acomms/connect.h"
+#include "goby/common/time.h"
+
 #include "SimTargets.h"
 
-//***************************************************************************
-//*  CSimTargets::CSimTargets()                                                
-//*                                                                         *
-//*  The constructor for the CBearings class. Variables can be initialized  *
-//*  here.                                                                  *
-//*                                                                         *
-//***************************************************************************
+#include "goby/moos/moos_protobuf_helpers.h"
 
-using namespace std;
+using namespace goby::common::logger;
+using namespace goby::common::logger_lock;
+namespace gpb = goby::moos::protobuf;
+using goby::common::goby_time;
+using goby::glog;
 
-CSimTargets::CSimTargets()
+const double pi = 3.14159;
+
+boost::shared_ptr<SimTargetsConfig> master_config;
+SimTargets* SimTargets::inst_ = 0;
+void* SimTargets::driver_library_handle_= 0;
+
+int main(int argc, char * argv[])
 {
-  source_control = true;    
-  Targets.clear();
-  target_number = 0;
-  target_init = false;
-  got_x = false;
-  got_y = false;
-
-  t_num = 0;
-  rangeCrit = 0;
-  noRangeCrit = false;
+    return goby::moos::run<SimTargets>(argc, argv);
 }
 
-//***************************************************************************
-//*  CSimTargets::~CSimTargets()                                                *
-//*                                                                         *
-//*  The destructor for the CSimTargets class. Dynamic memory can be freed    *
-//*  here.                                                                  *
-//***************************************************************************
-
-CSimTargets::~CSimTargets()
+SimTargets* SimTargets::get_instance()
 {
-    //DOES ANYTHING NEED TO HAPPEN IN THIS DESTRUCTOR?    
-}
-
-//***************************************************************************
-//*  CSimTargets::OnConnectToServer()                                          *
-//*                                                                         *
-//*  Called by the MOOSApp base class upon connecting to the MOOS database. *
-//*  Register for variables here.                                           *
-//*                                                                         *
-//***************************************************************************
-
-bool CSimTargets::OnConnectToServer()
-{
-  source_control = true;
-
-  m_Comms.Register ("TGT_STATE", 0);
-  m_Comms.Register ("NAV_X", 1);
-  m_Comms.Register ("NAV_Y", 1);
-  return true;
-}
-
-//***************************************************************************
-//*  CSimTargets::OnNewMail()                                                 *
-//*                                                                         *
-//*  Called by the MOOSApp base class when a variable this app is subscribed*
-//*  to changes.                                                            *
-//*                                                                         *
-//***************************************************************************/
-
-bool CSimTargets::OnNewMail(MOOSMSG_LIST &NewMail)
-{
- CMOOSMsg Msg;
- 
-  MOOSMSG_LIST::reverse_iterator p;
-  for(p = NewMail.rbegin(); p != NewMail.rend(); p++) {
-    CMOOSMsg &Msg = *p;
-    
-
-    if(Msg.m_sKey == "TGT_STATE")
-      {	
-	if (source_control)
-	  {
-	    MOOSTrace("Got TGT_STATE message");
-	    string val;
-	    val = Msg.m_sVal;
-
-	    parse_tgt_stat(val, 
-		   target_number,
-		   target_x_start,
-		   target_y_start,
-		   target_depth,
-		   target_heading,
-		   target_speed,
-		   target_utc,
-		   target_freq,
-		   target_bw,
-		   target_spl,
-		   target_str,
-		   tone_freq,
-		   tone_dbl);
-
-
-	    if (target_number > 0)
-	      {
-		updateTargetList();
-		postTargetList();
-	      }
-	    else if (target_number < 0)
-	      {
-		CTarget SimTgt;
-		SimTgt.target_number = -target_number;
-		string tstr = SimTgt.target_id();
-		cancelTarget(tstr);
-		postTargetList();
-
-	      }
-	    else
-	      MOOSTrace("Target ID  ignored\n");
-
-	    last_time = target_utc;
-	    target_set = true;
-	    m_Comms.Notify("TARGET_RESET","TRUE");
-	  }
-      }
-     else if(Msg.m_sKey == "NAV_X")
-      {	
-	auv_x = Msg.m_dfVal;
-	got_x =true;
-      }
-    else if(Msg.m_sKey == "NAV_Y")
-      {	
-	auv_y = Msg.m_dfVal;
-	got_y = true;
-      }
-    else
-      MOOSTrace("Unrecognized command: [%s]\n",Msg.m_sKey.c_str());  
-  }
-    return true;
-}
-
-//***************************************************************************
-//*  CSimTargets::Iterate()                                                  *
-//*                                                                         *
-//*  Called by the MOOSApp base class at a fixed rate specified in the      *
-//*  .moos file. Calls to this method trigger processing of data that is    *
-//*  ready to be processed.                                                  *
-//****************************************************************************/
-bool CSimTargets::Iterate()
-{
-  //MOOSTrace("Pros is %i \n", prosecuting);
-  //MOOSTrace("Targ is %i \n", target_set);
-
-      if (target_init && got_x && got_y)
-	{
-	  target_utc = MOOSTime();
-	  t_num += 1;
-	  target_number = t_num;
-	  updateTargetList();
-	  postTargetList();
-	  
-	  last_time = target_utc;
-	  target_set = true;
-	  m_Comms.Notify("TARGET_RESET","TRUE");
-	  target_init = false;
-	}
-
-      if(target_set == true)
-	{
-	  //MOOSTrace("Targ Set is True\n");
-	  //Calculate target position and range
-	  
-	  for (int i=0; i< Targets.size(); i++)
-	    {
-	      time_now = MOOSTime();
-	      elapsed = time_now - Targets[i].target_utc;
-	      target_x = Targets[i].target_x+(sin(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
-	      target_y = Targets[i].target_y+(cos(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
-	      source_range = sqrt( (auv_x-target_x)*(auv_x-target_x) + (auv_y-target_y)*(auv_y-target_y) );
-	      MOOSTrace("Target %s Range = %f\n", Targets[i].target_id().c_str(), source_range);
-	      MOOSTrace("TargetX = %f    TargetY = %f\n", target_x, target_y);
-	      string tstr = Targets[i].target_id();
-	      // 2010-12-14 Stephanie Kemna:
-	      //   adding bool noRangeCrit in case you don't want a critical
-	      //   range (multiple vehicles, one pSimTargets)
-	      if (source_range < rangeCrit || noRangeCrit)
-		{
-		  Targets[i].target_on = true;
-		  m_Comms.Notify(tstr+"_SIM_STATE",Targets[i].target_state());
-		}
-	      else
-		{
-		  Targets[i].target_on = false;
-		  m_Comms.Notify(tstr+"_SIM_STATE",Targets[i].target_state());
-		  cancelTarget(tstr);
-		  postTargetList();
-		}
-
-	    }
-	  
-	}
-}
-//***************************************************************************
-//*  CSimTargets::OnStartUp()                                                 *
-//*                                                                         *
-//*  Called by the MOOSApp base class when tis application is started       *
-//*                                                                         *
-//***************************************************************************
-
-bool CSimTargets::OnStartUp()
-{   
-  prosecuting = false;	
-  target_set = false;
-  
-  if (!m_MissionReader.GetConfigurationParam("rangeCrit",rangeCrit))
-    {
-      MOOSDebugWrite("No rangeCrit in mission file - setting noRangeCrit to true, target always alive once launched\n");
-      noRangeCrit = true;
+    if(!inst_)    {
+        master_config.reset(new SimTargetsConfig);
+        inst_ = new SimTargets(*master_config);
     }
-  
-  string tgt_flag;
-  if (!m_MissionReader.GetConfigurationParam("target_launch",tgt_flag))
-      return true;
-  else if ( !MOOSStrCmp(tgt_flag,"true") )
-    return true;
+    return inst_;
+}
+
+SimTargets::SimTargets(SimTargetsConfig& cfg)
+    : GobyMOOSApp(&cfg),
+      cfg_(cfg),
+      source_control(true),
+      target_number(0),
+      target_init(false),
+      auv_x(0),
+      auv_y(0),
+      got_x(false),
+      got_y(false),
+      t_num(0),
+      last_slow_loop_t_(0)
+{
+
+  if (cfg_.has_max_range())
+    {
+      rangeCrit = cfg_.max_range();
+      noRangeCrit = false;
+    }
   else
     {
-      target_init = true;
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_x",target_x_start) )
-	{
-	  MOOSDebugWrite("No tgt_x in mission file - FAIL\n");
-	  return false;
-	}
-      
-      if (!m_MissionReader.GetConfigurationParam("tgt_y",target_y_start) )
-	{
-	  MOOSDebugWrite("No tgt_y in mission file - FAIL\n");
-	  return false;
-	}
-  
-      if (!m_MissionReader.GetConfigurationParam("tgt_speed",target_speed) )
-	{
-	  MOOSDebugWrite("No tgt_speed in mission file - FAIL\n");
-	  return false;
-	}
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_heading",target_heading) )
-	{
-	  MOOSDebugWrite("No tgt_heading in mission file - FAIL\n");
-	  return false;
-	}
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_depth",target_depth) )
-	{
-	  MOOSDebugWrite("No tgt_depth in mission file - FAIL\n");
-	  return false;
-	}
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_freq",target_freq) )
-	{
-	  MOOSDebugWrite("No tgt_freq in mission file - FAIL\n");
-	  return false;
-	}
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_bw",target_bw) )
-	{
-	  MOOSDebugWrite("No tgt_bw in mission file - FAIL\n");
-	  return false;
-	}
-
-      if (!m_MissionReader.GetConfigurationParam("tgt_spl",target_spl) )
-	{
-	  MOOSDebugWrite("No tgt_spl in mission file - FAIL\n");
-	  return false;
-	}
-
-
-      double dfVal;
-
-      if (!m_MissionReader.GetConfigurationParam("number_tones",dfVal) )
-	{
-	  MOOSDebugWrite("No number_tones in mission file - FAIL\n");
-	  return false;
-	}
-      int number_tones = int(dfVal);
-
-      for (int i = 1; i<=number_tones; i++)
-	{
-	  if (!m_MissionReader.GetConfigurationParam("tone_freq_"+intToString(i),dfVal) )
-	    {
-	      MOOSTrace("No tone_freq_%d in mission file - FAIL\n",i);
-	      return false;
-	    }
-	  else
-	    tone_freq.push_back(dfVal);
-	  
-	  if (!m_MissionReader.GetConfigurationParam("tone_dbl_" + intToString(i),dfVal) )
-	    {
-	      MOOSTrace("No tone_dbl_%d in mission file - FAIL\n");
-	      return false;
-	    }
-	  else
-	    tone_dbl.push_back(dfVal);
-	}
-
+      noRangeCrit = true;
+      got_x = true;
+      got_y = true;
     }
+
+  Targets.clear();
+
+  set_ignore_stale(false);
   
-  return true;
+  // set up subscriptions before starting separate thread
+  subscribe("TGT_STATE_IN", &SimTargets::handle_tgt_state, this);    
+  subscribe("NAV_X", &SimTargets::handle_nav_x, this);
+  subscribe("NAV_Y", &SimTargets::handle_nav_y, this);    
+
+  //
+  // Initialize MOOSGeodesy
+  //
+  
+  m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
+  //
+  glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+  //
+  // Load auto_target and wait for nav data before publis=hin target list
+  //
+  if (cfg_.has_auto_target())
+    {
+      update_target(cfg_.auto_target());
+      target_init = true;
+    }
 }
 
+void SimTargets::loop()
+{
+
+  double curr_time = MOOSTime();
+  
+
+  if (target_init && got_x && got_y)
+    {
+      target_utc = MOOSTime();
+      t_num += 1;
+      target_number = t_num;
+      updateTargetList();
+      postTargetList();
+      
+      last_time = target_utc;
+      target_set = true;
+      publish("TARGET_RESET","TRUE");
+      target_init = false;
+    }
+  
+  if(target_set == true)
+    {
+      //Calculate target position and range
+      
+      for (int i=0; i< Targets.size(); i++)
+	{
+	  time_now = MOOSTime();
+	  elapsed = time_now - Targets[i].target_utc;
+	  target_x = Targets[i].target_x+(sin(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
+	  target_y = Targets[i].target_y+(cos(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
+	  source_range = sqrt( (auv_x-target_x)*(auv_x-target_x) + (auv_y-target_y)*(auv_y-target_y) );
+	  glog.is(DEBUG1) && glog << "Target " << Targets[i].target_id()
+				  << ", Range " << source_range << endl;
+	  glog.is(DEBUG1) &&  glog << "Target_x = " << target_x
+				   << ", Target_y = " << target_y << endl;
+	  string tstr = Targets[i].target_id();
+	  // 2010-12-14 Stephanie Kemna:
+	  //   adding bool noRangeCrit in case you don't want a critical
+	  //   range (multiple vehicles, one pSimTargets)
+	  if (source_range < rangeCrit || noRangeCrit)
+	    {
+	      Targets[i].target_on = true;
+	      publish(tstr+"_SIM_STATE",Targets[i].target_state());
+	    }
+	  else
+	    {
+	      Targets[i].target_on = false;
+	      publish(tstr+"_SIM_STATE",Targets[i].target_state());
+	      cancelTarget(tstr);
+	      postTargetList();
+	    }
+
+	}
+      
+    }
+  // process some events at a slower rate
+  const int slow_loop_period = 10;
+  if(curr_time > last_slow_loop_t_ + slow_loop_period)
+    slow_loop(curr_time);
+}
+
+void SimTargets::slow_loop(double curr_time)
+{
+  // Here we should add slow loop actions.
+
+  // Publish node report
+  if (target_set)
+    {
+      for (int i=0; i< Targets.size(); i++)
+	{
+	  publish ("NODE_REPORT", target_AIS(i));
+	}
+    }
+
+  last_slow_loop_t_ = curr_time;
+}
+
+void SimTargets::handle_nav_x(const CMOOSMsg& msg)
+{
+  auv_x = msg.GetDouble();
+  got_x = true;
+}
+
+void SimTargets::handle_nav_y(const CMOOSMsg& msg)
+{
+  auv_y = msg.GetDouble();
+  got_y = true;
+}
+
+void SimTargets::handle_tgt_state(const CMOOSMsg& msg)
+{
+  LAMSS_SIMULATE_TARGET tgt_msg;
+  parse_for_moos(msg.GetString(),&tgt_msg);
+  glog.is(DEBUG1) && glog << "Got TGT_STATE message, target number " 
+			  << tgt_msg.tgt_num() << endl;
+  update_target(tgt_msg);
+}
+
+void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
+{
+  target_number = tgt_msg.tgt_num();
+  target_x_start = tgt_msg.tgt_x();
+  target_y_start = tgt_msg.tgt_y();
+  target_depth = tgt_msg.tgt_dep();
+  target_heading = tgt_msg.tgt_hdg();
+  target_speed = tgt_msg.tgt_spd();
+  target_utc = tgt_msg.tgt_utc();
+  target_freq = tgt_msg.tgt_freq();
+  target_bw = tgt_msg.tgt_bw();
+  target_spl = tgt_msg.tgt_spl();
+  target_str = tgt_msg.tgt_str();
+  // Tones currently limited to 4. To be defined repeated.
+  tone_freq.clear();
+  tone_dbl.clear();
+
+  if (tgt_msg.tn1_freq() > 0)
+    {
+      tone_freq.push_back(tgt_msg.tn1_freq());
+      tone_dbl.push_back(tgt_msg.tn1_dbl());
+      if (tgt_msg.tn2_freq() > 0)
+	{
+	  tone_freq.push_back(tgt_msg.tn2_freq());
+	  tone_dbl.push_back(tgt_msg.tn2_dbl());
+	  if (tgt_msg.tn3_freq() > 0)
+	    {
+	      tone_freq.push_back(tgt_msg.tn3_freq());
+	      tone_dbl.push_back(tgt_msg.tn3_dbl());
+	      if (tgt_msg.tn4_freq() > 0)
+		{
+		  tone_freq.push_back(tgt_msg.tn4_freq());
+		  tone_dbl.push_back(tgt_msg.tn4_dbl());
+		}
+	    }
+	}
+    }
+
+  if (target_number > 0)
+    {
+      updateTargetList();
+      postTargetList();
+    }
+  else if (target_number < 0)
+    {
+      CTarget SimTgt;
+      SimTgt.target_number = -target_number;
+      string tstr = SimTgt.target_id();
+      cancelTarget(tstr);
+      postTargetList();
+      
+    }
+  else
+    glog.is(DEBUG1) && glog << "Target ID 0 ignored" << endl;
+  
+  last_time = target_utc;
+  target_set = true;
+  publish("TARGET_RESET","TRUE");
+  
+}
 
 //-----------------------------------------------------------------
 // Procedure: updateTargetList
@@ -322,7 +261,7 @@ bool CSimTargets::OnStartUp()
 //   HS 032108 Modified to full target nav info and UTC of report to allow inheritance
 //             and extrapolation of unreported varibles in NaFCon messages 
 
-void CSimTargets::updateTargetList()
+void SimTargets::updateTargetList()
 {
 
     double moos_time = MOOSTime();
@@ -355,9 +294,11 @@ void CSimTargets::updateTargetList()
 		values.push_back(tone_dbl[j]);
 	      }
 	    Targets[i].setTargetValues(target_number,false,values);
-	    MOOSTrace("Existing Target %d, Time = %f, Speed = %f, Heading = %f \n",
-		      i+1,target_utc,target_speed,target_heading);
-	    Targets[i].printTargetValues();
+	    glog.is(VERBOSE) && glog << "Modified Target " << i+1
+				    << " Time = " << target_utc
+				    << " Speed = " << target_speed
+				    << " Heading = " << target_heading << endl;
+	    glog.is(DEBUG1) && glog << Targets[i].printTargetValues() << endl;
 	    return;
 	  }
       }
@@ -378,30 +319,34 @@ void CSimTargets::updateTargetList()
 	values.push_back(tone_dbl[j]);
       }
     Targets[Targets.size()-1].setTargetValues(target_number,false,values);
-    Targets[Targets.size()-1].printTargetValues();
 
-    MOOSTrace("New Target %d, Time = %f, Speed = %f, Heading = %f \n",
-              Targets.size(),target_utc,target_speed,target_heading);
+    glog.is(VERBOSE) && glog << "New Target " << Targets.size()
+			    << " Time= " << target_utc
+			    << " Speed= " << target_speed
+			    << " Heading= " << target_heading << endl;
+    glog.is(DEBUG1) && glog << Targets[Targets.size()-1].printTargetValues() << endl;
 }
 
-void CSimTargets::cancelTarget(string target_name)
+void SimTargets::cancelTarget(string target_name)
 {
     target_name = toupper(stripBlankEnds(target_name));
 
     double moos_time = MOOSTime();
-    MOOSTrace("Entering cancelTarget, target %s\n",target_name.c_str());
+    glog.is(DEBUG1) && glog << "Entering cancelTarget, target " << target_name << endl;
     
     for(int j=0; j<Targets.size(); j++) 
       {
         if(Targets[j].target_id() == target_name)
 	  { 
-	    MOOSTrace("Removing target %s\n",target_name.c_str());
+	    glog.is(DEBUG1) && glog << "Removing target " << target_name << endl;
 	    for (int i=j; i<Targets.size()-1; i++)
 	      {
-		MOOSTrace("Shifting target %s\n", Targets[i+1].target_id().c_str());
+		glog.is(DEBUG1) && glog << "Shifting target " 
+					<< Targets[i+1].target_id() << endl;
 		Targets[i] = Targets[i+1];
 	      }	      
-	    MOOSTrace("Popping target %s\n", Targets[Targets.size()-1].target_id().c_str());
+	    glog.is(DEBUG1) && glog << "Popping target " 
+				    << Targets[Targets.size()-1].target_id() << endl;
 	    Targets.pop_back();
 
 	    return;
@@ -415,7 +360,7 @@ void CSimTargets::cancelTarget(string target_name)
 // Procedure: postTargetList
 //   Purpose: 
 
-void CSimTargets::postTargetList()
+void SimTargets::postTargetList()
 {
     double moos_time = MOOSTime();
 
@@ -437,9 +382,76 @@ void CSimTargets::postTargetList()
 	target_set = false;
       }
 
-    m_Comms.Notify("TARGET_SIM_LIST", target_list_string);
+    publish("TARGET_SIM_LIST", target_list_string);
 
 
 }
 
+string SimTargets::target_AIS(int index)
+{
 
+  vector<double> values;
+  int tgt_num;
+  bool tgt_on;
+
+  Targets[index].getTargetValues(tgt_num,tgt_on,values);
+
+  double target_utc = values[0];  
+  double target_x = values[1];  
+  double target_y = values[2];  
+  double target_spd = values[3];
+  double target_hdg = values[4];  
+  double target_dep = values[5];  
+  double target_lat;
+  double target_lon;
+
+  double time_now = MOOSTime();
+  double elapsed = time_now - target_utc;
+  glog.is(DEBUG1) && glog << "elapsed = " << elapsed
+			  << ", target_utc = " << target_utc << endl;
+
+  double tgt_x_now = target_x+(sin(target_hdg*M_PI/180.0)*elapsed*target_spd);
+  double tgt_y_now = target_y+(cos(target_hdg*M_PI/180.0)*elapsed*target_spd);
+
+  // For use by IvPContactBehavior  
+  std::string prefix="TGT_" + intToString(tgt_num) + "_SIM";
+  publish (prefix+"_NAV_X",tgt_x_now);
+  publish (prefix+"_NAV_Y",tgt_y_now);
+  publish (prefix+"_NAV_DEPTH",target_depth);
+  publish (prefix+"_NAV_SPEED",target_speed);
+  publish (prefix+"_NAV_HEADING",target_hdg);
+  publish (prefix+"_NAV_UTC",time_now);
+
+  // Create NODE_REPORT
+  if (!m_Geodesy.UTM2LatLong(tgt_x_now,tgt_y_now,target_lat,target_lon))
+    {
+      glog << "Error in UTM2LatLong conversion" << endl;
+    }
+
+  string output="NAME=tgt_" + intToString(tgt_num) +"_sim,TYPE=track,";
+
+  output += "UTC_TIME=" + doubleToString(time_now,1);
+  output += ",";
+
+  output += "X=" + doubleToString(tgt_x_now,2);
+  output += ",";
+
+  output += "Y=" + doubleToString(tgt_y_now,2);
+  output += ",";
+
+  output += "LAT=" + doubleToString(target_lat,6);
+  output += ",";
+
+  output += "LON=" + doubleToString(target_lon,6);
+  output += ",";
+
+  output += "SPD=" + doubleToString(target_spd,2);
+  output += ",";
+
+  output += "HDG=" + doubleToString(target_hdg,2);
+  output += ",";
+
+  output += "DEPTH=" + doubleToString(target_dep,2);
+
+  return(output);
+}
