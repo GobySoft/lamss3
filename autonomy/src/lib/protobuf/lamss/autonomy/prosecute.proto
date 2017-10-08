@@ -38,8 +38,8 @@ message LAMSS_PROSECUTE {
   }
   optional double center_frequency  = 30 [default = 900, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
   optional double bandwidth  = 31 [default = 200, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-  optional double tone_1 = 33 [default = 900, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-  optional double tone_2 = 34 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-  optional double tone_3 = 35 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+
+  repeated double tones = 40 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0, (dccl.field).max_repeat=4];
+
   optional bool reset_tracker = 36 [default = false];
 } 
