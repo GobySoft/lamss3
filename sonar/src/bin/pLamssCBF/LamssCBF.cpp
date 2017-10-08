@@ -339,15 +339,15 @@ void LamssCBF::handle_prosecute(const CMOOSMsg& msg)
   curr_cfg_ = cfg_;
   if (prosecute_cmd._rcv_id() == vehicle_id_)
     {
-      if (prosecute_cmd.processing_type() == LAMSS_PROSECUTE::TONES)
+      if (prosecute_cmd.processing_type() == LAMSS_PROSECUTE::TONES &&
+	  prosecute_cmd.tones_size() > 0 )
 	{
 	  curr_cfg_.set_processing_type(LamssCBFConfig::TONES);
 	  stringstream cc;
-	  cc << doubleToString(prosecute_cmd.tone_1(),1) ;
-	  if (prosecute_cmd.tone_2() > 0)
-	    cc << "," << doubleToString(prosecute_cmd.tone_2(),1) ;
-	  if (prosecute_cmd.tone_3() > 0)
-	    cc << "," << doubleToString(prosecute_cmd.tone_3(),1) ;
+	  cc << doubleToString(prosecute_cmd.tones(1),1) ;
+	  for (int i = 1; i < prosecute_cmd.tones_size(); i++)
+	    cc << "," << doubleToString(prosecute_cmd.tones(i),1) ;
+
 	  curr_cfg_.set_frequency_bins(cc.str());
 	}
       else
