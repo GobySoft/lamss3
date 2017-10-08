@@ -206,30 +206,16 @@ void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
   target_bw = tgt_msg.tgt_bw();
   target_spl = tgt_msg.tgt_spl();
   target_str = tgt_msg.tgt_str();
-  // Tones currently limited to 4. To be defined repeated.
-  tone_freq.clear();
-  tone_dbl.clear();
+  // Tones  
+  tone_freq.resize(tgt_msg.tones_size());
+  tone_dbl.resize(tgt_msg.tones_size());
 
-  if (tgt_msg.tn1_freq() > 0)
+  for (int i=0, n=tgt_msg.tones_size(); i < n; i++)
     {
-      tone_freq.push_back(tgt_msg.tn1_freq());
-      tone_dbl.push_back(tgt_msg.tn1_dbl());
-      if (tgt_msg.tn2_freq() > 0)
-	{
-	  tone_freq.push_back(tgt_msg.tn2_freq());
-	  tone_dbl.push_back(tgt_msg.tn2_dbl());
-	  if (tgt_msg.tn3_freq() > 0)
-	    {
-	      tone_freq.push_back(tgt_msg.tn3_freq());
-	      tone_dbl.push_back(tgt_msg.tn3_dbl());
-	      if (tgt_msg.tn4_freq() > 0)
-		{
-		  tone_freq.push_back(tgt_msg.tn4_freq());
-		  tone_dbl.push_back(tgt_msg.tn4_dbl());
-		}
-	    }
-	}
+      tone_freq[i] = tgt_msg.tones(i).freq();
+      tone_dbl[i] = tgt_msg.tones(i).db();	 
     }
+
 
   if (target_number > 0)
     {
