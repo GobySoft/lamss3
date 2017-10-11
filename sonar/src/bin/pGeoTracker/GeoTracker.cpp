@@ -107,7 +107,7 @@ bool CGeoTracker::Iterate()
   else if ( CList.tgt_est && !CList.tgt_track )
     {
       //      MOOSTrace("Posting Target Nav estimate\n");
-       postTargetNav(CList.tgt_x_est, CList.tgt_y_est, tgt_hdg ,tgt_spd , MOOSTime());
+      postTargetNav(CList.tgt_x_est, CList.tgt_y_est, CList.tgt_hdg_est ,CList.tgt_spd_est , MOOSTime());
       //      MOOSTrace("Posted Target Nav estimate\n");
       CList.tgt_est = false;
     }
@@ -687,7 +687,12 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
       MOOSTrace("brg_ang = %f, tgt_ang = %f  \n",brg_ang,atan2(tgt_y_est-auv_y,tgt_x_est-auv_x));
       tgt_x_est = auv_x + range_guess * cos(brg_ang);
       tgt_y_est = auv_y + range_guess * sin(brg_ang);
+      tgt_hdg_est = 90. - atan2(tgt_y_est - cue_y,tgt_x_est - cue_x)*180.0/M_PI;
+      tgt_spd_est = cue_spd;
+      // modify cue heading
+      cue_hdg = tgt_hdg_est;
       MOOSTrace("Modified tgt_x_est = %f, tgt_y_est = %f  \n",tgt_x_est,tgt_y_est);
+      MOOSTrace("Modified tgt_hdg_est = %f, tgt_spd_est = %f  \n",tgt_hdg_est,tgt_spd_est);
 
       tgt_est = true;
    }
@@ -737,6 +742,7 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 
       MOOSTrace("xnow = %f, ynow = %f \n", xnow, ynow );
       MOOSTrace("tgt_x = %f, tgt_y = %f \n", tgt_x, tgt_y );
+      MOOSTrace("tgt_spd = %f, tgt_hdg = %f, tgt_utc = %lf \n", tgt_spd, tgt_hdg, tgt_utc );
       MOOSTrace("tgt_xnow = %f, tgt_ynow = %f \n", tgt_xnow, tgt_ynow );
       MOOSTrace("tgt_xdot = %f, tgt_ydot = %f \n", tgt_xdot, tgt_ydot );
 

@@ -131,6 +131,8 @@ class Contact_List
   double bearing_time;
   double tgt_x_est;
   double tgt_y_est;
+  double tgt_spd_est;
+  double tgt_hdg_est;
   bool tgt_est;
   bool tgt_track;
 
