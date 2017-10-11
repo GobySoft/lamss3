@@ -256,6 +256,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 
 	// Set cued target info for tracker
 	CList.setTargetCue(cue_x, cue_y, cue_spd, cue_hdg, cue_utc);
+	CList.setTargetInfo(cue_x, cue_y, cue_spd, cue_hdg, cue_utc);
       }
     else if(Msg.m_sKey == "BEARING_STAT")
       {
@@ -588,7 +589,7 @@ int Contact_List::associate_bearing(Measurement* Meas)
       Contacts.push_back(*New_Contact);
       num_contacts++;
       //delete(New_Contact);
-      //Contacts[cid].Topt.set_range(range_guess);  
+      Contacts[cid].Topt.set_range(range_guess,0.0);  
       Contacts[cid].Topt.set_Z_length(Z_length);
       Contacts[cid].Ctype = AMBIGUOUS_BEARING;
       MOOSTrace("Added contact!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %d\n",cid);
@@ -677,7 +678,7 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
   tgt_y_est = Dy/D;
   tgt_x_est = Dx/D;
   MOOSTrace("tgt_x_est = %f, tgt_y_est = %f \n",tgt_x_est,tgt_y_est);
-  
+
   // Use scalar product to determine whether cue and measurements are consistent
   if ( cos( atan2(tgt_y_est-auv_y,tgt_x_est-auv_x) - brg_ang ) < 0.0)
     {
