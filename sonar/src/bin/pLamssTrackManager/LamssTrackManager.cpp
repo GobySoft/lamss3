@@ -72,6 +72,10 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 
     set_ignore_stale(false);
 
+    // Set config variables
+    m_xy_sigma_ = cfg_.xy_sigma_single();
+    m_buffer_length_ = cfg_.buffer_length_single();
+
     // set up subscriptions before starting separate thread
     subscribe("LAMSS_DEPLOY_IN", &LamssTrackManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
@@ -650,12 +654,12 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
       // Update track buffer and compute uncertainty
       int buf_len = updateTrackBuffer(track_utc,track_x,track_y,
 				      track_spd,track_hdg);
-      glog.is(DEBUG2) && glog 
+      glog.is(DEBUG1) && glog 
 	<< "Current buffer length =" << buf_len << std::endl;
-      glog.is(DEBUG2) && glog 
+      glog.is(DEBUG1) && glog 
 	<< "Max buffer length =" << m_buffer_length_ << std::endl;
       double xy_std = computeSigma();
-      glog.is(DEBUG2) && glog 
+      glog.is(DEBUG1) && glog 
 	<< "xy_std =" << xy_std << ", xy_sigma =" << m_xy_sigma_ << std::endl;
       bool good_track = (xy_std < m_xy_sigma_) && (buf_len >= m_buffer_length_);
       if (good_track)
