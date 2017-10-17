@@ -192,22 +192,31 @@ status CGeoTrack::get_track()
 	  x[1] = yzero + ydot*(dt[ii] - dt[ii-1]);
 	  x[2] = xdot;
 	  x[3] = ydot;
+	  new_range = range_guess;
 	}
       else if (reset_init == 0)
 	{
-	  new_range = 0.5*range_max;
-	  x[0] = vposx[zindex-1] + 0.5*range_max*cos(bearings[zindex-1]);
-	  x[1] = vposy[zindex-1] + 0.5*range_max*sin(bearings[zindex-1]);
-	  x[2] = 1.0;
-	  x[3] = 1.0;
+	  //	  new_range = 0.5*range_max;
+	  new_range = range_guess;
+	  //x[0] = vposx[zindex-1] + range_guess*cos(bearings[zindex-1]);
+	  //x[1] = vposy[zindex-1] + range_guess*sin(bearings[zindex-1]);
+          x[0] = xguess;
+	  x[1] = yguess;
+	  x[2] = xdotguess;
+	  x[3] = ydotguess;
 	}
       else
 	{
-	  new_range = 0.25*range_max;
-	  x[0] = vposx[zindex-1] + 0.25*range_max*cos(bearings[zindex-1]);
-	  x[1] = vposy[zindex-1] + 0.25*range_max*sin(bearings[zindex-1]);
-	  x[2] = -1.0;
-	  x[3] = 1.0;
+	  //	  new_range = 0.25*range_max;
+	  new_range = range_guess;
+	  //x[0] = vposx[zindex-1] + range_guess*cos(bearings[zindex-1]);
+	  //x[1] = vposy[zindex-1] + range_guess*sin(bearings[zindex-1]);
+	  //	  x[2] = -1.0;
+	  //	  x[3] = 1.0;
+          x[0] = xguess;
+	  x[1] = yguess;
+	  x[2] = xdotguess;
+	  x[3] = ydotguess;
 	}
     }
 

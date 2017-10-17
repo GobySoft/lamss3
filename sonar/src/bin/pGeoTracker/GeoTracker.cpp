@@ -86,7 +86,8 @@ bool CGeoTracker::Iterate()
 	  m_Comms.Notify("TARGET_HEADING",ch);
 	  m_Comms.Notify("TARGET_SPEED",cs);	   
 	  
-	  
+	  //  CList.setTargetInfo(cx,cy,cs,ch,stime); //Set in Iterate
+			  
 	  //send the TRACK_STAT message to the MOOS DB
 	  sprintf(buff,"node=%d,state=%d,x=%.3f,y=%.3f,heading=%.3f,speed=%.3f,time=%.2f",vehicleID,2,cx,cy,ch,cs,stime); 	   
 	  m_Comms.Notify("TRACK_STAT",buff);
@@ -256,7 +257,6 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 
 	// Set cued target info for tracker
 	CList.setTargetCue(cue_x, cue_y, cue_spd, cue_hdg, cue_utc);
-	CList.setTargetInfo(cue_x, cue_y, cue_spd, cue_hdg, cue_utc);
       }
     else if(Msg.m_sKey == "BEARING_STAT")
       {
@@ -589,7 +589,7 @@ int Contact_List::associate_bearing(Measurement* Meas)
       Contacts.push_back(*New_Contact);
       num_contacts++;
       //delete(New_Contact);
-      Contacts[cid].Topt.set_range(range_guess,0.0);  
+      //Contacts[cid].Topt.set_range(range_guess,0.0);  
       Contacts[cid].Topt.set_Z_length(Z_length);
       Contacts[cid].Ctype = AMBIGUOUS_BEARING;
       MOOSTrace("Added contact!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %d\n",cid);
@@ -677,7 +677,12 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
 
   tgt_y_est = Dy/D;
   tgt_x_est = Dx/D;
+  tgt_hdg_est = 90. - atan2(tgt_y_est - cue_y,tgt_x_est - cue_x)*180.0/M_PI;
+  tgt_spd_est = cue_spd;
   MOOSTrace("tgt_x_est = %f, tgt_y_est = %f \n",tgt_x_est,tgt_y_est);
+  MOOSTrace("tgt_hdg_est = %f, tgt_spd_est = %f  \n",tgt_hdg_est,tgt_spd_est);
+  if (  Contacts[cid].num_meas < min_meas)
+    tgt_est = true;
 
   // Use scalar product to determine whether cue and measurements are consistent
   if ( cos( atan2(tgt_y_est-auv_y,tgt_x_est-auv_x) - brg_ang ) < 0.0)
@@ -692,10 +697,11 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
       tgt_spd_est = cue_spd;
       // modify cue heading
       cue_hdg = tgt_hdg_est;
+      MOOSTrace("Range Guess - %f \n",range_guess);
       MOOSTrace("Modified tgt_x_est = %f, tgt_y_est = %f  \n",tgt_x_est,tgt_y_est);
       MOOSTrace("Modified tgt_hdg_est = %f, tgt_spd_est = %f  \n",tgt_hdg_est,tgt_spd_est);
+  tgt_est = true;
 
-      tgt_est = true;
    }
   
   return true;
@@ -771,6 +777,9 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  xdot  = Contacts[track_id].Topt.xdot;
 	  ydot  = Contacts[track_id].Topt.ydot;
 	  
+	  MOOSTrace("xzero = %f, yzero = %f \n", xzero, yzero );
+	  MOOSTrace("xdot = %f, ydot = %f \n", xdot, ydot );
+
 	  //based on the solution what is the target range?
 	  //	  x_pos_check = xzero + Contacts[track_id].total_time*xdot;
 	  //	  y_pos_check = yzero + Contacts[track_id].total_time*ydot;
@@ -780,6 +789,7 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  double solver_speed = sqrt(pow(xdot,2) +pow(ydot,2));
 	  //is the solution within the detection range and realistic speed?
 	  //make this a parameter
+	  MOOSTrace("solver_range = %f, solver_speed = %f \n", solver_range, solver_speed );
 	  if(solver_range < range_max && solver_speed < speed_max )
 	    {
 	      //position
