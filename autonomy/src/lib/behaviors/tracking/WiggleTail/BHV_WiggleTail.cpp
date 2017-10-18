@@ -41,13 +41,13 @@ BHV_WiggleTail::BHV_WiggleTail(IvPDomain gdomain) :
   turn_angle = 120.0;
 
   heading_variable = "AEL_HEADING";
+  bearing_variable = "BEARING_STAT";
 
   addInfoVars("NAV_X");
   addInfoVars("NAV_Y");
   // changed to AEL_HEADING. HS 103106
   // addInfoVars("AEL_HEADING");
   // addInfoVars("NAV_HEADING");
-  addInfoVars("TRACK_STAT");
 }
 
 //-----------------------------------------------------------
@@ -86,8 +86,13 @@ bool BHV_WiggleTail::setParam(string param, string val)
     {
       heading_variable = val;
     }
+ else if (param == "bearing_variable")
+   {
+     bearing_variable = val;
+   }
 
   addInfoVars(heading_variable);
+  addInfoVars(bearing_variable);
 
   return true;
 }
@@ -101,14 +106,14 @@ IvPFunction *BHV_WiggleTail::onRunState()
   bool ok1,ok2,ok3,ok4;
   //get current course
   // changed to AEL_HEADING. HS 103106
-  double osCourse = getBufferDoubleVal("AEL_HEADING", ok1);
+  double osCourse = getBufferDoubleVal(heading_variable, ok1);
   // double osCourse = getBufferDoubleVal("NAV_HEADING", ok1);
   //get current x
   double osX = getBufferDoubleVal("NAV_X", ok2);
   //get current heading
   double osY = getBufferDoubleVal("NAV_Y", ok3);
   //get current tracking state
-  string tState = getBufferStringVal("TRACK_STAT", ok4);
+  string tState = getBufferStringVal(bearing_variable, ok4);
   
   if(!ok1 || !ok2 || !ok3 || !ok4)
     {

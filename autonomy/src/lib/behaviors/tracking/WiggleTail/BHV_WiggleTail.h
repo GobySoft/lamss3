@@ -38,6 +38,7 @@ protected:
   int current_state,new_state,next_turn,curr_turn;
 
   std::string heading_variable;
+  std::string bearing_variable;
 
 };
 extern "C" {
