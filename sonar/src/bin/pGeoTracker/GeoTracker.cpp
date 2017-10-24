@@ -351,7 +351,30 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	MOOSTrace("mission_state = %s\n",d_state.c_str());
 	
 	prosecute = MOOSStrCmp(d_state,"PROSECUTE");
-	reset();
+	//	reset();
+      }
+    else if(Msg.m_sKey == "TRACKER_COMMAND")
+      {     
+	string t_state = Msg.m_sVal;
+        
+	if(MOOSStrCmp(t_state,"RESET"))
+	  reset();
+        else if (MOOSStrCmp(t_state, "ON"))
+	  {
+	    if (!tracking)
+	      {
+		tracking = true;
+		MOOSTrace("Tracking ON\n");
+	      }	  
+	  }
+	else
+	  {
+	    if (tracking)
+	      {
+		tracking = false;
+		MOOSTrace("Tracking OFF \n");
+	      }
+	  }
       }
     else if(Msg.m_sKey == "TRACKING_MODE")
       {
@@ -381,6 +404,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	prosecute_target_range=Msg.m_dfVal;
 	//MOOSTrace("Target Range = %f\n",prosecute_target_range);
       }
+    /*
     else if (Msg.m_sKey == "TRACKING")
       {
         string tracking_state = Msg.m_sVal;
@@ -401,6 +425,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	      }
 	  }
       }
+    */
     else if(Msg.m_sKey == "VEHICLE_ID")
      {
 	vehicleID = (int)Msg.m_dfVal;
@@ -460,7 +485,8 @@ bool CGeoTracker::OnConnectToServer()
   m_Comms.Register("PROSECUTE_RANGE",0);
   // m_Comms.Register("PROSECUTE_STATE",0);
   // m_Comms.Register("DEPLOY_STATE",0);
-  m_Comms.Register("TRACKING",0);
+  //  m_Comms.Register("TRACKING",0);
+  m_Comms.Register("TRACKER_COMMAND",0);
   m_Comms.Register("VEHICLE_ID",0);
   m_Comms.Register("TARGET_ID",0);
   m_Comms.Register("TRACKING_MODE",0);
@@ -738,7 +764,12 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
   if(Contacts[track_id].num_meas >= min_meas)
     {
       double curr_dt=Contacts[track_id].total_time;
-      //initialize tracker algorithm. initial guess based on prosecute information or previous target info on same target     
+      //initialize tracker algorithm. initial guess based on prosecute information or previous target info on same target 
+      if (tgt_spd > speed_max)
+	{
+	  range_guess = range_guess*speed_max/tgt_spd;
+	  tgt_spd = speed_max;
+	}
       double curr_time = MOOSTime(); 
       double tgt_ang = (90.0 - tgt_hdg)*M_PI/180.0;
       double tgt_xdot = tgt_spd*cos(tgt_ang);
@@ -756,7 +787,8 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
       Contacts[track_id].Topt.set_guess(tgt_xdot,tgt_ydot,tgt_xnow,tgt_ynow,curr_dt);
       double tgt_range_guess = sqrt(pow(tgt_xnow-xnow,2)+pow(tgt_ynow-ynow,2));
 
-      if(tgt_range_guess > range_max && tgt_spd > speed_max )
+      //      if(tgt_range_guess > range_max && tgt_spd > speed_max )
+      if(tgt_range_guess > range_max)
 	tgt_range_guess = range_guess;
       MOOSTrace("Range_guess = %f \n", tgt_range_guess);
 
