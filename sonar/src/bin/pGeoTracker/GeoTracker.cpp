@@ -704,6 +704,11 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
   tgt_y_est = Dy/D;
   tgt_x_est = Dx/D;
   tgt_hdg_est = 90. - atan2(tgt_y_est - cue_y,tgt_x_est - cue_x)*180.0/M_PI;
+  if (cos((tgt_hdg_est-cue_hdg)*M_PI/180) < 0)
+    tgt_hdg_est += 180;
+  if (tgt_hdg_est >= 360)
+    tgt_hdg_est -= 360;
+
   tgt_spd_est = cue_spd;
   MOOSTrace("tgt_x_est = %f, tgt_y_est = %f \n",tgt_x_est,tgt_y_est);
   MOOSTrace("tgt_hdg_est = %f, tgt_spd_est = %f  \n",tgt_hdg_est,tgt_spd_est);
@@ -767,7 +772,6 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
       //initialize tracker algorithm. initial guess based on prosecute information or previous target info on same target 
       if (tgt_spd > speed_max)
 	{
-	  range_guess = range_guess*speed_max/tgt_spd;
 	  tgt_spd = speed_max;
 	}
       double curr_time = MOOSTime(); 

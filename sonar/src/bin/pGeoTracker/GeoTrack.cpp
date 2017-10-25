@@ -177,8 +177,9 @@ status CGeoTrack::get_track()
       int ii=zindex-1;
       double prev_speed = sqrt(pow(xdot,2)+pow(ydot,2));
       double prev_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
-      if ( (prev_speed < speed_max) && (prev_range < range_max ) )
+      if ( (prev_speed < speed_max) && (prev_range < range_max ) && (prev_range > 0.2*range_guess))
 	{ 
+	  cout << "Solution - Case 1" << endl;
 	  //	  x_r = vposx[ii]-xzero;
 	  //	  y_r = vposy[ii]-yzero;
 	  //          x_v = xdot*(dt[ii] - dt[ii-1]);
@@ -192,31 +193,33 @@ status CGeoTrack::get_track()
 	  x[1] = yzero + ydot*(dt[ii] - dt[ii-1]);
 	  x[2] = xdot;
 	  x[3] = ydot;
-	  new_range = range_guess;
+	  new_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
 	}
-      else if (reset_init == 0)
+      else if (prev_speed > speed_max)
 	{
-	  //	  new_range = 0.5*range_max;
-	  new_range = range_guess;
-	  //x[0] = vposx[zindex-1] + range_guess*cos(bearings[zindex-1]);
-	  //x[1] = vposy[zindex-1] + range_guess*sin(bearings[zindex-1]);
-          x[0] = xguess;
-	  x[1] = yguess;
-	  x[2] = xdotguess;
-	  x[3] = ydotguess;
+	  cout << "Solution - Case 2" << endl;
+	  new_range = 0.5*range_max;
+	  //new_range = range_guess*speed_max/prev_speed;
+	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
+	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
+          // x[0] = xguess;
+	  // x[1] = yguess;
+	  x[2] = xdot*speed_max/prev_speed;
+	  x[3] = ydot*speed_max/prev_speed;
 	}
       else
 	{
-	  //	  new_range = 0.25*range_max;
-	  new_range = range_guess;
-	  //x[0] = vposx[zindex-1] + range_guess*cos(bearings[zindex-1]);
-	  //x[1] = vposy[zindex-1] + range_guess*sin(bearings[zindex-1]);
+	  cout << "Solution - Case 3" << endl;
+	  new_range = 0.25*range_max;
+	  //new_range = range_guess;
+	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
+	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
 	  //	  x[2] = -1.0;
 	  //	  x[3] = 1.0;
-          x[0] = xguess;
-	  x[1] = yguess;
-	  x[2] = xdotguess;
-	  x[3] = ydotguess;
+          //x[0] = xguess;
+	  //x[1] = yguess;
+	  x[2] = xdot;
+	  x[3] = ydot;
 	}
     }
 
