@@ -48,11 +48,14 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssTrackManagerFSM>()),
       num_tracks(0),
+      tgt_track_id(0),
+      node(0),
       collab_num_tracks(0),
       filt_set(false),
       trk_beamno(0),
       track_delay(cfg_.track_delay()),
       prev_highest(-1),
+      priority_threshold(0),
       collaborator_id(-1),
       collaborator_name(""),
       close_range_(false),
@@ -113,7 +116,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
    // reset collaborator tracks
     collab_new_track.clear();
     collab_Tracks.clear();
-  
+    Tracks.clear();
+    reset_tracking();
     Empty.setTrack( 0, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, class_features);
     
     // intialize MOOSGeodesy
@@ -465,7 +469,7 @@ void LamssTrackManager::handle_collaborator_id(const CMOOSMsg& msg)
 void LamssTrackManager::handle_collaborator_name(const CMOOSMsg& msg)
 {
     collaborator_name = msg.GetString();
-    subscribe(collaborator_name+"_BEARING_TRACKS", 
+    subscribe(collaborator_name+"_BEARING_TRACK", 
 	      &LamssTrackManager::handle_collaborator_bearing_tracks, this);  
 }
 
@@ -504,7 +508,7 @@ void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
       int in_trk= TrackBuf.trk_num;
       if ( in_trk > num_tracks )
 	{
-	  glog.is(DEBUG2) && glog 
+	  glog.is(DEBUG1) && glog 
 	    << "Non-existing track number " << in_trk
 	    << ". Adding new track" << std::endl;
 	  for (int i=num_tracks; i< in_trk; i++)
@@ -520,7 +524,7 @@ void LamssTrackManager::handle_bearing_tracks(const CMOOSMsg& msg)
       
       Tracks[in_trk-1].postTrack(moosvar,sval);
       // goby::glog << group("track") 
-      glog.is(DEBUG2) && glog 
+      glog.is(DEBUG1) && glog 
 	<< "New track: " << sval << std::endl;
     }
   else
@@ -559,7 +563,6 @@ void LamssTrackManager::handle_collaborator_bearing_tracks(const CMOOSMsg& msg)
       postStateCollab();
     }	      
 }
-
 void LamssTrackManager::handle_prosecute_heading(const CMOOSMsg& msg)
 {
   MOOSValFromString(prosecute_heading,msg.GetString(),"heading");
@@ -963,16 +966,19 @@ bool LamssTrackManager::postStateVars()
 			      (tgt_track_id == 0))) || 
 			    !prosecute_mode_active_);
 	  //goby::glog << group("track") 
-	  glog.is(DEBUG2) && glog 
-	    << "trk_template_=" << trk_template 
-	    << ", tgt_track_id =" << tgt_track_id
-	    << ", track_=" << trk_num 
-	    << ", priority =" << trk_prio << std::endl;
 	  if ( interest && ( trk_prio > highest_prio) )
 	    {
 	      highest_prio = trk_prio;
 	      highest_index = i;
 	    }
+	  glog.is(DEBUG1) && glog 
+	    << "trk_template_=" << trk_template 
+	    << ", tgt_track_id =" << tgt_track_id
+	    << ", track_num=" << trk_num 
+	    << ", priority =" << trk_prio 
+	    << ", highest_prio =" << highest_prio 
+	    << ", highest_index =" << highest_index 
+	    << std::endl;
 	}
       else
 	{
