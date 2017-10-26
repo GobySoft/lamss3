@@ -215,7 +215,9 @@ class SimModemNetwork : public GobyMOOSApp
 			    std::vector<double> & delay,
 			    std::vector<double> & amplitude,
 			    std::vector<double> & doppler,
-			    std::vector<double> & elevation);
+			    std::vector<double> & elevation,
+			    std::vector<int> & surface_bounces,
+			    std::vector<int> & bottom_bounces);
     
       
 };

@@ -251,8 +251,12 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       std::vector<double> amplitude;
       std::vector<double> doppler;
       std::vector<double> elevation;
+      std::vector<int> surface_bounces;
+      std::vector<int> bottom_bounces;
+
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
-			 delay,amplitude,doppler,elevation);
+			 delay,amplitude,doppler,elevation,
+			 surface_bounces,bottom_bounces);
       ImpulseResponse::RayTrace* raytrace = 0;
       for (int j = 0; j < delay.size(); j++)
 	{
@@ -261,6 +265,8 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	  raytrace -> set_amplitude(amplitude[j]);
 	  raytrace -> set_doppler(doppler[j]);
 	  raytrace -> set_elevation(elevation[j]*180.0/M_PI);
+	  raytrace -> set_surface_bounces(surface_bounces[j]);
+	  raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	}
       message.set_noise_level(acoustic_contacts[con].noise_level);
       std::string serialized_impulse_response;
@@ -538,7 +544,9 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 					  std::vector<double> & delay,
 					  std::vector<double> & amplitude,
 					  std::vector<double> & doppler,
-					  std::vector<double> & elevation)
+					  std::vector<double> & elevation,
+					  std::vector<int> & surface_bounces,
+					  std::vector<int> & bottom_bounces)
 {
   // Project absolute vs response onto physical orientation
   double deg2rad = M_PI/180;
@@ -612,16 +620,24 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 
   // ray receiver elevations
   std::vector<double> ray_elevations;
+  std::vector<int> ray_surface_bounces;
+  std::vector<int> ray_bottom_bounces;
   ray_elevations.resize(eig.num_rays);
+  ray_surface_bounces.resize(eig.num_rays);
+  ray_bottom_bounces.resize(eig.num_rays);
   for (int i_ray=0; i_ray < eig.num_rays; i_ray++)
     {
       ray_elevations[i_ray] = eig.bundle[i_ray].dip_receiver;
+      ray_surface_bounces[i_ray] = eig.bundle[i_ray].surface_bounces;
+      ray_bottom_bounces[i_ray] = eig.bundle[i_ray].bottom_bounces;
     }
 
   delay = ray_delays;
   amplitude = ray_amplitudes;
   doppler= ray_doppler;
   elevation= ray_elevations;
+  surface_bounces = ray_surface_bounces;
+  bottom_bounces = ray_bottom_bounces;
 }
 
  
