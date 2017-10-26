@@ -9,8 +9,10 @@ message ImpulseResponse
     {
        required double delay = 1 [(goby.field).description="Seconds"];
        required double amplitude = 2 [(goby.field).description="Pascal"];
-       optional double doppler = 3 [(goby.field).description="Doppler blueshift  factor", default=1.0 ];
+       optional double doppler = 3 [(goby.field).description="Doppler blueshift factor", default=1.0 ];
        optional double elevation = 4 [(goby.field).description="Degrees", default = 0];
+       optional int32 surface_bounces = 5 [(goby.field).description="Number of ray surface bounces"];
+       optional int32 bottom_bounces = 6 [(goby.field).description="Number of ray bottom bounces"];
     }
   optional double noise_level = 5;
 }
