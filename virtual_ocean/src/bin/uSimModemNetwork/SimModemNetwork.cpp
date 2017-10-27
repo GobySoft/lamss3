@@ -664,11 +664,6 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	{ cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
 	  cos_Rcv[i_ray] = cos(eig.bundle[i_ray].dip_receiver);
 	  sin_Rcv[i_ray] = sin(-eig.bundle[i_ray].dip_receiver);
-	  // free surface reflection handled by change of sign
-	  if(abs(abs(eig.bundle[i_ray].phase)-M_PI)<=0.1) 
-	    amp[i_ray] = -eig.bundle[i_ray].amp;
-	  else
-	    amp[i_ray] = eig.bundle[i_ray].amp;
 	}
       
       double ref_range = eig.range;
@@ -686,6 +681,12 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 				    (dz*sin_Rcv[ray_iter]))*
 				   oneossp));
 	      amplitudes[ray_iter] = amp[ray_iter];    
+      // free surface reflection handled by change of sign
+	  if ( cos(eig.bundle[ray_iter].phase) < -0.99) 
+	    amplitudes[ray_iter] = - amp[ray_iter];    
+	  else if ( cos(eig.bundle[ray_iter].phase) < 0.99) 
+	    // turning points by time shift
+	    delays[ray_iter] -= 1.0/eig.freq * eig.bundle[ray_iter].phase/(2*M_PI);
 	}
       return(true);
     }

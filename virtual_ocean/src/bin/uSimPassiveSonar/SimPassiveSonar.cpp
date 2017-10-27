@@ -1369,20 +1369,24 @@ bool SimPassiveSonar::ray_arrivals(CEigenRay eig,
   sin_Rcv.resize(num_eig_rays);
   std::vector<double>amp;
   amp.resize(num_eig_rays);
+  std::vector<double> tau;
+  tau.resize(num_eig_rays);
   if (num_eig_rays>0)
     {
       // Vertical ray angles
       for(int i_ray=0; i_ray<num_eig_rays; i_ray++)
-	{ cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
+	{ 
+	  cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
 	  cos_Rcv[i_ray] = cos(eig.bundle[i_ray].dip_receiver);
 	  sin_Rcv[i_ray] = sin(-eig.bundle[i_ray].dip_receiver);
+	  amp[i_ray] = eig.bundle[i_ray].amp;
+	  tau[i_ray] = eig.bundle[i_ray].tau;
 	  // free surface reflection handled by change of sign
-	  if(abs(abs(eig.bundle[i_ray].phase)-M_PI)<=0.1) 
+	  if ( cos(eig.bundle[i_ray].phase) < -0.99) 
 	    amp[i_ray] = -eig.bundle[i_ray].amp;
-	  else
-	    amp[i_ray] = eig.bundle[i_ray].amp;
-	}
-      
+	  else if ( cos(eig.bundle[i_ray].phase) < 0.99) 
+	    tau[i_ray] -= 1.0/eig.freq * eig.bundle[i_ray].phase/(2*M_PI);
+	}  
       double ref_range = eig.range;
       double ref_depth = eig.receiver_depth;
 
@@ -1393,7 +1397,7 @@ bool SimPassiveSonar::ray_arrivals(CEigenRay eig,
       amplitudes.resize(num_eig_rays);
       for(int ray_iter=0; ray_iter<num_eig_rays; ray_iter++)
 	{
-	      delays[ray_iter] = (eig.bundle[ray_iter].tau + 
+	      delays[ray_iter] = (tau[ray_iter] + 
 				  (((dr*cos_Rcv[ray_iter]) + 
 				    (dz*sin_Rcv[ray_iter]))*
 				   oneossp));
