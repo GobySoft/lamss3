@@ -69,7 +69,7 @@ vector<double> CmyVectorUtils::zeros(int m, int n)
   return(values);
 }
 
-double CmyVectorUtils::mean(vector<double> values)
+double CmyVectorUtils::mean(const vector<double> & values)
 {
   int len = values.size();
   double sum=0;
@@ -139,7 +139,7 @@ bool CmyVectorUtils::cumtrapz(vector<double> x, vector<double> y, vector<double>
   return(true);
 }
 
-double CmyVectorUtils::sum(vector<double> in)
+double CmyVectorUtils::sum(const vector<double>& in)
 {
   double sum = 0.0;  
   for (int i=0; i < in.size(); i++)
@@ -150,7 +150,7 @@ double CmyVectorUtils::sum(vector<double> in)
   return(sum);
 }
 
-int CmyVectorUtils::intsum(vector<int> in)
+int CmyVectorUtils::intsum(const vector<int>& in)
 {
   int sum = 0;  
   for (int i=0; i < in.size(); i++)
@@ -240,7 +240,7 @@ bool CmyVectorUtils::vmov(vector<double> a, vector<double>& c)
   return(true);
 }
 
-double CmyVectorUtils::vmax(vector<double> in)
+double CmyVectorUtils::vmax(const vector<double>& in)
 {
   double maxval = -1e300;  
   for (int i=0; i < in.size(); i++)
@@ -252,7 +252,7 @@ double CmyVectorUtils::vmax(vector<double> in)
   return(maxval);
 }
 
-double CmyVectorUtils::vmin(vector<double> in)
+double CmyVectorUtils::vmin(const vector<double>& in)
 {
   double minval = 1e300;  
   for (int i=0; i < in.size(); i++)
@@ -516,7 +516,8 @@ int CmyVectorUtils::indx_tri(int i, int j)
 
 
 
-bool CmyVectorUtils::interp(vector<double> x, vector<double> y, vector<double> x_int, vector<double>& y_int)
+bool CmyVectorUtils::interp(const vector<double>& x, const vector<double>& y, 
+			    const vector<double>& x_int, vector<double>& y_int)
 {
   y_int = zeros(x_int.size(),1);
   for (int i=0; i<x_int.size(); i++)
