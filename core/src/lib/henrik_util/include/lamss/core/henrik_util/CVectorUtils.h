@@ -39,13 +39,14 @@ class CmyVectorUtils
   int str2dbl_vec(std::string, std::vector<double>& values);
   bool dbl_vec2str(std::vector<double> numbers, std::string& str);
   std::vector<double> zeros(int m, int n);
-  double mean(std::vector<double> val);
-  double sum(std::vector<double> val);
-  int intsum(std::vector<int> ival);
+  double mean(const std::vector<double>& val);
+  double sum(const std::vector<double>& val);
+  int intsum(const std::vector<int>& ival);
   bool vshift(std::vector<double> in, int indx_in,std::vector<double>& out, int indx_out, int len);
   bool cumsum(std::vector<double> in, std::vector<double>& out);
   bool cumtrapz(std::vector<double> x, std::vector<double> y, std::vector<double>& out);
-  bool interp(std::vector<double> x, std::vector<double> y, std::vector<double> xi, std::vector<double>& yi);
+  bool interp(const std::vector<double>& x, const std::vector<double>& y, 
+	      const std::vector<double>& xi, std::vector<double>& yi);
   void vpair_sort(std::vector<double> x, 
 		  std::vector<double> y,
 		  std::vector<double> x_sort,
@@ -57,8 +58,8 @@ class CmyVectorUtils
   bool vneg(std::vector<double> a, std::vector<double>& c);
   bool vsmul(std::vector<double> a, double b, std::vector<double>& c);
   bool vmov(std::vector<double> a, std::vector<double>& c);
-  double vmax(std::vector<double> val);
-  double vmin(std::vector<double> val);
+  double vmax(const std::vector<double>& val);
+  double vmin(const std::vector<double>& val);
   bool minv(std::vector<double> a, int dim, std::vector<double>& a_inv);
   bool bminv(std::vector<double> a, int dim, int bw, std::vector<double>& a_inv);
   double bsolve(std::vector<double> a, int dim, int bw, std::vector<double>& b, int ncols);
