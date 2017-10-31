@@ -79,17 +79,21 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     ray_acoustics(cfg_.ray_acoustics()),
     rap_acoustics(cfg_.rap_acoustics()),
     sampling_frequency(cfg_.sampling_frequency()),
-    noise_level(cfg_.noise_level()),
-    mseas_svp_updates(cfg_.mseas_svp_updates()), 
-    mseas_update_interval(cfg_.mseas_update_interval()), 
-    svp_range_resolution(cfg_.svp_range_resolution()), 
-    svp_depth_resolution(cfg_.svp_depth_resolution()),
-    base_dir_name(cfg_.base_dir_name()), 
-    acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
-    acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
-    nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
+  noise_level(cfg_.noise_level()),
+  mseas_svp_updates(cfg_.mseas_svp_updates()), 
+  mseas_update_interval(cfg_.mseas_update_interval()), 
+  svp_range_resolution(cfg_.svp_range_resolution()), 
+  svp_depth_resolution(cfg_.svp_depth_resolution()),
+  base_dir_name(cfg_.base_dir_name()), 
+  acoustic_filename_prefix(cfg_.acoustic_filename_prefix()), 
+  acoustic_filename_suffix(cfg_.acoustic_filename_suffix()), 
+  nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
   nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
-  sync_path(cfg_.sync_path())
+  sync_path(cfg_.sync_path()),
+  surface_bounce_jitter(cfg_.surface_bounce_jitter()),
+  surface_bounce_loss(cfg_.surface_bounce_loss()),
+  bottom_bounce_jitter(cfg_.bottom_bounce_jitter())
+  
   //, 
   //  sync_password(cfg_.sync_password())
 {

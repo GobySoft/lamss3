@@ -344,6 +344,10 @@ class SimPassiveSonar : public GobyMOOSApp
     double array_avg_pitch;
     double array_prev_pitch;
 
+    double surface_bounce_jitter;
+    double surface_bounce_loss;
+    double bottom_bounce_jitter;
+
     // doubles to keep track of time
     double time_last;
     double file_interval_time;
