@@ -37,9 +37,11 @@ message SimPassiveSonarConfig
   optional double svp_depth_resolution = 26 [default = 20];
   optional string sync_path = 22 [default = ""];
   optional string sync_password = 34 ;
-  optional double surface_bounce_jitter = 40; // Surface bounce delay jitter std in fraction of period 
-  optional double surface_bounce_loss = 41; // coherence loss in dB per bounce
-  optional double bottom_bounce_jitter = 42; // Bottom bounce delay jitter std in fraction of period 
+  optional double surface_rms_roughness = 40  [default = 0]; // Surface RMS roughness 
+  optional double surface_roughness_loss = 41 [default = 0]; // coherence loss in dB per bounce
+  optional double bottom_rms_roughness = 42 [default = 0];  // Bottom RMS roughness 
+  optional double bottom_roughness_loss = 43 [default = 0]; // coherence loss in dB per bounce
+
 }
 
 

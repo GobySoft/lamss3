@@ -90,10 +90,10 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   nonacoustic_filename_prefix(cfg_.nonacoustic_filename_prefix()), 
   nonacoustic_filename_suffix(cfg_.nonacoustic_filename_suffix()), 
   sync_path(cfg_.sync_path()),
-  surface_bounce_jitter(cfg_.surface_bounce_jitter()),
-  surface_bounce_loss(cfg_.surface_bounce_loss()),
-  bottom_bounce_jitter(cfg_.bottom_bounce_jitter())
-  
+  surface_rms_roughness(cfg_.surface_rms_roughness()),
+  surface_roughness_loss(cfg_.surface_roughness_loss()),
+  bottom_rms_roughness(cfg_.bottom_rms_roughness()),
+  bottom_roughness_loss(cfg_.bottom_roughness_loss())
   //, 
   //  sync_password(cfg_.sync_password())
 {
