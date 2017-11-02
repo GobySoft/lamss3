@@ -15,6 +15,9 @@ message ImpulseResponse
        optional int32 bottom_bounces = 6 [(goby.field).description="Number of ray bottom bounces"];
     }
   optional double noise_level = 5;
+  optional double receiver_sound_speed = 6 [default = 1500];
+  optional double surface_sound_speed = 7 [default = 1500];
+  optional double bottom_sound_speed = 8 [default = 1500];
 }
 
 message ImpulseRequest
