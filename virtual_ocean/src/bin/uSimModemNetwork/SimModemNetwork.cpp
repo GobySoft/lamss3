@@ -276,6 +276,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	  raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	}
       message.set_noise_level(acoustic_contacts[con].noise_level);
+      // The receiver is in the last range sector
       bellhop::protobuf::Environment::WaterColumn* water_column = acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
 
       message.set_surface_sound_speed(get_ssp_value(water_column,0));
