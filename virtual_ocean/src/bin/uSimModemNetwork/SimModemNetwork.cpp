@@ -251,6 +251,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 		contact_depth,contact_heading,contact_speed) ; 
   if (got_info && generate_eigenray_table(acoustic_contacts[con]))  
     {
+      glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
       ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
@@ -679,6 +680,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	{ cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
 	  cos_Rcv[i_ray] = cos(eig.bundle[i_ray].dip_receiver);
 	  sin_Rcv[i_ray] = sin(-eig.bundle[i_ray].dip_receiver);
+	  amp[i_ray] = eig.bundle[i_ray].amp;
 	}
       
       double ref_range = eig.range;
