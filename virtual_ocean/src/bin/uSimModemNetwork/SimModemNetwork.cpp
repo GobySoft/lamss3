@@ -232,6 +232,13 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
     }
 }
 
+void SimModemNetwork::handle_svp_info(const CMOOSMsg& msg)
+{
+  SVPInfoResponse svp_info;
+  std::string serialized = msg.GetString();
+  parse_for_moos(serialized, &svp_info);
+}
+
 void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 {
   ImpulseRequest request;
@@ -244,6 +251,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 		contact_depth,contact_heading,contact_speed) ; 
   if (got_info && generate_eigenray_table(acoustic_contacts[con]))  
     {
+      glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
       ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
@@ -269,6 +277,14 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	  raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	}
       message.set_noise_level(acoustic_contacts[con].noise_level);
+      // The receiver is in the last range sector
+      bellhop::protobuf::Environment::WaterColumn* water_column = acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
+
+      message.set_surface_sound_speed(get_ssp_value(water_column,0));
+      message.set_bottom_sound_speed(get_ssp_value(water_column,
+						   water_column->bathymetry()));
+      message.set_receiver_sound_speed(get_ssp_value(water_column,
+						     ownship_depth));
       std::string serialized_impulse_response;
       serialize_for_moos(&serialized_impulse_response,message);
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
@@ -664,6 +680,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	{ cos_Src[i_ray] = cos(eig.bundle[i_ray].dip_source);
 	  cos_Rcv[i_ray] = cos(eig.bundle[i_ray].dip_receiver);
 	  sin_Rcv[i_ray] = sin(-eig.bundle[i_ray].dip_receiver);
+	  amp[i_ray] = eig.bundle[i_ray].amp;
 	}
       
       double ref_range = eig.range;
@@ -759,16 +776,32 @@ int SimModemNetwork::findAcousticContact(std::string os,
 
 bool SimModemNetwork::putAcousticContactSVP(SVP::Response svp_response)
 {
-  for (int i = 0; i < acoustic_contacts.size(); i++)
+  if (svp_response.request_id() == 0)
     {
-      glog.is(DEBUG1) && glog << "Checking " << (int) svp_response.request_id() << endl;
-      glog.is(DEBUG1) && glog << "request_id " << (int) acoustic_contacts[i].svp_request_id << endl; 
-	if (svp_response.request_id() == (int) acoustic_contacts[i].svp_request_id)
+      // initial water column published by iBellhop
+      for (int i = 0; i < acoustic_contacts.size(); i++)
 	{
+	  glog.is(DEBUG1) && glog << "Initializing water column for all contacts " 
+				  << endl;
 	  acoustic_contacts[i].svp_response = svp_response;
 	  acoustic_contacts[i].svp_ready = true;
 	  acoustic_contacts[i].new_svp_requested = false;
-	  return(true); 
+	}
+      return(true);
+    }
+  else
+    {
+      for (int i = 0; i < acoustic_contacts.size(); i++)
+	{
+	  glog.is(DEBUG1) && glog << "Checking " << (int) svp_response.request_id() << endl;
+	  glog.is(DEBUG1) && glog << "request_id " << (int) acoustic_contacts[i].svp_request_id << endl; 
+	  if (svp_response.request_id() == (int) acoustic_contacts[i].svp_request_id)
+	    {
+	      acoustic_contacts[i].svp_response = svp_response;
+	      acoustic_contacts[i].svp_ready = true;
+	      acoustic_contacts[i].new_svp_requested = false;
+	      return(true); 
+	    }
 	}
     }
   return(false);
@@ -1055,3 +1088,37 @@ bool SimModemNetwork::parseNoiseProfile( string noise_in,
   return(true);
 }    
 
+double SimModemNetwork::get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
+{
+
+  int m_coef = water_column->eof_coef_size();
+  std::vector<double> eof_coef;
+  eof_coef.resize(m_coef);
+  for (int j = 0; j < m_coef; j++)
+    eof_coef[j] = water_column->eof_coef(j);
+
+  for(int i = 0, n = water_column->sample_size(); i < n-1; ++i)
+    {
+      if(depth >= water_column->sample(i).depth() && 
+	 depth <= water_column->sample(i+1).depth())
+	{
+	  double cp    = water_column->sample(i).cp();  
+	  int m = water_column->sample(i).eof_size();
+	  double dep_up = water_column->sample(i).depth();  
+	  double ssp_up = cp ;
+	  for (int j = 0; j < std::min(m,m_coef); j++)
+	    ssp_up += water_column->sample(i).eof(j) * eof_coef[j];
+
+	  cp = water_column->sample(i+1).cp();  
+	  double dep_dn = water_column->sample(i+1).depth();  
+	  double ssp_dn = cp ;
+	  for (int j = 0; j < std::min(m,m_coef); j++)
+	    ssp_dn += water_column->sample(i+1).eof(j) * eof_coef[j];
+
+	  double ssp = ssp_up + 
+	    (depth - dep_up) * (ssp_dn - ssp_up) / (dep_dn - dep_up);
+	  return(ssp);
+	}
+    }
+  return(0.0);
+}

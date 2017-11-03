@@ -11,6 +11,7 @@
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CEigenRays.h>
+#include "lamss/lib_bellhop/environment.h"
 #include "lamss/lib_bellhop/svp_request_response.pb.h"
 #include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
 #include "lamss/lib_lamss_protobuf/modem_sim.pb.h" 
@@ -83,6 +84,7 @@ class SimModemNetwork : public GobyMOOSApp
     void handle_node_report(const CMOOSMsg& msg);
     void handle_impulse_request(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
+    void handle_svp_info(const CMOOSMsg& msg);
 
     SimModemNetworkConfig& cfg_;
     double last_slow_loop_t_;
@@ -146,6 +148,8 @@ class SimModemNetwork : public GobyMOOSApp
     double get_ambient_noise(double depth, 
 			     vector<double> dom_nl,
 			     vector<double> noise_db);
+    double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
+		       double depth);
     double noise_level;
     bool noise_profile;
     std::vector<double> depth_nl;
