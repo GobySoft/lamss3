@@ -79,6 +79,11 @@ class CmyVectorUtils
   std:: vector<double> tukey(int N,double r);
   int NN(double num, std::vector<double> myvec);
   std::vector<std::vector<double> > zero_matrix(int n, int m);
+  void lin_least_square(const std::vector<double>& x, 
+			const std::vector<double>& y,
+			double x_0,
+			double& y_0, 
+			double& slope);
 
 
  protected:
