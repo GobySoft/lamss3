@@ -738,3 +738,37 @@ vector<vector<double> > CmyVectorUtils::zero_matrix(int n, int m)
     }
   return(my_matrix);
 }
+
+void CmyVectorUtils::lin_least_square(const vector<double>& x, 
+				      const vector<double>& y,
+				      double x_0,
+				      double& y_0, 
+				      double& slope)
+{
+  int n = x.size();
+  vector<double> A,At;
+  A.resize(n*2);
+  for (int i=0; i<n ; i++)
+    {
+      A[i] = 1;
+      A[i+n] = (x[i] - x_0);
+    }
+
+  At.resize(n*2);
+  for (int i=0; i<n ; i++)
+    {
+      At[i*2] = A[i]; 
+      At[i*2+1] = A[i+n]; 
+    }
+
+  vector<double> C, Cinv;
+  mmul(At, 2, n, A, 2, C);
+  vector<double>  B;
+  mmul(At, 2, n, y, 1, B);
+  minv(C, 2, Cinv);
+  mmul(Cinv,2,2,B,1,A);
+  y_0 = A[0];
+  slope = A[1];
+}
+
+
