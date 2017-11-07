@@ -35,6 +35,9 @@ BHV_MaintainBearing::BHV_MaintainBearing(IvPDomain gdomain) :
   over_shoot = 0.0;
   desired_angle = 90.0;
 
+  bearing_rate_threshold = 6 ; // Default 1 deg/minute
+  alternate = false;
+  new_run = true;
 }
 
 //-----------------------------------------------------------
@@ -89,6 +92,18 @@ bool BHV_MaintainBearing::setParam(string param, string val)
      else
        bearing_mode = "dual";
    }
+ else if (param == "alternate_interval")
+   {
+     alternate_interval = atof(val.c_str());
+     if (alternate_interval > 0.0)
+       alternate = true;
+     else
+       alternate = false;
+   }
+ else if (param == "bearing_rate_threshold")
+   {
+     bearing_rate_threshold = atof(val.c_str());
+   }
  else
    return(false);
 
@@ -106,6 +121,7 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 {
   bool ok1,ok2;
   
+
   //get the heading of the array
   double osCourse = getBufferDoubleVal(heading_variable, ok1);
   
@@ -121,11 +137,76 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   double current_angle;
   if (bearing_state == 2)
     {
-      current_angle = (osCourse-true_bearing);
-      if (current_angle < 0.0)
-	current_angle = fabs(current_angle);
-      else if(current_angle >= 180.0)
-	current_angle = 360- current_angle;
+      current_angle = (true_bearing-osCourse);
+      if (current_angle <= -180.0)
+	current_angle += 360.0;
+      else if(current_angle > 180.0)
+	current_angle -= 360.0;
+
+      curr_time = getBufferCurrTime();
+
+
+      double abs_brg = true_bearing;
+      int num_brg =bearings.size();
+      // unwrap absolute bearing
+      if (num_brg == 0)
+	bearings.push_back(abs_brg);
+      else 
+	{
+	  while (abs_brg - bearings[num_brg-1] > 180)
+	    abs_brg -= 360;
+	  while (abs_brg - bearings[num_brg-1] <= - 180)
+	    abs_brg += 360;
+	  bearings.push_back(abs_brg); 
+	}
+      times.push_back(curr_time);
+      num_brg =bearings.size();
+      // prune bearing list
+      int first = 0; 
+      for (int i=0; i< num_brg; i++)
+	{
+	  if (curr_time - times[i] > alternate_interval)
+	    first = i+1;
+	}
+      if (first >0)
+	{
+	  vector<double> bbuf,tbuf;
+	  for (int i=0; i< num_brg-first; i++)
+	    {
+	      bbuf.push_back(bearings[i-first]);
+	      tbuf.push_back(times[i-first]);
+	    }			
+	  bearings = bbuf;
+	  times = tbuf;
+	}  
+      // absolute bearing rate by linear regression
+      double bearing;
+      double bearing_rate;
+      vec.lin_least_square(times,bearings,curr_time,bearing,bearing_rate);
+      // convert to degrees/minute
+      bearing_rate *= 60;
+      postMessage("ABSOLUTE_BEARING_RATE",bearing_rate);
+      postMessage("PENDING_HEADING_SWITCH", last_switch + alternate_interval - 
+		  curr_time);
+
+      if (alternate)
+	{
+	  if (new_run)
+	    {
+	      starboard = (current_angle >= 0);
+	      last_switch = curr_time;
+	      new_run = false;
+	    } 
+	  else if (alternate && abs(bearing_rate) < bearing_rate_threshold &&
+		   curr_time > last_switch + alternate_interval)
+	    {
+	      starboard = !starboard;
+	      last_switch = curr_time;
+	      bearings.clear();
+	      times.clear();
+	    }
+	}
+      current_angle = fabs(current_angle);
     }
   else
     {
@@ -157,11 +238,18 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   while (rightabs < 0.0)
     rightabs += 360.0;
 
+  double firstabs = leftabs;
+  double secondabs = rightabs;
+  if (alternate && !starboard)
+    {
+      firstabs = rightabs;
+      secondabs = leftabs;
+    }
   //postMessage("LEFTABS",leftabs);
   //postMessage("RIGHTABS",rightabs);
-  
+
   ZAIC_PEAK crs_zaic(m_domain,"course");
-  crs_zaic.setSummit(leftabs);
+  crs_zaic.setSummit(firstabs);
   crs_zaic.setValueWrap(true);
   crs_zaic.setPeakWidth(width);
   crs_zaic.setBaseWidth(180.0 - width);
@@ -170,12 +258,16 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 
   if (bearing_mode == "dual" || bearing_mode == "quad")
     {
-      int new_index = crs_zaic.addComponent();  
-      crs_zaic.setSummit(rightabs, new_index);
-      crs_zaic.setPeakWidth(width, new_index);
-      crs_zaic.setBaseWidth(180.0 - width,new_index);
-      crs_zaic.setSummitDelta(50.0, new_index);
-      crs_zaic.setMinMaxUtil(0,100,new_index);
+      if (!alternate)
+	{
+	  int new_index = crs_zaic.addComponent();  
+	  crs_zaic.setSummit(secondabs, new_index);
+	  crs_zaic.setPeakWidth(width, new_index);
+	  crs_zaic.setBaseWidth(180.0 - width,new_index);
+	  crs_zaic.setSummitDelta(50.0, new_index);
+	  crs_zaic.setMinMaxUtil(0,100,new_index);
+	}
+
       if (bearing_mode == "quad" && desired_angle != 90.0 && desired_angle != 270.0)
 	{
 	  
@@ -184,24 +276,29 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 	    leftrear += 360.0;
 	  while (leftrear >= 360.0)
 	    leftrear -= 360.0;
-	  new_index = crs_zaic.addComponent();  
-	  crs_zaic.setSummit(leftrear, new_index);
-	  crs_zaic.setPeakWidth(width, new_index);
-	  crs_zaic.setBaseWidth(90.0 - width,new_index);
-	  crs_zaic.setSummitDelta(50.0, new_index);
-	  crs_zaic.setMinMaxUtil(0,100,new_index);
-
+	  if (!alternate || !starboard)
+	    {
+	      int new_index = crs_zaic.addComponent();  
+	      crs_zaic.setSummit(leftrear, new_index);
+	      crs_zaic.setPeakWidth(width, new_index);
+	      crs_zaic.setBaseWidth(90.0 - width,new_index);
+	      crs_zaic.setSummitDelta(50.0, new_index);
+	      crs_zaic.setMinMaxUtil(0,100,new_index);
+	    }
 	  double rightrear = (true_bearing + (180.0-auv_desired_angle));
 	  while (rightrear < 0.0)
 	    rightrear += 360.0;
 	  while (rightrear >= 360.0)
 	    rightrear -= 360.0;
-	  new_index = crs_zaic.addComponent();  
-	  crs_zaic.setSummit(rightrear, new_index);
-	  crs_zaic.setPeakWidth(width, new_index);
-	  crs_zaic.setBaseWidth(90.0 - width,new_index);
-	  crs_zaic.setSummitDelta(50.0, new_index);
-	  crs_zaic.setMinMaxUtil(0,100,new_index);
+	  if (!alternate || starboard)
+	    {
+	      int new_index = crs_zaic.addComponent();  
+	      crs_zaic.setSummit(rightrear, new_index);
+	      crs_zaic.setPeakWidth(width, new_index);
+	      crs_zaic.setBaseWidth(90.0 - width,new_index);
+	      crs_zaic.setSummitDelta(50.0, new_index);
+	      crs_zaic.setMinMaxUtil(0,100,new_index);
+	    }
 	}
     }
 
@@ -211,6 +308,13 @@ IvPFunction *BHV_MaintainBearing::onRunState()
   of->setPWT(m_priority_wt);
   
   return(of);
+}
+
+void BHV_MaintainBearing::onIdleState()  
+{
+  new_run = true;
+  bearings.clear();
+  times.clear();
 }
 
 int BHV_MaintainBearing::decode(string status)
