@@ -35,7 +35,7 @@ BHV_MaintainBearing::BHV_MaintainBearing(IvPDomain gdomain) :
   over_shoot = 0.0;
   desired_angle = 90.0;
 
-  bearing_rate_threshold = 6 ; // Default 1 deg/minute
+  bearing_rate_threshold = 3  ; // Default 1 deg/minute
   alternate = false;
   new_run = true;
 }
@@ -182,10 +182,13 @@ IvPFunction *BHV_MaintainBearing::onRunState()
       // absolute bearing rate by linear regression
       double bearing;
       double bearing_rate;
-      vec.lin_least_square(times,bearings,curr_time,bearing,bearing_rate);
+      double rms_error;
+      vec.lin_least_square(times,bearings,curr_time,bearing,bearing_rate,rms_error);
       // convert to degrees/minute
       bearing_rate *= 60;
+      rms_error*=60;
       postMessage("ABSOLUTE_BEARING_RATE",bearing_rate);
+      postMessage("BEARING_RATE_RMS",rms_error);
       postMessage("PENDING_HEADING_SWITCH", last_switch + alternate_interval - 
 		  curr_time);
 
@@ -197,7 +200,9 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 	      last_switch = curr_time;
 	      new_run = false;
 	    } 
-	  else if (alternate && abs(bearing_rate) < bearing_rate_threshold &&
+	  else if (alternate && 
+		   fabs(bearing_rate) < bearing_rate_threshold &&
+		   rms_error < bearing_rate_threshold &&
 		   curr_time > last_switch + alternate_interval)
 	    {
 	      starboard = !starboard;
