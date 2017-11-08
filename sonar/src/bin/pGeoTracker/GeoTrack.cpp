@@ -180,46 +180,46 @@ status CGeoTrack::get_track()
       if ( (prev_speed < speed_max) && (prev_range < range_max ) && (prev_range > 0.2*range_guess))
 	{ 
 	  cout << "Solution - Case 1" << endl;
-	  //	  x_r = vposx[ii]-xzero;
-	  //	  y_r = vposy[ii]-yzero;
-	  //          x_v = xdot*(dt[ii] - dt[ii-1]);
-	  //          y_v = ydot*(dt[ii] - dt[ii-1]);
+	  x_r = vposx[ii]-xzero;
+	  y_r = vposy[ii]-yzero;
+	  x_v = xdot*(dt[ii] - dt[ii-1]);
+	  y_v = ydot*(dt[ii] - dt[ii-1]);
 	  // SOR
-	  //	  sor = 1.5;
-	  //	  new_range = prev_range + sor*(x_r*x_v + y_r*y_v)/prev_range;
-	  //	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
-	  //	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-	  x[0] = xzero + xdot*(dt[ii] - dt[ii-1]);
-	  x[1] = yzero + ydot*(dt[ii] - dt[ii-1]);
+	  sor = 1.5;
+	  new_range = prev_range + sor*(x_r*x_v + y_r*y_v)/prev_range;
+	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
+	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
+	  //x[0] = xzero + xdot*(dt[ii] - dt[ii-1]);
+	  //x[1] = yzero + ydot*(dt[ii] - dt[ii-1]);
 	  x[2] = xdot;
 	  x[3] = ydot;
-	  new_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
+	  //new_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
 	}
       else if (prev_speed > speed_max)
 	{
 	  cout << "Solution - Case 2" << endl;
-	  new_range = 0.5*range_max;
-	  //new_range = range_guess*speed_max/prev_speed;
+	  //new_range = range_guess*0.5;
+	  new_range = range_guess*speed_max/prev_speed;
 	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
 	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-          // x[0] = xguess;
-	  // x[1] = yguess;
-	  x[2] = xdot*speed_max/prev_speed;
-	  x[3] = ydot*speed_max/prev_speed;
+	  x[2] = xdot/fabs(xdot);
+	  x[3] = ydot/fabs(ydot);
+	  //x[2] = xdot*speed_max/prev_speed;
+	  //x[3] = ydot*speed_max/prev_speed;
+	  //x[2] = 1.0;
+	  //x[3] = 1.0;
 	}
       else
 	{
 	  cout << "Solution - Case 3" << endl;
-	  new_range = 0.25*range_max;
+	  new_range = 0.5*range_guess;
 	  //new_range = range_guess;
 	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
 	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-	  //	  x[2] = -1.0;
-	  //	  x[3] = 1.0;
+	  x[2] = xdot/fabs(xdot);
+	  x[3] = ydot/fabs(ydot);
           //x[0] = xguess;
 	  //x[1] = yguess;
-	  x[2] = xdot;
-	  x[3] = ydot;
 	}
     }
 

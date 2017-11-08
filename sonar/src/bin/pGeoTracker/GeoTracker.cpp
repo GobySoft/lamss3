@@ -95,7 +95,6 @@ bool CGeoTracker::Iterate()
 	  //
 	  // Henrik 040209. Post Target info for track and trail behaviors	
 	  postTargetNav(cx, cy, ch ,cs,stime);
-	  
 	}
       else if (Temp_Contact.Ctype == AMBIGUOUS_BEARING)
 	{ 
