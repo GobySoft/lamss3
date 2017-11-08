@@ -83,7 +83,8 @@ class CmyVectorUtils
 			const std::vector<double>& y,
 			double x_0,
 			double& y_0, 
-			double& slope);
+			double& slope,
+			double& rms_error);
 
 
  protected:
