@@ -743,7 +743,8 @@ void CmyVectorUtils::lin_least_square(const vector<double>& x,
 				      const vector<double>& y,
 				      double x_0,
 				      double& y_0, 
-				      double& slope)
+				      double& slope,
+				      double& rms_error)
 {
   int n = x.size();
   vector<double> A,At;
@@ -766,9 +767,13 @@ void CmyVectorUtils::lin_least_square(const vector<double>& x,
   vector<double>  B;
   mmul(At, 2, n, y, 1, B);
   minv(C, 2, Cinv);
-  mmul(Cinv,2,2,B,1,A);
-  y_0 = A[0];
-  slope = A[1];
+  mmul(Cinv,2,2,B,1,At);
+  y_0 = At[0];
+  slope = At[1];
+  double sumsq =0.0;
+  for (int i=0; i<n; i++)
+    sumsq += pow(y_0*A[i]+slope*A[i+n] -  y[i],2);
+  rms_error = 2*sqrt(sumsq/n)/(x[n-1]-x[0]);
 }
 
 
