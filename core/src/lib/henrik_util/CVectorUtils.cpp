@@ -776,4 +776,36 @@ void CmyVectorUtils::lin_least_square(const vector<double>& x,
   rms_error = 2*sqrt(sumsq/n)/(x[n-1]-x[0]);
 }
 
+void CmyVectorUtils::prune_timeseries(vector<double> t, 
+				      vector<double> y,
+				      double t_now,
+				      double history, 
+				      vector<double>& t_new,
+				      vector<double>& y_new)
+{ 
+  // prune timeseries
+  int first = 0;
+  int num_t = t.size();
+  for (int i=0; i< num_t; i++)
+    {
+      if (t_now - t[i] > history)
+	first = i+1;
+    }
+  if (first > 0)
+    {
+      num_t -= first;
+      t_new.resize(num_t);
+      y_new.resize(num_t);
+      for (int i=0; i< num_t; i++)
+	{
+	  t_new[i] = t[i+first];
+	  y_new[i] = y[i+first];
+	}	
+    }
+  else
+    {
+      t_new = t;
+      y_new = y;
+    }		
+}  
 
