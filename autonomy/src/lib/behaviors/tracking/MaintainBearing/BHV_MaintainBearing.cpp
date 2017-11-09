@@ -161,55 +161,46 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 	}
       times.push_back(curr_time);
       num_brg =bearings.size();
-      // prune bearing list
-      int first = 0; 
-      for (int i=0; i< num_brg; i++)
-	{
-	  if (curr_time - times[i] > alternate_interval)
-	    first = i+1;
-	}
-      if (first >0)
-	{
-	  vector<double> bbuf,tbuf;
-	  for (int i=0; i< num_brg-first; i++)
-	    {
-	      bbuf.push_back(bearings[i-first]);
-	      tbuf.push_back(times[i-first]);
-	    }			
-	  bearings = bbuf;
-	  times = tbuf;
-	}  
-      // absolute bearing rate by linear regression
+
+      vec.prune_timeseries(times,bearings,curr_time,0.5*alternate_interval,
+			   times,bearings);
+	      // absolute bearing rate by linear regression
       double bearing;
       double bearing_rate;
       double rms_error;
       vec.lin_least_square(times,bearings,curr_time,bearing,bearing_rate,rms_error);
+      postMessage("BEARINGS",(double) bearings.size());
       // convert to degrees/minute
       bearing_rate *= 60;
       rms_error*=60;
-      postMessage("ABSOLUTE_BEARING_RATE",bearing_rate);
+      postMessage("BEARING_RATE",bearing_rate);
       postMessage("BEARING_RATE_RMS",rms_error);
       postMessage("PENDING_HEADING_SWITCH", last_switch + alternate_interval - 
 		  curr_time);
-
-      if (alternate)
+      
+      if (new_run)
 	{
-	  if (new_run)
-	    {
-	      starboard = (current_angle >= 0);
-	      last_switch = curr_time;
-	      new_run = false;
-	    } 
-	  else if (alternate && 
-		   fabs(bearing_rate) < bearing_rate_threshold &&
-		   rms_error < bearing_rate_threshold &&
-		   curr_time > last_switch + alternate_interval)
-	    {
-	      starboard = !starboard;
-	      last_switch = curr_time;
-	      bearings.clear();
-	      times.clear();
-	    }
+	  starboard = (current_angle >= 0);
+	  last_switch = curr_time;
+	  new_run = false;
+	} 
+      
+      bool rate_ok = (fabs(bearing_rate) > bearing_rate_threshold &&
+		      rms_error < fabs(bearing_rate)) ;
+      bool rate_fair = (fabs(bearing_rate) > 0.5*bearing_rate_threshold &&
+			rms_error < fabs(bearing_rate)) ;
+      bool hdg_switch = ((!rate_ok && 
+			  curr_time > last_switch + alternate_interval) ||
+			 (!rate_fair &&
+			  curr_time > last_switch + 0.5*alternate_interval)
+			 );
+
+      if (alternate && hdg_switch)
+	{
+	  starboard = !starboard;
+	  last_switch = curr_time;
+	  bearings.clear();
+	  times.clear();
 	}
       current_angle = fabs(current_angle);
     }
