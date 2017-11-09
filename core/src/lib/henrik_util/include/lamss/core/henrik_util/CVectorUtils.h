@@ -85,6 +85,12 @@ class CmyVectorUtils
 			double& y_0, 
 			double& slope,
 			double& rms_error);
+  void prune_timeseries(std::vector<double> t, 
+			std::vector<double> y,
+			double t_now,
+			double history, 
+			std::vector<double>& t_new,
+			std::vector<double>& y_new);
 
 
  protected:
