@@ -12,6 +12,7 @@
 
 #include "lamss/lib_henrik_util/parse_stat.h"
 #include "lamss/lib_henrik_util/Measurement.h"
+#include "lamss/lib_henrik_util/CVectorUtils.h"
 
 #define NO_TRACK 0
 #define LR_TRACK 1
@@ -139,7 +140,6 @@ class Contact_List
  protected:
 
   int num_contacts;
-
   vector<Contact> Contacts;
 
   bool SolveTrack(int,double,double);
@@ -195,6 +195,13 @@ protected:
 	std::vector<double> cue_tone_freq;
 	std::vector<double> cue_tone_dbl;
 
+	// Bearing rate variables
+	CmyVectorUtils vec;
+	double bearing_rate_interval;
+	double bearing_rate_threshold;
+	std::vector<double> times;
+	std::vector<double> bearings;
+
 
 	Contact_List CList;
 
@@ -213,6 +220,7 @@ protected:
 	
         void reset();
         void single_reset();
+	bool checkBearingRate(double curr_time, double true_bearing);
 
 	//get new track solution
 	//bool SolveTrack();

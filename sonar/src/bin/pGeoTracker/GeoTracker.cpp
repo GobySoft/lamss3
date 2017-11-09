@@ -40,6 +40,8 @@ void CGeoTracker::reset()
   meas_count = 0;
   track_count = 0; 
   close_range = false;
+  times.clear();
+  bearings.clear();
   tracking_mode = SINGLE_VEHICLE_TRACKING;
 
 }
@@ -212,6 +214,29 @@ bool CGeoTracker::OnStartUp()
         return false;
     }
 
+    if(m_MissionReader.GetConfigurationParam("bearing_rate_interval",
+					     bearing_rate_interval))
+      {
+	
+    }
+    else
+    {
+      bearing_rate_interval = 300;
+        MOOSTrace("GeoTracker:: Using default bearing_rate_interval \n");
+    }
+
+    if(m_MissionReader.GetConfigurationParam("bearing_rate_threshold",
+					     bearing_rate_threshold))
+      {
+	
+    }
+    else
+    {
+      bearing_rate_threshold = 3;
+      MOOSTrace("GeoTracker:: Using default bearing_rate_threshold %f \n",
+		bearing_rate_threshold);
+    }
+
  
     return true;
 }
@@ -268,6 +293,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
        	
        int bearing_state = New_Measurement->state;
 
+
        //     if (bearing_state != 0 )
        if ((bearing_state == 2) && prosecute &&(tracking == true) && (decode_stat == true))
 	 {
@@ -285,12 +311,15 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	     m_Comms.Notify("CLOSE_RANGE","FALSE");
 
 	   double curr_time = MOOSTime();
+	   bool rate_ok = checkBearingRate(New_Measurement->Meas_Time, 
+					   New_Measurement->bearing);
+
 	   //we don't use every bearing measurement because they are redundant
-	   if(((curr_time - last_btime) > sint))
+	   if(((curr_time - last_btime) > sint) && rate_ok)
 	     {
 	       if (close_range == true)
 		 {
-		   MOOSTrace("New measurement\n");
+		   MOOSTrace("\n >>>> New measurement: <<<<\n");
 		   cidx = CList.associate_bearing(New_Measurement);
 		   cout << "cidx = " << cidx << endl;
 		   CList.update_contact(cidx,New_Measurement);
@@ -306,6 +335,9 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	       else
 		 last_btime = 0;
 	     }
+	   else if (!rate_ok)
+	     cout << "Measurement ignored due to low bearing rate " << endl;
+
 	 }
        else
 	 {
@@ -522,6 +554,42 @@ bool CGeoTracker::postTargetNav(double cnx, double cny, double cnh, double cnv, 
     }
 }
 
+bool CGeoTracker::checkBearingRate(double curr_time,double true_bearing)
+{
+      double abs_brg = true_bearing;
+      int num_brg =bearings.size();
+      // unwrap absolute bearing
+      if (num_brg == 0)
+	bearings.push_back(abs_brg);
+      else 
+	{
+	  while (abs_brg - bearings[num_brg-1] > 180)
+	    abs_brg -= 360;
+	  while (abs_brg - bearings[num_brg-1] <= - 180)
+	    abs_brg += 360;
+	  bearings.push_back(abs_brg); 
+	}
+      times.push_back(curr_time);
+      num_brg =bearings.size();
+
+      // absolute bearing rate by linear regression
+      double bearing;
+      double bearing_rate;
+      double rms_error;
+      vec.lin_least_square(times,bearings,curr_time,bearing,bearing_rate,rms_error);
+      // convert to degrees/minute
+      bearing_rate *= 60;
+      rms_error*=60;
+      cout << "Absolute Bearing Rate = " << bearing_rate <<
+	", Bearing Rate RMS = " << rms_error << endl;
+      bool rate_ok = ((fabs(bearing_rate) > bearing_rate_threshold &&
+		       rms_error < fabs(bearing_rate)) || 
+		      (curr_time <=  times[0] + 0.5*bearing_rate_interval));
+
+      vec.prune_timeseries(times,bearings,curr_time,bearing_rate_interval,
+		     times,bearings);
+      return(rate_ok);
+}
 
 Contact_List::Contact_List()
 {
@@ -825,7 +893,8 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  //is the solution within the detection range and realistic speed?
 	  //make this a parameter
 	  MOOSTrace("solver_range = %f, solver_speed = %f \n", solver_range, solver_speed );
-	  if(solver_range < range_max && solver_speed < speed_max )
+	  if(solver_range < range_max && solver_range > 0.05 * range_max && 
+	     solver_speed < speed_max )
 	    {
 	      //position
 	      //	    Contacts[track_id].x_pos = xzero + Contacts[track_id].total_time*xdot;
