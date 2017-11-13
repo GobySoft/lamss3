@@ -181,12 +181,12 @@ status CGeoTrack::get_track()
 	   (prev_range > 0.05*range_max))
 	{ 
 	  cout << "Solution - Case 1" << endl;
-	  x_r = vposx[ii]-xzero;
-	  y_r = vposy[ii]-yzero;
+	  x_r = xzero-vposx[ii];
+	  y_r = yzero-vposy[ii];
 	  x_v = xdot*(dt[ii] - dt[ii-1]);
 	  y_v = ydot*(dt[ii] - dt[ii-1]);
 	  // SOR
-	  sor = 1.5;
+	  sor = 1.2;
 	  new_range = prev_range + sor*(x_r*x_v + y_r*y_v)/prev_range;
 	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
 	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
