@@ -112,6 +112,8 @@ class Contact_List
 
   double start_time;
   double range_guess,range_max,speed_max;
+  double range_min;
+
   int Z_length,skipped,min_meas,tgt_msg_ready;
 
   double tgt_x;

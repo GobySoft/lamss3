@@ -177,7 +177,8 @@ status CGeoTrack::get_track()
       int ii=zindex-1;
       double prev_speed = sqrt(pow(xdot,2)+pow(ydot,2));
       double prev_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
-      if ( (prev_speed < speed_max) && (prev_range < range_max ) && (prev_range > 0.2*range_guess))
+      if ( (prev_speed < speed_max) && (prev_range < range_max ) && 
+	   (prev_range > 0.05*range_max))
 	{ 
 	  cout << "Solution - Case 1" << endl;
 	  x_r = vposx[ii]-xzero;
