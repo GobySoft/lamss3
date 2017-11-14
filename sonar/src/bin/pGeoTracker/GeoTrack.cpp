@@ -203,8 +203,8 @@ status CGeoTrack::get_track()
 	  new_range = range_guess*speed_max/prev_speed;
 	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
 	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-	  x[2] = xdot/fabs(xdot);
-	  x[3] = ydot/fabs(ydot);
+	  x[2] = xdot/fabs(xdot)*speed_max*0.5;
+	  x[3] = ydot/fabs(ydot)*speed_max*0.5;
 	  //x[2] = xdot*speed_max/prev_speed;
 	  //x[3] = ydot*speed_max/prev_speed;
 	  //x[2] = 1.0;
@@ -217,8 +217,8 @@ status CGeoTrack::get_track()
 	  //new_range = range_guess;
 	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
 	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-	  x[2] = xdot/fabs(xdot);
-	  x[3] = ydot/fabs(ydot);
+	  x[2] = xdot/fabs(xdot)*speed_max*0.5;
+	  x[3] = ydot/fabs(ydot)*speed_max*0.5;
           //x[0] = xguess;
 	  //x[1] = yguess;
 	}
