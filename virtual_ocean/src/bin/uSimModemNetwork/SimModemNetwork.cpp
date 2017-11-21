@@ -255,6 +255,9 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
+      if(request.has_request_id()) message.set_request_id(request.request_id());
+      if(request.has_request_time()) message.set_request_time(request.request_time());
+      
       std::vector<double> delay;
       std::vector<double> amplitude;
       std::vector<double> doppler;
@@ -298,6 +301,8 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
+      if(request.has_request_id()) message.set_request_id(request.request_id());
+      if(request.has_request_time()) message.set_request_time(request.request_time());
       std::string serialized_impulse_response;
       serialize_for_moos(&serialized_impulse_response,message);
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
