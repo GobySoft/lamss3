@@ -18,12 +18,18 @@ message ImpulseResponse
   optional double receiver_sound_speed = 6 [default = 1500];
   optional double surface_sound_speed = 7 [default = 1500];
   optional double bottom_sound_speed = 8 [default = 1500];
+
+  optional int32 request_id = 10;
+  optional double request_time = 11;
 }
 
 message ImpulseRequest
 {
   required string source = 1 ;
-  required string receiver = 2 ;
+  required string receiver = 2;
+
+  optional int32 request_id = 10;
+  optional double request_time = 11;
 }
 
 message TransmitResponse
