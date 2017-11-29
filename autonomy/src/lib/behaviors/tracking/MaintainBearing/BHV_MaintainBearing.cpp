@@ -185,13 +185,12 @@ IvPFunction *BHV_MaintainBearing::onRunState()
 	  new_run = false;
 	} 
       
-      bool rate_ok = (fabs(bearing_rate) > bearing_rate_threshold &&
-		      rms_error < fabs(bearing_rate)) ;
-      bool rate_fair = (fabs(bearing_rate) > 0.5*bearing_rate_threshold &&
-			rms_error < fabs(bearing_rate)) ;
-      bool hdg_switch = ((!rate_ok && 
+      bool rate_ok = (fabs(bearing_rate) > bearing_rate_threshold);
+      bool rate_est_ok = (rms_error < fabs(bearing_rate_threshold)) ;
+      bool rate_fair = (fabs(bearing_rate) > 0.5*bearing_rate_threshold);
+      bool hdg_switch = ((!rate_ok && rate_est_ok &&
 			  curr_time > last_switch + alternate_interval) ||
-			 (!rate_fair &&
+			 (!rate_fair && rate_est_ok &&
 			  curr_time > last_switch + 0.5*alternate_interval)
 			 );
 
