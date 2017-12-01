@@ -736,6 +736,10 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
     {
       Contacts[cid].start_time = Meas->Meas_Time;
       dt = 0.0;
+      Contacts[cid].num_track =0;
+      Contacts[cid].track_utc.resize(10);
+      Contacts[cid].track_x.resize(10);
+      Contacts[cid].track_y.resize(10);
     }
   else if (Contacts[cid].num_meas > 0)  
     dt = Meas->Meas_Time - Contacts[cid].start_time;
@@ -922,6 +926,61 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 		MOOSTrace("Good solution: x = %f, y = %f, heading = %f, speed = %f\n",Contacts[track_id].x_pos,Contacts[track_id].y_pos,Contacts[track_id].heading,Contacts[track_id].speed);
 	      //target range
 	      Contacts[track_id].range = sqrt(pow((Contacts[track_id].x_pos-xnow),2) + pow((Contacts[track_id].y_pos-ynow),2));
+	      // update track history and guess
+	      Contacts[track_id].num_track += 1;
+	      int num_max = Contacts[track_id].track_utc.size();
+	      if (Contacts[track_id].num_track > num_max)
+		{
+		  for (int i=0; i<num_max-1; i++)
+		    {
+		      Contacts[track_id].track_utc[i] = Contacts[track_id].track_utc[i+1];
+		      Contacts[track_id].track_x[i] = Contacts[track_id].track_x[i+1];
+		      Contacts[track_id].track_y[i] = Contacts[track_id].track_y[i+1];
+		    }
+		  Contacts[track_id].num_track -=1;
+		}
+	      Contacts[track_id].track_utc[Contacts[track_id].num_track-1] =
+		Contacts[track_id].Last_Meas_Time;
+	      Contacts[track_id].track_x[Contacts[track_id].num_track-1] =
+		Contacts[track_id].x_pos;
+	      Contacts[track_id].track_y[Contacts[track_id].num_track-1] =
+		Contacts[track_id].y_pos;
+	      if (Contacts[track_id].num_track > num_max/2)
+		{
+		  std::vector<double> t,x,y;
+		  t.resize(Contacts[track_id].num_track);
+		  x.resize(Contacts[track_id].num_track);
+		  y.resize(Contacts[track_id].num_track);
+		  for(int i = 0; i<x.size(); i++)
+		    {
+		      t[i] =  Contacts[track_id].track_utc[i]; 
+		      x[i] = Contacts[track_id].track_x[i]; 
+		      y[i] = Contacts[track_id].track_y[i]; 
+		    }
+		  double slopex,slopey,slope_error;
+		  double tlen = t[t.size()-1]-t[0];
+		  double xlen = x[x.size()-1]-x[0];
+		  double ylen = y[y.size()-1]-y[0];
+		  CmyVectorUtils vec;
+		  if ( fabs(xlen) >= fabs(ylen) )
+		    {
+		      vec.lin_least_square(x,y,Contacts[track_id].x_pos,
+					   Contacts[track_id].yguess,slopey,slope_error);
+		      Contacts[track_id].xdotguess = xlen/tlen;
+		      Contacts[track_id].ydotguess = (Contacts[track_id].yguess-xlen*slopey)/tlen;
+		      Contacts[track_id].xguess = Contacts[track_id].x_pos;
+		    }
+		  else
+		    {
+		      vec.lin_least_square(y,x,Contacts[track_id].y_pos,
+					   Contacts[track_id].xguess,slopex,slope_error);
+		      Contacts[track_id].xdotguess = (Contacts[track_id].xguess-ylen*slopex)/tlen;
+		      Contacts[track_id].ydotguess = ylen/tlen;
+		      Contacts[track_id].yguess = Contacts[track_id].y_pos;
+		    }
+
+		}
+	      
 	      tgt_msg_ready = 1;
 	      tgt_track = true;
 	    }
@@ -931,6 +990,16 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	      Contacts[track_id].Topt.set_reset_init(1);
 	      MOOSTrace("Reset initial guess \n");
               tgt_track = false;
+	      // initialize to smoothed earlier track
+	      if (Contacts[track_id].num_track > 1)
+		{
+		  tgt_x = Contacts[track_id].xguess;
+		  tgt_y = Contacts[track_id].yguess;
+		  tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
+				 pow(Contacts[track_id].ydotguess,2));
+		  tgt_hdg = atan2(Contacts[track_id].xdotguess,
+				  Contacts[track_id].ydotguess)*180/M_PI;
+		}
 	    }
 	}
       else

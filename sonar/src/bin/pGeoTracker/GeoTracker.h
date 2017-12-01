@@ -88,7 +88,15 @@ class Contact
   double       start_time; 
 
   CGeoTrack Topt;
-
+  // Track history
+  double xguess;
+  double yguess;
+  double xdotguess;
+  double ydotguess;
+  int num_track;
+  std::vector<double> track_utc;
+  std::vector<double> track_x;
+  std::vector<double> track_y;
   void set_range_guess(double range);
   
 };
