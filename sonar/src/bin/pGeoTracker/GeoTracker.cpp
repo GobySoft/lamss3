@@ -476,6 +476,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	tgt_navspd_var  = cnid+"_NAV_SPEED";
         m_Comms.Register(tgt_navspd_var,0);
       }
+    /*
     else if(MOOSStrCmp(Msg.m_sKey,tgt_navx_var))
       {
 	tgt_x = Msg.m_dfVal;
@@ -498,6 +499,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
       }     
     else
       MOOSTrace("Unrecognized command: [%s]\n",Msg.m_sKey.c_str());
+    */
     }
   
 
@@ -737,9 +739,9 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
       Contacts[cid].start_time = Meas->Meas_Time;
       dt = 0.0;
       Contacts[cid].num_track =0;
-      Contacts[cid].track_utc.resize(10);
-      Contacts[cid].track_x.resize(10);
-      Contacts[cid].track_y.resize(10);
+      Contacts[cid].track_utc.resize(50);
+      Contacts[cid].track_x.resize(50);
+      Contacts[cid].track_y.resize(50);
     }
   else if (Contacts[cid].num_meas > 0)  
     dt = Meas->Meas_Time - Contacts[cid].start_time;
@@ -965,19 +967,32 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 		  if ( fabs(xlen) >= fabs(ylen) )
 		    {
 		      vec.lin_least_square(x,y,Contacts[track_id].x_pos,
-					   Contacts[track_id].yguess,slopey,slope_error);
+					   Contacts[track_id].yguess,slopey,
+					   slope_error);
 		      Contacts[track_id].xdotguess = xlen/tlen;
-		      Contacts[track_id].ydotguess = (Contacts[track_id].yguess-xlen*slopey)/tlen;
+		      //		      Contacts[track_id].ydotguess = (Contacts[track_id].yguess-xlen*slopey)/tlen;
+		      Contacts[track_id].ydotguess = Contacts[track_id].xdotguess*slopey;
 		      Contacts[track_id].xguess = Contacts[track_id].x_pos;
 		    }
 		  else
 		    {
 		      vec.lin_least_square(y,x,Contacts[track_id].y_pos,
-					   Contacts[track_id].xguess,slopex,slope_error);
-		      Contacts[track_id].xdotguess = (Contacts[track_id].xguess-ylen*slopex)/tlen;
+					   Contacts[track_id].xguess,slopex,
+					   slope_error);
 		      Contacts[track_id].ydotguess = ylen/tlen;
+		      //		      Contacts[track_id].xdotguess = (Contacts[track_id].xguess-ylen*slopex)/tlen;
+		      Contacts[track_id].xdotguess = Contacts[track_id].ydotguess*slopex;
 		      Contacts[track_id].yguess = Contacts[track_id].y_pos;
 		    }
+		  double hdg_smooth = 180.0/M_PI * atan2(Contacts[track_id].xdotguess,
+							 Contacts[track_id].ydotguess);
+		  while (hdg_smooth >= 360.0)
+		    hdg_smooth -= 360.0;
+		  while (hdg_smooth < 0.0)
+		    hdg_smooth += 360.0;
+		  double spd_smooth =  sqrt(pow(Contacts[track_id].xdotguess,2)+
+					    pow(Contacts[track_id].ydotguess,2));
+		  MOOSTrace("Smoothed solution: x = %f, y = %f, heading = %f, speed = %f\n",Contacts[track_id].xguess,Contacts[track_id].yguess,hdg_smooth,spd_smooth);
 
 		}
 	      
@@ -990,16 +1005,16 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	      Contacts[track_id].Topt.set_reset_init(1);
 	      MOOSTrace("Reset initial guess \n");
               tgt_track = false;
-	      // initialize to smoothed earlier track
-	      if (Contacts[track_id].num_track > 1)
-		{
-		  tgt_x = Contacts[track_id].xguess;
-		  tgt_y = Contacts[track_id].yguess;
-		  tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
-				 pow(Contacts[track_id].ydotguess,2));
-		  tgt_hdg = atan2(Contacts[track_id].xdotguess,
-				  Contacts[track_id].ydotguess)*180/M_PI;
-		}
+	    }
+	      // initialize to smoothed track
+	  if (Contacts[track_id].num_track > 1)
+	    {
+	      tgt_x = Contacts[track_id].xguess;
+	      tgt_y = Contacts[track_id].yguess;
+	      tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
+			     pow(Contacts[track_id].ydotguess,2));
+	      tgt_hdg = atan2(Contacts[track_id].xdotguess,
+			      Contacts[track_id].ydotguess)*180/M_PI;
 	    }
 	}
       else

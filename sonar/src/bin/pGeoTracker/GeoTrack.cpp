@@ -186,14 +186,14 @@ status CGeoTrack::get_track()
 	  x_r = xguess-vposx[ii];
 	  y_r = yguess-vposy[ii];
 	  // SOR
-	  sor = 1.1;
-	  x_v = sor*xdotguess*(dt[ii] - dt[ii-1]);
-	  y_v = sor*ydotguess*(dt[ii] - dt[ii-1]);
-	  new_range = prev_range + (x_r*x_v + y_r*y_v)/prev_range;
-	  //x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
-	  //x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
-	  x[0] = xguess + xdotguess*(dt[ii] - dt[ii-1]);
-	  x[1] = yguess + ydotguess*(dt[ii] - dt[ii-1]);
+	  sor = 1.2;
+	  x_v = xdotguess*(dt[ii] - dt[ii-1]);
+	  y_v = ydotguess*(dt[ii] - dt[ii-1]);
+	  new_range = prev_range + sor*(x_r*x_v + y_r*y_v)/prev_range;
+	  x[0] = vposx[zindex-1] + new_range*cos(bearings[zindex-1]);
+	  x[1] = vposy[zindex-1] + new_range*sin(bearings[zindex-1]);
+	  //x[0] = xguess + xdotguess*(dt[ii] - dt[ii-1]);
+	  //x[1] = yguess + ydotguess*(dt[ii] - dt[ii-1]);
 	  //x[2] = xdot;
 	  //x[3] = ydot;
 	  x[2] = xdotguess;
