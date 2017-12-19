@@ -476,7 +476,6 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	tgt_navspd_var  = cnid+"_NAV_SPEED";
         m_Comms.Register(tgt_navspd_var,0);
       }
-    /*
     else if(MOOSStrCmp(Msg.m_sKey,tgt_navx_var))
       {
 	tgt_x = Msg.m_dfVal;
@@ -499,7 +498,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
       }     
     else
       MOOSTrace("Unrecognized command: [%s]\n",Msg.m_sKey.c_str());
-    */
+
     }
   
 
@@ -738,10 +737,11 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
     {
       Contacts[cid].start_time = Meas->Meas_Time;
       dt = 0.0;
+      int num_max =  Z_length;
       Contacts[cid].num_track =0;
-      Contacts[cid].track_utc.resize(50);
-      Contacts[cid].track_x.resize(50);
-      Contacts[cid].track_y.resize(50);
+      Contacts[cid].track_utc.resize(num_max);
+      Contacts[cid].track_x.resize(num_max);
+      Contacts[cid].track_y.resize(num_max);
     }
   else if (Contacts[cid].num_meas > 0)  
     dt = Meas->Meas_Time - Contacts[cid].start_time;
@@ -855,12 +855,14 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
       double tgt_xnow = tgt_x + tgt_xdot * (curr_time-tgt_utc);
       double tgt_ynow = tgt_y + tgt_ydot * (curr_time-tgt_utc);
 
+
       MOOSTrace("xnow = %f, ynow = %f \n", xnow, ynow );
       MOOSTrace("tgt_x = %f, tgt_y = %f \n", tgt_x, tgt_y );
       MOOSTrace("tgt_spd = %f, tgt_hdg = %f, tgt_utc = %lf \n", tgt_spd, tgt_hdg, tgt_utc );
       MOOSTrace("tgt_xnow = %f, tgt_ynow = %f \n", tgt_xnow, tgt_ynow );
       MOOSTrace("tgt_xdot = %f, tgt_ydot = %f \n", tgt_xdot, tgt_ydot );
 
+      //      Contacts[track_id].Topt.set_guess(tgt_xdot,tgt_ydot,tgt_xnow,tgt_ynow,curr_dt);
       Contacts[track_id].Topt.set_guess(tgt_xdot,tgt_ydot,tgt_xnow,tgt_ynow,curr_dt);
       double tgt_range_guess = sqrt(pow(tgt_xnow-xnow,2)+pow(tgt_ynow-ynow,2));
 
@@ -970,9 +972,10 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 					   Contacts[track_id].yguess,slopey,
 					   slope_error);
 		      Contacts[track_id].xdotguess = xlen/tlen;
-		      //		      Contacts[track_id].ydotguess = (Contacts[track_id].yguess-xlen*slopey)/tlen;
+		      //Contacts[track_id].ydotguess = (Contacts[track_id].yguess-xlen*slopey)/tlen;
 		      Contacts[track_id].ydotguess = Contacts[track_id].xdotguess*slopey;
 		      Contacts[track_id].xguess = Contacts[track_id].x_pos;
+		      MOOSTrace("xguess = %f, yguess =  %f, slopey = %f \n",Contacts[track_id].xguess,Contacts[track_id].yguess,slopey);
 		    }
 		  else
 		    {
@@ -980,9 +983,10 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 					   Contacts[track_id].xguess,slopex,
 					   slope_error);
 		      Contacts[track_id].ydotguess = ylen/tlen;
-		      //		      Contacts[track_id].xdotguess = (Contacts[track_id].xguess-ylen*slopex)/tlen;
+		      //Contacts[track_id].xdotguess = (Contacts[track_id].xguess-ylen*slopex)/tlen;
 		      Contacts[track_id].xdotguess = Contacts[track_id].ydotguess*slopex;
 		      Contacts[track_id].yguess = Contacts[track_id].y_pos;
+		      MOOSTrace("yguess = %f, xguess =  %f, slopex = %f \n",Contacts[track_id].yguess,Contacts[track_id].xguess,slopex);
 		    }
 		  double hdg_smooth = 180.0/M_PI * atan2(Contacts[track_id].xdotguess,
 							 Contacts[track_id].ydotguess);
@@ -1002,19 +1006,19 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  else
 	    {
 	      //	      Contacts[track_id].Topt.reset();
+	      // initialize to smoothed track
+	      if (Contacts[track_id].num_track > 1)
+		{
+		  tgt_x = Contacts[track_id].xguess;
+		  tgt_y = Contacts[track_id].yguess;
+		  tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
+				 pow(Contacts[track_id].ydotguess,2));
+		  tgt_hdg = atan2(Contacts[track_id].xdotguess,
+				  Contacts[track_id].ydotguess)*180/M_PI;
+		}
 	      Contacts[track_id].Topt.set_reset_init(1);
 	      MOOSTrace("Reset initial guess \n");
               tgt_track = false;
-	    }
-	      // initialize to smoothed track
-	  if (Contacts[track_id].num_track > 1)
-	    {
-	      tgt_x = Contacts[track_id].xguess;
-	      tgt_y = Contacts[track_id].yguess;
-	      tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
-			     pow(Contacts[track_id].ydotguess,2));
-	      tgt_hdg = atan2(Contacts[track_id].xdotguess,
-			      Contacts[track_id].ydotguess)*180/M_PI;
 	    }
 	}
       else
