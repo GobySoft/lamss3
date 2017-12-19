@@ -737,7 +737,7 @@ bool Contact_List::Add_Measurement(int cid,Measurement* Meas)
     {
       Contacts[cid].start_time = Meas->Meas_Time;
       dt = 0.0;
-      int num_max =  Z_length;
+      int num_max =  Z_length/2;
       Contacts[cid].num_track =0;
       Contacts[cid].track_utc.resize(num_max);
       Contacts[cid].track_x.resize(num_max);
@@ -1006,19 +1006,19 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  else
 	    {
 	      //	      Contacts[track_id].Topt.reset();
-	      // initialize to smoothed track
-	      if (Contacts[track_id].num_track > 1)
-		{
-		  tgt_x = Contacts[track_id].xguess;
-		  tgt_y = Contacts[track_id].yguess;
-		  tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
-				 pow(Contacts[track_id].ydotguess,2));
-		  tgt_hdg = atan2(Contacts[track_id].xdotguess,
-				  Contacts[track_id].ydotguess)*180/M_PI;
-		}
 	      Contacts[track_id].Topt.set_reset_init(1);
 	      MOOSTrace("Reset initial guess \n");
               tgt_track = false;
+	    }
+	  // initialize to smoothed track
+	  if (Contacts[track_id].num_track > 1)
+	    {
+	      tgt_x = Contacts[track_id].xguess;
+	      tgt_y = Contacts[track_id].yguess;
+	      tgt_spd = sqrt(pow(Contacts[track_id].xdotguess,2)+
+			     pow(Contacts[track_id].ydotguess,2));
+	      tgt_hdg = atan2(Contacts[track_id].xdotguess,
+			      Contacts[track_id].ydotguess)*180/M_PI;
 	    }
 	}
       else
