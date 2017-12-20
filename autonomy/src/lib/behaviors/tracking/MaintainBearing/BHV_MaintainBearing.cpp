@@ -310,6 +310,8 @@ void BHV_MaintainBearing::onIdleState()
   new_run = true;
   bearings.clear();
   times.clear();
+  bearing_mode = "dual";
+  bearing_type = "relative";
 }
 
 int BHV_MaintainBearing::decode(string status)
