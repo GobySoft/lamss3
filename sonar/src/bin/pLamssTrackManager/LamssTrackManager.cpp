@@ -64,6 +64,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       abort_mode_active_(false),
       prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
+      tracking_lock(false),
       last_slow_loop_t_(0)
 {
 
@@ -109,6 +110,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_tracking_mode, this);    
     subscribe("SONAR_CONTROL", 
 	      &LamssTrackManager::handle_sonar_control, this);    
+    subscribe("TRACKING_LOCK", 
+	      &LamssTrackManager::handle_tracking_lock, this);    
 
     //    heading_filter = new Mavg(cfg_.filter_length());
     heading_filter.configAvg(cfg_.filter_length());
@@ -568,6 +571,11 @@ void LamssTrackManager::handle_prosecute_heading(const CMOOSMsg& msg)
   MOOSValFromString(prosecute_heading,msg.GetString(),"heading");
 }
 
+void LamssTrackManager::handle_tracking_lock(const CMOOSMsg& msg)
+{
+  tracking_lock = MOOSStrCmp(msg.GetString(),"TRUE");
+}
+
 void LamssTrackManager::send_deploy()
 {
   LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
@@ -926,7 +934,8 @@ void LamssTrackManager::reset_tracking()
   sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",node,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
   msg = buff;
   publish("BEARING_STAT",msg);
-  
+  tracking_lock = false;
+
   if (collaborator_id > 0)
     {
       sprintf(buff,"node=%d,state=%d,bearing=%.4f,xp=%.3f,yp=%.3f,beamno=%d,sigma=%.3f,time=%.3f",collaborator_id,NO_TRACK,0.0,0.0,0.0,0,0.0,MOOSTime());
@@ -1100,6 +1109,11 @@ bool LamssTrackManager::postStateVars()
 					       absolute, trk_sigma, trk_rate, 
 					       trk_rate_sigma, trk_snr, class_features);
 	      }
+	  }
+	else if (tracking_lock)
+	  {
+	    glog.is(DEBUG1) && glog << "Track Locked - Staying in TRACKING Mode" 
+				    << std::endl;
 	  }
 	else
 	  {

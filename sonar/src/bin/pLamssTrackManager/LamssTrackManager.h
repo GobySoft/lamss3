@@ -124,6 +124,7 @@ class LamssTrackManager : public GobyMOOSApp
     void handle_tracking_mode(const CMOOSMsg& msg);
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_track_report(const CMOOSMsg& msg);
+    void handle_tracking_lock(const CMOOSMsg& msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -143,6 +144,9 @@ class LamssTrackManager : public GobyMOOSApp
 
     bool auto_prosecute_;
     double last_slow_loop_t_;
+    // Tracking lock, e.g. by DVL lock.
+    bool tracking_lock;
+
     
     goby::moos::protobuf::NodeStatus last_nav_;
 
