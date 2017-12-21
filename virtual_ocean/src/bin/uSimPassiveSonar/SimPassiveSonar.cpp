@@ -713,7 +713,8 @@ void SimPassiveSonar::loop()
 		  glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
 					   << Targets[i].target_id() << endl;
 		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
-		  if(got_source_loc && i == icnt_rot)
+		  //		  if(got_source_loc && i == icnt_rot)
+		  if(got_source_loc && i == Targets.size()-1)
 		    {
 		      // Publish simulated target position rotating through targets
 		      m_Comms.Notify("TARGET_XPOS",source_pos_x);
