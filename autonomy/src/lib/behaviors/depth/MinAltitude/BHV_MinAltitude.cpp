@@ -103,8 +103,8 @@ IvPFunction *BHV_MinAltitude::onRunState()
   bool   ok,ok1,ok2;
   double curr_depth = getBufferDoubleVal("NAV_DEPTH", ok);
   double curr_altitude = getBufferDoubleVal("NAV_ALTITUDE", ok1);
-  // use only if valid, i.e. > 0
-  if (ok1 && curr_altitude > 0.0)
+  // use only if valid, i.e. != 0
+  if (ok1 && curr_altitude != 0.0)
     {
       double curr_speed = getBufferDoubleVal("NAV_SPEED", ok2);
       // check here for bottom altitude and change max depth if necessary
