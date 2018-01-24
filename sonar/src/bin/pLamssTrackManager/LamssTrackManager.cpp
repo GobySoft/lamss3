@@ -140,7 +140,6 @@ void LamssTrackManager::loop()
   //  boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
     double curr_time = MOOSTime();
-
     // set time for fsm
     current_time_ = curr_time;
 
@@ -165,7 +164,7 @@ void LamssTrackManager::loop()
 	  queue_event<EvDcltOff>();
       }
 
-  if (dclt_enable_)
+    //  if (dclt_enable_)
     {
       //      heading = angle360(heading_filter->get_FVal());
       heading = angle360(heading_filter.getAvg());
