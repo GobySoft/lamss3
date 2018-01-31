@@ -80,7 +80,8 @@ message NetSimManagerResponse
   enum Status
   {
 	UPDATE_ACCEPTED = 1;
-	UPDATE_FAILED_OUT_OF_DEFINED_REGION = 2;
+	UPDATE_FAILED_INVALID_MODEM_TCP_PORT = 2;
+	UPDATE_FAILED_OUT_OF_DEFINED_REGION = 3;
   }
   required Status status = 2;
 }
