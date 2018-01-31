@@ -59,3 +59,28 @@ message ArrayGain
   }
 }  
 
+message NetSimManagerRequest
+{
+  required int32 id = 1;	
+  message NavUpdate
+  {
+    required int32 modem_tcp_port = 1;
+    required double lat = 2;
+    required double lon = 3;
+    required double depth = 4;
+    required double speed = 5;
+    required double heading = 6;
+  }
+  repeated NavUpdate nav = 2;
+}
+
+message NetSimManagerResponse
+{
+  required int32 request_id = 1;
+  enum Status
+  {
+	UPDATE_ACCEPTED = 1;
+	UPDATE_FAILED_OUT_OF_DEFINED_REGION = 2;
+  }
+  required Status status = 2;
+}
