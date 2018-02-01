@@ -59,18 +59,20 @@ message ArrayGain
   }
 }  
 
+message NavUpdate
+{
+  required int32 modem_tcp_port = 1;
+  required double time = 2;
+  required double lat = 3;
+  required double lon = 4;
+  required double depth = 5;
+  required double speed = 6;
+  required double heading = 7;
+}
+
 message NetSimManagerRequest
 {
   required int32 id = 1;	
-  message NavUpdate
-  {
-    required int32 modem_tcp_port = 1;
-    required double lat = 2;
-    required double lon = 3;
-    required double depth = 4;
-    required double speed = 5;
-    required double heading = 6;
-  }
   repeated NavUpdate nav = 2;
 }
 
@@ -85,4 +87,16 @@ message NetSimManagerResponse
 	UPDATE_FAILED_OUT_OF_DEFINED_REGION = 4;
   }
   required Status status = 2;
+}
+
+message EnvironmentNavUpdate
+{
+  required int32 environment_id = 1;
+  required NavUpdate nav = 2;
+}
+
+message EnvironmentImpulseRequest
+{
+  required int32 environment_id = 1;
+  required ImpulseRequest req = 2;
 }
