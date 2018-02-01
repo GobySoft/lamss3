@@ -85,6 +85,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   subscribe("BELLHOP_RESPONSE", &SimModemNetwork::handle_bellhop_response, this);    
   subscribe("SVP_RESPONSE", &SimModemNetwork::handle_svp_response, this);    
   subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
+  subscribe_pb("NETSIM_NAV_UPDATE", &SimModemNetwork::handle_netsim_nav_update, this);
   subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
   subscribe("TRANSMIT_TEST", &SimModemNetwork::handle_transmit_test, this);
   subscribe("AMBIENT_NL_DEPTH", &SimModemNetwork::handle_ambient_nl_depth, this);    
@@ -231,6 +232,34 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 	}
     }
 }
+
+void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
+{
+    std::string node_name = goby::util::as<std::string>(nav.modem_tcp_port());
+
+    double x,y;
+    if(m_Geodesy.LatLong2LocalUTM(nav.lat(), nav.lon(), y, x))
+    {
+	std::stringstream nr;
+	nr << "NAME=" << nav.modem_tcp_port() << "," <<
+	    "UTC_TIME=" << nav.time() << "," <<
+	    "X=" << x << "," <<
+	    "Y=" << y << "," <<
+	    "LAT=" << nav.lat() << "," << 
+	    "LON=" << nav.lon() << "," << 
+	    "SPD=" << nav.speed() << "," << 
+	    "HDG=" << nav.heading() << "," <<
+	    "DEPTH=" << nav.depth();
+	
+	publish("NODE_REPORT", nr.str());
+    }
+    else
+    {
+	glog.is(DEBUG1) && glog << "Failed to convert lat,lon to x,y for update: " << nav.ShortDebugString() << std::endl;
+    }
+    
+}
+
 
 void SimModemNetwork::handle_svp_info(const CMOOSMsg& msg)
 {

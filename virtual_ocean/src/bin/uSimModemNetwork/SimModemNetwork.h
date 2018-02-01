@@ -82,6 +82,7 @@ class SimModemNetwork : public GobyMOOSApp
     void handle_bellhop_response(const CMOOSMsg& msg);
     void handle_svp_response(const CMOOSMsg& msg);
     void handle_node_report(const CMOOSMsg& msg);
+    void handle_netsim_nav_update(const NavUpdate& nav);
     void handle_impulse_request(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
     void handle_svp_info(const CMOOSMsg& msg);
