@@ -1,3 +1,4 @@
+
 // H. Schmidt, henrik@mit.edu 01.20.10
 // Laboratory for Autonomous Marine Sensing Systems (LAMSS)
 // Massachusetts Institute of Technology 
@@ -47,6 +48,8 @@ class CmyVectorUtils
   bool cumtrapz(std::vector<double> x, std::vector<double> y, std::vector<double>& out);
   bool interp(const std::vector<double>& x, const std::vector<double>& y, 
 	      const std::vector<double>& xi, std::vector<double>& yi);
+  void resample(double dx, const std::vector<double>& y, 
+		double dx_new, std::vector<double>& y_new);
   void vpair_sort(std::vector<double> x, 
 		  std::vector<double> y,
 		  std::vector<double> x_sort,
