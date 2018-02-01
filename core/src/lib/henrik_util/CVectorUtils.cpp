@@ -544,6 +544,22 @@ bool CmyVectorUtils::interp(const vector<double>& x, const vector<double>& y,
   return(true);
 }
 
+void CmyVectorUtils::resample(double dx, const std::vector<double>& y, 
+			      double dx_new, std::vector<double>& y_new)
+{
+  int n =  y.size();
+  int n_new = (int) n*dx/dx_new; 
+  y_new.resize(n_new);
+  double oneodx = 1.0/dx;
+  double x_max = (n-1)*dx; 
+  for (int i=0; i<n_new; i++)
+    {
+      double x_new = i*dx_new;
+      int j = std::min((int) floor(x_new*oneodx),n-2);
+      y_new[i] = y[j] + (x_new-j*dx)*(y[j+1]-y[j])*oneodx;
+    }
+}
+
 void CmyVectorUtils::vpair_sort(std::vector<double> x, 
 				std::vector<double> y,
 				std::vector<double> x_sort,
