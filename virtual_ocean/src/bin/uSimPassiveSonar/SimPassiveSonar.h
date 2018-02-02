@@ -325,6 +325,7 @@ class SimPassiveSonar : public GobyMOOSApp
       ok_source_bb_bw, got_source_bb_info;
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
+    std::vector<double> replica;
     double noise_std;
     std::vector<double> tone_amps_Pa; 
     std::vector<double> tone_ks; 
@@ -397,7 +398,7 @@ class SimPassiveSonar : public GobyMOOSApp
     bool write_nas_file_verbose(double timestamp);
     bool write_eigenray_file();
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
-      
+    std::vector<double> read_replica(std::string replica_path);      
 };
 
 #endif 

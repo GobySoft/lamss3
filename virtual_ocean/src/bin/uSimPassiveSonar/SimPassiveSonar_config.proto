@@ -41,7 +41,7 @@ message SimPassiveSonarConfig
   optional double surface_roughness_loss = 41 [default = 0]; // coherence loss in dB per bounce
   optional double bottom_rms_roughness = 42 [default = 0];  // Bottom RMS roughness 
   optional double bottom_roughness_loss = 43 [default = 0]; // coherence loss in dB per bounce
-
+  optional string pinger_replica_path = 44 [default = "pinger_replica_path"]; 
 }
 
 
