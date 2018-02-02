@@ -83,7 +83,8 @@ InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg
     client_->connect(cfg_.netsim_manager_ip_addr(), cfg_.netsim_manager_tcp_port());
     client_->read_callback<NetSimManagerResponse>(
         [](const NetSimManagerResponse& t, const boost::asio::ip::tcp::endpoint& ep)
-        { std::cout << "Received from [" << ep << "]: " << t.ShortDebugString() << std::endl;
+        {
+            glog.is(DEBUG1) && glog << "Received response from [" << ep << "]: " << t.ShortDebugString() << std::endl;
         });
 
     register_timer(cfg_.reconnect_interval(), &InterfaceNetSimManager::check_connected, this);
@@ -125,6 +126,7 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::F
         req.set_id(i++);
         auto& nav = *req.add_nav();
         nav.set_modem_tcp_port(cfg_.modem_tcp_port());
+        nav.set_time(data.node_status().time());
         nav.set_lat(data.node_status().global_fix().lat());
         nav.set_lon(data.node_status().global_fix().lon());
         nav.set_depth(data.node_status().global_fix().depth());
