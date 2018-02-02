@@ -19,4 +19,4 @@ TARGET_LINK_LIBRARIES(iNetSimManager
   ${LAMSS_NETSIM_LIBRARY}
   )
 
-set_property(TARGET iNetSimManager PROPERTY CXX_STANDARD 14)
+set_property(TARGET iNetSimManager PROPERTY CXX_STANDARD 11)
