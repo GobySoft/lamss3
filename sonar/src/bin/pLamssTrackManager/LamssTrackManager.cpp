@@ -164,14 +164,14 @@ void LamssTrackManager::loop()
 	  queue_event<EvDcltOff>();
       }
 
-    //  if (dclt_enable_)
-    {
-      //      heading = angle360(heading_filter->get_FVal());
-      heading = angle360(heading_filter.getAvg());
-      if (!active_track_trail)
+    //if (dclt_enable_)
+      {
+	//      heading = angle360(heading_filter->get_FVal());
+	heading = angle360(heading_filter.getAvg());
+	//if (!active_track_trail)
 	postStateVars();
-    }
-
+      }
+    
 // process some events at a slower rate
     const int slow_loop_period = 10;
     if(curr_time > last_slow_loop_t_ + slow_loop_period)
