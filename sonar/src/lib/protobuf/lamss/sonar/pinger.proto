@@ -21,6 +21,7 @@ message LAMSS_PINGER_COMMAND {
        WAVEFORM_LFM = 2;
        WAVEFORM_HFM = 3;
        WAVEFORM_IMP = 4;
+       WAVEFORM_FILE = 5;
        }
     optional WindowShading replica_window = 13 [default = WINDOW_TUKEY];
     enum WindowShading {
