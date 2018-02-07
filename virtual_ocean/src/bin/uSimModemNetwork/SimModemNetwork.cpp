@@ -242,7 +242,7 @@ void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
     {
 	std::stringstream nr;
 	nr << "NAME=" << nav.modem_tcp_port() << "," <<
-	    "UTC_TIME=" << nav.time() << "," <<
+	    "UTC_TIME=" << std::setprecision(std::numeric_limits<double>::digits10) << nav.time() << "," <<
 	    "X=" << x << "," <<
 	    "Y=" << y << "," <<
 	    "LAT=" << nav.lat() << "," << 
@@ -462,10 +462,10 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
       // Get the closest eigenray bundle
       eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
       
-      glog.is(VERBOSE) && glog << "Contact range = " << range_req
+      glog.is(VERBOSE) && glog << "Contact (" << acoustic_contact.contact << ") range = " << range_req
 			       << " Raytracing range = " << eig.range
 			       << endl;
-      glog.is(VERBOSE) && glog << "Ownship depth = " << depth_req
+      glog.is(VERBOSE) && glog << "Ownship (" << acoustic_contact.ownship << ") depth = " << depth_req
 			       << " Raytracing depth = "
 			       << eig.receiver_depth << endl;
       glog.is(VERBOSE) && glog << "Number of eigenrays: " 
