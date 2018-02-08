@@ -53,6 +53,7 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
       got_x(false),
       got_y(false),
       t_num(0),
+      target_set(false),
       last_slow_loop_t_(0)
 {
 
