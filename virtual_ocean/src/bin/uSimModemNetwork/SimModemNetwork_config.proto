@@ -17,6 +17,14 @@ message SimModemNetworkConfig
   optional double svp_depth_resolution = 26 [default = 20];
 
   repeated string node = 30;
+  
+  repeated ArrayElement  array_element = 40;
+  message ArrayElement
+    {
+      optional double x_offset = 1 [default = 0];
+      optional double y_offset = 2 [default = 0];
+      optional double z_offset = 3 [default = 0];
+    }
 
 }
 
