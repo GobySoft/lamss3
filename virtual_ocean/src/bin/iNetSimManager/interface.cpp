@@ -15,6 +15,7 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/protobuf/frontseat.pb.h"
+#include "goby/moos/moos_string.h"
 
 #include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
 #include "lamss/lib_netsim/tcp_client.h"
@@ -24,6 +25,7 @@
 using goby::glog;
 using goby::common::goby_time;
 using namespace goby::common::logger;
+
 
 boost::shared_ptr<InterfaceNetSimManagerConfig> master_config;
 
@@ -41,13 +43,27 @@ class InterfaceNetSimManager : public GobyMOOSApp
     void loop();
     void check_connected();
     void handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data);
-  private:
+    void handle_node_report(const CMOOSMsg& msg);
+    
+private:
     const InterfaceNetSimManagerConfig& cfg_;
     static InterfaceNetSimManager* inst_;
 
     boost::asio::io_service io_;
     std::shared_ptr<netsim::tcp_client> client_;
-    
+
+    int request_id_ {0};
+
+    struct NodeReport
+    {
+        double time;
+        double lat;
+        double lon;
+        double depth;  
+        double speed;
+        double heading;
+    };
+
 };
 
 InterfaceNetSimManager* InterfaceNetSimManager::inst_ = 0;
@@ -89,7 +105,16 @@ InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg
 
     register_timer(cfg_.reconnect_interval(), &InterfaceNetSimManager::check_connected, this);
 
-    subscribe_pb("IFS_DATA_IN", &InterfaceNetSimManager::handle_frontseat_data, this);
+    switch(cfg_.nav_source())
+    {
+        case InterfaceNetSimManagerConfig::IFRONTSEAT:
+            subscribe_pb("IFS_DATA_IN", &InterfaceNetSimManager::handle_frontseat_data, this);
+            break;
+        case InterfaceNetSimManagerConfig::NODE_REPORT:
+            subscribe(cfg_.node_report_var(), &InterfaceNetSimManager::handle_node_report, this);
+            break;
+    }
+    
 }
 
 
@@ -117,13 +142,76 @@ void InterfaceNetSimManager::check_connected()
     }
 }
 
+void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
+{
+    using goby::moos::val_from_string;
+    const std::string& s = msg.GetString();
+
+    std::string name;
+    val_from_string(name, s, "NAME");
+    if(boost::iequals(name, cfg_.common().community()))
+    {
+        NodeReport nr;
+        if(!val_from_string(nr.lat, s, "LAT"))
+        {
+            glog.is(WARN) && glog << "Node report missing LAT: " << s << std::endl;
+            return;    
+        }        
+        if(!val_from_string(nr.lon, s, "LON"))
+        {
+            glog.is(WARN) && glog << "Node report missing LON: " << s << std::endl;
+            return;    
+        }
+        if(!val_from_string(nr.depth, s, "DEPTH"))
+        {
+            glog.is(WARN) && glog << "Node report missing DEPTH: " << s << std::endl;
+            return;    
+        }
+        if(!val_from_string(nr.speed, s, "SPD"))
+        {
+            glog.is(WARN) && glog << "Node report missing SPD: " << s << std::endl;
+            return;    
+        }
+        if(!val_from_string(nr.heading, s, "HDG"))
+        {
+            glog.is(WARN) && glog << "Node report missing HDG: " << s << std::endl;
+            return;    
+        }
+        if(!val_from_string(nr.time, s, "UTC_TIME"))
+        {
+            glog.is(WARN) && glog << "Node report missing UTC_TIME: " << s << std::endl;
+            return;    
+        }
+
+        NetSimManagerRequest req;
+        req.set_id(request_id_++);
+        auto& nav = *req.add_nav();
+        nav.set_modem_tcp_port(cfg_.modem_tcp_port());
+        nav.set_time(nr.time);
+        nav.set_lat(nr.lat);
+        nav.set_lon(nr.lon);
+        nav.set_depth(nr.depth);
+        nav.set_speed(nr.speed);
+        nav.set_heading(nr.heading);
+        
+        if(client_->connected())
+        {
+            glog.is(DEBUG1) && glog << "Sent request (from " << cfg_.node_report_var() << "): " << req.ShortDebugString() << std::endl;
+            client_->write(req);
+        }        
+    }
+    
+    
+}
+
+
+
 void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data)
 {
-    static int i = 0;
     if(data.has_node_status())
     {
         NetSimManagerRequest req;
-        req.set_id(i++);
+        req.set_id(request_id_++);
         auto& nav = *req.add_nav();
         nav.set_modem_tcp_port(cfg_.modem_tcp_port());
         nav.set_time(data.node_status().time());
@@ -135,7 +223,7 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::F
         
         if(client_->connected())
         {
-            glog.is(DEBUG1) && glog << "Sent request: " << req.ShortDebugString() << std::endl;
+            glog.is(DEBUG1) && glog << "Sent request (from IFS_DATA_IN): " << req.ShortDebugString() << std::endl;
             client_->write(req);
         }
     }
