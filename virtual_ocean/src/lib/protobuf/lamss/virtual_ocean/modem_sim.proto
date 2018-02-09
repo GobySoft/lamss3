@@ -13,6 +13,11 @@ message ImpulseResponse
        optional double elevation = 4 [(goby.field).description="Degrees", default = 0];
        optional int32 surface_bounces = 5 [(goby.field).description="Number of ray surface bounces"];
        optional int32 bottom_bounces = 6 [(goby.field).description="Number of ray bottom bounces"];
+       repeated ArrayElementDelay element = 7;
+       message ArrayElementDelay
+         {
+           required double delay = 1;
+         }
     }
   optional double noise_level = 5;
   optional double receiver_sound_speed = 6 [default = 1500];
@@ -27,10 +32,18 @@ message ImpulseRequest
 {
   required string source = 1 ;
   required string receiver = 2;
+  repeated ArrayElement  array_element = 3;
+  message ArrayElement
+    {
+      required double x_offset = 1;
+      required double y_offset = 2;
+      required double z_offset = 3;
+    }
 
   optional int32 request_id = 10;
   optional double request_time = 11;
 }
+
 
 message TransmitResponse
 {
