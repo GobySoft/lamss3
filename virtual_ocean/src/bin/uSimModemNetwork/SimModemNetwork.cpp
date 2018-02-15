@@ -433,7 +433,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 	}
       else
 	{
-	  glog.is(VERBOSE) && glog << "Waiting for info for " 
+	  glog.is(DEBUG3) && glog << "Waiting for info for " 
 				   << acoustic_contacts[i].contact
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
