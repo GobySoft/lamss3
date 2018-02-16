@@ -63,8 +63,8 @@ message LAMSS_DEPLOY {
 	enum Trail_ContactEnum{
 		 TRAIL_CONTACT_macrura = 0;
 		 TRAIL_CONTACT_unicorn = 1;
-//		 TRAIL_CONTACT_resolution = 2;
-//		 TRAIL_CONTACT_discovery = 3;
+		 TRAIL_CONTACT_resolution = 2;
+		 TRAIL_CONTACT_sandshark = 3;
 	}
 	optional double Trail_Range = 24 [(dccl.field).max=511, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double Trail_Angle = 25 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
