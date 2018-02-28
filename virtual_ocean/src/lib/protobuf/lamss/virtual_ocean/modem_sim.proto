@@ -7,7 +7,6 @@ message ImpulseResponse
   repeated RayTrace raytrace = 4 ;
   message RayTrace
     {
-       required double delay = 1 [(goby.field).description="Seconds"];
        required double amplitude = 2 [(goby.field).description="Pascal"];
        optional double doppler = 3 [(goby.field).description="Doppler blueshift factor", default=1.0 ];
        optional double elevation = 4 [(goby.field).description="Degrees", default = 0];
