@@ -287,7 +287,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
       
-      std::vector<double> delay;
+      std::vector<std::vector<double> >delay;
       std::vector<double> amplitude;
       std::vector<double> doppler;
       std::vector<double> elevation;
@@ -298,10 +298,16 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 			 delay,amplitude,doppler,elevation,
 			 surface_bounces,bottom_bounces);
       ImpulseResponse::RayTrace* raytrace = 0;
-      for (int j = 0; j < delay.size(); j++)
+      for (int j = 0; j < delay[0].size(); j++)
 	{
 	  raytrace = message.add_raytrace();
-	  raytrace -> set_delay(delay[j]);
+	  raytrace -> set_delay(delay[0][j]);
+	  ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
+	  for (int i=0; i<delay.size(); i++)
+	    {
+	      element_delay = raytrace -> add_element();
+	      element_delay -> set_delay(delay[i][j]);
+	    }
 	  raytrace -> set_amplitude(amplitude[j]);
 	  raytrace -> set_doppler(doppler[j]);
 	  raytrace -> set_elevation(elevation[j]*180.0/M_PI);
@@ -591,7 +597,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
  
  
  void SimModemNetwork::modem_ray_arrivals(CEigenRayTable eigenray_table,
-					  std::vector<double> & delay,
+					  std::vector<std::vector<double> >& delay,
 					  std::vector<double> & amplitude,
 					  std::vector<double> & doppler,
 					  std::vector<double> & elevation,
@@ -610,7 +616,43 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   double range_x = (ownship_x - contact_x);
   double range_y = (ownship_y - contact_y);
   double range = sqrt(range_x*range_x + range_y*range_y);
-      
+
+  // Modem receiving array
+  std::vector<double> local_x, local_y, local_z, ael_x, ael_y, ael_z, 
+    ael_range, ael_depth;
+  int nelm = cfg_.array_element_size();
+  if (nelm >0)
+    {
+      local_x.resize(nelm);
+      local_y.resize(nelm);
+      local_z.resize(nelm);
+      ael_range.resize(nelm);
+      ael_depth.resize(nelm);
+      for (int i=0; i<nelm; i++)
+	{
+	  local_x[i] = cfg_.array_element(i).x_offset();
+	  local_y[i] = cfg_.array_element(i).y_offset();
+	  local_z[i] = cfg_.array_element(i).z_offset();
+	}
+
+      array_locations(ownship_x, ownship_y, -ownship_depth, hd_ang, el_ang,
+		      local_x,local_y,local_z,ael_x,ael_y,ael_z);
+      for (int i=0; i<nelm; i++)
+	{
+	  range_x = (ael_x[i] - contact_x);
+	  range_y = (ael_y[i] - contact_y);
+	  ael_range[i] = sqrt(range_x*range_x + range_y*range_y);
+          ael_depth[i] = - ael_z[i];
+	}
+    } 
+  else
+    {
+      nelm = 1;
+      ael_range.resize(nelm);
+      ael_depth.resize(nelm);
+      ael_range[0] = range;
+      ael_depth[0] = ownship_depth;
+    }     
   // Get eigenrays closesst to phone
   double range_ref, depth_ref;
   CEigenRay eig;
@@ -628,21 +670,22 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 			  << endl;
   glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
 	
-  double delta_r = range - range_ray;
-  double delta_dep = ownship_depth - depth_ray;  
-  double delta_z = - delta_dep;
+  //  double delta_r = range - range_ray;
+  //  double delta_dep = ownship_depth - depth_ray;  
+  //  double delta_z = - delta_dep;
 
   // Computing vector components in absolute coordinates
-  double costh = cos(atan2(range_y, range_x));
-  double sinth = sin(atan2(range_y, range_x));
+  //double costh = cos(atan2(range_y, range_x));
+  //double sinth = sin(atan2(range_y, range_x));
   // Get eigenray delays for sensor
-  std::vector<double> ray_delays;
+  std::vector<std::vector<double> > ray_delays;
   std::vector<double> ray_amplitudes;
   std::vector<double> rcv_ray_cos;
   std::vector<double> src_ray_cos;
+
   ray_arrivals(eig, 
-	       range,
-	       depth_req,
+	       ael_range,
+	       ael_depth,
 	       src_ray_cos,
 	       rcv_ray_cos,
 	       ray_delays, 
@@ -662,7 +705,8 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
       
   for (int i_ray=0; i_ray < eig.num_rays; i_ray++)
     {
-      ray_delays[i_ray] = ray_delays[i_ray]*
+      for (int i=0; i<nelm; i++)
+      ray_delays[i][i_ray] = ray_delays[i][i_ray]*
 	(1.0+vr_R*rcv_ray_cos[i_ray]*oneossp);
       ray_doppler[i_ray] = 1 + (src_ray_cos[i_ray]*vr_S - 
 				rcv_ray_cos[i_ray]*vr_R)*oneossp;
@@ -692,11 +736,11 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 
  
  bool SimModemNetwork::ray_arrivals(CEigenRay eig, 
-				    double rcv_range,
-				    double rcv_depth, 
+				    vector<double> rcv_range,
+				    vector<double> rcv_depth, 
 				   std::vector<double> & cos_Src,
 				   std::vector<double> & cos_Rcv,
-				   std::vector<double> & delays, 
+				    std::vector<std::vector<double> > & delays, 
 				   std::vector<double> & amplitudes)
 {
   int num_eig_rays = eig.num_rays;
@@ -720,24 +764,32 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
       double ref_range = eig.range;
       double ref_depth = eig.receiver_depth;
 
-      double dz = rcv_depth - ref_depth;
-      double dr = rcv_range - ref_range;
       double oneossp = 1/sound_speed;
-      delays.resize(num_eig_rays);
+      int nelm = rcv_range.size();
+      delays.resize(rcv_range.size());
+      for (int i=0; i<nelm; i++)
+	delays[i].resize(num_eig_rays);
       amplitudes.resize(num_eig_rays);
       for(int ray_iter=0; ray_iter<num_eig_rays; ray_iter++)
 	{
-	      delays[ray_iter] = (eig.bundle[ray_iter].tau + 
+
+	  for (int i=0; i<nelm; i++)
+	    {
+	      double dz = rcv_depth[i] - ref_depth;
+	      double dr = rcv_range[i] - ref_range;
+	      delays[i][ray_iter] = (eig.bundle[ray_iter].tau + 
 				  (((dr*cos_Rcv[ray_iter]) + 
 				    (dz*sin_Rcv[ray_iter]))*
 				   oneossp));
+	    }
 	      amplitudes[ray_iter] = amp[ray_iter];    
       // free surface reflection handled by change of sign
 	  if ( cos(eig.bundle[ray_iter].phase) < -0.99) 
 	    amplitudes[ray_iter] = - amp[ray_iter];    
 	  else if ( cos(eig.bundle[ray_iter].phase) < 0.99) 
 	    // turning points by time shift
-	    delays[ray_iter] -= 1.0/eig.freq * eig.bundle[ray_iter].phase/(2*M_PI);
+	  for (int i=0; i<nelm; i++)
+	    delays[i][ray_iter] -= 1.0/eig.freq * eig.bundle[ray_iter].phase/(2*M_PI);
 	}
       return(true);
     }
@@ -1156,3 +1208,41 @@ double SimModemNetwork::get_ssp_value(bellhop::protobuf::Environment::WaterColum
     }
   return(0.0);
 }
+
+void SimModemNetwork::array_locations(double nav_x, 
+				      double nav_y, 
+				      double nav_z,
+				      double nav_yaw, 
+				      double nav_pitch,
+				      vector<double> local_x,
+				      vector<double> local_y,
+				      vector<double> local_z,
+				      vector<double>& ael_x,
+				      vector<double>& ael_y,
+				      vector<double>& ael_z
+				      )
+{
+
+  int m_nelm = local_x.size();
+
+  ael_x.resize(m_nelm);
+  ael_y.resize(m_nelm);
+  ael_z.resize(m_nelm);
+
+  // Transform to absolute coordinates. Ignoring roll
+  // Assumes up pos MOOS coordinates and yaw,pitch in radians.
+  // nav_yaw = nav_heading * M_PI/180;
+  double cy = cos(nav_yaw);
+  double sy = sin(nav_yaw);
+  double cp = cos(nav_pitch);
+  double sp = sin(nav_pitch);
+
+  for (int i=0; i<m_nelm; i++)
+    {
+      ael_x[i] =  nav_x + ( local_x[i]*cy + (local_y[i]-local_z[i]*sp)*sy)*cp;
+      ael_y[i] =  nav_y + (-local_x[i]*sy + (local_y[i]-local_z[i]*sp)*cy)*cp;
+      ael_z[i] =  nav_z +  local_z[i]*cp+local_y[i]*sp;
+    }
+
+}
+
