@@ -200,6 +200,7 @@ class SimPassiveSonar : public GobyMOOSApp
 			     double& dep_max,
 			     int& num_r,
 			     int& num_dep);
+    double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth);
 
     bool noise_profile;
     std::vector<double> depth_nl;

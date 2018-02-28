@@ -3046,6 +3046,41 @@ std::vector<double> SimPassiveSonar::read_replica(std::string replica_path)
     }
 }
 
+double SimPassiveSonar::get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
+{
+
+  int m_coef = water_column->eof_coef_size();
+  std::vector<double> eof_coef;
+  eof_coef.resize(m_coef);
+  for (int j = 0; j < m_coef; j++)
+    eof_coef[j] = water_column->eof_coef(j);
+
+  for(int i = 0, n = water_column->sample_size(); i < n-1; ++i)
+    {
+      if(depth >= water_column->sample(i).depth() && 
+	 depth <= water_column->sample(i+1).depth())
+	{
+	  double cp    = water_column->sample(i).cp();  
+	  int m = water_column->sample(i).eof_size();
+	  double dep_up = water_column->sample(i).depth();  
+	  double ssp_up = cp ;
+	  for (int j = 0; j < std::min(m,m_coef); j++)
+	    ssp_up += water_column->sample(i).eof(j) * eof_coef[j];
+
+	  cp = water_column->sample(i+1).cp();  
+	  double dep_dn = water_column->sample(i+1).depth();  
+	  double ssp_dn = cp ;
+	  for (int j = 0; j < std::min(m,m_coef); j++)
+	    ssp_dn += water_column->sample(i+1).eof(j) * eof_coef[j];
+
+	  double ssp = ssp_up + 
+	    (depth - dep_up) * (ssp_dn - ssp_up) / (dep_dn - dep_up);
+	  return(ssp);
+	}
+    }
+  return(0.0);
+}
+
 // Sensor class
 
 bool CSensor::initSpectrum(int nfft_in)
