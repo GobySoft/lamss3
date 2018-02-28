@@ -301,7 +301,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       for (int j = 0; j < delay[0].size(); j++)
 	{
 	  raytrace = message.add_raytrace();
-	  raytrace -> set_delay(delay[0][j]);
+	  //raytrace -> set_delay(delay[0][j]);
 	  ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
 	  for (int i=0; i<delay.size(); i++)
 	    {
