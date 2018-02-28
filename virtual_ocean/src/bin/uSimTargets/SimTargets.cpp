@@ -53,6 +53,7 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
       got_x(false),
       got_y(false),
       t_num(0),
+      target_set(false),
       last_slow_loop_t_(0)
 {
 
@@ -88,10 +89,11 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
   //
   // Load auto_target and wait for nav data before publis=hin target list
   //
-  if (cfg_.has_auto_target())
+  if (cfg_.has_auto_target() && cfg_.auto_target().tgt_num() > 0)
     {
       update_target(cfg_.auto_target());
       target_init = true;
+      glog.is(DEBUG1) && glog << "Starting Auto Target" <<  std::endl;
     }
 }
 

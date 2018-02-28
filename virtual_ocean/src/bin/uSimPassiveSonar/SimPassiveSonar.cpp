@@ -1439,103 +1439,115 @@ void SimPassiveSonar::ray_doppler_vel(double v_S, double a_S,double e_S, double 
 
 //function to create Waveform and replica files
 void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_waveform,
-double dop_fac)
+						double dop_fac)
 {
+      double source_strength = pow(10.0,pinger_db/20.0);
+      glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
   // doppler_fac > 1 diverging src/rcv, < 1 converging
   //--first create time vector
-  double dop_pulsewidth = dop_fac*ping_pulsewidth;
-  std::vector<double> t_src;
-  int num_samples = int(dop_pulsewidth*sampling_frequency);
-  t_src.resize(num_samples); 
-  double delta_t = 1.0/sampling_frequency;
-  for(int k=0; k < num_samples; k++)
-    t_src[k] = k*delta_t;
+  if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE
 
-  std::vector<double> source_window;
-  if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_HANN)
+
+      )
     {
-      source_window = vecUtils.hann(t_src.size());
-    }
-  else if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
-    {
-      double raised_cosine_ratio;
-      source_window = vecUtils.tukey(t_src.size(),raised_cosine_ratio);
+      // Replica read from file
+      // Note that any windowing is assumed to have been applied in file
+      // Doppler shifting by resampling
+      vecUtils.resample(dop_fac,replica,1.0,source_waveform);
+      num_samples = source_waveform.size();
+      for (int i=0; i< num_samples; i++)
+	source_waveform[i] *= source_strength; 
     }
   else
     {
-      source_window.clear();
-      for (int k=0; k<t_src.size(); k++)
+      double dop_pulsewidth = dop_fac*ping_pulsewidth;
+      std::vector<double> t_src;
+      int num_samples = int(dop_pulsewidth*sampling_frequency);
+      t_src.resize(num_samples); 
+      double delta_t = 1.0/sampling_frequency;
+      for(int k=0; k < num_samples; k++)
+	t_src[k] = k*delta_t;
+      
+      std::vector<double> source_window;
+      if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_HANN)
 	{
-          source_window.push_back(1);
-        }
-    }
-
-  //--create waveform depending on type ---
-  source_waveform.clear();
-  double source_strength = pow(10.0,pinger_db/20.0);
-  glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
-  glog.is(DEBUG2) && glog << "t_src.size() : " << t_src.size() << endl;
-
-  source_waveform.resize(t_src.size());
-
-  double dop_center_frequency = ping_center_frequency/dop_fac;
-  double dop_bandwidth = ping_bandwidth/dop_fac;
-
-  if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
-    {
-      glog.is(DEBUG1) && glog <<"Generating CW waveform" << endl;
-      for( int k=0;k<t_src.size(); k++)
+	  source_window = vecUtils.hann(t_src.size());
+	}
+      else if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
 	{
-	  source_waveform[k] = sin(2*M_PI*dop_center_frequency*t_src[k])*
-				    source_strength*source_window[k];
+	  double raised_cosine_ratio;
+	  source_window = vecUtils.tukey(t_src.size(),raised_cosine_ratio);
 	}
-    }
-  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
-    {
-      glog.is(DEBUG1) && glog << "Generating LFM waveform" << endl;
-      double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
-      double min_lfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
-      for( int k=0;k<t_src.size();k++)
-	{ 
-	  double K = (max_lfm_frequency-min_lfm_frequency)/dop_pulsewidth;
-	  source_waveform[k] = sin(2*M_PI*t_src[k]*(min_lfm_frequency+(K*t_src[k]*0.5)))*
-	    source_strength*source_window[k];
+      else
+	{
+	  source_window.clear();
+	  for (int k=0; k<t_src.size(); k++)
+	    {
+	      source_window.push_back(1);
+	    }
 	}
-    }
-  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_HFM)
-    {
-      double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
-      double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
-      double r = (dop_max_hfm_frequency-dop_min_hfm_frequency)/dop_pulsewidth;
-      double p1 = dop_min_hfm_frequency*dop_max_hfm_frequency/r;
-      for( int k=0;k<t_src.size();k++)
-	{ 
-	  source_waveform[k] = sin(2*PI*(-p1*log(1-r/dop_max_hfm_frequency*t_src[k])))*
-				 source_strength*source_window[k];
+      
+      //--create waveform depending on type ---
+      source_waveform.clear();
+      glog.is(DEBUG2) && glog << "t_src.size() : " << t_src.size() << endl;
+      
+      source_waveform.resize(t_src.size());
+      
+      double dop_center_frequency = ping_center_frequency/dop_fac;
+      double dop_bandwidth = ping_bandwidth/dop_fac;
+      
+      if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
+	{
+	  glog.is(DEBUG1) && glog <<"Generating CW waveform" << endl;
+	  for( int k=0;k<t_src.size(); k++)
+	    {
+	      source_waveform[k] = sin(2*M_PI*dop_center_frequency*t_src[k])*
+		source_strength*source_window[k];
+	    }
 	}
-    }
-  else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
-    {
-      double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
-      double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
-      double a = 0.5*dop_bandwidth;
-      for( int k=0;k<t_src.size();k++)
-	{ 
-	  double w;
-	  if (k==0)
-	    w = 2*a;
-	  //        w = 1;
-	  else
-	    w = sin(2*PI*a*t_src[k])/(PI*t_src[k]);
-	  //	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
-	  
-	  source_waveform[k] = w*cos(2*PI*(dop_center_frequency*t_src[k]))*
-	    source_strength;
+      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
+	{
+	  glog.is(DEBUG1) && glog << "Generating LFM waveform" << endl;
+	  double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+	  double min_lfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
+	  for( int k=0;k<t_src.size();k++)
+	    { 
+	      double K = (max_lfm_frequency-min_lfm_frequency)/dop_pulsewidth;
+	      source_waveform[k] = sin(2*M_PI*t_src[k]*(min_lfm_frequency+(K*t_src[k]*0.5)))*
+		source_strength*source_window[k];
+	    }
 	}
-    }
-  else
-    {
-      // Here we need to read the waveform from file and stretch by dop_fac
+      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_HFM)
+	{
+	  double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+	  double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
+	  double r = (dop_max_hfm_frequency-dop_min_hfm_frequency)/dop_pulsewidth;
+	  double p1 = dop_min_hfm_frequency*dop_max_hfm_frequency/r;
+	  for( int k=0;k<t_src.size();k++)
+	    { 
+	      source_waveform[k] = sin(2*PI*(-p1*log(1-r/dop_max_hfm_frequency*t_src[k])))*
+		source_strength*source_window[k];
+	    }
+	}
+      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
+	{
+	  double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
+	  double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
+	  double a = 0.5*dop_bandwidth;
+	  for( int k=0;k<t_src.size();k++)
+	    { 
+	      double w;
+	      if (k==0)
+		w = 2*a;
+	      //        w = 1;
+	      else
+		w = sin(2*PI*a*t_src[k])/(PI*t_src[k]);
+	      //	    w = sin(2*PI*a*t_src[k])/(2*PI*a*t_src[k]);
+	      
+	      source_waveform[k] = w*cos(2*PI*(dop_center_frequency*t_src[k]))*
+		source_strength;
+	    }
+	}
     }
 }
 
@@ -2634,6 +2646,9 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
     pingtime = pinger_command._time();
   else
     pingtime = pinger_command.pingtime();
+  // read replica if from file
+  if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
+    replica = read_replica(cfg_.pinger_replica_path());
   // Generate no-doppler replica in case we want to save for MF
   generate_doppler_waveform(waveform,1.0);
 }
@@ -3002,6 +3017,33 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
 			       << endl;
     }
   return(true);  
+}
+
+std::vector<double> SimPassiveSonar::read_replica(std::string replica_path)
+{
+  // First let's get the replica
+  FILE * replica_file;
+  int replica_samples = 0;
+  vector<double> replica;
+  if ( (replica_file=fopen(replica_path.c_str(), "rb")) != NULL)
+    {
+      float sample;
+      while (fread(&sample, sizeof(float),1,replica_file))
+	{
+	  // The following is for non-real time code
+	  // replica.push_back(double(sample)*signal_calibration);
+	  replica.push_back(double(sample));
+	  replica_samples++;
+	}
+      fclose(replica_file);
+
+      return(replica);
+    }
+  else
+    {
+      glog << "Unable to open replica file: "  << replica_path << endl;
+      exit(EXIT_FAILURE);
+    }
 }
 
 // Sensor class
