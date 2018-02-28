@@ -82,6 +82,7 @@ class SimModemNetwork : public GobyMOOSApp
     void handle_bellhop_response(const CMOOSMsg& msg);
     void handle_svp_response(const CMOOSMsg& msg);
     void handle_node_report(const CMOOSMsg& msg);
+    void handle_netsim_nav_update(const NavUpdate& nav);
     void handle_impulse_request(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
     void handle_svp_info(const CMOOSMsg& msg);
@@ -150,6 +151,7 @@ class SimModemNetwork : public GobyMOOSApp
 			     vector<double> noise_db);
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
 		       double depth);
+
     double noise_level;
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -205,24 +207,36 @@ class SimModemNetwork : public GobyMOOSApp
     bool generate_eigenray_table(CAcousticContact& acoustic_contact);
 
     bool ray_arrivals(CEigenRay eig, 
-		      double rcv_range,
-		      double rcv_depth, 
+		      std::vector<double> rcv_range,
+		      std::vector<double> rcv_depth, 
 		      std::vector<double> & cos_Src,
 		      std::vector<double> & cos_Rcv,
-		      std::vector<double> & delays, 
+		      std::vector<std::vector<double> >& delays, 
 		      std::vector<double> & amplitudes);
 
     void ray_doppler_vel(double v_S, double a_S,double e_S, 
 				double v_R, double a_R, double e_R, 
 				double& vr_S, double& vr_R );
     void modem_ray_arrivals(CEigenRayTable eigenray_table,
-			    std::vector<double> & delay,
+			    std::vector<std::vector<double> >& delay,
 			    std::vector<double> & amplitude,
 			    std::vector<double> & doppler,
 			    std::vector<double> & elevation,
 			    std::vector<int> & surface_bounces,
 			    std::vector<int> & bottom_bounces);
     
+    void array_locations(double nav_x, 
+			 double nav_y, 
+			 double nav_z,
+			 double nav_yaw, 
+			 double nav_pitch,
+			 std::vector<double> local_x,
+			 std::vector<double> local_y,
+			 std::vector<double> local_z,
+			 std::vector<double>& ael_x,
+			 std::vector<double>& ael_y,
+			 std::vector<double>& ael_z
+			 );
       
 };
 
