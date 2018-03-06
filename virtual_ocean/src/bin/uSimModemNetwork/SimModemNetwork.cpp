@@ -297,18 +297,19 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
 			 delay,amplitude,doppler,elevation,
 			 surface_bounces,bottom_bounces);
+      // delay[num_rays][num_elem]
       if (delay.size() > 0)
 	{
 	  ImpulseResponse::RayTrace* raytrace = 0;
-	  for (int j = 0; j < delay[0].size(); j++)
+	  for (int j = 0; j < delay.size(); j++)
 	    {
 	      raytrace = message.add_raytrace();
 	      //raytrace -> set_delay(delay[0][j]);
 	      ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
-	      for (int i=0; i<delay.size(); i++)
+	      for (int i=0; i<delay[j].size(); i++)
 		{
 		  element_delay = raytrace -> add_element();
-		  element_delay -> set_delay(delay[i][j]);
+		  element_delay -> set_delay(delay[j][i]);
 		}
 	      raytrace -> set_amplitude(amplitude[j]);
 	      raytrace -> set_doppler(doppler[j]);
@@ -709,8 +710,8 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   for (int i_ray=0; i_ray < eig.num_rays; i_ray++)
     {
       for (int i=0; i<nelm; i++)
-      ray_delays[i][i_ray] = ray_delays[i][i_ray]*
-	(1.0+vr_R*rcv_ray_cos[i_ray]*oneossp);
+	ray_delays[i_ray][i] *=
+	  (1.0+vr_R*rcv_ray_cos[i_ray]*oneossp);
       ray_doppler[i_ray] = 1 + (src_ray_cos[i_ray]*vr_S - 
 				rcv_ray_cos[i_ray]*vr_R)*oneossp;
     }
@@ -754,6 +755,9 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   sin_Rcv.resize(num_eig_rays);
   std::vector<double>amp;
   amp.resize(num_eig_rays);
+  delays.resize(num_eig_rays);
+  amplitudes.resize(num_eig_rays);
+
   if (num_eig_rays>0)
     {
       // Vertical ray angles
@@ -769,30 +773,26 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 
       double oneossp = 1/sound_speed;
       int nelm = rcv_range.size();
-      delays.resize(rcv_range.size());
-      for (int i=0; i<nelm; i++)
-	delays[i].resize(num_eig_rays);
-      amplitudes.resize(num_eig_rays);
       for(int ray_iter=0; ray_iter<num_eig_rays; ray_iter++)
 	{
-
+	  delays[ray_iter].resize(rcv_range.size());
 	  for (int i=0; i<nelm; i++)
 	    {
 	      double dz = rcv_depth[i] - ref_depth;
 	      double dr = rcv_range[i] - ref_range;
-	      delays[i][ray_iter] = (eig.bundle[ray_iter].tau + 
-				  (((dr*cos_Rcv[ray_iter]) + 
-				    (dz*sin_Rcv[ray_iter]))*
-				   oneossp));
+	      delays[ray_iter][i] = (eig.bundle[ray_iter].tau + 
+				     (((dr*cos_Rcv[ray_iter]) + 
+				       (dz*sin_Rcv[ray_iter]))*
+				      oneossp));
 	    }
-	      amplitudes[ray_iter] = amp[ray_iter];    
+	  amplitudes[ray_iter] = amp[ray_iter];    
       // free surface reflection handled by change of sign
 	  if ( cos(eig.bundle[ray_iter].phase) < -0.99) 
 	    amplitudes[ray_iter] = - amp[ray_iter];    
 	  else if ( cos(eig.bundle[ray_iter].phase) < 0.99) 
 	    // turning points by time shift
-	  for (int i=0; i<nelm; i++)
-	    delays[i][ray_iter] -= 1.0/eig.freq * eig.bundle[ray_iter].phase/(2*M_PI);
+	    for (int i=0; i<nelm; i++)
+	      delays[ray_iter][i] -= 1.0/eig.freq * eig.bundle[ray_iter].phase/(2*M_PI);
 	}
       return(true);
     }
