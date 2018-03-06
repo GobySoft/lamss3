@@ -297,22 +297,25 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
 			 delay,amplitude,doppler,elevation,
 			 surface_bounces,bottom_bounces);
-      ImpulseResponse::RayTrace* raytrace = 0;
-      for (int j = 0; j < delay[0].size(); j++)
+      if (delay.size() > 0)
 	{
-	  raytrace = message.add_raytrace();
-	  //raytrace -> set_delay(delay[0][j]);
-	  ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
-	  for (int i=0; i<delay.size(); i++)
+	  ImpulseResponse::RayTrace* raytrace = 0;
+	  for (int j = 0; j < delay[0].size(); j++)
 	    {
-	      element_delay = raytrace -> add_element();
-	      element_delay -> set_delay(delay[i][j]);
+	      raytrace = message.add_raytrace();
+	      //raytrace -> set_delay(delay[0][j]);
+	      ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
+	      for (int i=0; i<delay.size(); i++)
+		{
+		  element_delay = raytrace -> add_element();
+		  element_delay -> set_delay(delay[i][j]);
+		}
+	      raytrace -> set_amplitude(amplitude[j]);
+	      raytrace -> set_doppler(doppler[j]);
+	      raytrace -> set_elevation(elevation[j]*180.0/M_PI);
+	      raytrace -> set_surface_bounces(surface_bounces[j]);
+	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
-	  raytrace -> set_amplitude(amplitude[j]);
-	  raytrace -> set_doppler(doppler[j]);
-	  raytrace -> set_elevation(elevation[j]*180.0/M_PI);
-	  raytrace -> set_surface_bounces(surface_bounces[j]);
-	  raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	}
       message.set_noise_level(acoustic_contacts[con].noise_level);
       // The receiver is in the last range sector
