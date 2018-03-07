@@ -4,6 +4,7 @@ message ImpulseResponse
 {
   required string source = 1 ;
   required string receiver = 2 ;
+  optional int32 number_array_elements = 3 [default=1];
   repeated RayTrace raytrace = 4 ;
   message RayTrace
     {
