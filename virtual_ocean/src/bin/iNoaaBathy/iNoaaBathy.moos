@@ -1,0 +1,15 @@
+//------------------------------------------------------------------
+// iNoaaBathy configuration  block
+
+ProcessConfig = iNoaaBathy
+{
+  // available to all moos processes.
+  AppTick    = 4
+  CommsTick  = 4
+
+  // all case insensitive
+  nc_ts_file_loc = /home/spetillo/Desktop/mseas_netcdf_files/pe_out_ts.nc
+ 
+  // number of seconds between publishes of mseas bathy data
+  publish_interval = 5;
+}
