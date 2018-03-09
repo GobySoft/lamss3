@@ -493,7 +493,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
       tl_est = - 10.0 * log10(tl_est/eig.num_rays);
       glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
       
-      if (fabs(range_req - acoustic_contact.last_range) > cfg_.raytracing_range_box())
+      if (fabs(range_req - acoustic_contact.last_range) > 2*cfg_.raytracing_range_box())
 	{
 	  double range_min;
 	  double range_max;
@@ -568,18 +568,24 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    double range_y = (ownship_y - contact_y);
    double range = sqrt(range_x*range_x + range_y*range_y) ;
    double depth = ownship_depth; 
+   double delta_t = MOOSTime() - acoustic_contact.last_rate_update; 
    r_min = std::min(range,r_min);
    r_max = std::max(range,r_max);
    dep_min = std::min(depth,dep_min);
    dep_max = std::max(depth,dep_max);
-   
+
+   double range_box = fabs(delta_t*acoustic_contact.last_rate);
    if (acoustic_contact.last_rate <= 0)
-     r_min -= 2*cfg_.raytracing_range_box();
+     r_min -= range_box;
    if (acoustic_contact.last_rate >= 0)
-     r_max += 2*cfg_.raytracing_range_box();
-   
+     r_max += range_box;
+
+   if (cfg_.raytracing_range_box() > 0)
+     num_r = 1+ceil((r_max-r_min)/cfg_.raytracing_range_box());
+   else
+     num_r = 3;
+      
    // Raytracing resolution less critical for horizontal variability 
-   num_r = 3;
    num_dep = 3;
    spacing = (dep_max-dep_min)/(num_dep-1);
 
@@ -588,7 +594,6 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 			   << " spacing: " << spacing
 			   << " num ranges: " << num_r
 			   << ", num depths: " << num_dep << std::endl;
-   double delta_t = MOOSTime() - acoustic_contact.last_rate_update; 
    if (acoustic_contact.last_rate_update > 0)
      {
        acoustic_contact.last_rate = (range-acoustic_contact.last_range)/delta_t;	    

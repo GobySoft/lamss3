@@ -10,7 +10,7 @@ message SimModemNetworkConfig
   optional double noise_level = 12 [default = 40];
   optional int32  max_number_bounces = 20  [default = 1];
   optional double raytracing_interval = 21 [default = 30];
-  optional double raytracing_range_box = 22 [default = 50];
+  optional double raytracing_range_box = 22 [default = 20];
   optional bool   mseas_svp_updates = 23 [default = false];
   optional double mseas_update_interval = 24 [default = 60];
   optional double svp_range_resolution = 25 [default = 200];
