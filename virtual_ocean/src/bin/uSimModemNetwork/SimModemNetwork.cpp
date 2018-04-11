@@ -791,7 +791,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	      double dz = rcv_depth[i] - ref_depth;
 	      double dr = rcv_range[i] - ref_range;
 	      delays[ray_iter][i] = (eig.bundle[ray_iter].tau + 
-				     (((dr*cos_Rcv[ray_iter]) + 
+				     (((dr*cos_Rcv[ray_iter]) - 
 				       (dz*sin_Rcv[ray_iter]))*
 				      oneossp));
 	    }
