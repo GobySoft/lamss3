@@ -242,7 +242,7 @@ void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
     {
 	std::stringstream nr;
 	nr << "NAME=" << nav.modem_tcp_port() << "," <<
-	    "UTC_TIME=" << nav.time() << "," <<
+	    "UTC_TIME=" << std::setprecision(std::numeric_limits<double>::digits10) << nav.time() << "," <<
 	    "X=" << x << "," <<
 	    "Y=" << y << "," <<
 	    "LAT=" << nav.lat() << "," << 
@@ -448,7 +448,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 	}
       else
 	{
-	  glog.is(VERBOSE) && glog << "Waiting for info for " 
+	  glog.is(DEBUG3) && glog << "Waiting for info for " 
 				   << acoustic_contacts[i].contact
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
@@ -477,10 +477,10 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
       // Get the closest eigenray bundle
       eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
       
-      glog.is(VERBOSE) && glog << "Contact range = " << range_req
+      glog.is(VERBOSE) && glog << "Contact (" << acoustic_contact.contact << ") range = " << range_req
 			       << " Raytracing range = " << eig.range
 			       << endl;
-      glog.is(VERBOSE) && glog << "Ownship depth = " << depth_req
+      glog.is(VERBOSE) && glog << "Ownship (" << acoustic_contact.ownship << ") depth = " << depth_req
 			       << " Raytracing depth = "
 			       << eig.receiver_depth << endl;
       glog.is(VERBOSE) && glog << "Number of eigenrays: " 
@@ -791,7 +791,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	      double dz = rcv_depth[i] - ref_depth;
 	      double dr = rcv_range[i] - ref_range;
 	      delays[ray_iter][i] = (eig.bundle[ray_iter].tau + 
-				     (((dr*cos_Rcv[ray_iter]) + 
+				     (((dr*cos_Rcv[ray_iter]) - 
 				       (dz*sin_Rcv[ray_iter]))*
 				      oneossp));
 	    }
