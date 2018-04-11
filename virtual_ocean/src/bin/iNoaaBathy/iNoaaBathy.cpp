@@ -120,10 +120,11 @@ bool CiNoaaBathy::OnConnectToServer()
   status = nc_inq_dimid(ncid_, "lat", &latid_);
   if (status != NC_NOERR)
     {
-      cout<<"ERROR - failed to get dimension id for tlat."<<endl;
+      cout<<"ERROR - failed to get dimension id for lat."<<endl;
       cout<<nc_strerror(status)<<endl;
       exit(EXIT_FAILURE);
     }
+  cout << "latid_=" << latid_ << endl;
   //   else 
   //     {
   //       cout<<"tlat dimension id: "<<latid_<<endl;
@@ -132,10 +133,11 @@ bool CiNoaaBathy::OnConnectToServer()
   status = nc_inq_dimid(ncid_, "lon", &lonid_);
   if (status != NC_NOERR)
     {
-      cout<<"ERROR - failed to get dimension id for tlon."<<endl;
+      cout<<"ERROR - failed to get dimension id for lon."<<endl;
       cout<<nc_strerror(status)<<endl;
       exit(EXIT_FAILURE);
     }
+  cout << "lonid_=" << lonid_ << endl;
   //   else 
   //     {
   //       cout<<"tlon dimension id: "<<lonid_<<endl;
@@ -148,6 +150,7 @@ bool CiNoaaBathy::OnConnectToServer()
       cout<<nc_strerror(status)<<endl;
       exit(EXIT_FAILURE);
     }
+  cout << "bathyid_=" << bathyid_ << endl;
   //   else 
   //     {
   //       cout<<"tbath variable id: "<<bathyid_<<endl;
@@ -255,6 +258,7 @@ void CiNoaaBathy::ReadBathy()
       cout<<nc_strerror(status)<<endl;
       return;
     }
+  cout << "lon_len=" << lon_len << endl;
 
   //convert auv position to local UTM
   geodesy_.Initialise(auv_lat_,auv_lon_);/*initializes to auv lat/lon as origin (0,0)*/
@@ -263,28 +267,34 @@ void CiNoaaBathy::ReadBathy()
       cout << "Warning: Failed to calculate AUV position. Perhaps no NAV_LAT / NAV_LONG?" << std::endl;
       return;
   }
+  cout << "lat_len=" << lat_len << endl;
 
   //get bathy of closest 3 grid points
   for(size_t n=0;n<3;++n)
     {
-      for(size_t j=0;j<lat_len;++j)
+      for(size_t k=0;k<lon_len;++k)
 	{
-	  size_t lat_index[] = {j,0};
-	  status = nc_get_var1_double(ncid_, latid_ , lat_index, &grid_val_lat);
-	  if (status != NC_NOERR)
-	    {
-	      cout<<"ERROR - failed to get grid(lat_index) value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
-	      cout<<nc_strerror(status)<<endl;
-	    }
-	  
-	  for(size_t k=0;k<lon_len;++k)
+	  for(size_t j=0;j<lat_len;++j)
 	    {
 	      
-	      size_t lon_index[] = {k,0};
-       	      status = nc_get_var1_double(ncid_, lonid_, lon_index, &grid_val_lon);
+	      cout << "grid_val_lat=" << grid_val_lat << endl;
+	      
+	      
+	      size_t lon_index[] = {j,k,0};
+	      size_t lat_index[] = {j,k,1};
+	      status = nc_get_var1_double(ncid_, bathyid_, 
+					  lat_index, &grid_val_lat);
 	      if (status != NC_NOERR)
 		{
-		  cout<<"ERROR - failed to get grid(lon_index) value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+		  cout<<"ERROR - failed to get grid_val_lat value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+		  cout<<nc_strerror(status)<<endl;
+		  return;
+		}
+	      cout << "lat=" << grid_val_lat <<  endl;	      
+       	      status = nc_get_var1_double(ncid_, bathyid_, lon_index, &grid_val_lon);
+	      if (status != NC_NOERR)
+		{
+		  cout<<"ERROR - failed to get grid_val_lon value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
 		  cout<<nc_strerror(status)<<endl;
 		  return;
 		}

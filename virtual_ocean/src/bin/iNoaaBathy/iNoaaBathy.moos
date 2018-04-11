@@ -8,7 +8,7 @@ ProcessConfig = iNoaaBathy
   CommsTick  = 4
 
   // all case insensitive
-  nc_ts_file_loc = /home/spetillo/Desktop/mseas_netcdf_files/pe_out_ts.nc
+  nc_bathy_file = ~/missions-lamss/cruise/current/data/nc_bathy_file.nc
  
   // number of seconds between publishes of mseas bathy data
   publish_interval = 5;

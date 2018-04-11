@@ -1,6 +1,6 @@
 #--------------------------------------------------------
 # The CMakeLists.txt for:                 iNoaaBathy
-# Author(s):                                 t. schneider
+# Author(s):                              Henrik Schmidt
 #--------------------------------------------------------
 
 FILE(GLOB SRC *.cpp)
