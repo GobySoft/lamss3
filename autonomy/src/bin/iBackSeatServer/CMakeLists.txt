@@ -3,6 +3,8 @@
 # Author(s):                            Arjuna Balasuriya
 #--------------------------------------------------------
 
+set (CMAKE_CXX_FLAGS_RELEASE "-g")
+
 FILE(GLOB SRC *.cpp)
 
 ADD_EXECUTABLE(iBackSeatServer ${SRC})
