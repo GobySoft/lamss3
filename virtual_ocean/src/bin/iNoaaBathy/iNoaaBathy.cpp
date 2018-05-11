@@ -209,10 +209,6 @@ bool CiNoaaBathy::OnConnectToServer()
   cout << "latitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
        << std::endl;
 
-  bathy_mat_.resize(lon_len);
-  for (int i=0; i< lon_len; i++)
-    bathy_mat_.resize(lat_len);
-
   short val;
   size_t bathy_index[] ={0,0};
   status = nc_get_var1_short (ncid_, bathy_varid_, bathy_index, &val);

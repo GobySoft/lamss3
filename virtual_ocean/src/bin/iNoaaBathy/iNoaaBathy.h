@@ -61,7 +61,6 @@ class CiNoaaBathy : public CMOOSApp
     std::vector<double> bathy_request_lon_vec_;
     std::vector<double> lat_vec_;
     std::vector<double> lon_vec_;
-    std::vector<std::vector<short>> bathy_mat_;
     bool got_bathy_request_;
 
     void send_bathy_response();
