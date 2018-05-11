@@ -116,7 +116,7 @@ bool CiNoaaBathy::OnConnectToServer()
       nc_is_open_ = true;
       cout<<"netcdf file < "<<nc_bathy_file_<<" > opened successfully!"<<endl;
     }
-
+  // >>>>>>>>>>>> Latitude
   status = nc_inq_dimid(ncid_, "lat", &latid_);
   if (status != NC_NOERR)
     {
@@ -125,11 +125,18 @@ bool CiNoaaBathy::OnConnectToServer()
       exit(EXIT_FAILURE);
     }
   cout << "latid_=" << latid_ << endl;
-  //   else 
-  //     {
-  //       cout<<"tlat dimension id: "<<latid_<<endl;
-  //     }
-	
+
+  status = nc_inq_varid(ncid_, "lat", &lat_varid_);
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get variable id for lat."<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "lat_varid_=" << lat_varid_ << endl;
+
+  
+  // >>>>>>>>>> Longitude	
   status = nc_inq_dimid(ncid_, "lon", &lonid_);
   if (status != NC_NOERR)
     {
@@ -138,23 +145,86 @@ bool CiNoaaBathy::OnConnectToServer()
       exit(EXIT_FAILURE);
     }
   cout << "lonid_=" << lonid_ << endl;
-  //   else 
-  //     {
-  //       cout<<"tlon dimension id: "<<lonid_<<endl;
-  //     }
 
-  status = nc_inq_varid (ncid_, "Band1", &bathyid_);
+    status = nc_inq_varid(ncid_, "lon", &lon_varid_);
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get variable id for lon."<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "lon_varid_=" << lon_varid_ << endl;
+
+  size_t lat_len;
+  size_t lon_len;
+  //get length of lat/lon dimensions
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get lat_length."<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "lat_len=" << lat_len << endl;
+
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get lon_length."<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "lon_len=" << lon_len << endl;
+
+  status = nc_inq_varid (ncid_, "Band1", &bathy_varid_);
   if (status != NC_NOERR)
     {
       cout<<"ERROR - failed to get variable id for tbath."<<endl;
       cout<<nc_strerror(status)<<endl;
       exit(EXIT_FAILURE);
     }
-  cout << "bathyid_=" << bathyid_ << endl;
-  //   else 
-  //     {
-  //       cout<<"tbath variable id: "<<bathyid_<<endl;
-  //     }
+
+  cout << "bathyid_=" << bathy_varid_ << endl;
+
+  // read lat and log vectors
+  lat_vec_.resize(lat_len);
+  status = nc_get_var_double (ncid_, lat_varid_, &lat_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get latitude vector"<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "latitudes: " << lat_vec_[0] << " , " << lat_vec_[lat_vec_.size()-1]
+       << std::endl;
+
+  lon_vec_.resize(lon_len);
+  status = nc_get_var_double (ncid_, lon_varid_, &lon_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get longitude vector"<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "latitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
+       << std::endl;
+
+  bathy_mat_.resize(lon_len);
+  for (int i=0; i< lon_len; i++)
+    bathy_mat_.resize(lat_len);
+
+  short val;
+  size_t bathy_index[] ={0,0};
+  status = nc_get_var1_short (ncid_, bathy_varid_, bathy_index, &val);
+  if (status != NC_NOERR)
+    {
+      cout<<"ERROR - failed to get bathy[0][0] "<<endl;
+      cout<<nc_strerror(status)<<endl;
+      exit(EXIT_FAILURE);
+    }
+  cout << "bathy: " << val << " , "
+       << std::endl;
+  
 
   return true;
 }
@@ -240,25 +310,6 @@ void CiNoaaBathy::ReadBathy()
   double dlon_m=DBL_MAX;
   double x1, x2, x3, y1, y2, y3, z1, z2, z3;
   
-  //get length of lat/lon dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get lat_length."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      return;
-    }
-  //   else 
-  //     {cout<<"lat_length: "<<lat_len<<endl;}
-
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get lon_length."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      return;
-    }
-  cout << "lon_len=" << lon_len << endl;
 
   //convert auv position to local UTM
   geodesy_.Initialise(auv_lat_,auv_lon_);/*initializes to auv lat/lon as origin (0,0)*/
@@ -267,38 +318,19 @@ void CiNoaaBathy::ReadBathy()
       cout << "Warning: Failed to calculate AUV position. Perhaps no NAV_LAT / NAV_LONG?" << std::endl;
       return;
   }
-  cout << "lat_len=" << lat_len << endl;
 
+  lon_len = lon_vec_.size();
+  lat_len = lat_vec_.size();
+  
   //get bathy of closest 3 grid points
   for(size_t n=0;n<3;++n)
     {
       for(size_t k=0;k<lon_len;++k)
 	{
+	  grid_val_lon = lon_vec_[k];	      
 	  for(size_t j=0;j<lat_len;++j)
 	    {
-	      
-	      cout << "grid_val_lat=" << grid_val_lat << endl;
-	      
-	      
-	      size_t lon_index[] = {j,k,0};
-	      size_t lat_index[] = {j,k,1};
-	      status = nc_get_var1_double(ncid_, bathyid_, 
-					  lat_index, &grid_val_lat);
-	      if (status != NC_NOERR)
-		{
-		  cout<<"ERROR - failed to get grid_val_lat value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
-		  cout<<nc_strerror(status)<<endl;
-		  return;
-		}
-	      cout << "lat=" << grid_val_lat <<  endl;	      
-       	      status = nc_get_var1_double(ncid_, bathyid_, lon_index, &grid_val_lon);
-	      if (status != NC_NOERR)
-		{
-		  cout<<"ERROR - failed to get grid_val_lon value for "<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
-		  cout<<nc_strerror(status)<<endl;
-		  return;
-		}
-	      
+	      grid_val_lat = lat_vec_[j];	      
 	      // convert grid lat/lon to meters
 	      
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,grid_lat_m,grid_lon_m))
@@ -393,8 +425,9 @@ void CiNoaaBathy::ReadBathy()
       cout<<"closest lat1: "<<std::setprecision(std::numeric_limits<double>::digits10) << min_lat_val_<<"N"<<endl;
       cout<<"closest lon1: "<<std::setprecision(std::numeric_limits<double>::digits10) << min_lon_val_<<"E"<<endl;
       cout<<"distance1 from auv: "<<sqrt(mindist_sq)<<" m"<<endl;
-      
-      status = nc_get_var1_double(ncid_, bathyid_, bathy_index1, &z1);
+
+      short val;
+      status = nc_get_var1_short(ncid_, bathyid_, bathy_index1, &val);
       if (status != NC_NOERR)
 	{
             cout<<"ERROR - failed to get bathy1 value for "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
@@ -402,7 +435,10 @@ void CiNoaaBathy::ReadBathy()
 	  return;
 	}
       else 
-      {cout<<"bathy_z1 (m): "<<z1<<" at closest point to " << std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;}		    
+	{
+	  z1 = val;
+	  cout<<"bathy_z1 (m): "<<z1<<" at closest point to " << std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+	}		    
       
       //get lat/lon/bathy of closest grid point
       size_t bathy_index2[] = {min_ilon2,min_ilat2};  /* where to get value from */
@@ -411,7 +447,7 @@ void CiNoaaBathy::ReadBathy()
       cout<<"closest lon2: "<<std::setprecision(std::numeric_limits<double>::digits10) <<min_lon_val2_<<"E"<<endl;
       cout<<"distance2 from auv: "<<sqrt(mindist2_sq)<<" m"<<endl;
       
-      status = nc_get_var1_double(ncid_, bathyid_, bathy_index2, &z2);
+      status = nc_get_var1_short(ncid_, bathyid_, bathy_index2, &val);
       if (status != NC_NOERR)
 	{
             cout<<"ERROR - failed to get bathy2 value for "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
@@ -419,7 +455,10 @@ void CiNoaaBathy::ReadBathy()
 	  return;
 	}
       else 
-      {cout<<"bathy_z2 (m): "<<z2<<" at 2nd closest point to "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;}		    
+	{
+	  z2 = val;
+	  cout<<"bathy_z2 (m): "<<z2<<" at 2nd closest point to "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+	}		    
       
       
       //get lat/lon/bathy of closest grid point
@@ -429,7 +468,7 @@ void CiNoaaBathy::ReadBathy()
       cout<<"closest lon3: "<<std::setprecision(std::numeric_limits<double>::digits10)<<min_lon_val3_<<"E"<<endl;
       cout<<"distance3 from auv: "<<sqrt(mindist3_sq)<<" m"<<endl;
       
-      status = nc_get_var1_double(ncid_, bathyid_, bathy_index3, &z3);
+      status = nc_get_var1_short(ncid_, bathyid_, bathy_index3, &val);
       if (status != NC_NOERR)
 	{
 	  cout<<"ERROR - failed to get bathy3 value for "<<std::setprecision(std::numeric_limits<double>::digits10)<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
@@ -437,7 +476,10 @@ void CiNoaaBathy::ReadBathy()
 	  return;
 	}
       else 
-	{cout<<"bathy_z3 (m): "<<z3<<" at 3rd closest point to "<<std::setprecision(std::numeric_limits<double>::digits10)<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;}		    
+	{
+	  z3 = val;
+	  cout<<"bathy_z3 (m): "<<z3<<" at 3rd closest point to "<<std::setprecision(std::numeric_limits<double>::digits10)<<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+	}		    
       
       
       // determinant calculation to determine interpolated bathymetry between three closest points

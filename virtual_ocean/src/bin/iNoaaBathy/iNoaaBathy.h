@@ -59,6 +59,9 @@ class CiNoaaBathy : public CMOOSApp
     int bathy_request_id_;
     std::vector<double> bathy_request_lat_vec_;
     std::vector<double> bathy_request_lon_vec_;
+    std::vector<double> lat_vec_;
+    std::vector<double> lon_vec_;
+    std::vector<std::vector<short>> bathy_mat_;
     bool got_bathy_request_;
 
     void send_bathy_response();
@@ -72,6 +75,9 @@ class CiNoaaBathy : public CMOOSApp
     int latid_;
     int lonid_;
     int bathyid_;
+    int lat_varid_;
+    int lon_varid_;
+    int bathy_varid_;
 
     double bathy_z_;
     double min_lat_val_, min_lat_val2_, min_lat_val3_;
