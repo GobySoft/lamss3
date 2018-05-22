@@ -52,6 +52,8 @@ message TransmitResponse
   required double pingtime = 3;
   optional double timestamp = 4;
   optional string file = 5; // augments replica_path with contact names
+  optional int32  channels = 6;
+  optional int32  samples = 7;
 }
 
 message TransmitRequest
