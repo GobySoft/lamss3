@@ -405,7 +405,9 @@ void CiNoaaBathy::ReadBathy()
       size_t bathy_index1[] = {min_ilon,min_ilat};  /* where to get value from */
       
       cout<<"closest lat1: "<<std::setprecision(std::numeric_limits<double>::digits10) << min_lat_val_<<"N"<<endl;
-      cout<<"closest lon1: "<<std::setprecision(std::numeric_limits<double>::digits10) << min_lon_val_<<"E"<<endl;
+      cout<<"closest lon1: "<<std::setprecision(std::numeric_limits<double>::digits10)
+	  << min_lon_val_<<"E"<<  " loni,lati=" << min_ilon << " , " << min_ilat
+	  <<endl;
       cout<<"distance1 from auv: "<<sqrt(mindist_sq)<<" m"<<endl;
 
       short val;
@@ -419,14 +421,17 @@ void CiNoaaBathy::ReadBathy()
       else 
 	{
 	  z1 = val;
-	  cout<<"bathy_z1 (m): "<<z1<<" at closest point to " << std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+	  cout<<"bathy_z1 (m): "<<z1<<" at closest point to " << std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."
+	      << endl;
 	}		    
       
       //get lat/lon/bathy of closest grid point
       size_t bathy_index2[] = {min_ilon2,min_ilat2};  /* where to get value from */
 		    
           cout<<"closest lat2: " << std::setprecision(std::numeric_limits<double>::digits10) <<min_lat_val2_<<"N"<<endl;
-      cout<<"closest lon2: "<<std::setprecision(std::numeric_limits<double>::digits10) <<min_lon_val2_<<"E"<<endl;
+      cout<<"closest lon2: "<<std::setprecision(std::numeric_limits<double>::digits10)
+	  <<min_lon_val2_<<"E"<<  " loni,lati=" << min_ilon2 << " , "
+	  << min_ilat2 <<endl;
       cout<<"distance2 from auv: "<<sqrt(mindist2_sq)<<" m"<<endl;
       
       status = nc_get_var1_short(ncid_, bathy_varid_, bathy_index2, &val);
@@ -439,7 +444,8 @@ void CiNoaaBathy::ReadBathy()
       else 
 	{
 	  z2 = val;
-	  cout<<"bathy_z2 (m): "<<z2<<" at 2nd closest point to "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."<<endl;
+	  cout<<"bathy_z2 (m): "<<z2<<" at 2nd closest point to "<< std::setprecision(std::numeric_limits<double>::digits10) <<auv_lat_<<"N x "<<auv_lon_<<"E."
+	      <<endl;
 	}		    
       
       
@@ -447,7 +453,7 @@ void CiNoaaBathy::ReadBathy()
       size_t bathy_index3[] = {min_ilon3,min_ilat3};  /* where to get value from */
 		    
       cout<<"closest lat3: "<<std::setprecision(std::numeric_limits<double>::digits10)<<min_lat_val3_<<"N"<<endl;
-      cout<<"closest lon3: "<<std::setprecision(std::numeric_limits<double>::digits10)<<min_lon_val3_<<"E"<<endl;
+      cout<<"closest lon3: "<<std::setprecision(std::numeric_limits<double>::digits10)<<min_lon_val3_<<"E"<<  " loni,lati=" << min_ilon3 << " , " << min_ilat3 <<endl;
       cout<<"distance3 from auv: "<<sqrt(mindist3_sq)<<" m"<<endl;
       
       status = nc_get_var1_short(ncid_, bathy_varid_, bathy_index3, &val);
