@@ -420,7 +420,7 @@ void CiNoaaBathy::ReadNOAABathy( double lat_, double lon_)
 	  //get lat/lon/bathy of closest grid point
 	  int indx_lon = min_ilon[n];
 	  int indx_lat = min_ilat[n];
-	  size_t bathy_index[] = {indx_lon,indx_lat};  /* where to get value from */
+	  size_t bathy_index[] = {indx_lat,indx_lon};  /* where to get value from */
 	  cout<<"closest lat: "
 	      <<std::setprecision(std::numeric_limits<double>::digits10)
 				 << min_lat_val[n]<<"N"<<std::endl;
