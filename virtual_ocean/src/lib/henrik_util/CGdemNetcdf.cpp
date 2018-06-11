@@ -301,8 +301,10 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
   double dlon_m= std::numeric_limits<double>::max();
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
+  std::vector<double> x,y,z;
 
-  std::vector<double> x,y,z;  
+  bool debug = false;
+  
   x.resize(3);
   y.resize(3);
   z.resize(3);
@@ -365,7 +367,8 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
 	      grid_val_lat = lat_vec_[j];	      
 
 	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,grid_lat_m,grid_lon_m))
+              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
+					    grid_lat_m,grid_lon_m))
 		{
 		  std::cout << "Failed to convert lat/lon to UTM"
 					   << std::endl;
@@ -379,12 +382,7 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
 	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
 	      
 	      
-	      // is it closest point to auv?
-	      if(mindist_sq[n]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
-		{
-		  
-		}
-	      else if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
+	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
 		{
 		  mindist=dist_sq;
 		  mindist_sq[n]=dist_sq;
@@ -413,15 +411,9 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
   for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
     if (dep_vec_[i] >= max_depth)
       dep_indx_2 = i;
-      
-  std::vector<double> svp_out;
 
-  
-  if(mindist_sq[0]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
+  if (debug)
     {
-      for (int i=0; i<svp.size(); i++)
-	svp[i]=default_ssp;
-      std::cout <<"WARNING - AUV > 30 km from edge of known ssp grid. Defaulting ssp_z = "<<default_ssp<<" m."<<std::endl;
       std::cout << "lat,lon: " << lat_ << "N, " << lon_ << "E." << std::endl;
       std::cout << "lat_indx_1,lat_indx_2: " << lat_indx_1 << ", "
 		<< lat_indx_2 << std::endl;
@@ -432,6 +424,20 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
       
       std::cout << "dep_indx_1,dep_indx_2: " << dep_indx_1 << ", "
 	    << dep_indx_2 << std::endl;
+      std::cout << "min_depth,max_depth,dep_1,dep_2: " << min_depth << ", "
+		<< max_depth << ", " << dep_vec_[dep_indx_1] << ", "
+	    << dep_vec_[dep_indx_2] << std::endl;
+      std::cout << "mindist0 " << sqrt(mindist_sq[0])
+		<< "mindist1 " << sqrt(mindist_sq[1])
+		<< "mindist2 " << sqrt(mindist_sq[2]) << std::endl;
+    }
+  std::vector<double> svp_out;
+
+  
+  if(mindist_sq[0]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
+    {
+      for (int i=0; i<svp.size(); i++)
+	svp[i]=default_ssp;
 
       std::cout << "mindist: " << sqrt(mindist_sq[0]) << std::endl;
   
@@ -449,6 +455,7 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
 	      
 	      float val;
 	      status = nc_get_var1_float(ncid_, ssp_varid_, ssp_index, &val);
+	      
 	      if (status != NC_NOERR)
 		{
 		  std::cout <<"ERROR - failed to get ssp value for "
@@ -461,9 +468,14 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
 	      else 
 		{
 		  z[n] = val;
-		  if (z[n] < 1000)
-		    z[n] = default_ssp;
-		}		    
+		}
+	      if (debug)
+		{
+		  std::cout << "n,lat,lon,val=" << n << ", "
+		       << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
+		       << dep_vec_[i_dep] << " m. "
+		       << z[n] << std::endl;
+		}
 	    }
 	  //get lat/lon/bathy of closest grid point
 	  svp[i_dep]  = interp_ssp(lat_m,lon_m,x,y,z);
