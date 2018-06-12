@@ -12,6 +12,7 @@ TARGET_LINK_LIBRARIES(iNoaaBathy
   ${IVP_MBUTIL_LIBRARY}
   ${GOBY_LIBRARIES}
   ${Boost_LIBRARIES}
+  henrik_util
   bellhop_tools
   netcdf
 )

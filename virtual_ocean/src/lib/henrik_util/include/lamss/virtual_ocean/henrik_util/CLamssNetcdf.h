@@ -17,21 +17,30 @@
 #include <iostream>
 #include <netcdf.h>
 
-class GdemNetCdf
+class LamssNetCdf
 {
  public:
 
   // GDEM specific functions and variables
-  bool open_nc(std::string);
-  void init_geodesy(double lat_origin, double lon_origin);
-  std::vector<double> get_depth_profile(double lat_, double lon_,
+  bool open_gdem_nc(std::string);
+  std::vector<double> get_gdem_profile(double lat_, double lon_,
 					std::vector<double> dep_,
 					int month);
-  double interp_ssp(double x,double y,
-		    const std::vector<double>& grid_x,
-		    const std::vector<double>& grid_y,
-		    const std::vector<double>& grid_z);
+  // NOAA specific functions and variables
+  bool open_noaa_nc(std::string);
+  double get_noaa_bathy(double lat, double lon);
+
+  // MSEAS specific functions and variables
+  bool open_mseas_nc(std::string);
+  double get_mseas_bathy(double lat, double lon);
+  int tgrid2id_;
   
+  // Generic arrays and variables
+  void init_geodesy(double lat_origin, double lon_origin);
+  double interp_triangle(double x,double y,
+			 const std::vector<double>& grid_x,
+			 const std::vector<double>& grid_y,
+			 const std::vector<double>& grid_z);
   std::vector<double> lat_vec_;
   std::vector<double> lon_vec_;
   std::vector<double> dep_vec_;
@@ -43,12 +52,15 @@ class GdemNetCdf
   int depid_;
   int timeid_;
   int sspid_;
+  int bathyid_;
+    
   int lat_varid_;
   int lon_varid_;
   int dep_varid_;
   int time_varid_;
   int ssp_varid_;
-
+  int bathy_varid_;
+  
   CMOOSGeodesy geodesy_;
   CmyVectorUtils vecUtils;    
 

@@ -6,9 +6,9 @@
 // Opens and reads selected values of temperature, salinity or sound speed from
 // NetCdf files extracted from the GDEM database.
 
-#include "CGdemNetcdf.h"
+#include "CLamssNetcdf.h"
 
-bool GdemNetCdf::open_nc(std::string nc_ssp_file_)
+bool LamssNetCdf::open_gdem_nc(std::string nc_ssp_file_)
 {
   if(nc_is_open_) return(true);
   //load files here!...after reading moos block
@@ -279,7 +279,184 @@ bool GdemNetCdf::open_nc(std::string nc_ssp_file_)
   return(true);
 }
   
-std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
+bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
+{
+  if(nc_is_open_) return(true);
+  //load files here!...after reading moos block
+  int status;  /* error status */
+
+  status = nc_open (nc_file_.c_str(), 0, &ncid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - mseas_nc_file did not open!"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  else 
+    {
+      nc_is_open_ = true;
+      std::cout<<"netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
+    }
+
+  // >>>>>>>>>> Latitude	
+
+  status = nc_inq_dimid(ncid_, "tlat", &latid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for tlat."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+	
+  // >>>>>>>>>> Longitude	
+
+  status = nc_inq_dimid(ncid_, "tlon", &lonid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for tlon."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  // >>>>>>>>>> Bathymetry
+  status = nc_inq_varid (ncid_, "tbath", &bathyid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for tbath."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  // >>>>>>>>>> Oceanography Grid 
+  status = nc_inq_varid (ncid_, "tgrid2", &tgrid2id_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for tgrid2."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  return true;
+}
+
+
+bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
+{
+  if(nc_is_open_) return(true);
+  //load files here!...after reading moos block
+  int status;  /* error status */
+
+  status = nc_open (nc_file_.c_str(), 0, &ncid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - noaa_nc_file did not open!"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  else 
+    {
+      nc_is_open_ = true;
+      std::cout<<"NOAA netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
+    }
+
+  // >>>>>>>>>>>> Latitude
+  status = nc_inq_dimid(ncid_, "lat", &latid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for lat."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "latid_=" << latid_ << std::endl;
+
+  status = nc_inq_varid(ncid_, "lat", &lat_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for lat."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lat_varid_=" << lat_varid_ << std::endl;
+
+  
+  // >>>>>>>>>> Longitude	
+  status = nc_inq_dimid(ncid_, "lon", &lonid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for lon."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lonid_=" << lonid_ << std::endl;
+
+    status = nc_inq_varid(ncid_, "lon", &lon_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for lon."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lon_varid_=" << lon_varid_ << std::endl;
+
+  size_t lat_len;
+  size_t lon_len;
+  //get length of lat/lon dimensions
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lat_length."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lat_len=" << lat_len << std::endl;
+
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lon_length."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lon_len=" << lon_len << std::endl;
+
+  status = nc_inq_varid (ncid_, "Band1", &bathy_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for tbath."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "bathy_varid_=" << bathy_varid_ << std::endl;
+
+  // read lat and log vectors
+  lat_vec_.resize(lat_len);
+  status = nc_get_var_double (ncid_, lat_varid_, &lat_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get latitude vector"<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "latitudes: " << lat_vec_[0] << " , "
+	    << lat_vec_[lat_vec_.size()-1]
+       << std::endl;
+
+  lon_vec_.resize(lon_len);
+  status = nc_get_var_double (ncid_, lon_varid_, &lon_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get longitude vector"<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "latitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
+       << std::endl;
+
+  return true;
+}
+
+
+std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 					      std::vector<double> dep_,
 					      int month)
 {
@@ -478,7 +655,7 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
 		}
 	    }
 	  //get lat/lon/bathy of closest grid point
-	  svp[i_dep]  = interp_ssp(lat_m,lon_m,x,y,z);
+	  svp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z);
 	}
     }
   // Interpolate in depth
@@ -490,7 +667,7 @@ std::vector<double> GdemNetCdf:: get_depth_profile( double lat_, double lon_,
   return(svp_out);
 }
 
-double GdemNetCdf::interp_ssp(double x_here,double y_here,
+double LamssNetCdf::interp_triangle(double x_here,double y_here,
 				   const std::vector<double>& x,
 				   const std::vector<double>& y,
 				   const std::vector<double>& z)
@@ -522,7 +699,315 @@ double GdemNetCdf::interp_ssp(double x_here,double y_here,
 
 }
 
-void GdemNetCdf::init_geodesy(double lat_origin, double lon_origin)
+void LamssNetCdf::init_geodesy(double lat_origin, double lon_origin)
 {
   geodesy_.Initialise(lat_origin,lon_origin);
+}
+
+double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
+
+{
+  int status;
+  size_t lat_len;
+  size_t lon_len;
+  double dist_sq;
+  double mindist = std::numeric_limits<double>::max();
+  std::vector<double> mindist_sq;
+  std::vector<int> min_ilat,min_ilon;
+  double grid_val_lat;
+  double grid_val_lon;
+  double grid_lat_m;
+  double grid_lon_m;
+  double lat_m;
+  double lon_m;
+  double dlat_m= std::numeric_limits<double>::max();
+  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<double> min_lat_val;
+  std::vector<double> min_lon_val;
+  std::vector<double> x,y,z;
+  double bathy_z;
+  bool debug = false;
+  
+  x.resize(3);
+  y.resize(3);
+  z.resize(3);
+  min_ilat.resize(3);
+  min_ilon.resize(3);
+  min_lat_val.resize(3);
+  min_lon_val.resize(3);
+  mindist_sq.resize(3);
+
+  double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
+
+  //get length of lat/lon dimensions
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      return(default_bathy);
+    }
+
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  if (status != NC_NOERR)
+    {
+      std::cout <<"ERROR - failed to get lon_length." << std::endl;
+      std::cout <<nc_strerror(status) << std::endl;
+      return(default_bathy);
+    }
+
+  //convert lat/lon position to local UTM
+
+
+  if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
+  {
+    std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+
+  
+  //get bathymetry closest 3 grid points
+  // Note that here x is latitude and y longitude!
+
+  for(int n=0;n<3;n++)
+    {
+      mindist= std::numeric_limits<double>::max();
+      
+      for(int k=0;k<=lon_len;k++)
+	{
+	  for(int j=0;j<=lat_len;j++)
+	    {
+	      size_t lon_ind[] = {j,k,0};
+	      size_t lat_ind[] = {j,k,1};
+	      
+	      status = nc_get_var1_double(ncid_, tgrid2id_, lat_ind, &grid_val_lat);
+	      if (status != NC_NOERR)
+		{
+		  std::cout<<"ERROR - failed to get grid(lat_index) value for "
+			    << lat_ <<"N x "<< lon_<<"E."<<std::endl;
+		  std::cout<<nc_strerror(status)<<std::endl;
+		}
+	      
+	      status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
+	      if (status != NC_NOERR)
+		{
+		  std::cout<<"ERROR - failed to get grid(lon_index) value for "
+			   <<lat_<<"N x "<<lon_<<"E."<<std::endl;
+		  std::cout<<nc_strerror(status)<<std::endl;
+		  return(default_bathy);
+		}
+	      
+	      // convert grid lat/lon to meters
+
+              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,grid_lat_m,grid_lon_m))
+              {
+		std:: cout << "Warning: Failed to calculate XY grid position. Is vehicle NAV_LAT=" << lat_ << "/NAV_LONG="<< lon_ <<" valid?" << std::endl;
+		return(default_bathy);
+              }
+	 
+
+	      // convert grid lat/lon to meters
+              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
+					    grid_lat_m,grid_lon_m))
+		{
+		  std::cout << "Failed to convert lat/lon to UTM"
+					   << std::endl;
+		  exit(EXIT_FAILURE);
+		}
+	      
+	      // distance between auv and grid point
+	      dlon_m=grid_lon_m-lon_m;
+	      dlat_m=grid_lat_m-lat_m;
+	      
+	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
+	      
+	      
+	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
+		{
+		  mindist=dist_sq;
+		  mindist_sq[n]=dist_sq;
+		  min_lat_val[n]=grid_val_lat;
+		  min_lon_val[n]=grid_val_lon;
+		  min_ilat[n]=j;
+		  min_ilon[n]=k;
+		  x[n]=grid_lat_m;
+		  y[n]=grid_lon_m;
+		}
+	    }
+	}
+
+      if(mindist_sq[n]>(5000*5000)) /*default to NaN bathy_z if over 5 km from bathy grid edge*/
+	{
+	  bathy_z=default_bathy;
+	  std::cout<<"WARNING - AUV > 5 km from edge of known bathymetry grid. "
+		   << "Defaulting bathy_z = "<<default_bathy <<" m."<< std::endl;
+	  z[n] = bathy_z;
+	}
+      else
+	{
+	  
+	  //get lat/lon/bathy of closest grid point
+	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
+	  double val;
+	  status = nc_get_var1_double(ncid_, bathyid_, bathy_index, &val);
+	  if (status != NC_NOERR)
+	    {
+	      std::cout<<"ERROR - failed to get bathy value for "
+		       << std::setprecision(std::numeric_limits<double>::digits10)
+		       <<min_lat_val[n]<<"N x "
+		       <<min_lon_val[n]<<"E."<<std::endl;
+	      std::cout<<nc_strerror(status)<<std::endl;
+	      if (n>0)
+		z[n]=z[0];
+	    }
+	  else
+	    z[n] = val;
+	}
+    }
+	  //get lat/lon/bathy of closest grid point
+  bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
+  return(bathy_z);
+}
+
+double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
+{
+  int status;
+  size_t lat_len;
+  size_t lon_len;
+  size_t dep_len;
+  double dist_sq;
+  double mindist = std::numeric_limits<double>::max();
+  std::vector<double> mindist_sq;
+  std::vector<int> min_ilat,min_ilon;
+  double grid_val_lat;
+  double grid_val_lon;
+  double grid_lat_m;
+  double grid_lon_m;
+  double lat_m;
+  double lon_m;
+  double dlat_m= std::numeric_limits<double>::max();
+  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<double> min_lat_val;
+  std::vector<double> min_lon_val;
+  std::vector<double> x,y,z;
+  double bathy_z;
+  bool debug = false;
+  
+  x.resize(3);
+  y.resize(3);
+  z.resize(3);
+  min_ilat.resize(3);
+  min_ilon.resize(3);
+  min_lat_val.resize(3);
+  min_lon_val.resize(3);
+  mindist_sq.resize(3);
+
+  double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
+
+  //convert lat/lon position to local UTM
+
+  if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
+  {
+    std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  lon_len = lon_vec_.size();
+  lat_len = lat_vec_.size();
+  
+  //get sound speed of closest 3 grid points
+  // Note that here x is latitude and y longitude!
+
+  // GDEM is a regular grid W->E, S->N,
+  // so we can first narrow down 4 closest grid points
+
+  int lat_indx_1 = 0;
+  int lat_indx_2 = lat_len-1;
+  int lon_indx_1 = 0;
+  int lon_indx_2 = lon_len-1;
+
+  for(int k=0;k<lon_len-1;k++)
+    if (lon_-lon_vec_[k] >=0 )  
+      lon_indx_1 = k;	  
+  lon_indx_2 = lon_indx_1+1;
+
+  for(int j=0;j<lat_len-1;j++)
+    if (lat_-lat_vec_[j] >=0 )  
+      lat_indx_1 = j;	  
+  lat_indx_2 = lat_indx_1+1;
+
+  // Now reduce to 3 and interpolate for all depths
+  
+  for(int n=0;n<3;n++)
+    {
+      mindist= std::numeric_limits<double>::max();
+
+      for(int k=lon_indx_1;k<=lon_indx_2;k++)
+	{
+	  grid_val_lon = lon_vec_[k];	      
+	  for(int j=lat_indx_1;j<=lat_indx_2;j++)
+	    {
+	      grid_val_lat = lat_vec_[j];	      
+
+	      // convert grid lat/lon to meters
+              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
+					    grid_lat_m,grid_lon_m))
+		{
+		  std::cout << "Failed to convert lat/lon to UTM"
+					   << std::endl;
+		  exit(EXIT_FAILURE);
+		}
+	      
+	      // distance between auv and grid point
+	      dlon_m=grid_lon_m-lon_m;
+	      dlat_m=grid_lat_m-lat_m;
+	      
+	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
+	      
+	      
+	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
+		{
+		  mindist=dist_sq;
+		  mindist_sq[n]=dist_sq;
+		  min_lat_val[n]=grid_val_lat;
+		  min_lon_val[n]=grid_val_lon;
+		  min_ilat[n]=j;
+		  min_ilon[n]=k;
+		  x[n]=grid_lat_m;
+		  y[n]=grid_lon_m;
+		}
+	    }
+	}
+
+      if(mindist_sq[n]>(5000*5000)) /*default to NaN bathy_z if over 5 km from bathy grid edge*/
+	{
+	  bathy_z=default_bathy;
+	  std::cout<<"WARNING - AUV > 5 km from edge of known bathymetry grid. "
+		   << "Defaulting bathy_z = "<<default_bathy <<" m."<< std::endl;
+	  z[n] = bathy_z;
+	}
+      else
+	{
+	  
+	  //get lat/lon/bathy of closest grid point
+	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
+	  short val;
+	  status = nc_get_var1_short(ncid_, bathy_varid_, bathy_index, &val);
+	  if (status != NC_NOERR)
+	    {
+	      std::cout<<"ERROR - failed to get bathy value for "
+		       << std::setprecision(std::numeric_limits<double>::digits10)
+		       <<min_lat_val[n]<<"N x "
+		       <<min_lon_val[n]<<"E."<<std::endl;
+	      std::cout<<nc_strerror(status)<<std::endl;
+	      z[n] = default_bathy;
+	    }
+	  else
+	    z[n] = val;
+	}
+    }
+  //get lat/lon/bathy of closest grid point
+  bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
+  return(bathy_z);
 }

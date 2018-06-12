@@ -28,6 +28,7 @@
 #include "MBUtils.h"
 #include <netcdf.h>
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "lamss/lib_henrik_util/CLamssNetcdf.h"
 #include <cmath>
 #include <cfloat>
 
@@ -90,7 +91,8 @@ class CiNoaaBathy : public CMOOSApp
     double publish_interval_;
     double start_time_;
     int publish_count_;
-    
+
+    LamssNetCdf NOAAbathy;
     CMOOSGeodesy geodesy_;
     
 };

@@ -40,8 +40,9 @@ CiNoaaBathy::CiNoaaBathy() : got_bathy_request_(false),
 }
 CiNoaaBathy::~CiNoaaBathy()
 {
+  /*
   int status;
-  status = nc_close(ncid_);       /* close netCDF dataset */
+  status = nc_close(ncid_);       // close netCDF dataset 
   if (status != NC_NOERR)
     {
       cout<<"ERROR - nc_ts_file did not close!"<<endl;
@@ -53,6 +54,7 @@ CiNoaaBathy::~CiNoaaBathy()
      nc_is_open_ = false;
      cout<<"netcdf file < "<<nc_bathy_file_<<" > closed successfully!"<<endl;
    }
+  */
 }
 
 // OnNewMail: called when new mail (previously registered for)
@@ -100,9 +102,11 @@ bool CiNoaaBathy::OnConnectToServer()
   ReadConfiguration(); //reads moos block
   RegisterVariables();
 
+  nc_is_open_ = NOAAbathy.open_noaa_nc(nc_bathy_file_);
+  /*
   if(nc_is_open_) return true;
   //load files here!...after reading moos block
-  int status;  /* error status */
+  int status;  // error status 
 
   status = nc_open (nc_bathy_file_.c_str(), 0, &ncid_);
   if (status != NC_NOERR)
@@ -158,7 +162,7 @@ bool CiNoaaBathy::OnConnectToServer()
   size_t lat_len;
   size_t lon_len;
   //get length of lat/lon dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); // get lat length 
   if (status != NC_NOERR)
     {
       cout<<"ERROR - failed to get lat_length."<<endl;
@@ -167,7 +171,7 @@ bool CiNoaaBathy::OnConnectToServer()
     }
   cout << "lat_len=" << lat_len << endl;
 
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); // get lon length 
   if (status != NC_NOERR)
     {
       cout<<"ERROR - failed to get lon_length."<<endl;
@@ -208,7 +212,7 @@ bool CiNoaaBathy::OnConnectToServer()
     }
   cout << "latitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
        << std::endl;
-
+*/
   return true;
 }
 
@@ -216,13 +220,14 @@ bool CiNoaaBathy::OnConnectToServer()
 bool CiNoaaBathy::Iterate()
 { 
   // don't do anything until we open the nc file (in OnConnectToServer)
-  if(!nc_is_open_)
-    return true;
+   if(!nc_is_open_)
+     return true;
 
   // read imseas bathy on frequency
   if(MOOSTime()-start_time_ > publish_count_*publish_interval_)
     {
-      ReadNOAABathy(auv_lat_,auv_lon_); 
+      //      ReadNOAABathy(auv_lat_,auv_lon_); 
+      bathy_z_ = NOAAbathy.get_noaa_bathy(auv_lat_,auv_lon_); 
       m_Comms.Notify("BATHY_Z",bathy_z_);	// to publishes list
       ++publish_count_;
     }
@@ -257,6 +262,40 @@ void CiNoaaBathy::RegisterVariables()
 // parameter keys are case insensitive
 bool CiNoaaBathy::ReadConfiguration()
 {
+  //Initialize m_Geodesy from lat lon origin in .moos file
+  string sVal;
+  double dfLatOrigin;
+  double dfLongOrigin;
+  
+  if(m_MissionReader.GetValue("LatOrigin",sVal))
+    {
+      dfLatOrigin = atof(sVal.c_str());
+      //MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
+    }
+  else
+    {
+      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  
+  if(m_MissionReader.GetValue("LongOrigin",sVal))
+    {
+      dfLongOrigin = atof(sVal.c_str());
+      //MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
+    }
+  else
+    {
+      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
+      return false;
+    }
+  if(!geodesy_.Initialise(dfLatOrigin,dfLongOrigin))
+    {
+      MOOSTrace("Geodesy Init failed - FAIL\n");
+      return false;
+    }
+  // Initialize geodesy in LamssNetcdf class
+  NOAAbathy.init_geodesy(dfLatOrigin,dfLongOrigin);
+  //Done initializaing m_Geodesy
 
   // for reading global values, use m_MissionReader.GetValue(parameter, variable)
   if (!m_MissionReader.GetConfigurationParam("nc_bathy_file", nc_bathy_file_))
@@ -531,7 +570,8 @@ void CiNoaaBathy::send_bathy_response()
   for(int i=0, n=bathy_request_lat_vec_.size(); i<n; i++){
     auv_lat_ = bathy_request_lat_vec_.at(i);
     auv_lon_ = bathy_request_lon_vec_.at(i);
-    ReadNOAABathy(auv_lat_,auv_lon_);
+    bathy_z_ = NOAAbathy.get_noaa_bathy(auv_lat_,auv_lon_); 
+    //    ReadNOAABathy(auv_lat_,auv_lon_);
     bathy_response.add_bathy(bathy_z_);
   }
   auv_lat_ = tmp_lat; 
