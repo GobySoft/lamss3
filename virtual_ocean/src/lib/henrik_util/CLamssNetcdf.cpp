@@ -691,9 +691,11 @@ double LamssNetCdf::interp_triangle(double x_here,double y_here,
       g=x[2]-x[0];
       h=y[2]-y[0];
       i=z[2]-z[0];
-  
-      c=(-a*(e*i-f*h)+b*(d*i-f*g))/(d*h-e*g);
-
+      double denom = (d*h-e*g);
+      if (denom != 0) 
+	c=(-a*(e*i-f*h)+b*(d*i-f*g))/denom;
+      else
+	c = 0;
       z_here=c+z[0];
       return(z_here);
 
