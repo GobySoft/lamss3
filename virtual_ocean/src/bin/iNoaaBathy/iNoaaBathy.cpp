@@ -40,21 +40,6 @@ CiNoaaBathy::CiNoaaBathy() : got_bathy_request_(false),
 }
 CiNoaaBathy::~CiNoaaBathy()
 {
-  /*
-  int status;
-  status = nc_close(ncid_);       // close netCDF dataset 
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - nc_ts_file did not close!"<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  else 
-   {
-     nc_is_open_ = false;
-     cout<<"netcdf file < "<<nc_bathy_file_<<" > closed successfully!"<<endl;
-   }
-  */
 }
 
 // OnNewMail: called when new mail (previously registered for)
@@ -103,116 +88,6 @@ bool CiNoaaBathy::OnConnectToServer()
   RegisterVariables();
 
   nc_is_open_ = NOAAbathy.open_noaa_nc(nc_bathy_file_);
-  /*
-  if(nc_is_open_) return true;
-  //load files here!...after reading moos block
-  int status;  // error status 
-
-  status = nc_open (nc_bathy_file_.c_str(), 0, &ncid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - nc_ts_file did not open!"<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  else 
-    {
-      nc_is_open_ = true;
-      cout<<"netcdf file < "<<nc_bathy_file_<<" > opened successfully!"<<endl;
-    }
-  // >>>>>>>>>>>> Latitude
-  status = nc_inq_dimid(ncid_, "lat", &latid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get dimension id for lat."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "latid_=" << latid_ << endl;
-
-  status = nc_inq_varid(ncid_, "lat", &lat_varid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get variable id for lat."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "lat_varid_=" << lat_varid_ << endl;
-
-  
-  // >>>>>>>>>> Longitude	
-  status = nc_inq_dimid(ncid_, "lon", &lonid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get dimension id for lon."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "lonid_=" << lonid_ << endl;
-
-    status = nc_inq_varid(ncid_, "lon", &lon_varid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get variable id for lon."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "lon_varid_=" << lon_varid_ << endl;
-
-  size_t lat_len;
-  size_t lon_len;
-  //get length of lat/lon dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); // get lat length 
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get lat_length."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "lat_len=" << lat_len << endl;
-
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); // get lon length 
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get lon_length."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "lon_len=" << lon_len << endl;
-
-  status = nc_inq_varid (ncid_, "Band1", &bathy_varid_);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get variable id for tbath."<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-
-  cout << "bathy_varid_=" << bathy_varid_ << endl;
-
-  // read lat and log vectors
-  lat_vec_.resize(lat_len);
-  status = nc_get_var_double (ncid_, lat_varid_, &lat_vec_[0]);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get latitude vector"<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "latitudes: " << lat_vec_[0] << " , " << lat_vec_[lat_vec_.size()-1]
-       << std::endl;
-
-  lon_vec_.resize(lon_len);
-  status = nc_get_var_double (ncid_, lon_varid_, &lon_vec_[0]);
-  if (status != NC_NOERR)
-    {
-      cout<<"ERROR - failed to get longitude vector"<<endl;
-      cout<<nc_strerror(status)<<endl;
-      exit(EXIT_FAILURE);
-    }
-  cout << "latitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
-       << std::endl;
-*/
   return true;
 }
 
@@ -235,7 +110,9 @@ bool CiNoaaBathy::Iterate()
   // get bathy for uSimSoundVelocityMSEAS upon request
   if(got_bathy_request_)
     {
+      std::cout << "Got BATHY_REQUEST " << std::endl;
       send_bathy_response();
+      std::cout << "Sent BATHY_RESPONSE " << std::endl;
       got_bathy_request_ = false;
     }
 
