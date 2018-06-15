@@ -33,7 +33,13 @@ class LamssNetCdf
   // MSEAS specific functions and variables
   bool open_mseas_nc(std::string);
   double get_mseas_bathy(double lat, double lon);
+  bool get_mseas_profile( double lat_, double lon_,
+			    std::vector<double> dep_,
+			    double utc_time);
+  void init_timebase(double moos_start_time);
   int tgrid2id_;
+  int tgrid3id_;
+  double moos_start_time;
   
   // Generic arrays and variables
   void init_geodesy(double lat_origin, double lon_origin);
