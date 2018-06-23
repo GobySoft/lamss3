@@ -22,31 +22,39 @@ class LamssNetCdf
  public:
 
   // GDEM specific functions and variables
+  void initialize_gdem_nc(std::string nc_file,
+			  double lat_origin, double lon_origin,
+			  double moos_start);
   bool open_gdem_nc(std::string);
   std::vector<double> get_gdem_profile(double lat_, double lon_,
-					std::vector<double> dep_,
-					int month);
+				       std::vector<double> dep_,
+				       int month);
   // NOAA specific functions and variables
+  void initialize_noaa_nc(std::string nc_file,
+			  double lat_origin, double lon_origin,
+			  double moos_start);
   bool open_noaa_nc(std::string);
   double get_noaa_bathy(double lat, double lon);
 
   // MSEAS specific functions and variables
+  void initialize_mseas_nc(std::string nc_file,
+			   double lat_origin, double lon_origin,
+			   double moos_start);
   bool open_mseas_nc(std::string);
   double get_mseas_bathy(double lat, double lon);
-  bool get_mseas_profile( double lat_, double lon_,
-			    std::vector<double> dep_,
-			    double utc_time);
-  void init_timebase(double moos_start_time);
   int tgrid2id_;
   int tgrid3id_;
   double moos_start_time;
   
   // Generic arrays and variables
+  bool open_nc_file(std::string);
   void init_geodesy(double lat_origin, double lon_origin);
+  void init_timebase(double moos_start_time);
   double interp_triangle(double x,double y,
 			 const std::vector<double>& grid_x,
 			 const std::vector<double>& grid_y,
 			 const std::vector<double>& grid_z);
+  bool geodesy_initialized;
   std::vector<double> lat_vec_;
   std::vector<double> lon_vec_;
   std::vector<double> dep_vec_;

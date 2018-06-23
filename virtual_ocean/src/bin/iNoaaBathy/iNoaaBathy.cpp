@@ -170,8 +170,6 @@ bool CiNoaaBathy::ReadConfiguration()
       MOOSTrace("Geodesy Init failed - FAIL\n");
       return false;
     }
-  // Initialize geodesy in LamssNetcdf class
-  NOAAbathy.init_geodesy(dfLatOrigin,dfLongOrigin);
   //Done initializaing m_Geodesy
 
   // for reading global values, use m_MissionReader.GetValue(parameter, variable)
@@ -187,6 +185,10 @@ bool CiNoaaBathy::ReadConfiguration()
     }
   cout<<"publish_interval: "<<publish_interval_<<endl;
   
+  // Initialize LamssNetcdf class and open file
+  NOAAbathy.initialize_noaa_nc(nc_bathy_file_,
+			       dfLatOrigin,dfLongOrigin,start_time_);
+
   return true;
 }
 

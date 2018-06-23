@@ -8,24 +8,73 @@
 
 #include "CLamssNetcdf.h"
 
-bool LamssNetCdf::open_gdem_nc(std::string nc_ssp_file_)
+bool LamssNetCdf::open_nc_file(std::string nc_file_)
 {
   if(nc_is_open_) return(true);
   //load files here!...after reading moos block
   int status;  /* error status */
 
-  status = nc_open (nc_ssp_file_.c_str(), 0, &ncid_);
+  status = nc_open (nc_file_.c_str(), 0, &ncid_);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - gdem_ssp_file did not open!"<<std::endl;
+      std::cout<<"ERROR - nc_file did not open!"<<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
   else 
     {
       nc_is_open_ = true;
-      std::cout<<"netcdf file < "<<nc_ssp_file_<<" > opened successfully!"<<std::endl;
+      std::cout<<"netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
     }
+  return(true);
+}
+
+void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
+				     double lat_origin,
+				     double lon_origin,
+				     double moos_start)
+{
+  if (open_gdem_nc(nc_file))
+    {
+      geodesy_.Initialise(lat_origin,lon_origin);
+      geodesy_initialized = true;
+      init_timebase(moos_start);
+    }
+}
+
+void LamssNetCdf::initialize_noaa_nc(std::string nc_file,
+				     double lat_origin,
+				     double lon_origin,
+				      double moos_start)
+{
+  if (open_noaa_nc(nc_file))
+    {
+      geodesy_.Initialise(lat_origin,lon_origin);
+      geodesy_initialized = true;
+      init_timebase(moos_start);
+    }
+}
+
+void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
+				      double lat_origin,
+				      double lon_origin,
+				      double moos_start)
+{
+  if (open_mseas_nc(nc_file))
+    {
+      geodesy_.Initialise(lat_origin,lon_origin);
+      geodesy_initialized = true;
+      init_timebase(moos_start);
+    }
+}
+
+bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
+{
+
+  if (open_nc_file(nc_file_))
+    return(true);
+
+  int status;  /* error status */
 
   // >>>>>>>>>> Longitude	
 
@@ -276,27 +325,19 @@ bool LamssNetCdf::open_gdem_nc(std::string nc_ssp_file_)
   std::cout << "times: " << time_vec_[0] << " , "
 			  << time_vec_[time_vec_.size()-1]
 			  << std::endl;
+
   return(true);
 }
   
 bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
 {
-  if(nc_is_open_) return(true);
-  //load files here!...after reading moos block
-  int status;  /* error status */
 
-  status = nc_open (nc_file_.c_str(), 0, &ncid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - mseas_nc_file did not open!"<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  else 
-    {
-      nc_is_open_ = true;
-      std::cout<<"netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
-    }
+  // First open NetCdf file
+  
+  if (open_nc_file(nc_file_))
+    return(true);
+
+  int status;  /* error status */
 
   // >>>>>>>>>> Latitude	
 
@@ -361,22 +402,13 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
 
 bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
 {
-  if(nc_is_open_) return(true);
-  //load files here!...after reading moos block
-  int status;  /* error status */
 
-  status = nc_open (nc_file_.c_str(), 0, &ncid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - noaa_nc_file did not open!"<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  else 
-    {
-      nc_is_open_ = true;
-      std::cout<<"NOAA netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
-    }
+  // First open NetCdf file
+  
+  if (open_nc_file(nc_file_))
+    return(true);
+
+  int status;  /* error status */
 
   // >>>>>>>>>>>> Latitude
   status = nc_inq_dimid(ncid_, "lat", &latid_);
@@ -478,154 +510,6 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
 void LamssNetCdf::init_timebase(double m_start_time)
 {
   moos_start_time = m_start_time;
-}
-
-bool LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
-					std::vector<double> dep_,
-					double utc_time)
-
-{
-  int status;
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
-  double lat_m;
-  double lon_m;
-  double dlat_m= std::numeric_limits<double>::max();
-  double dlon_m= std::numeric_limits<double>::max();
-  std::vector<double> min_lat_val;
-  std::vector<double> min_lon_val;
-  std::vector<double> x,y,z;
-  double bathy_z;
-  bool debug = false;
-  
-  x.resize(3);
-  y.resize(3);
-  z.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
-  min_lat_val.resize(3);
-  min_lon_val.resize(3);
-  mindist_sq.resize(3);
-
-  double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
-
-  //get length of lat/lon dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      return(default_bathy);
-    }
-
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
-  if (status != NC_NOERR)
-    {
-      std::cout <<"ERROR - failed to get lon_length." << std::endl;
-      std::cout <<nc_strerror(status) << std::endl;
-      return(default_bathy);
-    }
-
-  status = nc_inq_dimlen(ncid_, depid_, &dep_len); /* get depth length */
-  if (status != NC_NOERR)
-    {
-      std::cout <<"ERROR - failed to get dep_length." << std::endl;
-      std::cout <<nc_strerror(status) << std::endl;
-      return(default_bathy);
-    }
-
-  //convert lat/lon position to local UTM
-
-
-  if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
-  {
-    std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-
-  
-  //get bathymetry closest 3 grid points
-  // Note that here x is latitude and y longitude!
-
-  for(int n=0;n<3;n++)
-    {
-      mindist= std::numeric_limits<double>::max();
-      
-      for(int k=0;k<=lon_len;k++)
-	{
-	  for(int j=0;j<=lat_len;j++)
-	    {
-	      size_t lon_ind[] = {j,k,0};
-	      size_t lat_ind[] = {j,k,1};
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lat_ind, &grid_val_lat);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lat_index) value for "
-			    << lat_ <<"N x "<< lon_<<"E."<<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  return(false);
-		}
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lon_index) value for "
-			   <<lat_<<"N x "<<lon_<<"E."<<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  return(false);
-		}
-	      
-	      // convert grid lat/lon to meters
-
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,grid_lat_m,grid_lon_m))
-              {
-		std:: cout << "Warning: Failed to calculate XY grid position. Is vehicle NAV_LAT=" << lat_ << "/NAV_LONG="<< lon_ <<" valid?" << std::endl;
-		exit(EXIT_FAILURE);
-              }
-	 
-
-	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std::cout << "Failed to convert lat/lon to UTM"
-					   << std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      // distance between auv and grid point
-	      dlon_m=grid_lon_m-lon_m;
-	      dlat_m=grid_lat_m-lat_m;
-	      
-	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
-	      
-	      
-	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
-		{
-		  mindist=dist_sq;
-		  mindist_sq[n]=dist_sq;
-		  min_lat_val[n]=grid_val_lat;
-		  min_lon_val[n]=grid_val_lon;
-		  min_ilat[n]=j;
-		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
-		}
-	    }
-	}
-    }
-  return(true);
 }
 
 std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
@@ -876,6 +760,7 @@ double LamssNetCdf::interp_triangle(double x_here,double y_here,
 void LamssNetCdf::init_geodesy(double lat_origin, double lon_origin)
 {
   geodesy_.Initialise(lat_origin,lon_origin);
+  geodesy_initialized = true;
 }
 
 double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
