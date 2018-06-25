@@ -46,6 +46,12 @@ class LamssNetCdf
   int tgrid3id_;
   double moos_start_time;
   
+  // HYCOM specific functions and variables
+  void initialize_hycom_nc(std::string nc_file,
+			   double lat_origin, double lon_origin,
+			   double moos_start);
+  bool open_hycom_nc(std::string);
+
   // Generic arrays and variables
   bool open_nc_file(std::string);
   void init_geodesy(double lat_origin, double lon_origin);
@@ -73,6 +79,8 @@ class LamssNetCdf
   int dep_varid_;
   int time_varid_;
   int ssp_varid_;
+  int temp_varid_;
+  int salt_varid_;
   int bathy_varid_;
   
   CMOOSGeodesy geodesy_;

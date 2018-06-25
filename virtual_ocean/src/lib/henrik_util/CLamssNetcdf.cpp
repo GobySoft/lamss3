@@ -68,6 +68,19 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
     }
 }
 
+void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
+				      double lat_origin,
+				      double lon_origin,
+				      double moos_start)
+{
+  if (open_hycom_nc(nc_file))
+    {
+      geodesy_.Initialise(lat_origin,lon_origin);
+      geodesy_initialized = true;
+      init_timebase(moos_start);
+    }
+}
+
 bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
 {
 
@@ -507,6 +520,222 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
   return true;
 }
 
+bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
+{
+
+  if (open_nc_file(nc_file_))
+    return(true);
+
+  int status;  // error status 
+
+  // >>>>>>>>>> Longitude	
+
+  status = nc_inq_varid(ncid_, "lon", &lon_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for lon."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lon_varid_=" << lon_varid_ << std::endl;
+
+  // >>>>>>>>>>>> Latitude
+
+  status = nc_inq_varid(ncid_, "lat", &lat_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for lat."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lat_varid_=" << lat_varid_ << std::endl;
+
+  
+  // >>>>>>>>>> Depth	
+
+  status = nc_inq_varid(ncid_, "depth", &dep_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for depth"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "dep_varid_=" << dep_varid_ << std::endl;
+
+  // >>>>>>>>>> time	
+
+  status = nc_inq_varid(ncid_, "time", &time_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for time"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "time_varid_=" << time_varid_ << std::endl;
+
+  // >>>>>>>>>> temperature 	
+
+  status = nc_inq_varid(ncid_, "water_temp", &temp_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for temperature"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "temp_varid_=" << temp_varid_ << std::endl;
+
+  // >>>>>>>>>> salinity 	
+
+  status = nc_inq_varid(ncid_, "salinity", &salt_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for salinity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "salt_varid_=" << salt_varid_ << std::endl;
+
+  // >>>>>>>>>>>>>>>>>
+  //get length of lat/lon dimensions
+  size_t lat_len;
+  size_t lon_len;
+  size_t dep_len;
+  size_t time_len;
+
+  // >>>>>>>>>> Longitude
+  
+  status = nc_inq_dimid(ncid_, "lon", &lonid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for lon."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lonid_=" << lonid_ << std::endl;
+
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lon_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lon_len=" << lon_len << std::endl;
+
+  // >>>>>>>>>> Latitude	
+
+  status = nc_inq_dimid(ncid_, "lat", &latid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for lat."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "latid_=" << latid_ << std::endl;
+
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lat_len=" << lat_len << std::endl;
+
+
+  // >>>>>>>>>> Depth	
+
+  status = nc_inq_dimid(ncid_, "depth", &depid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for dep."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "depid_=" << depid_ << std::endl;
+
+  status = nc_inq_dimlen (ncid_, depid_, &dep_len);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dep_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "dep_len=" << dep_len << std::endl;
+
+  // >>>>>>>>>> Time	
+
+  status = nc_inq_dimid(ncid_, "time", &timeid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for time."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "timeid_=" << timeid_ << std::endl;
+
+  status = nc_inq_dimlen (ncid_, timeid_, &time_len);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get time_len."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "time_len=" << time_len << std::endl;
+
+  // read lat, lon, depth and time vectors
+  lat_vec_.resize(lat_len);
+  status = nc_get_var_double (ncid_, lat_varid_, &lat_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get latitude vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "latitudes: " << lat_vec_[0] << " , " << lat_vec_[lat_vec_.size()-1]
+       << std::endl;
+
+  lon_vec_.resize(lon_len);
+  status = nc_get_var_double (ncid_, lon_varid_, &lon_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get longitude vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "longitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
+       << std::endl;
+
+  dep_vec_.resize(dep_len);
+  status = nc_get_var_double (ncid_, dep_varid_, &dep_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get depth vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "depths: " << dep_vec_[0] << " , " << dep_vec_[dep_vec_.size()-1]
+       << std::endl;
+
+  time_vec_.resize(time_len);
+  status = nc_get_var_float (ncid_, time_varid_, &time_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get time vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "times: " << time_vec_[0] << " , "
+			  << time_vec_[time_vec_.size()-1]
+			  << std::endl;
+
+  return(true);
+}
+  
 void LamssNetCdf::init_timebase(double m_start_time)
 {
   moos_start_time = m_start_time;
