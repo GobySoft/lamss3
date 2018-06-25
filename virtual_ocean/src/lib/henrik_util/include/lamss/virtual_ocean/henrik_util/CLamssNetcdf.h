@@ -17,6 +17,12 @@
 #include <iostream>
 #include <netcdf.h>
 
+// Date number of Netcdf time origin
+#define HYCOM_TIME_ORIGIN 730486  // 2000-1-1-00.00.00
+#define HYCOM_TIME_UNIT  3600    // secs. HYCOM times are in hours from origin
+#define GDEM_TIME_ORIGIN 0        // 0000-1-1-00.00.00
+#define GDEM_TIME_UNIT  86400    // secs. GDEM times are in days from origin
+
 class LamssNetCdf
 {
  public:
@@ -36,7 +42,7 @@ class LamssNetCdf
   bool open_noaa_nc(std::string);
   double get_noaa_bathy(double lat, double lon);
 
-  // MSEAS specific functions and variables
+  // MSEAS specific functions and variables 
   void initialize_mseas_nc(std::string nc_file,
 			   double lat_origin, double lon_origin,
 			   double moos_start);
@@ -51,20 +57,36 @@ class LamssNetCdf
 			   double lat_origin, double lon_origin,
 			   double moos_start);
   bool open_hycom_nc(std::string);
+  void get_hycom_profile(double lat_, double lon_,
+			 const std::vector<double>& dep_,
+			 double utc_time,
+			 std::vector<double> temp,
+			 std::vector<double> salt);
 
+  float temp_offset;
+  float temp_scaling;
+  float temp_missing;
+  float salt_offset;
+  float salt_scaling;
+  float salt_missing;
+  
   // Generic arrays and variables
   bool open_nc_file(std::string);
   void init_geodesy(double lat_origin, double lon_origin);
-  void init_timebase(double moos_start_time);
+  void init_timebase(double moos_start_time, double utc_start, double utc_incr);
   double interp_triangle(double x,double y,
 			 const std::vector<double>& grid_x,
 			 const std::vector<double>& grid_y,
 			 const std::vector<double>& grid_z);
   bool geodesy_initialized;
+  double nc_utc_start;
+  double nc_utc_delta;
+  double nc_utc_duration;
   std::vector<double> lat_vec_;
   std::vector<double> lon_vec_;
   std::vector<double> dep_vec_;
   std::vector<float> time_vec_;
+  std::vector<float> utc_vec_;
   int ncid_;
   bool nc_is_open_;
   int latid_;
