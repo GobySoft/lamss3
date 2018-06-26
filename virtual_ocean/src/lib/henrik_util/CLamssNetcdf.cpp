@@ -1082,13 +1082,14 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   double dlon_m= std::numeric_limits<double>::max();
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
-  std::vector<double> x,y,z;
+  std::vector<double> x,y,z_t,z_s;
 
   bool debug = false;
   
   x.resize(3);
   y.resize(3);
-  z.resize(3);
+  z_t.resize(3);
+  z_s.resize(3);
   min_ilat.resize(3);
   min_ilon.resize(3);
   min_lat_val.resize(3);
@@ -1232,57 +1233,75 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
     }
   else
     {
+      // time indexing
+      double mission_time = utc_time - moos_start_time;
+      // Mission start at file star
+      /*
+	double utc_rdcd = mission_time -
+	floor(mission_time/nc_utc_duration)*nc_utc_duration; */
+      // Absolute time with rewind
+      double utc_rdcd = utc_time - nc_utc_start -
+	floor((utc_time-nc_utc_start)/nc_utc_duration)*nc_utc_duration;
+      int indx_1 = floor(utc_rdcd/nc_utc_delta);
+      int indx_2 = indx_1+1;
+      if (indx_2 >= utc_vec_.size())
+	indx_2 = 0;
       //get lat/lon/bathy of closest grid points
       for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
 	{
 	  for(int n=0;n<3;n++)
 	    {
-	      double utc_rdcd = utc_time - nc_utc_start -
-		floor((utc_time-nc_utc_start)/nc_utc_duration)*nc_utc_duration;
-	      int indx_1 = utc_rdcd/nc_utc_delta;
-	      int indx_2 = indx_1+1;
-	      if (indx_2 >= utc_vec_.size())
-		indx_2 = 0;
-	      
+	      // temperature and salinity
 	      size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
-	      short int temp_val_1;
-	      int status_1 = nc_get_var1_short(ncid_, temp_varid_, ssp_index_1, &temp_val_1);
+	      short int temp_val_1,salt_val_1;
+	      int status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
+					       ssp_index_1, &temp_val_1);
+	      int status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
+					       ssp_index_1, &salt_val_1);
 	      size_t ssp_index_2[] = {indx_2,i_dep,min_ilat[n],min_ilon[n]};
-	      short int temp_val_2;
-	      int status_2 = nc_get_var1_short(ncid_, temp_varid_, ssp_index_2, &temp_val_2);
-	      if ((status_1 && status_2) != NC_NOERR)
+	      short int temp_val_2,salt_val_2;
+	      int status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
+						 ssp_index_2, &temp_val_2);
+	      int status_s_2 = nc_get_var1_short(ncid_, salt_varid_,
+						 ssp_index_2, &salt_val_2);
+	      if ((status_s_1 && status_s_2 &&
+		   status_t_1 && status_t_2) != NC_NOERR)
 		{
-		  std::cout <<"ERROR - failed to get ssp value for "
+		  std::cout <<"ERROR - failed to get t and s values for "
 			    << std::setprecision(std::numeric_limits<double>::digits10)
 			    << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
 			    << dep_vec_[i_dep] << " m."<< std::endl;
 		  std::cout << nc_strerror(status)<<std::endl;
-		  z[n] = default_val;
+		  z_t[n] = default_val;
+		  z_s[n] = default_val;
 		}
 	      else 
 		{
-		  z[n] = (temp_val_1 + (utc_rdcd-utc_vec_[indx_1])
-			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling + temp_offset;
-		}
-	      
-	      if (debug)
-		{
-		  std::cout << "n,lat,lon,val=" << n << ", "
-		       << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
-		       << dep_vec_[i_dep] << " m. "
-		       << z[n] << std::endl;
+		  z_t[n] = (temp_val_1 + (utc_rdcd-utc_vec_[indx_1])
+			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
+		          + temp_offset;
+		  z_s[n] = (salt_val_1 + (utc_rdcd-utc_vec_[indx_1])
+			  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
+		          + salt_offset;
 		}
 	    }
 	  //get lat/lon/bathy of closest grid point
-	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z);
+	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_t);
+	  nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_s);
 	}
     }
   // Interpolate in depth
   if (dep_indx_1 == dep_indx_2)
     for (int i = 0; i< dep_.size(); i++)
-      temp[i] = nc_temp[dep_indx_1];
+      {
+	temp[i] = nc_temp[dep_indx_1];
+	salt[i] = nc_salt[dep_indx_1];
+      }
   else
-    bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
+    {
+      bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
+      ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
+    }
 }
 
 double LamssNetCdf::interp_triangle(double x_here,double y_here,
