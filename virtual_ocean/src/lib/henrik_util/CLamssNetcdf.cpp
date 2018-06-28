@@ -1024,24 +1024,22 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 	      else                  // Interpolate for current utc
 		{
 		  // time indexing. For GDEM current month
-		  double mission_time = 0;
-
-		  double utc_rel;
-		  double utc_rdcd;
+		  double curr_time = moos_start_time;
+		  double mission_time = curr_time - moos_start_time;
+		  double utc_ref;
 		  if (fixed_model_start)        // Mission start at file start
 		    {
-		      utc_rel = mission_time;
+		      utc_ref = moos_start_time;
 		    }
 		  else                          // Absolute time with rewind
 		    {
-		      utc_rel = moos_start_time - nc_utc_start ;
+		      utc_ref = nc_utc_start ;
 		    }
-		  utc_rdcd = utc_rel -floor(utc_rel/nc_utc_duration)*nc_utc_duration;
-		  std::cout << "nc_utc_start,utc_rdcd,nc_utc_delta= "
-			    << nc_utc_start << ", "
-			    << utc_rdcd << ", "
-			    << nc_utc_delta
-			    << std::endl;
+		  double utc_rel = curr_time - utc_ref;
+		  double utc_corr = floor(utc_rel/nc_utc_duration)*
+		    nc_utc_duration;
+		  double utc_rdcd = utc_rel - utc_corr;
+
 		  size_t indx_1 = (int) floor(utc_rdcd/nc_utc_delta);
 		  size_t indx_2 = indx_1+1;
 		  if (indx_2 >= utc_vec_.size())
@@ -1066,7 +1064,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		    }
 		  else 
 		    {
-		      z[n] = dval_1 + (-utc_vec_[indx_1])*(dval_2-dval_1)/nc_utc_delta;
+		      z[n] = dval_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])*(dval_2-dval_1)/nc_utc_delta;
 		    }
 		}
 		  
@@ -1095,7 +1093,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 void LamssNetCdf:: get_hycom_profile( double lat_,
 				      double lon_,
 				      const std::vector<double>& dep_,
-				      double utc_time,
+				      double curr_time,
 				      std::vector<double> temp,
 				      std::vector<double> salt
 				      )
@@ -1270,15 +1268,21 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   else
     {
       // time indexing
-      double mission_time = utc_time - moos_start_time;
-     
-      double utc_rdcd;
-      if (fixed_model_start)        // Mission start at file star
-	utc_rdcd = mission_time -
-	floor(mission_time/nc_utc_duration)*nc_utc_duration;
+      double mission_time = curr_time - moos_start_time;
+      double utc_ref;
+      if (fixed_model_start)        // Mission start at file start
+	{
+	  utc_ref = moos_start_time;
+	}
       else                          // Absolute time with rewind
-	utc_rdcd = utc_time - nc_utc_start -
-	floor((utc_time-nc_utc_start)/nc_utc_duration)*nc_utc_duration;
+	{
+	  utc_ref = nc_utc_start ;
+	}
+      double utc_rel = curr_time - utc_ref;
+      double utc_corr = floor(utc_rel/nc_utc_duration)*
+	nc_utc_duration;
+      double utc_rdcd = utc_rel - utc_corr;
+      
       int indx_1 = floor(utc_rdcd/nc_utc_delta);
       int indx_2 = indx_1+1;
       if (indx_2 >= utc_vec_.size())
@@ -1314,10 +1318,10 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 		}
 	      else 
 		{
-		  z_t[n] = (temp_val_1 + (utc_rdcd-utc_vec_[indx_1])
+		  z_t[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
 			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
 		          + temp_offset;
-		  z_s[n] = (salt_val_1 + (utc_rdcd-utc_vec_[indx_1])
+		  z_s[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
 			  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
 		          + salt_offset;
 		}
@@ -1328,6 +1332,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	}
     }
   // Interpolate in depth
+  temp.resize(dep_.size());
+  salt.resize(dep_.size());
   if (dep_indx_1 == dep_indx_2)
     for (int i = 0; i< dep_.size(); i++)
       {
