@@ -187,7 +187,7 @@ bool CiNoaaBathy::ReadConfiguration()
   
   // Initialize LamssNetcdf class and open file
   NOAAbathy.initialize_noaa_nc(nc_bathy_file_,
-			       dfLatOrigin,dfLongOrigin,start_time_);
+			       dfLatOrigin,dfLongOrigin,start_time_,false);
 
   return true;
 }
