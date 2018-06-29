@@ -1053,7 +1053,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		  float val_2;
 		  int status_2 = nc_get_var1_float(ncid_, ssp_varid_, ssp_index_2, &val_2);
 		  double dval_2 = double(val_2);
-		  if (status != NC_NOERR)
+		  if (status_1  && status_2 != NC_NOERR)
 		    {
 		      std::cout <<"ERROR - failed to get ssp value for "
 				<< std::setprecision(std::numeric_limits<double>::digits10)
