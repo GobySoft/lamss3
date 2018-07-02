@@ -1076,6 +1076,14 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		       << z[n] << std::endl;
 		}
 	    }
+	  // check for invalid numbers
+	  for (int i=0; i<3; i++)
+	    if (z[i]<1000)
+	      if (i==0)
+		z[i] = default_ssp;
+	      else
+		z[i] = z[i-1];
+	  
 	  //get lat/lon/bathy of closest grid point
 	  svp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z);
 	}
@@ -1326,6 +1334,20 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 		          + salt_offset;
 		}
 	    }
+	  // check for invalid numbers
+	  for (int i=0; i<3; i++)
+	    {
+	      if (z_t[i]<0)
+		if (i==0)
+		  z_t[i] = default_val;
+		else
+		  z_t[i] = z_t[i-1];
+	      if (z_s[i]<0)
+		if (i==0)
+		  z_s[i] = default_val;
+		else
+		  z_s[i] = z_s[i-1];
+	    }
 	  //get lat/lon/bathy of closest grid point
 	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_t);
 	  nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_s);
@@ -1345,6 +1367,7 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
       bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
       ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
     }
+
 }
 
 double LamssNetCdf::interp_triangle(double x_here,double y_here,
