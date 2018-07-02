@@ -11,7 +11,7 @@
 bool LamssNetCdf::open_nc_file(std::string nc_file_)
 {
   //load files here!...after reading moos block
-  int status;  /* error status */
+  int status;  // error status 
 
   status = nc_open (nc_file_.c_str(), 0, &ncid_);
   if (status != NC_NOERR)
@@ -34,6 +34,7 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
 				     double moos_start,
 				     bool fixed_start)
 {
+  nc_is_open_  = false;
   if (open_gdem_nc(nc_file))
     {
       geodesy_.Initialise(lat_origin,lon_origin);
@@ -65,6 +66,7 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
 				      double moos_start,
 				      bool fixed_start)
 {
+  nc_is_open_  = false;
   if (open_mseas_nc(nc_file))
     {
       geodesy_.Initialise(lat_origin,lon_origin);
@@ -77,12 +79,13 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
 				      double moos_start,
 				      bool fixed_start)
 {
+  nc_is_open_  = false;
+  std::cout << "initialize_hycom_nc: calling open_hycom_nc" << std::endl;
   if (open_hycom_nc(nc_file))
     {
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
-      
       double utc_incr = HYCOM_TIME_UNIT;
       if (time_vec_.size() > 1)
 	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*HYCOM_TIME_UNIT;
@@ -534,9 +537,11 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
 
 bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
 {
+  std::cout << "nc_is_open: " << nc_is_open_
+	    << " Opening hycom nc file " << nc_file_ << std::endl;
 
   if(nc_is_open_) return(true);
-
+  std::cout << "Opening hycom nc file " << nc_file_ << std::endl;
   open_nc_file(nc_file_);
 
   int status;  // error status 
