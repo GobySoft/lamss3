@@ -1128,6 +1128,10 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 
   bool debug = false;
   
+  // HYCOM storrrres longitudes 0-360
+  if (lon_ < 0.0)
+    lon+= 360.0;
+  
   x.resize(3);
   y.resize(3);
   z_t.resize(3);
