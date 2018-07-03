@@ -1107,8 +1107,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 				      double lon_,
 				      const std::vector<double>& dep_,
 				      double curr_time,
-				      std::vector<double> temp,
-				      std::vector<double> salt
+				      std::vector<double>& temp,
+				      std::vector<double>& salt
 				      )
 {
   int status;
@@ -1129,18 +1129,18 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   double dlon_m= std::numeric_limits<double>::max();
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
-  std::vector<double> x,y,z_t,z_s;
+  std::vector<double> x,y,z_tmp,z_sal;
 
   bool debug = false;
   
-  // HYCOM storrrres longitudes 0-360
+  // HYCOM stores longitudes 0-360
   if (lon_ < 0.0)
-    lon+= 360.0;
+    lon_ += 360.0;
   
   x.resize(3);
   y.resize(3);
-  z_t.resize(3);
-  z_s.resize(3);
+  z_tmp.resize(3);
+  z_sal.resize(3);
   min_ilat.resize(3);
   min_ilon.resize(3);
   min_lat_val.resize(3);
@@ -1304,6 +1304,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
       int indx_2 = indx_1+1;
       if (indx_2 >= utc_vec_.size())
 	indx_2 = 0;
+      if (debug)
+	std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl; 
       //get lat/lon/bathy of closest grid points
       for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
 	{
@@ -1330,15 +1332,15 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 			    << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
 			    << dep_vec_[i_dep] << " m."<< std::endl;
 		  std::cout << nc_strerror(status)<<std::endl;
-		  z_t[n] = default_val;
-		  z_s[n] = default_val;
+		  z_tmp[n] = default_val;
+		  z_sal[n] = default_val;
 		}
 	      else 
 		{
-		  z_t[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+		  z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
 			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
 		          + temp_offset;
-		  z_s[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+		  z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
 			  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
 		          + salt_offset;
 		}
@@ -1346,20 +1348,24 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	  // check for invalid numbers
 	  for (int i=0; i<3; i++)
 	    {
-	      if (z_t[i]<0)
+	      if (z_tmp[i]<0)
 		if (i==0)
-		  z_t[i] = default_val;
+		  z_tmp[i] = default_val;
 		else
-		  z_t[i] = z_t[i-1];
-	      if (z_s[i]<0)
+		  z_tmp[i] = z_tmp[i-1];
+	      if (z_sal[i]<0)
 		if (i==0)
-		  z_s[i] = default_val;
+		  z_sal[i] = default_val;
 		else
-		  z_s[i] = z_s[i-1];
+		  z_sal[i] = z_sal[i-1];
 	    }
+	  if (debug)
+	    std::cout << "done with z_tmp,z_sal" << std::endl;
 	  //get lat/lon/bathy of closest grid point
-	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_t);
-	  nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_s);
+	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
+	  nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
+	  if (debug)
+	    std::cout << "done with depth " << dep_vec_[i_dep] << std::endl;
 	}
     }
   // Interpolate in depth
@@ -1376,6 +1382,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
       bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
       ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
     }
+  if (debug)
+    std::cout << "done with get_hycom_profile " << std::endl;
 
 }
 

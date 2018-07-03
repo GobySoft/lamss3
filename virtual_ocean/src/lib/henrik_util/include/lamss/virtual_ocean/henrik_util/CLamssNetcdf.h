@@ -60,8 +60,8 @@ class LamssNetCdf
   void get_hycom_profile(double lat_, double lon_,
 			 const std::vector<double>& dep_,
 			 double utc_time,
-			 std::vector<double> temp,
-			 std::vector<double> salt);
+			 std::vector<double>& temp,
+			 std::vector<double>& salt);
 
   float temp_offset;
   float temp_scaling;
