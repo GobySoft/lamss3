@@ -74,6 +74,8 @@ class CiNoaaBathy : public CMOOSApp
     
     double auv_lat_;
     double auv_lon_;
+    double auv_x_;
+    double auv_y_;
     int ncid_;
     bool nc_is_open_;
     int latid_;

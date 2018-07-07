@@ -29,8 +29,8 @@ using namespace std;
 
 // Construction / Destruction
 CiNoaaBathy::CiNoaaBathy() : got_bathy_request_(false),
-                               auv_lat_(0),
-			       auv_lon_(0),
+                               auv_x_(0),
+			       auv_y_(0),
 			       nc_is_open_(false),
 			       publish_interval_(5),
 			       start_time_(0),
@@ -62,15 +62,15 @@ bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST &NewMail)
       // string msg_community = msg.GetCommunity();
 	
 
-      if(MOOSStrCmp(key, "NAV_LAT")) // case insensitive
+      if(MOOSStrCmp(key, "NAV_X")) // case insensitive
         {
-	  auv_lat_=dval;
-          //cout<<"auv_lat_="<<auv_lat_<<endl;
+	  auv_x_=dval;
+          //cout<<"auv_x_="<<auv_x_<<endl;
         }
-      else if (MOOSStrCmp(key, "NAV_LONG")) 
+      else if (MOOSStrCmp(key, "NAV_Y")) 
         {
-	  auv_lon_=dval;
-          //cout<<"auv_lon_="<<auv_lon_<<endl;
+	  auv_y_=dval;
+          //cout<<"auv_y_="<<auv_y_<<endl;
         }		
       else if (MOOSStrCmp(key, "BATHY_REQUEST")) 
 	{
@@ -101,6 +101,7 @@ bool CiNoaaBathy::Iterate()
   // read imseas bathy on frequency
   if(MOOSTime()-start_time_ > publish_count_*publish_interval_)
     {
+      geodesy_.UTM2LatLong(auv_x_,auv_y_,auv_lat_,auv_lon_);
       //      ReadNOAABathy(auv_lat_,auv_lon_); 
       bathy_z_ = NOAAbathy.get_noaa_bathy(auv_lat_,auv_lon_); 
       m_Comms.Notify("BATHY_Z",bathy_z_);	// to publishes list
@@ -130,8 +131,8 @@ bool CiNoaaBathy::OnStartUp()
 void CiNoaaBathy::RegisterVariables()
 {
   // m_Comms.Register(variable, min_time_between_updates)
-  m_Comms.Register("NAV_LAT", 0); 
-  m_Comms.Register("NAV_LONG", 0); 
+  m_Comms.Register("NAV_X", 0); 
+  m_Comms.Register("NAV_Y", 0); 
   m_Comms.Register("BATHY_REQUEST", 0); 
 }
 
