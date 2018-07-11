@@ -74,7 +74,7 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
       double utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
       double utc_incr = MSEAS_TIME_UNIT;
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*HYCOM_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*MSEAS_TIME_UNIT;
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
      }
 }
