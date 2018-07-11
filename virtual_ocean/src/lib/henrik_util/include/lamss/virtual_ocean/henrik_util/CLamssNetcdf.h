@@ -18,6 +18,8 @@
 #include <netcdf.h>
 
 // Date number of Netcdf time origin
+#define MSEAS_TIME_ORIGIN 730486  // datenum 2000-1-1-00.00.00
+#define MSEAS_TIME_UNIT 1    // secs. MSEAS times are in seconds from origin
 #define HYCOM_TIME_ORIGIN 730486  // datenum 2000-1-1-00.00.00
 #define HYCOM_TIME_UNIT  3600    // secs. HYCOM times are in hours from origin
 #define GDEM_TIME_ORIGIN 0        // datenum 0000-1-1-00.00.00
