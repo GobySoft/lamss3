@@ -48,6 +48,11 @@ class LamssNetCdf
 			   double moos_start, bool fixed_start);
   bool open_mseas_nc(std::string);
   double get_mseas_bathy(double lat, double lon);
+  void get_mseas_profile( double lat_, double lon_,
+			  const std::vector<double>& dep_,
+			  double curr_time,
+			  std::vector<double>& temp,
+			  std::vector<double>& salt);
   int tgrid2id_;
   int tgrid3id_;
   double moos_start_time;
