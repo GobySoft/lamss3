@@ -960,7 +960,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z;
 
-  bool debug = true;
+  bool debug = false;
   
   x.resize(3);
   y.resize(3);
@@ -1551,7 +1551,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z_tmp,z_sal;
-  bool debug = false;
+  bool debug = true;
   
   x.resize(3);
   y.resize(3);
@@ -1601,9 +1601,9 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
     {
       mindist= std::numeric_limits<double>::max();
       
-      for(int k=0;k<=lon_len;k++)
+      for(size_t k=0;k<lon_len;k++)
 	{
-	  for(int j=0;j<=lat_len;j++)
+	  for(size_t j=0;j<lat_len;j++)
 	    {
 	      size_t lon_ind[] = {j,k,0};
 	      size_t lat_ind[] = {j,k,1};
@@ -1705,9 +1705,9 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  temp_buf.resize(dep_len);
 	  salt_buf.resize(dep_len);
 	  
-	  for (int i_dep=0; i_dep<=dep_len; i_dep++)
+	  for (int i_dep=0; i_dep<dep_len; i_dep++)
 	    {
-	      size_t dep_ind[] = {min_ilat[n],min_ilon[n],i_dep,2};
+	      size_t dep_ind[] = {min_ilat[n],min_ilon[n],(size_t) i_dep,2};
 	      double dep_val;
 	      int status = nc_get_var1_double(ncid_, tgrid3id_, dep_ind, &dep_val);
 	      if (status != NC_NOERR)
@@ -1719,7 +1719,8 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	      dep_vec_[i_dep] = dep_val;
 	      
 	      // temperature and salinity
-	      size_t ssp_index_1[] = {indx_1,min_ilat[n],min_ilon[n],i_dep};
+	      size_t ssp_index_1[] = {indx_1,min_ilat[n],min_ilon[n],
+				      (size_t) i_dep};
 	      double temp_val_1,salt_val_1;
 	      int status_t_1 = nc_get_var1_double(ncid_, temp_varid_,
 					       ssp_index_1, &temp_val_1);
@@ -1744,12 +1745,23 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 		}
 	      else 
 		{
-		  temp_buf[i_dep] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
-		          + temp_offset;
-		  salt_buf[i_dep] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-			  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
-		          + salt_offset;
+		  temp_buf[i_dep] = (temp_val_1+
+				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				     *(temp_val_2-temp_val_1)/nc_utc_delta)
+		    *temp_scaling + temp_offset;
+		  salt_buf[i_dep] = (salt_val_1 +
+				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				     *(salt_val_2-salt_val_1)/nc_utc_delta)
+		    *salt_scaling + salt_offset;
+		}
+	      if (debug)
+		{
+		  std::cout << "n,lat,lon,temp,salt=" << n << ", "
+			    << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
+			    << dep_vec_[i_dep] << " m. "
+			    << temp_buf[i_dep] << ", "
+			    << salt_buf[i_dep] << ", "
+			    << std::endl;
 		}
 	    } // end of depth loop.
 	  // Interpolate onto requested depth grid
@@ -1758,7 +1770,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  nc_temp[n] = buf;
 	  ok = vecUtils.interp(dep_vec_,salt_buf,dep_,buf);
 	  nc_salt[n] = buf;
-	}
+	} // end of n loop
       temp.resize(dep_.size());
       salt.resize(dep_.size());
       for (int i_dep=0; i_dep<dep_.size();i_dep++)
@@ -1786,7 +1798,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
 	  salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
 	  if (debug)
-	    std::cout << "done with depth " << dep_vec_[i_dep] << std::endl;
+	    std::cout << "done with depth " << dep_[i_dep] << std::endl;
 	}
     }
   if (debug)
@@ -1835,9 +1847,16 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
     std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
     exit(EXIT_FAILURE);
   }
-
-
   
+  if (debug)
+    std::cout << "lat,lon,lat_m,lon_m,lat_len,lon_len=" 
+       << lat_ << ", "
+       << lon_ << ", "
+       << lat_m << ", "
+       << lon_m << ", "
+       << lat_len << ", "
+       << lon_len << std::endl;
+
   //get bathymetry closest 3 grid points
   // Note that here x is latitude and y longitude!
 
@@ -1845,9 +1864,9 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
     {
       mindist= std::numeric_limits<double>::max();
       
-      for(int k=0;k<=lon_len;k++)
+      for(size_t j=0;j<lat_len;j++)
 	{
-	  for(int j=0;j<=lat_len;j++)
+	  for(size_t k=0;k<lon_len;k++)
 	    {
 	      size_t lon_ind[] = {j,k,0};
 	      size_t lat_ind[] = {j,k,1};
@@ -1856,17 +1875,19 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 	      if (status != NC_NOERR)
 		{
 		  std::cout<<"ERROR - failed to get grid(lat_index) value for "
-			    << lat_ <<"N x "<< lon_<<"E."<<std::endl;
+			   << "j,k = " << j << ", " << k <<std::endl;
 		  std::cout<<nc_strerror(status)<<std::endl;
+		  exit(EXIT_FAILURE);
+
 		}
 	      
 	      status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
 	      if (status != NC_NOERR)
 		{
 		  std::cout<<"ERROR - failed to get grid(lon_index) value for "
-			   <<lat_<<"N x "<<lon_<<"E."<<std::endl;
+			   << "j,k = " << j << ", " << k <<std::endl;
 		  std::cout<<nc_strerror(status)<<std::endl;
-		  return(default_bathy);
+		  exit(EXIT_FAILURE);
 		}
 	      
 	      // convert grid lat/lon to meters
