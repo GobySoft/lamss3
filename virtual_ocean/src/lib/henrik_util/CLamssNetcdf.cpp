@@ -224,10 +224,6 @@ bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
 
   // >>>>>>>>>>>>>>>>>
   //get length of lat/lon dimensions
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
-  size_t time_len;
 
   // >>>>>>>>>> Longitude
   
@@ -372,6 +368,7 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
 
   int status;  // error status 
 
+  // Dimension IDs
   // >>>>>>>>>> Latitude	
 
   status = nc_inq_dimid(ncid_, "tlat", &latid_);
@@ -381,6 +378,7 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << "latid_=" << latid_ << std::endl;
 	
   // >>>>>>>>>> Longitude	
 
@@ -391,6 +389,7 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << "lonid_=" << lonid_ << std::endl;
 
   // >>>>>>>>>> Depth/Level	
 
@@ -402,7 +401,20 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << "depid_=" << depid_ << std::endl;
 
+  // >>>>>>>>>> Time	
+
+  status = nc_inq_dimid(ncid_, "time", &timeid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for time."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "timeid_=" << timeid_ << std::endl;
+
+  // Variable IDs
   // >>>>>>>>>> Bathymetry
   status = nc_inq_varid (ncid_, "tbath", &bathyid_);
   if (status != NC_NOERR)
@@ -411,6 +423,8 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+    std::cout << "bathyid_=" << bathyid_ << std::endl;
+
   // >>>>>>>>>> Lat/Long Grid 
   status = nc_inq_varid (ncid_, "tgrid2", &tgrid2id_);
   if (status != NC_NOERR)
@@ -419,6 +433,7 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << "tgrid2id_=" << tgrid2id_ << std::endl;
 
   // >>>>>>>>>> Lat/Long/depth Grid 
   status = nc_inq_varid (ncid_, "tgrid3", &tgrid3id_);
@@ -428,6 +443,94 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << "tgrid3id_=" << tgrid3id_ << std::endl;
+
+  // Get dimension lengths
+  
+  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lat_len=" << lat_len << std::endl;
+
+  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
+  if (status != NC_NOERR)
+    {
+      std::cout <<"ERROR - failed to get lon_length." << std::endl;
+      std::cout <<nc_strerror(status) << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "lon_len=" << lon_len << std::endl;
+
+  status = nc_inq_dimlen(ncid_, depid_, &dep_len); /* get depth length */
+  if (status != NC_NOERR)
+    {
+      std::cout <<"ERROR - failed to get dep_length." << std::endl;
+      std::cout <<nc_strerror(status) << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "dep_len=" << dep_len << std::endl;
+
+  status = nc_inq_dimlen (ncid_, timeid_, &time_len);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get time_len."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "time_len=" << time_len << std::endl;
+
+  // >>>>>>>>>> read time vector time	
+
+  status = nc_inq_varid(ncid_, "time", &time_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for time"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "time_varid_=" << time_varid_ << std::endl;
+
+  // >>>>>>>>>> temperature 	
+
+  status = nc_inq_varid(ncid_, "temp", &temp_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for temperature"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "temp_varid_=" << temp_varid_ << std::endl;
+
+  // >>>>>>>>>> salinity 	
+
+  status = nc_inq_varid(ncid_, "salt", &salt_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for salinity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "salt_varid_=" << salt_varid_ << std::endl;
+
+  // Get global vectors
+  
+  time_vec_.resize(time_len);
+  status = nc_get_var_float (ncid_, time_varid_, &time_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get time vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "times: " << time_vec_[0] << " , "
+			  << time_vec_[time_vec_.size()-1]
+			  << std::endl;
 
   return true;
 }
@@ -483,8 +586,6 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
     }
   std::cout << "lon_varid_=" << lon_varid_ << std::endl;
 
-  size_t lat_len;
-  size_t lon_len;
   //get length of lat/lon dimensions
   status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
   if (status != NC_NOERR)
@@ -537,41 +638,6 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
     }
   std::cout << "lonitudes: " << lon_vec_[0] << " , " << lon_vec_[lon_vec_.size()-1]
        << std::endl;
-
-  // >>>>>>>>>> time	
-
-  status = nc_inq_varid(ncid_, "time", &time_varid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get variable id for time"<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  std::cout << "time_varid_=" << time_varid_ << std::endl;
-
-  // >>>>>>>>>> temperature 	
-
-  status = nc_inq_varid(ncid_, "temp", &temp_varid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get variable id for temperature"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  std::cout << "temp_varid_=" << temp_varid_ << std::endl;
-
-  // >>>>>>>>>> salinity 	
-
-  status = nc_inq_varid(ncid_, "sal", &salt_varid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get variable id for salinity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  std::cout << "salt_varid_=" << salt_varid_ << std::endl;
 
   return true;
 }
@@ -717,10 +783,6 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   
   // >>>>>>>>>>>>>>>>>
   //get length of lat/lon dimensions
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
-  size_t time_len;
 
   // >>>>>>>>>> Longitude
   
@@ -881,9 +943,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 					      int month)
 {
   int status;
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
+
   double dist_sq;
   double mindist = std::numeric_limits<double>::max();
   std::vector<double> mindist_sq;
@@ -900,7 +960,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z;
 
-  bool debug = false;
+  bool debug = true;
   
   x.resize(3);
   y.resize(3);
@@ -1124,7 +1184,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 	    }
 	  // check for invalid numbers
 	  for (int i=0; i<3; i++)
-	    if (z[i]<1000)
+	    if (z[i]<0)
 	      if (i==0)
 		z[i] = default_ssp;
 	      else
@@ -1153,9 +1213,7 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 				      )
 {
   int status;
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
+
   double dist_sq;
   double mindist = std::numeric_limits<double>::max();
   std::vector<double> mindist_sq;
@@ -1477,9 +1535,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 
 {
   int status;
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
+
   double dist_sq;
   double mindist = std::numeric_limits<double>::max();
   std::vector<double> mindist_sq;
@@ -1511,43 +1567,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 
   std::vector<std::vector<double> > nc_temp;
   std::vector<std::vector<double> > nc_salt;
-  nc_temp.resize(3);
-  nc_salt.resize(3);
-  for (int i=0; i<3; i++)
-    {
-      nc_temp[i].resize(dep_vec_.size());
-      nc_salt[i].resize(dep_vec_.size());
-      for (int j=0; j<dep_.size(); j++)
-	{
-	  nc_temp[i][j]=default_val;
-	  nc_salt[i][j]=default_val;
-	}
-    }  
 
-  //get length of lat/lon/dep dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
-  if (status != NC_NOERR)
-    {
-      std::cout <<"ERROR - failed to get lon_length." << std::endl;
-      std::cout <<nc_strerror(status) << std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-  status = nc_inq_dimlen(ncid_, depid_, &dep_len); /* get depth length */
-  if (status != NC_NOERR)
-    {
-      std::cout <<"ERROR - failed to get dep_length." << std::endl;
-      std::cout <<nc_strerror(status) << std::endl;
-      exit(EXIT_FAILURE);
-    }
 
   //convert lat/lon position to local UTM
 
@@ -1558,6 +1578,20 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
     exit(EXIT_FAILURE);
   }
 
+  // Set up buffers
+  
+  nc_temp.resize(3);
+  nc_salt.resize(3);
+  for (int i=0; i<3; i++)
+    {
+      nc_temp[i].resize(dep_len);
+      nc_salt[i].resize(dep_len);
+      for (int j=0; j<dep_len; j++)
+	{
+	  nc_temp[i][j]=default_val;
+	  nc_salt[i][j]=default_val;
+	}
+    }  
 
   
   //get bathymetry closest 3 grid points
@@ -1674,8 +1708,8 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  for (int i_dep=0; i_dep<=dep_len; i_dep++)
 	    {
 	      size_t dep_ind[] = {min_ilat[n],min_ilon[n],i_dep,2};
-	      float dep_val;
-	      int status = nc_get_var1_float(ncid_, tgrid3id_, dep_ind, &dep_val);
+	      double dep_val;
+	      int status = nc_get_var1_double(ncid_, tgrid3id_, dep_ind, &dep_val);
 	      if (status != NC_NOERR)
 		{
 		  std::cout<<"ERROR - failed to get depth value for "
@@ -1763,8 +1797,7 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 
 {
   int status;
-  size_t lat_len;
-  size_t lon_len;
+
   double dist_sq;
   double mindist = std::numeric_limits<double>::max();
   std::vector<double> mindist_sq;
@@ -1793,23 +1826,6 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
   mindist_sq.resize(3);
 
   double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
-
-  //get length of lat/lon dimensions
-  status = nc_inq_dimlen(ncid_, latid_, &lat_len); /* get lat length */
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get lat_length."<<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      return(default_bathy);
-    }
-
-  status = nc_inq_dimlen(ncid_, lonid_, &lon_len); /* get lon length */
-  if (status != NC_NOERR)
-    {
-      std::cout <<"ERROR - failed to get lon_length." << std::endl;
-      std::cout <<nc_strerror(status) << std::endl;
-      return(default_bathy);
-    }
 
   //convert lat/lon position to local UTM
 
@@ -1928,9 +1944,7 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 {
   int status;
-  size_t lat_len;
-  size_t lon_len;
-  size_t dep_len;
+
   double dist_sq;
   double mindist = std::numeric_limits<double>::max();
   std::vector<double> mindist_sq;

@@ -112,7 +112,12 @@ class LamssNetCdf
   int temp_varid_;
   int salt_varid_;
   int bathy_varid_;
-  
+  // Dimension lengths  
+  size_t lat_len;
+  size_t lon_len;
+  size_t dep_len;
+  size_t time_len;
+
   CMOOSGeodesy geodesy_;
   CmyVectorUtils vecUtils;    
 
