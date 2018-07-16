@@ -29,56 +29,14 @@ class LamssNetCdf
 {
  public:
 
-  // GDEM specific functions and variables
-  void initialize_gdem_nc(std::string nc_file,
-			  double lat_origin, double lon_origin,
-			  double moos_start, bool fixed_start);
-  bool open_gdem_nc(std::string);
-  std::vector<double> get_gdem_profile(double lat_, double lon_,
-				       std::vector<double> dep_,
-				       int month);
-  // NOAA specific functions and variables
-  void initialize_noaa_nc(std::string nc_file,
-			  double lat_origin, double lon_origin,
-			  double moos_start, bool fixed_start);
-  bool open_noaa_nc(std::string);
-  double get_noaa_bathy(double lat, double lon);
-
-  // MSEAS specific functions and variables 
-  void initialize_mseas_nc(std::string nc_file,
-			   double lat_origin, double lon_origin,
-			   double moos_start, bool fixed_start);
-  bool open_mseas_nc(std::string);
-  double get_mseas_bathy(double lat, double lon);
-  void get_mseas_profile( double lat_, double lon_,
-			  const std::vector<double>& dep_,
-			  double curr_time,
-			  std::vector<double>& temp,
-			  std::vector<double>& salt);
-  int tgrid2id_;
-  int tgrid3id_;
-  double moos_start_time;
-  
-  // HYCOM specific functions and variables
-  void initialize_hycom_nc(std::string nc_file,
-			   double lat_origin, double lon_origin,
-			   double moos_start, bool fixed_start);
-  bool open_hycom_nc(std::string);
-  void get_hycom_profile(double lat_, double lon_,
-			 const std::vector<double>& dep_,
-			 double utc_time,
-			 std::vector<double>& temp,
-			 std::vector<double>& salt);
-
-  float temp_offset;
-  float temp_scaling;
-  float temp_missing;
-  float salt_offset;
-  float salt_scaling;
-  float salt_missing;
-  
   // Generic arrays and variables
   bool open_nc_file(std::string);
+  void get_lat_lon_dimensions();
+  void get_depth_dimension();
+  void get_time_dimension();
+  void get_lat_lon();
+  void get_depths();
+  void get_times();
   void init_geodesy(double lat_origin, double lon_origin);
   void init_timebase(double moos_start_time, double utc_start, double utc_incr, bool fixed_start);
   double interp_triangle(double x,double y,
@@ -112,6 +70,19 @@ class LamssNetCdf
   int temp_varid_;
   int salt_varid_;
   int bathy_varid_;
+
+  int status;  // error status 
+
+  // Netcdf variable names
+  std::string lon_ncname;
+  std::string lat_ncname;
+  std::string dep_ncname;
+  std::string time_ncname;
+  std::string tsc_ncname;
+  std::string temp_ncname;
+  std::string salt_ncname;
+
+
   // Dimension lengths  
   size_t lat_len;
   size_t lon_len;
@@ -122,6 +93,57 @@ class LamssNetCdf
   CmyVectorUtils vecUtils;    
 
   ///////
+  // GDEM specific functions and variables
+  void initialize_gdem_nc(std::string nc_file,
+			  double lat_origin, double lon_origin,
+			  double moos_start, bool fixed_start);
+  bool open_gdem_nc(std::string);
+  std::vector<double> get_gdem_profile(double lat_, double lon_,
+				       std::vector<double> dep_,
+				       int month);
+  void get_gdem_varnames();
+  // NOAA specific functions and variables
+  void initialize_noaa_nc(std::string nc_file,
+			  double lat_origin, double lon_origin,
+			  double moos_start, bool fixed_start);
+  bool open_noaa_nc(std::string);
+  double get_noaa_bathy(double lat, double lon);
+
+  // MSEAS specific functions and variables 
+  void initialize_mseas_nc(std::string nc_file,
+			   double lat_origin, double lon_origin,
+			   double moos_start, bool fixed_start);
+  bool open_mseas_nc(std::string);
+  void get_mseas_varnames_ids();
+  double get_mseas_bathy(double lat, double lon);
+  void get_mseas_profile( double lat_, double lon_,
+			  const std::vector<double>& dep_,
+			  double curr_time,
+			  std::vector<double>& temp,
+			  std::vector<double>& salt);
+  int tgrid2id_;
+  int tgrid3id_;
+  double moos_start_time;
+  
+  // HYCOM specific functions and variables
+  void initialize_hycom_nc(std::string nc_file,
+			   double lat_origin, double lon_origin,
+			   double moos_start, bool fixed_start);
+  bool open_hycom_nc(std::string);
+  void get_hycom_varids_att();
+  void get_hycom_profile(double lat_, double lon_,
+			 const std::vector<double>& dep_,
+			 double utc_time,
+			 std::vector<double>& temp,
+			 std::vector<double>& salt);
+
+  float temp_offset;
+  float temp_scaling;
+  float temp_missing;
+  float salt_offset;
+  float salt_scaling;
+  float salt_missing;
+  
 };
 
 #endif 
