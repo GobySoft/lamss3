@@ -921,14 +921,20 @@ void LamssNetCdf::init_timebase(double m_start_time,
 				double utc_incr,
 				bool fixed_start)
 {
+  fixed_model_start = fixed_start;
   moos_start_time = m_start_time;
-  nc_utc_start = utc_start;
+  // For fixed_model_start, nc file start reset to mission start
+  if (fixed_model_start)
+    nc_utc_start = moos_start_time;
+  else
+    nc_utc_start = utc_start;
   nc_utc_delta = utc_incr;
   nc_utc_duration = utc_incr * time_vec_.size();
   utc_vec_.resize(time_vec_.size());
+
   for (int i=0, n=time_vec_.size(); i<n ; i++)
     utc_vec_[i] = nc_utc_start +(i-1)*nc_utc_delta;
-  fixed_model_start = fixed_start;
+      
   std::cout << "init_timebase: " << std::endl;
   std::cout << "moos_start_time: " << moos_start_time << ", "
 	    << "nc_utc_start: " << nc_utc_start << ", "
@@ -1551,7 +1557,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z_tmp,z_sal;
-  bool debug = true;
+  bool debug = false;
   
   x.resize(3);
   y.resize(3);
@@ -1688,6 +1694,12 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
       double utc_corr = floor(utc_rel/nc_utc_duration)*
 	nc_utc_duration;
       double utc_rdcd = utc_rel - utc_corr;
+      if (debug)
+	std::cout << "utc_ref,utc_rel,utc_rdcd: "
+		  << utc_ref << ", "
+		  << utc_rel << ", "
+		  << utc_rdcd << ", "
+		  << std::endl;
       
       int indx_1 = floor(utc_rdcd/nc_utc_delta);
       int indx_2 = indx_1+1;
@@ -1716,7 +1728,8 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 			   << lat_ <<"N x "<< lon_<<"E."<<std::endl;
 		  std::cout<<nc_strerror(status)<<std::endl;
 		}
-	      dep_vec_[i_dep] = dep_val;
+	      // mseas depths are negative
+	      dep_vec_[i_dep] = -dep_val;
 	      
 	      // temperature and salinity
 	      size_t ssp_index_1[] = {indx_1,min_ilat[n],min_ilon[n],
@@ -1745,14 +1758,23 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 		}
 	      else 
 		{
+		  if (debug)
+		    std::cout << "depth,tval_1,sval_1,tval_2,sval_2: "
+			      << dep_vec_[i_dep] << ", "
+			      << temp_val_1 << ", "
+			      << salt_val_1 << ", "
+			      << temp_val_2 << ", "
+			      << salt_val_2 << ", "
+			      << std::endl;
+		      
 		  temp_buf[i_dep] = (temp_val_1+
 				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				     *(temp_val_2-temp_val_1)/nc_utc_delta)
-		    *temp_scaling + temp_offset;
+				     *(temp_val_2-temp_val_1)/nc_utc_delta);
+		  //		    *temp_scaling + temp_offset;
 		  salt_buf[i_dep] = (salt_val_1 +
 				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				     *(salt_val_2-salt_val_1)/nc_utc_delta)
-		    *salt_scaling + salt_offset;
+				     *(salt_val_2-salt_val_1)/nc_utc_delta);
+		  //		    *salt_scaling + salt_offset;
 		}
 	      if (debug)
 		{
