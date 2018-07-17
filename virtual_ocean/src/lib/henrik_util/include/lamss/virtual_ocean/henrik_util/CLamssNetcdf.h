@@ -37,6 +37,13 @@ class LamssNetCdf
   void get_lat_lon();
   void get_depths();
   void get_times();
+  bool closest_lat_lon(double lat_, double lon_,
+		       std::vector<double>& min_lat_val,
+		       std::vector<double>& min_lon_val,
+		       std::vector<double>& min_lat_m,
+		       std::vector<double>& min_lon_m,
+		       std::vector<int>& min_ilat, 
+		       std::vector<int>& min_ilon);
   void init_geodesy(double lat_origin, double lon_origin);
   void init_timebase(double moos_start_time, double utc_start, double utc_incr, bool fixed_start);
   double interp_triangle(double x,double y,
@@ -53,6 +60,8 @@ class LamssNetCdf
   std::vector<double> dep_vec_;
   std::vector<float> time_vec_;
   std::vector<float> utc_vec_;
+
+  
   int ncid_;
   bool nc_is_open_;
   int latid_;
@@ -71,6 +80,8 @@ class LamssNetCdf
   int salt_varid_;
   int bathy_varid_;
 
+  bool scewed_grid;
+  
   int status;  // error status 
 
   // Netcdf variable names

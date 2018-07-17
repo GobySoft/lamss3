@@ -37,6 +37,7 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
   nc_is_open_  = false;
   if (open_gdem_nc(nc_file))
     {
+      scewed_grid = false;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
@@ -57,6 +58,7 @@ void LamssNetCdf::initialize_noaa_nc(std::string nc_file,
   nc_is_open_  = false;
   if (open_noaa_nc(nc_file))
     {
+      scewed_grid = false;
       geodesy_.Initialise(lat_origin,lon_origin);
     }
 }
@@ -70,6 +72,7 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
   nc_is_open_  = false;
   if (open_mseas_nc(nc_file))
     {
+      scewed_grid = true;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
@@ -90,6 +93,7 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
   std::cout << "initialize_hycom_nc: calling open_hycom_nc" << std::endl;
   if (open_hycom_nc(nc_file))
     {
+      scewed_grid - false;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
@@ -1245,51 +1249,27 @@ void LamssNetCdf::init_geodesy(double lat_origin, double lon_origin)
   geodesy_initialized = true;
 }
 
-void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
-				      const std::vector<double>& dep_,
-				      double curr_time,
-				      std::vector<double>& temp,
-				      std::vector<double>& salt
-				      )
-
+bool LamssNetCdf:: closest_lat_lon(double lat_, double lon_, 
+				   std::vector<double> & min_lat_val,
+				   std::vector<double> & min_lon_val,
+				   std::vector<double> & min_lat_m,
+				   std::vector<double> & min_lon_m,
+				   std::vector<int> & min_ilat, 
+				   std::vector<int> & min_ilon)
 {
-  int status;
-
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
-  double lat_m;
-  double lon_m;
+  //convert lat/lon position to local UTM
   double dlat_m= std::numeric_limits<double>::max();
   double dlon_m= std::numeric_limits<double>::max();
-  std::vector<double> min_lat_val;
-  std::vector<double> min_lon_val;
-  std::vector<double> x,y,z_tmp,z_sal;
-  bool debug = false;
-  
-  x.resize(3);
-  y.resize(3);
-  z_tmp.resize(3);
-  z_sal.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
+  double lat_m, lon_m;
+  //find closest 3 lat/lon grid points and their indices
+  std::vector<double> mindist_sq;
+  mindist_sq.resize(3);  
   min_lat_val.resize(3);
   min_lon_val.resize(3);
-  mindist_sq.resize(3);
-
-  double default_val = std::numeric_limits<double>::quiet_NaN() ; // NaN
-
-  std::vector<std::vector<double> > nc_temp;
-  std::vector<std::vector<double> > nc_salt;
-
-
-  //convert lat/lon position to local UTM
-
+  min_lat_m.resize(3);
+  min_lon_m.resize(3);
+  min_ilat.resize(3);
+  min_ilon.resize(3);
 
   if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
   {
@@ -1297,36 +1277,52 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
     exit(EXIT_FAILURE);
   }
 
-  // Set up buffers
-  
-  nc_temp.resize(3);
-  nc_salt.resize(3);
-  for (int i=0; i<3; i++)
-    {
-      nc_temp[i].resize(dep_len);
-      nc_salt[i].resize(dep_len);
-      for (int j=0; j<dep_len; j++)
-	{
-	  nc_temp[i][j]=default_val;
-	  nc_salt[i][j]=default_val;
-	}
-    }  
+  int lat_indx_1 = 0;
+  int lat_indx_2 = lat_len-1;
+  int lon_indx_1 = 0;
+  int lon_indx_2 = lon_len-1;
 
-  
-  //get bathymetry closest 3 grid points
-  // Note that here x is latitude and y longitude!
+  if (!scewed_grid)
+    {
+      // GDEM,HYCOM, NOAA use a regular grid W->E, S->N,
+      // so we can first narrow down 4 closest grid points
+      
+      for(int k=0;k<lon_len-1;k++)
+	if (lon_-lon_vec_[k] >=0 )  
+	  lon_indx_1 = k;	  
+      lon_indx_2 = lon_indx_1+1;
+      
+      for(int j=0;j<lat_len-1;j++)
+	if (lat_-lat_vec_[j] >=0 )  
+	  lat_indx_1 = j;	  
+      lat_indx_2 = lat_indx_1+1;
+      
+    }
   
   for(int n=0;n<3;n++)
     {
-      mindist= std::numeric_limits<double>::max();
+      double mindist = std::numeric_limits<double>::max();
       
-      for(size_t k=0;k<lon_len;k++)
+      for(size_t j=lat_indx_1;j<=lat_indx_2;j++)
 	{
-	  for(size_t j=0;j<lat_len;j++)
+	  for(size_t k=lon_indx_1;k<=lon_indx_2;k++)
 	    {
-	      grid_val_lat = tgrid_lat[j][k];
-	      grid_val_lon = tgrid_lon[j][k];
+	      double dist_sq;
+	      double grid_val_lon;
+	      double grid_val_lat;
+	      double grid_lat_m;
+	      double grid_lon_m;
 	      
+	      if (scewed_grid)
+		{ // MSEAS
+		  grid_val_lat = tgrid_lat[j][k];
+		  grid_val_lon = tgrid_lon[j][k];
+		}
+	      else
+		{ // HYCOM,GDEM,NOAA
+		  grid_val_lat = lat_vec_[j];
+		  grid_val_lon = lon_vec_[k];
+		}
 	      // convert grid lat/lon to meters
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
 					    grid_lat_m,grid_lon_m))
@@ -1351,15 +1347,91 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 		  min_lon_val[n]=grid_val_lon;
 		  min_ilat[n]=j;
 		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
+		  min_lat_m[n]=grid_lat_m;
+		  min_lon_m[n]=grid_lon_m;
 		}
 	    }
 	}
-    }     
-  if(mindist_sq[0]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
+    }
+  if (mindist_sq[0] >= pow(std::max(fabs(min_lat_m[1]-min_lat_m[0]),
+				    fabs(min_lat_m[2]-min_lat_m[0])),2) +
+      pow(std::max(fabs(min_lon_m[1]-min_lon_m[0]),
+		   fabs(min_lon_m[2]-min_lon_m[0])),2) )
+    return(false);
+  else
+    return(true);
+      
+}
+
+void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
+				      const std::vector<double>& dep_,
+				      double curr_time,
+				      std::vector<double>& temp,
+				      std::vector<double>& salt
+				      )
+
+{
+  int status;
+
+  double lat_m;
+  double lon_m;
+  std::vector<int> min_ilat,min_ilon;
+  std::vector<double> min_lat_val;
+  std::vector<double> min_lon_val;
+  std::vector<double> x,y,z_tmp,z_sal;
+  bool debug = false;
+  
+  z_tmp.resize(3);
+  z_sal.resize(3);
+
+  double default_val = std::numeric_limits<double>::quiet_NaN() ; // NaN
+
+  std::vector<std::vector<double> > nc_temp;
+  std::vector<std::vector<double> > nc_salt;
+
+
+  // Set up buffers
+  
+  nc_temp.resize(3);
+  nc_salt.resize(3);
+ 
+  for (int i=0; i<3; i++)
     {
-      std::cout << "mindist: " << sqrt(mindist_sq[0]) << std::endl;
+      nc_temp[i].resize(dep_.size());
+      nc_salt[i].resize(dep_.size());
+      for (int j=0; j<dep_.size(); j++)
+	{
+	  nc_temp[i][j]=default_val;
+	  nc_salt[i][j]=default_val;
+	}
+    }  
+ 
+  // Fill output arrays with default value
+  
+  temp.resize(dep_.size());
+  salt.resize(dep_.size());
+  for (int j=0; j<dep_.size(); j++)
+    {
+      temp[j]=default_val;
+      salt[j]=default_val;
+    }
+  
+      //convert lat/lon position to local UTM
+
+  if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
+  {
+    std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // find closest 3 grid points and interpolate
+  // Note that here x is latitude and y longitude!
+
+  if (!closest_lat_lon(lat_,lon_,
+		       min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
+
+    {
+      std::cout << "Closest grid point more than 30 km away " << std::endl;
       return;  
     }
   else
@@ -1476,8 +1548,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  ok = vecUtils.interp(dep_vec_,salt_buf,dep_,buf);
 	  nc_salt[n] = buf;
 	} // end of n loop
-      temp.resize(dep_.size());
-      salt.resize(dep_.size());
+
       for (int i_dep=0; i_dep<dep_.size();i_dep++)
 	{
 	  // check for invalid numbers
@@ -1515,32 +1586,17 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 {
   int status;
 
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
   double lat_m;
   double lon_m;
-  double dlat_m= std::numeric_limits<double>::max();
-  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<double> mindist_sq;
+  std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z;
   double bathy_z;
   bool debug = false;
   
-  x.resize(3);
-  y.resize(3);
   z.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
-  min_lat_val.resize(3);
-  min_lon_val.resize(3);
-  mindist_sq.resize(3);
 
   double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
 
@@ -1565,57 +1621,15 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
   //get bathymetry closest 3 grid points
   // Note that here x is latitude and y longitude!
 
-  for(int n=0;n<3;n++)
+  if ( !closest_lat_lon(lat_,lon_,
+			min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
     {
-      mindist= std::numeric_limits<double>::max();
-      
-      for(size_t j=0;j<lat_len;j++)
+      return(default_bathy);
+    }
+  else
+    {
+      for(int n=0;n<3;n++)
 	{
-	  for(size_t k=0;k<lon_len;k++)
-	    {
-	      grid_val_lat = tgrid_lat[j][k];
-	      grid_val_lon = tgrid_lon[j][k];
-
-	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std::cout << "Failed to convert lat/lon to UTM"
-					   << std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      // distance between auv and grid point
-	      dlon_m=grid_lon_m-lon_m;
-	      dlat_m=grid_lat_m-lat_m;
-	      
-	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
-	      
-	      
-	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
-		{
-		  mindist=dist_sq;
-		  mindist_sq[n]=dist_sq;
-		  min_lat_val[n]=grid_val_lat;
-		  min_lon_val[n]=grid_val_lon;
-		  min_ilat[n]=j;
-		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
-		}
-	    }
-	}
-
-      if(mindist_sq[n]>(5000*5000)) /*default to NaN bathy_z if over 5 km from bathy grid edge*/
-	{
-	  bathy_z=default_bathy;
-	  std::cout<<"WARNING - AUV > 5 km from edge of known bathymetry grid. "
-		   << "Defaulting bathy_z = "<<default_bathy <<" m."<< std::endl;
-	  z[n] = bathy_z;
-	}
-      else
-	{
-	  
 	  //get lat/lon/bathy of closest grid point
 	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
 	  double val;
@@ -1634,7 +1648,7 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 	    z[n] = val;
 	}
     }
-	  //get lat/lon/bathy of closest grid point
+  //get lat/lon/bathy of closest grid point
   bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
   return(bathy_z);
 }
