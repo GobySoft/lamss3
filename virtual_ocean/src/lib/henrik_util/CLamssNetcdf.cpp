@@ -1588,7 +1588,6 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 
   double lat_m;
   double lon_m;
-  std::vector<double> mindist_sq;
   std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
@@ -1694,32 +1693,16 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 {
   int status;
 
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
   double lat_m;
   double lon_m;
-  double dlat_m= std::numeric_limits<double>::max();
-  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z;
   double bathy_z;
   bool debug = false;
   
-  x.resize(3);
-  y.resize(3);
   z.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
-  min_lat_val.resize(3);
-  min_lon_val.resize(3);
-  mindist_sq.resize(3);
 
   double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
 
@@ -1736,7 +1719,7 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
   
   //get sound speed of closest 3 grid points
   // Note that here x is latitude and y longitude!
-
+    /*
   // GDEM is a regular grid W->E, S->N,
   // so we can first narrow down 4 closest grid points
 
@@ -1797,8 +1780,7 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 		}
 	    }
 	}
-
-      if(mindist_sq[n]>(5000*5000)) /*default to NaN bathy_z if over 5 km from bathy grid edge*/
+      if(mindist_sq[n]>(5000*5000)) default to NaN bathy_z if over 5 km from bathy grid edge
 	{
 	  bathy_z=default_bathy;
 	  std::cout<<"WARNING - AUV > 5 km from edge of known bathymetry grid. "
@@ -1806,8 +1788,14 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 	  z[n] = bathy_z;
 	}
       else
+    */
+  if ( !closest_lat_lon(lat_,lon_,
+			min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
+    return(default_bathy);
+  else
+    {
+      for(int n=0;n<3;n++)
 	{
-	  
 	  //get lat/lon/bathy of closest grid point
 	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
 	  short val;
@@ -1824,8 +1812,8 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 	  else
 	    z[n] = val;
 	}
+      //get lat/lon/bathy of closest grid point
+      bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
+      return(bathy_z);
     }
-  //get lat/lon/bathy of closest grid point
-  bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
-  return(bathy_z);
 }
