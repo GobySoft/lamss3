@@ -937,18 +937,9 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 {
   int status;
 
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
   double lat_m;
   double lon_m;
-  double dlat_m= std::numeric_limits<double>::max();
-  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z_tmp,z_sal;
@@ -959,15 +950,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   if (lon_ < 0.0)
     lon_ += 360.0;
   
-  x.resize(3);
-  y.resize(3);
   z_tmp.resize(3);
   z_sal.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
-  min_lat_val.resize(3);
-  min_lon_val.resize(3);
-  mindist_sq.resize(3);
 
   std::vector<double> nc_temp;
   nc_temp.resize(dep_vec_.size());
@@ -996,6 +980,7 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   //get temp and salt of closest 3 grid points
   // Note that here x is latitude and y longitude!
 
+    /*
   // HYCOM is a regular grid W->E, S->N,
   // so we can first narrow down 4 closest grid points
 
@@ -1057,156 +1042,156 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	    }
 	}
     }
+    */
   
   // is closest point to auv over 5km away?
   // if not, get me that bathymetry!
-  
-  double min_depth = vecUtils.vmin(dep_);
-  double max_depth = vecUtils.vmax(dep_);
-
-  int dep_indx_1 = dep_vec_.size()-1;
-  for  (int i=0; i<dep_vec_.size(); i++)
-    if (dep_vec_[i] <= min_depth)
-      dep_indx_1 = i;
-  int dep_indx_2 = dep_indx_1;
-  for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
-    if (dep_vec_[i] >= max_depth)
-      dep_indx_2 = i;
-
-  if (debug)
-    {
-      std::cout << "lat,lon: " << lat_ << "N, " << lon_ << "E." << std::endl;
-      std::cout << "lat_indx_1,lat_indx_2: " << lat_indx_1 << ", "
-		<< lat_indx_2 << std::endl;
-      std::cout << "lat_1, lat_2: " <<  lat_vec_[lat_indx_1] << "N, " << lat_vec_[lat_indx_2]  << "N." << std::endl;
-      std::cout << "lon_indx_1,lon_indx_2: " << lon_indx_1 << ", "
-		<< lon_indx_2 << std::endl;
-      std::cout << "lon_1, lon_2: " <<  lon_vec_[lon_indx_1] << "E, " << lon_vec_[lon_indx_2]  << "E." << std::endl;
-      
-      std::cout << "dep_indx_1,dep_indx_2: " << dep_indx_1 << ", "
-	    << dep_indx_2 << std::endl;
-      std::cout << "min_depth,max_depth,dep_1,dep_2: " << min_depth << ", "
-		<< max_depth << ", " << dep_vec_[dep_indx_1] << ", "
-	    << dep_vec_[dep_indx_2] << std::endl;
-      std::cout << "mindist0 " << sqrt(mindist_sq[0])
-		<< "mindist1 " << sqrt(mindist_sq[1])
-		<< "mindist2 " << sqrt(mindist_sq[2]) << std::endl;
-    }
-
-  
-  if(mindist_sq[0]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
-    {
-      for (int i=0; i<nc_temp.size(); i++)
-	{
-	  nc_temp[i]=default_val;
-	  nc_salt[i]=default_val;
-	}
-      std::cout << "mindist: " << sqrt(mindist_sq[0]) << std::endl;
-  
-    }
-  else
-    {
-      // time indexing
-      double mission_time = curr_time - moos_start_time;
-      double utc_ref;
-      if (fixed_model_start)        // Mission start at file start
-	{
-	  utc_ref = moos_start_time;
-	}
-      else                          // Absolute time with rewind
-	{
-	  utc_ref = nc_utc_start ;
-	}
-      double utc_rel = curr_time - utc_ref;
-      double utc_corr = floor(utc_rel/nc_utc_duration)*
-	nc_utc_duration;
-      double utc_rdcd = utc_rel - utc_corr;
-      
-      int indx_1 = floor(utc_rdcd/nc_utc_delta);
-      int indx_2 = indx_1+1;
-      if (indx_2 >= utc_vec_.size())
-	indx_2 = 0;
-      if (debug)
-	std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl; 
-      //get lat/lon/bathy of closest grid points
-      for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
-	{
-	  for(int n=0;n<3;n++)
-	    {
-	      // temperature and salinity
-	      size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
-	      short int temp_val_1,salt_val_1;
-	      int status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
-					       ssp_index_1, &temp_val_1);
-	      int status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
-					       ssp_index_1, &salt_val_1);
-	      size_t ssp_index_2[] = {indx_2,i_dep,min_ilat[n],min_ilon[n]};
-	      short int temp_val_2,salt_val_2;
-	      int status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
-						 ssp_index_2, &temp_val_2);
-	      int status_s_2 = nc_get_var1_short(ncid_, salt_varid_,
-						 ssp_index_2, &salt_val_2);
-	      if ((status_s_1 && status_s_2 &&
-		   status_t_1 && status_t_2) != NC_NOERR)
-		{
-		  std::cout <<"ERROR - failed to get t and s values for "
-			    << std::setprecision(std::numeric_limits<double>::digits10)
-			    << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
-			    << dep_vec_[i_dep] << " m."<< std::endl;
-		  std::cout << nc_strerror(status)<<std::endl;
-		  z_tmp[n] = default_val;
-		  z_sal[n] = default_val;
-		}
-	      else 
-		{
-		  z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-			  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
-		          + temp_offset;
-		  z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-			  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
-		          + salt_offset;
-		}
-	    }
-	  // check for invalid numbers
-	  for (int i=0; i<3; i++)
-	    {
-	      if (z_tmp[i]<0)
-		if (i==0)
-		  z_tmp[i] = default_val;
-		else
-		  z_tmp[i] = z_tmp[i-1];
-	      if (z_sal[i]<0)
-		if (i==0)
-		  z_sal[i] = default_val;
-		else
-		  z_sal[i] = z_sal[i-1];
-	    }
-	  if (debug)
-	    std::cout << "done with z_tmp,z_sal" << std::endl;
-	  //get lat/lon/bathy of closest grid point
-	  nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
-	  nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
-	  if (debug)
-	    std::cout << "done with depth " << dep_vec_[i_dep] << std::endl;
-	}
-    }
-  // Interpolate in depth
-  temp.resize(dep_.size());
-  salt.resize(dep_.size());
-  if (dep_indx_1 == dep_indx_2)
-    for (int i = 0; i< dep_.size(); i++)
+    if (!closest_lat_lon(lat_,lon_,
+		       min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
       {
-	temp[i] = nc_temp[dep_indx_1];
-	salt[i] = nc_salt[dep_indx_1];
+	temp.resize(dep_.size());
+	salt.resize(dep_.size());
+	for (int i=0; i<temp.size(); i++)
+	  {
+	    temp[i]=default_val;
+	    salt[i]=default_val;
+	  }
       }
-  else
-    {
-      bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
-      ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
-    }
-  if (debug)
-    std::cout << "done with get_hycom_profile " << std::endl;
-
+    else
+      {
+	double min_depth = vecUtils.vmin(dep_);
+	double max_depth = vecUtils.vmax(dep_);
+	
+	int dep_indx_1 = dep_vec_.size()-1;
+	for  (int i=0; i<dep_vec_.size(); i++)
+	  if (dep_vec_[i] <= min_depth)
+	    dep_indx_1 = i;
+	int dep_indx_2 = dep_indx_1;
+	for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
+	  if (dep_vec_[i] >= max_depth)
+	    dep_indx_2 = i;
+	
+	/*
+	if (debug)
+	  {
+	    std::cout << "lat,lon: " << lat_ << "N, " << lon_ << "E." << std::endl;
+	    std::cout << "lat_indx_1,lat_indx_2: " << lat_indx_1 << ", "
+		      << lat_indx_2 << std::endl;
+	    std::cout << "lat_1, lat_2: " <<  lat_vec_[lat_indx_1] << "N, " << lat_vec_[lat_indx_2]  << "N." << std::endl;
+	    std::cout << "lon_indx_1,lon_indx_2: " << lon_indx_1 << ", "
+		      << lon_indx_2 << std::endl;
+	    std::cout << "lon_1, lon_2: " <<  lon_vec_[lon_indx_1] << "E, " << lon_vec_[lon_indx_2]  << "E." << std::endl;
+	    
+	    std::cout << "dep_indx_1,dep_indx_2: " << dep_indx_1 << ", "
+		      << dep_indx_2 << std::endl;
+	    std::cout << "min_depth,max_depth,dep_1,dep_2: " << min_depth << ", "
+		      << max_depth << ", " << dep_vec_[dep_indx_1] << ", "
+		      << dep_vec_[dep_indx_2] << std::endl;
+	    std::cout << "mindist0 " << sqrt(mindist_sq[0])
+		      << "mindist1 " << sqrt(mindist_sq[1])
+		      << "mindist2 " << sqrt(mindist_sq[2]) << std::endl;
+	  }
+	*/
+	// time indexing
+	double mission_time = curr_time - moos_start_time;
+	double utc_ref;
+	if (fixed_model_start)        // Mission start at file start
+	  {
+	    utc_ref = moos_start_time;
+	  }
+	else                          // Absolute time with rewind
+	  {
+	    utc_ref = nc_utc_start ;
+	  }
+	double utc_rel = curr_time - utc_ref;
+	double utc_corr = floor(utc_rel/nc_utc_duration)*
+	  nc_utc_duration;
+	double utc_rdcd = utc_rel - utc_corr;
+	
+	int indx_1 = floor(utc_rdcd/nc_utc_delta);
+	int indx_2 = indx_1+1;
+	if (indx_2 >= utc_vec_.size())
+	  indx_2 = 0;
+	if (debug)
+	  std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl; 
+	//get lat/lon/bathy of closest grid points
+	for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
+	  {
+	    for(int n=0;n<3;n++)
+	      {
+		// temperature and salinity
+		size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
+		short int temp_val_1,salt_val_1;
+		int status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
+						   ssp_index_1, &temp_val_1);
+		int status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
+						   ssp_index_1, &salt_val_1);
+		size_t ssp_index_2[] = {indx_2,i_dep,min_ilat[n],min_ilon[n]};
+		short int temp_val_2,salt_val_2;
+		int status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
+						   ssp_index_2, &temp_val_2);
+		int status_s_2 = nc_get_var1_short(ncid_, salt_varid_,
+						   ssp_index_2, &salt_val_2);
+		if ((status_s_1 && status_s_2 &&
+		     status_t_1 && status_t_2) != NC_NOERR)
+		  {
+		    std::cout <<"ERROR - failed to get t and s values for "
+			      << std::setprecision(std::numeric_limits<double>::digits10)
+			      << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
+			      << dep_vec_[i_dep] << " m."<< std::endl;
+		    std::cout << nc_strerror(status)<<std::endl;
+		    z_tmp[n] = default_val;
+		    z_sal[n] = default_val;
+		  }
+		else 
+		  {
+		    z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				*(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
+		      + temp_offset;
+		    z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				*(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
+		      + salt_offset;
+		  }
+	      }
+	    // check for invalid numbers
+	    for (int i=0; i<3; i++)
+	      {
+		if (z_tmp[i]<0)
+		  if (i==0)
+		    z_tmp[i] = default_val;
+		  else
+		    z_tmp[i] = z_tmp[i-1];
+		if (z_sal[i]<0)
+		  if (i==0)
+		    z_sal[i] = default_val;
+		  else
+		    z_sal[i] = z_sal[i-1];
+	      }
+	    if (debug)
+	      std::cout << "done with z_tmp,z_sal" << std::endl;
+	    //get lat/lon/bathy of closest grid point
+	    nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
+	    nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
+	    if (debug)
+	      std::cout << "done with depth " << dep_vec_[i_dep] << std::endl;
+	  }
+	// Interpolate in depth
+	temp.resize(dep_.size());
+	salt.resize(dep_.size());
+	if (dep_indx_1 == dep_indx_2)
+	  for (int i = 0; i< dep_.size(); i++)
+	    {
+	      temp[i] = nc_temp[dep_indx_1];
+	      salt[i] = nc_salt[dep_indx_1];
+	    }
+	else
+	  {
+	    bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
+	    ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
+	  }
+	if (debug)
+	  std::cout << "done with get_hycom_profile " << std::endl;
+      }
 }
 
 double LamssNetCdf::interp_triangle(double x_here,double y_here,
