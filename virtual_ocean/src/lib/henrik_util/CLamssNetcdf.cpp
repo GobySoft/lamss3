@@ -666,34 +666,20 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 {
   int status;
 
-  double dist_sq;
-  double mindist = std::numeric_limits<double>::max();
-  std::vector<double> mindist_sq;
-  std::vector<int> min_ilat,min_ilon;
-  double grid_val_lat;
-  double grid_val_lon;
-  double grid_lat_m;
-  double grid_lon_m;
   double lat_m;
   double lon_m;
-  double dlat_m= std::numeric_limits<double>::max();
-  double dlon_m= std::numeric_limits<double>::max();
+  std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
   std::vector<double> x,y,z;
 
   bool debug = false;
   
-  x.resize(3);
-  y.resize(3);
   z.resize(3);
-  min_ilat.resize(3);
-  min_ilon.resize(3);
-  min_lat_val.resize(3);
-  min_lon_val.resize(3);
-  mindist_sq.resize(3);
+  std::vector<double> svp_out;
   std::vector<double> svp;
   svp.resize(dep_vec_.size());
+
   double default_ssp = std::numeric_limits<double>::quiet_NaN() ; // NaN
   for (int i=0; i<svp.size(); i++)
     svp[i]=default_ssp;
@@ -714,116 +700,34 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
   //get sound speed of closest 3 grid points
   // Note that here x is latitude and y longitude!
 
-  // GDEM is a regular grid W->E, S->N,
-  // so we can first narrow down 4 closest grid points
-
-  int lat_indx_1 = 0;
-  int lat_indx_2 = lat_len-1;
-  int lon_indx_1 = 0;
-  int lon_indx_2 = lon_len-1;
-
-  for(int k=0;k<lon_len-1;k++)
-    if (lon_-lon_vec_[k] >=0 )  
-      lon_indx_1 = k;	  
-  lon_indx_2 = lon_indx_1+1;
-
-  for(int j=0;j<lat_len-1;j++)
-    if (lat_-lat_vec_[j] >=0 )  
-      lat_indx_1 = j;	  
-  lat_indx_2 = lat_indx_1+1;
-
-  // Now reduce to 3 and interpolate for all depths
+  // is closest point to auv overa grid size away?
+  // if not, get me the profile
   
-  for(int n=0;n<3;n++)
+  if (!closest_lat_lon(lat_,lon_,
+		       min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
     {
-      mindist= std::numeric_limits<double>::max();
-
-      for(int k=lon_indx_1;k<=lon_indx_2;k++)
-	{
-	  grid_val_lon = lon_vec_[k];	      
-	  for(int j=lat_indx_1;j<=lat_indx_2;j++)
-	    {
-	      grid_val_lat = lat_vec_[j];	      
-
-	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std::cout << "Failed to convert lat/lon to UTM"
-					   << std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      // distance between auv and grid point
-	      dlon_m=grid_lon_m-lon_m;
-	      dlat_m=grid_lat_m-lat_m;
-	      
-	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
-	      
-	      
-	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
-		{
-		  mindist=dist_sq;
-		  mindist_sq[n]=dist_sq;
-		  min_lat_val[n]=grid_val_lat;
-		  min_lon_val[n]=grid_val_lon;
-		  min_ilat[n]=j;
-		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
-		}
-	    }
-	}
-    }
-  
-  // is closest point to auv over 5km away?
-  // if not, get me that bathymetry!
-  
-  double min_depth = vecUtils.vmin(dep_);
-  double max_depth = vecUtils.vmax(dep_);
-
-  int dep_indx_1 = dep_vec_.size()-1;
-  for  (int i=0; i<dep_vec_.size(); i++)
-    if (dep_vec_[i] <= min_depth)
-      dep_indx_1 = i;
-  int dep_indx_2 = dep_indx_1;
-  for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
-    if (dep_vec_[i] >= max_depth)
-      dep_indx_2 = i;
-
-
-  if (debug)
-    {
-      std::cout << "lat,lon: " << lat_ << "N, " << lon_ << "E." << std::endl;
-      std::cout << "lat_indx_1,lat_indx_2: " << lat_indx_1 << ", "
-		<< lat_indx_2 << std::endl;
-      std::cout << "lat_1, lat_2: " <<  lat_vec_[lat_indx_1] << "N, " << lat_vec_[lat_indx_2]  << "N." << std::endl;
-      std::cout << "lon_indx_1,lon_indx_2: " << lon_indx_1 << ", "
-		<< lon_indx_2 << std::endl;
-      std::cout << "lon_1, lon_2: " <<  lon_vec_[lon_indx_1] << "E, " << lon_vec_[lon_indx_2]  << "E." << std::endl;
-      
-      std::cout << "dep_indx_1,dep_indx_2: " << dep_indx_1 << ", "
-	    << dep_indx_2 << std::endl;
-      std::cout << "min_depth,max_depth,dep_1,dep_2: " << min_depth << ", "
-		<< max_depth << ", " << dep_vec_[dep_indx_1] << ", "
-	    << dep_vec_[dep_indx_2] << std::endl;
-      std::cout << "mindist0 " << sqrt(mindist_sq[0])
-		<< "mindist1 " << sqrt(mindist_sq[1])
-		<< "mindist2 " << sqrt(mindist_sq[2]) << std::endl;
-    }
-  std::vector<double> svp_out;
-  svp_out.resize(dep_.size());
-  
-  if(mindist_sq[0]>(30000*30000)) /*default to -100.000 m ssp_z if over 30 km from bathy grid edge*/
-    {
-      for (int i=0; i<svp.size(); i++)
-	svp[i]=default_ssp;
-
-      std::cout << "mindist: " << sqrt(mindist_sq[0]) << std::endl;
-  
+      svp_out.resize(dep_.size());
+      for (int i=0; i<svp_out.size(); i++)
+	svp_out[i]=default_ssp;
+      return(svp_out);      
     }
   else
     {
+      double min_depth = vecUtils.vmin(dep_);
+      double max_depth = vecUtils.vmax(dep_);
+      
+      int dep_indx_1 = dep_vec_.size()-1;
+      for  (int i=0; i<dep_vec_.size(); i++)
+	if (dep_vec_[i] <= min_depth)
+	  dep_indx_1 = i;
+      int dep_indx_2 = dep_indx_1;
+      for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
+	if (dep_vec_[i] >= max_depth)
+	  dep_indx_2 = i;
+      
+      svp_out.resize(dep_.size());
+      
+      
       //get lat/lon/bathy of closest grid points
       for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
 	{
@@ -868,7 +772,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		  double utc_corr = floor(utc_rel/nc_utc_duration)*
 		    nc_utc_duration;
 		  double utc_rdcd = utc_rel - utc_corr;
-
+		  
 		  size_t indx_1 = (int) floor(utc_rdcd/nc_utc_delta);
 		  size_t indx_2 = indx_1+1;
 		  if (indx_2 >= utc_vec_.size())
@@ -896,13 +800,13 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		      z[n] = dval_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])*(dval_2-dval_1)/nc_utc_delta;
 		    }
 		}
-		  
+	      
 	      if (debug)
 		{
 		  std::cout << "n,lat,lon,val=" << n << ", "
-		       << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
-		       << dep_vec_[i_dep] << " m. "
-		       << z[n] << std::endl;
+			    << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
+			    << dep_vec_[i_dep] << " m. "
+			    << z[n] << std::endl;
 		}
 	    }
 	  // check for invalid numbers
@@ -916,15 +820,15 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 	  //get lat/lon/bathy of closest grid point
 	  svp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z);
 	}
+      // Interpolate in depth
+      if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
+	if (dep_indx_1 == dep_indx_2)
+	  for (int i = 0; i< dep_.size(); i++)
+	    svp_out[i] = svp[dep_indx_1];
+	else
+	  bool ok = vecUtils.interp(dep_vec_,svp,dep_,svp_out);
+      return(svp_out);
     }
-  // Interpolate in depth
-  if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
-    if (dep_indx_1 == dep_indx_2)
-      for (int i = 0; i< dep_.size(); i++)
-	svp_out[i] = svp[dep_indx_1];
-    else
-      bool ok = vecUtils.interp(dep_vec_,svp,dep_,svp_out);
-  return(svp_out);
 }
 
 void LamssNetCdf:: get_hycom_profile( double lat_,
@@ -980,70 +884,6 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   //get temp and salt of closest 3 grid points
   // Note that here x is latitude and y longitude!
 
-    /*
-  // HYCOM is a regular grid W->E, S->N,
-  // so we can first narrow down 4 closest grid points
-
-  int lat_indx_1 = 0;
-  int lat_indx_2 = lat_len-1;
-  int lon_indx_1 = 0;
-  int lon_indx_2 = lon_len-1;
-
-  for(int k=0;k<lon_len-1;k++)
-    if (lon_-lon_vec_[k] >=0 )  
-      lon_indx_1 = k;	  
-  lon_indx_2 = lon_indx_1+1;
-
-  for(int j=0;j<lat_len-1;j++)
-    if (lat_-lat_vec_[j] >=0 )  
-      lat_indx_1 = j;	  
-  lat_indx_2 = lat_indx_1+1;
-
-  // Now reduce to 3 and interpolate for all depths
-  
-  for(int n=0;n<3;n++)
-    {
-      mindist= std::numeric_limits<double>::max();
-
-      for(int k=lon_indx_1;k<=lon_indx_2;k++)
-	{
-	  grid_val_lon = lon_vec_[k];	      
-	  for(int j=lat_indx_1;j<=lat_indx_2;j++)
-	    {
-	      grid_val_lat = lat_vec_[j];	      
-
-	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std::cout << "Failed to convert lat/lon to UTM"
-					   << std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      // distance between auv and grid point
-	      dlon_m=grid_lon_m-lon_m;
-	      dlat_m=grid_lat_m-lat_m;
-	      
-	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
-	      
-	      
-	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
-		{
-		  mindist=dist_sq;
-		  mindist_sq[n]=dist_sq;
-		  min_lat_val[n]=grid_val_lat;
-		  min_lon_val[n]=grid_val_lon;
-		  min_ilat[n]=j;
-		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
-		}
-	    }
-	}
-    }
-    */
-  
   // is closest point to auv over 5km away?
   // if not, get me that bathymetry!
     if (!closest_lat_lon(lat_,lon_,
@@ -1071,28 +911,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	  if (dep_vec_[i] >= max_depth)
 	    dep_indx_2 = i;
 	
-	/*
-	if (debug)
-	  {
-	    std::cout << "lat,lon: " << lat_ << "N, " << lon_ << "E." << std::endl;
-	    std::cout << "lat_indx_1,lat_indx_2: " << lat_indx_1 << ", "
-		      << lat_indx_2 << std::endl;
-	    std::cout << "lat_1, lat_2: " <<  lat_vec_[lat_indx_1] << "N, " << lat_vec_[lat_indx_2]  << "N." << std::endl;
-	    std::cout << "lon_indx_1,lon_indx_2: " << lon_indx_1 << ", "
-		      << lon_indx_2 << std::endl;
-	    std::cout << "lon_1, lon_2: " <<  lon_vec_[lon_indx_1] << "E, " << lon_vec_[lon_indx_2]  << "E." << std::endl;
-	    
-	    std::cout << "dep_indx_1,dep_indx_2: " << dep_indx_1 << ", "
-		      << dep_indx_2 << std::endl;
-	    std::cout << "min_depth,max_depth,dep_1,dep_2: " << min_depth << ", "
-		      << max_depth << ", " << dep_vec_[dep_indx_1] << ", "
-		      << dep_vec_[dep_indx_2] << std::endl;
-	    std::cout << "mindist0 " << sqrt(mindist_sq[0])
-		      << "mindist1 " << sqrt(mindist_sq[1])
-		      << "mindist2 " << sqrt(mindist_sq[2]) << std::endl;
-	  }
-	*/
 	// time indexing
+
 	double mission_time = curr_time - moos_start_time;
 	double utc_ref;
 	if (fixed_model_start)        // Mission start at file start
@@ -1114,7 +934,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	  indx_2 = 0;
 	if (debug)
 	  std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl; 
-	//get lat/lon/bathy of closest grid points
+	//get temp and salt at closest grid points
+
 	for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
 	  {
 	    for(int n=0;n<3;n++)
