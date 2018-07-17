@@ -693,10 +693,6 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
     exit(EXIT_FAILURE);
   }
 
-  lon_len = lon_vec_.size();
-  lat_len = lat_vec_.size();
-  dep_len = dep_vec_.size();
-  
   //get sound speed of closest 3 grid points
   // Note that here x is latitude and y longitude!
 
@@ -877,10 +873,6 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
     exit(EXIT_FAILURE);
   }
 
-  lon_len = lon_vec_.size();
-  lat_len = lat_vec_.size();
-  dep_len = dep_vec_.size();
-  
   //get temp and salt of closest 3 grid points
   // Note that here x is latitude and y longitude!
 
@@ -1520,81 +1512,8 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
     exit(EXIT_FAILURE);
   }
 
-  lon_len = lon_vec_.size();
-  lat_len = lat_vec_.size();
-  
   //get sound speed of closest 3 grid points
-  // Note that here x is latitude and y longitude!
-    /*
-  // GDEM is a regular grid W->E, S->N,
-  // so we can first narrow down 4 closest grid points
-
-  int lat_indx_1 = 0;
-  int lat_indx_2 = lat_len-1;
-  int lon_indx_1 = 0;
-  int lon_indx_2 = lon_len-1;
-
-  for(int k=0;k<lon_len-1;k++)
-    if (lon_-lon_vec_[k] >=0 )  
-      lon_indx_1 = k;	  
-  lon_indx_2 = lon_indx_1+1;
-
-  for(int j=0;j<lat_len-1;j++)
-    if (lat_-lat_vec_[j] >=0 )  
-      lat_indx_1 = j;	  
-  lat_indx_2 = lat_indx_1+1;
-
-  // Now reduce to 3 and interpolate for all depths
-  
-  for(int n=0;n<3;n++)
-    {
-      mindist= std::numeric_limits<double>::max();
-
-      for(int k=lon_indx_1;k<=lon_indx_2;k++)
-	{
-	  grid_val_lon = lon_vec_[k];	      
-	  for(int j=lat_indx_1;j<=lat_indx_2;j++)
-	    {
-	      grid_val_lat = lat_vec_[j];	      
-
-	      // convert grid lat/lon to meters
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std::cout << "Failed to convert lat/lon to UTM"
-					   << std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      // distance between auv and grid point
-	      dlon_m=grid_lon_m-lon_m;
-	      dlat_m=grid_lat_m-lat_m;
-	      
-	      dist_sq=dlat_m*dlat_m+dlon_m*dlon_m;
-	      
-	      
-	      if ( dist_sq < mindist && (n==0 || (n>0 && dist_sq > mindist_sq[n-1] ) ) )
-		{
-		  mindist=dist_sq;
-		  mindist_sq[n]=dist_sq;
-		  min_lat_val[n]=grid_val_lat;
-		  min_lon_val[n]=grid_val_lon;
-		  min_ilat[n]=j;
-		  min_ilon[n]=k;
-		  x[n]=grid_lat_m;
-		  y[n]=grid_lon_m;
-		}
-	    }
-	}
-      if(mindist_sq[n]>(5000*5000)) default to NaN bathy_z if over 5 km from bathy grid edge
-	{
-	  bathy_z=default_bathy;
-	  std::cout<<"WARNING - AUV > 5 km from edge of known bathymetry grid. "
-		   << "Defaulting bathy_z = "<<default_bathy <<" m."<< std::endl;
-	  z[n] = bathy_z;
-	}
-      else
-    */
+  // Note that here x is N and y E!
   if ( !closest_lat_lon(lat_,lon_,
 			min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
     return(default_bathy);
