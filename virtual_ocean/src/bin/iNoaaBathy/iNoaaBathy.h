@@ -49,13 +49,7 @@ class CiNoaaBathy : public CMOOSApp
 
     void RegisterVariables();
     bool ReadConfiguration();
-   
-    void ReadNOAABathy(double lat, double lon);
-    double interp_bathy(double x_here,double y_here,
-			const std::vector<double>& x,
-			const std::vector<double>& y,
-			const std::vector<double>& z);
-      
+         
     std::vector<double> get_bathy(double auv_lat_, double auv_lon_);
 
     /////

@@ -1326,28 +1326,6 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	    {
 	      grid_val_lat = tgrid_lat[j][k];
 	      grid_val_lon = tgrid_lon[j][k];
-	      /*
-	      size_t lon_ind[] = {j,k,0};
-	      size_t lat_ind[] = {j,k,1};
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lat_ind, &grid_val_lat);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lat_index) value for "
-			   << lat_ <<"N x "<< lon_<<"E."<<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lon_index) value for "
-			   <<lat_<<"N x "<<lon_<<"E."<<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      */	      
 	      
 	      // convert grid lat/lon to meters
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
@@ -1477,11 +1455,9 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 		  temp_buf[i_dep] = (temp_val_1+
 				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
 				     *(temp_val_2-temp_val_1)/nc_utc_delta);
-		  //		    *temp_scaling + temp_offset;
 		  salt_buf[i_dep] = (salt_val_1 +
 				     (utc_rdcd+utc_ref-utc_vec_[indx_1])
 				     *(salt_val_2-salt_val_1)/nc_utc_delta);
-		  //		    *salt_scaling + salt_offset;
 		}
 	      if (debug)
 		{
@@ -1599,29 +1575,6 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 	    {
 	      grid_val_lat = tgrid_lat[j][k];
 	      grid_val_lon = tgrid_lon[j][k];
-	      /*
-	      size_t lon_ind[] = {j,k,0};
-	      size_t lat_ind[] = {j,k,1};
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lat_ind, &grid_val_lat);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lat_index) value for "
-			   << "j,k = " << j << ", " << k <<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  exit(EXIT_FAILURE);
-
-		}
-	      
-	      status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
-	      if (status != NC_NOERR)
-		{
-		  std::cout<<"ERROR - failed to get grid(lon_index) value for "
-			   << "j,k = " << j << ", " << k <<std::endl;
-		  std::cout<<nc_strerror(status)<<std::endl;
-		  exit(EXIT_FAILURE);
-		}
-	      */
 
 	      // convert grid lat/lon to meters
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
