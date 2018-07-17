@@ -115,6 +115,7 @@ class LamssNetCdf
 			   double moos_start, bool fixed_start);
   bool open_mseas_nc(std::string);
   void get_mseas_varnames_ids();
+  void get_mseas_lat_lon();
   double get_mseas_bathy(double lat, double lon);
   void get_mseas_profile( double lat_, double lon_,
 			  const std::vector<double>& dep_,
@@ -123,6 +124,8 @@ class LamssNetCdf
 			  std::vector<double>& salt);
   int tgrid2id_;
   int tgrid3id_;
+  std::vector<std::vector<double> > tgrid_lat;
+  std::vector<std::vector<double> > tgrid_lon;
   double moos_start_time;
   
   // HYCOM specific functions and variables

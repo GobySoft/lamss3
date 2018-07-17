@@ -54,6 +54,7 @@ void LamssNetCdf::initialize_noaa_nc(std::string nc_file,
 				     double moos_start,
 				     bool fixed_start)
 {
+  nc_is_open_  = false;
   if (open_noaa_nc(nc_file))
     {
       geodesy_.Initialise(lat_origin,lon_origin);
@@ -409,7 +410,7 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
 
   // Lat,lon and depth on scewed grid defined by tgrid2,3
   // Read by get_mseas_profile
-  
+  get_mseas_lat_lon();
   get_times();
   
   return true;
@@ -490,7 +491,8 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
   // First open NetCdf file
   
   if(nc_is_open_) return(true);
-
+  
+  std::cout << "Opening NOAA bathy nc file: " << nc_file_ << std::endl;
   open_nc_file(nc_file_);
 
   lon_ncname = "lon";
@@ -1322,6 +1324,9 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	{
 	  for(size_t j=0;j<lat_len;j++)
 	    {
+	      grid_val_lat = tgrid_lat[j][k];
+	      grid_val_lon = tgrid_lon[j][k];
+	      /*
 	      size_t lon_ind[] = {j,k,0};
 	      size_t lat_ind[] = {j,k,1};
 	      
@@ -1342,16 +1347,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 		  std::cout<<nc_strerror(status)<<std::endl;
 		  exit(EXIT_FAILURE);
 		}
-	      
-	      // convert grid lat/lon to meters
-	      
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
-					    grid_lat_m,grid_lon_m))
-		{
-		  std:: cout << "Warning: Failed to calculate XY grid position. Is vehicle NAV_LAT=" << lat_ << "/NAV_LONG="<< lon_ <<" valid?" << std::endl;
-		  return;
-		}
-	      
+	      */	      
 	      
 	      // convert grid lat/lon to meters
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
@@ -1601,6 +1597,9 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 	{
 	  for(size_t k=0;k<lon_len;k++)
 	    {
+	      grid_val_lat = tgrid_lat[j][k];
+	      grid_val_lon = tgrid_lon[j][k];
+	      /*
 	      size_t lon_ind[] = {j,k,0};
 	      size_t lat_ind[] = {j,k,1};
 	      
@@ -1622,15 +1621,7 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
 		  std::cout<<nc_strerror(status)<<std::endl;
 		  exit(EXIT_FAILURE);
 		}
-	      
-	      // convert grid lat/lon to meters
-
-              if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,grid_lat_m,grid_lon_m))
-              {
-		std:: cout << "Warning: Failed to calculate XY grid position. Is vehicle NAV_LAT=" << lat_ << "/NAV_LONG="<< lon_ <<" valid?" << std::endl;
-		return(default_bathy);
-              }
-	 
+	      */
 
 	      // convert grid lat/lon to meters
               if(!geodesy_.LatLong2LocalUTM(grid_val_lat,grid_val_lon,
@@ -1695,6 +1686,43 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
   return(bathy_z);
 }
 
+void LamssNetCdf::get_mseas_lat_lon()
+{
+  int status;
+  tgrid_lat.resize(lat_len);
+  tgrid_lon.resize(lat_len);
+  for(size_t j=0;j<lat_len;j++)
+    {
+      tgrid_lat[j].resize(lon_len);
+      tgrid_lon[j].resize(lon_len);
+      for(size_t k=0;k<lon_len;k++)
+	{
+	  size_t lon_ind[] = {j,k,0};
+	  size_t lat_ind[] = {j,k,1};
+	  double grid_val_lat;
+	  status = nc_get_var1_double(ncid_, tgrid2id_, lat_ind, &grid_val_lat);
+	  if (status != NC_NOERR)
+	    {
+	      std::cout<<"ERROR - failed to get grid(lat_index) value for "
+		       << "j,k = " << j << ", " << k <<std::endl;
+	      std::cout<<nc_strerror(status)<<std::endl;
+	      exit(EXIT_FAILURE);
+	    }
+	  tgrid_lat[j][k]=grid_val_lat;
+	  double grid_val_lon;	      
+	  status = nc_get_var1_double(ncid_, tgrid2id_, lon_ind, &grid_val_lon);
+	  if (status != NC_NOERR)
+	    {
+	      std::cout<<"ERROR - failed to get grid(lon_index) value for "
+		       << "j,k = " << j << ", " << k <<std::endl;
+	      std::cout<<nc_strerror(status)<<std::endl;
+	      exit(EXIT_FAILURE);
+	    }
+	  tgrid_lon[j][k]=grid_val_lon;
+	}
+    }	      
+}
+	  
 double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
 {
   int status;
