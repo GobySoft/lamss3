@@ -14,6 +14,7 @@
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <netcdf.h>
 
@@ -50,6 +51,11 @@ class LamssNetCdf
 			 const std::vector<double>& grid_x,
 			 const std::vector<double>& grid_y,
 			 const std::vector<double>& grid_z);
+  double datenum(const std::vector<int>& date_vec);
+  bool extract_date(std::string in, std::vector<int>& date);
+  std::vector<int> date_vec_;
+  double datenum_start;
+  
   bool geodesy_initialized;
   double nc_utc_start;
   double nc_utc_delta;
@@ -80,6 +86,8 @@ class LamssNetCdf
   int salt_varid_;
   int bathy_varid_;
 
+  std::string time_units_;
+  
   bool scewed_grid;
   
   int status;  // error status 

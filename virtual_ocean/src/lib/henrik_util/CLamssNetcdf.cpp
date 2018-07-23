@@ -40,7 +40,11 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
       scewed_grid = false;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
-      double utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
+      double utc_start;
+      if (datenum_start >= 0)
+	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
+      else
+	utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
       double utc_incr = GDEM_TIME_UNIT;
       if (time_vec_.size() > 1)
 	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*GDEM_TIME_UNIT;
@@ -75,7 +79,11 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
       scewed_grid = true;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
-      double utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
+      double utc_start;
+      if (datenum_start >= 0)
+	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
+      else
+	utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
       double utc_incr = MSEAS_TIME_UNIT;
       if (time_vec_.size() > 1)
 	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*MSEAS_TIME_UNIT;
@@ -90,13 +98,17 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
 				      bool fixed_start)
 {
   nc_is_open_  = false;
-  std::cout << "initialize_hycom_nc: calling open_hycom_nc" << std::endl;
+  
   if (open_hycom_nc(nc_file))
     {
       scewed_grid - false;
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
-      double utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
+      double utc_start;
+      if (datenum_start >= 0)
+	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
+      else
+	utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
       double utc_incr = HYCOM_TIME_UNIT;
       if (time_vec_.size() > 1)
 	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*HYCOM_TIME_UNIT;
@@ -368,6 +380,41 @@ void LamssNetCdf::get_times()
   std::cout << "times: " << time_vec_[0] << " , "
 			  << time_vec_[time_vec_.size()-1]
 			  << std::endl;
+  // Gewt time units
+  size_t t_len;
+  size_t vr_len;
+  //status = nc_inq_attlen (ncid_, time_varid_, "valid_range", &vr_len);
+  //if (status != NC_NOERR)       std::cout<<nc_strerror(status)<<std::endl;
+  status = nc_inq_attlen (ncid_, time_varid_, "units", &t_len);
+  if (status != NC_NOERR)       std::cout<<nc_strerror(status)<<std::endl;
+
+  char * ch ;
+  ch = (char *) malloc(t_len + 1);
+
+  status = nc_get_att_text(ncid_, time_varid_, "units" , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get time units."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  ch[t_len] = '\0';
+  time_units_ = ch;
+  free(ch);
+  
+  std::cout << "time_units_.size()= " << time_units_.size() << std::endl; 
+  std::cout << "time units: " << time_units_ << std::endl;
+  date_vec_.clear();
+  // extract time origin
+
+  if (extract_date(time_units_,date_vec_))
+    {
+    datenum_start = datenum(date_vec_);
+    std::cout << "datenum: " << datenum_start << std::endl;
+    }
+  else
+    datenum_start = -1000; // Invalid model start
 }
 
 bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
@@ -388,7 +435,7 @@ bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
   get_lat_lon();
   get_depths();    
   get_times();
-  
+
   return(true);
 }
   
@@ -541,7 +588,7 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   get_lat_lon();
   get_depths();    
   get_times();
-  
+  std::cout << "back from get_times" << std::endl;
 
   return(true);
 }
@@ -1541,4 +1588,118 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
       bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
       return(bathy_z);
     }
+}
+
+double LamssNetCdf::datenum(const std::vector<int>& date_vec)
+{
+  // Function returning equivalent of matlab datenum
+  // day_vec: {yy,mm,dd,hh,mm,ss};
+  // Note that datenum assumes a year 0 as a leap year.
+  // base is date number since 0000-0-0 of 12/31 the year before
+  // Default is matlab datenum origin: 0000-01-01 00:00:00
+  int year = 0;
+  int month = 1;
+  int day = 1;
+  double hours = 0;
+  double mins = 0;
+  double secs = 0;
+  for (int i = 0; i < date_vec.size(), i<6; i++)
+    {
+      switch (i)
+	{
+	case 0:
+	  year = date_vec[i];
+	case 1:
+	  month = date_vec[i];
+	case 2:
+	  day = date_vec[i];
+	case 3:
+	  hours = date_vec[i];
+	case 4:
+	  mins = date_vec[i];
+	case 5:
+	  secs = date_vec[i];
+	}
+    }
+  int base = year*365 + (year-1)/4 - (year-1)/100 + (year-1)/400 + 1;
+  int month_days = 0;
+  // is this year a leap year?
+  bool leap = ((year%4 == 0) && (year%100 != 0)) || (year%400) == 0;  
+  for (int mm=2; mm<=month; mm++)
+    {
+      // add previous months
+      switch (mm)
+	{
+	case 2:
+	  month_days += 31;
+	case 3:
+	  month_days += 28 + (int) leap;
+	case 4:
+	  month_days += 31;
+	case 5:
+	  month_days += 30;
+	case 6:
+	  month_days += 31;
+	case 7:
+	  month_days += 30;
+	case 8:
+	  month_days += 31;
+	case 9:
+	  month_days += 31;
+	case 10:
+	  month_days += 30;
+	case 11:
+	  month_days += 31;
+	case 12:
+	  month_days += 30;
+	}
+    }
+  double day_fraction = (hours + (mins/60.0 + secs)/60.0)/24.0;
+  return(base + month_days + day + day_fraction);
+}
+
+bool LamssNetCdf::extract_date(std::string in, std::vector<int>& date)
+{
+  // First change date/time separators '-' and ':' with spaces
+  std::string mod_in = in;
+  size_t index = 0;
+  while (index < mod_in.length())
+    {
+      index = mod_in.find("-",index);
+      if (index == std::string::npos) break;
+      mod_in.replace(index,1," ");
+      index += 1;
+    }
+  index = 0;
+  while (index < mod_in.length())
+    {
+      index = mod_in.find(":",index);
+      if (index == std::string::npos) break;
+      mod_in.replace(index,1," ");
+      index += 1;
+    }
+  //std::cout << "Modified units: " << mod_in << std::endl;
+  // Next convert to date vector yy.mm,dd,hh,mm,ss
+  std::stringstream ss;
+  std::string temp;
+  ss << mod_in;
+  int found;
+  date.clear();
+  std::cout << "Date:";
+  while (!ss.eof())
+    {
+      ss >> temp;
+      // Integer?
+      if (std::stringstream(temp) >> found)
+	{
+	  date.push_back(found);
+	  std::cout << " " << found;
+	}
+      temp = "";
+    }
+  std::cout << std::endl;
+  if (date.size() > 2)
+    return(true);
+  else
+    return(false);
 }
