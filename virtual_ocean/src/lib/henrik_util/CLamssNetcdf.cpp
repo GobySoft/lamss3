@@ -39,15 +39,28 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
     {
       scewed_grid = false;
       geodesy_.Initialise(lat_origin,lon_origin);
+
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_unit;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*nc_time_unit;
+	  nc_unit = nc_time_unit;
+	}
       else
-	utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
-      double utc_incr = GDEM_TIME_UNIT;
+	{
+	  utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*
+	    GDEM_TIME_UNIT;
+	  nc_unit = GDEM_TIME_UNIT;
+	}
+
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*GDEM_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*nc_unit;
+      else
+	utc_incr = nc_unit;
+      
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
       
     }
@@ -78,15 +91,28 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
     {
       scewed_grid = true;
       geodesy_.Initialise(lat_origin,lon_origin);
+
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_unit;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*nc_time_unit;
+	  nc_unit = nc_time_unit;
+	}
       else
-	utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
-      double utc_incr = MSEAS_TIME_UNIT;
+	{
+	  utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*
+	    MSEAS_TIME_UNIT;
+	  nc_unit = MSEAS_TIME_UNIT;
+	}
+
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*MSEAS_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*nc_unit;
+      else
+	utc_incr = nc_unit;
+      
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
      }
 }
@@ -103,15 +129,28 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
     {
       scewed_grid - false;
       geodesy_.Initialise(lat_origin,lon_origin);
+
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_unit;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*nc_time_unit;
+	  nc_unit = nc_time_unit;
+	}
       else
-	utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
-      double utc_incr = HYCOM_TIME_UNIT;
+	{
+	  utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*
+	    HYCOM_TIME_UNIT;
+	  nc_unit = HYCOM_TIME_UNIT;
+	}
+
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*HYCOM_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*nc_unit;
+      else
+	utc_incr = nc_unit;
+      
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
     }
 }
@@ -410,7 +449,8 @@ void LamssNetCdf::get_times()
   if (extract_date(time_units_,date_vec_, nc_time_unit))
     {
       datenum_start = datenum(date_vec_);
-      std::cout << "datenum: " << datenum_start << std::endl;
+      std::cout << "datenum: " << datenum_start 
+		<< ", nc_time unit: " << nc_time_unit << std::endl;
     }
   else
     datenum_start = -1000; // Invalid model start
@@ -1657,7 +1697,7 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
 }
 
 bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date,
-			       double units_secs)
+			       double& units_secs)
 {
   // First change date/time separators '-' and ':' with spaces
   std::string mod_in = in;
