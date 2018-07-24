@@ -41,13 +41,26 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_units;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*nc_time_unit;
+	  nc_units = nc_time_unit;
+	}
       else
-	utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*GDEM_TIME_UNIT;
-      double utc_incr = GDEM_TIME_UNIT;
+	{
+	  utc_start =  (GDEM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*GDEM_TIME_UNIT;
+	  nc_units = GDEM_TIME_UNIT;
+	}
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*GDEM_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/
+		    (time_vec_.size()-1))*nc_units;
+      else
+	utc_incr = nc_units;
+
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
       
     }
@@ -80,13 +93,26 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_units;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*nc_time_unit;
+	  nc_units = nc_time_unit;
+	}
       else
-	utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*MSEAS_TIME_UNIT;
-      double utc_incr = MSEAS_TIME_UNIT;
+	{
+	  utc_start =  (MSEAS_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*MSEAS_TIME_UNIT;
+	  nc_units = MSEAS_TIME_UNIT;
+	}
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*MSEAS_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*
+	  nc_units;
+      else
+	utc_incr = nc_units;
+
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
      }
 }
@@ -105,13 +131,26 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
       geodesy_.Initialise(lat_origin,lon_origin);
       // conversion of nc times to utc
       double utc_start;
+      double utc_incr;
+      double nc_units;
       if (datenum_start >= 0)
-	utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
+	{
+	  utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*nc_time_unit;
+	  nc_units = nc_time_unit;
+	}
       else
-	utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*HYCOM_TIME_UNIT;
-      double utc_incr = HYCOM_TIME_UNIT;
+	{
+	  utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 +
+	    time_vec_[0]*HYCOM_TIME_UNIT;
+	  nc_units = HYCOM_TIME_UNIT;
+	}
       if (time_vec_.size() > 1)
-	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*HYCOM_TIME_UNIT;
+	utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*
+	  nc_units;
+      else
+	utc_incr = nc_units;
+
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
     }
 }
@@ -413,7 +452,10 @@ void LamssNetCdf::get_times()
       std::cout << "datenum: " << datenum_start << std::endl;
     }
   else
-    datenum_start = -1000; // Invalid model start
+    {
+      datenum_start = -1000; // Invalid model start
+      nc_time_unit = 0;
+    }
 }
 
 bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
@@ -1657,7 +1699,7 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
 }
 
 bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date,
-			       double units_secs)
+			       double nc_time_unit)
 {
   // First change date/time separators '-' and ':' with spaces
   std::string mod_in = in;
@@ -1691,17 +1733,17 @@ bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date,
   std::string hour_str = "hours";
   std::string days_str = "days";
   if (temp == secs_str)
-    units_secs = 1;
+    nc_time_unit = 1;
   else if (temp == mins_str)
-    units_secs = 60;
+    nc_time_unit = 60;
   else if (temp == hour_str)
-    units_secs = 3600;
+    nc_time_unit = 3600;
   else if (temp == days_str)
-    units_secs = 24*3600;
+    nc_time_unit = 24*3600;
   else
-    units_secs = 1;
+    return(false);
   
-  std::cout << "Units: " << temp << " seconds " << units_secs << std::endl;
+  std::cout << "Units: " << temp << " seconds " << nc_time_unit << std::endl;
   date.clear();
   std::cout << "Date:";
   while (!ss.eof())
