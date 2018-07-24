@@ -403,15 +403,14 @@ void LamssNetCdf::get_times()
   time_units_ = ch;
   free(ch);
   
-  std::cout << "time_units_.size()= " << time_units_.size() << std::endl; 
   std::cout << "time units: " << time_units_ << std::endl;
   date_vec_.clear();
   // extract time origin
 
   if (extract_date(time_units_,date_vec_))
     {
-    datenum_start = datenum(date_vec_);
-    std::cout << "datenum: " << datenum_start << std::endl;
+      datenum_start = datenum(date_vec_);
+      std::cout << "datenum: " << datenum_start << std::endl;
     }
   else
     datenum_start = -1000; // Invalid model start
@@ -588,7 +587,6 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   get_lat_lon();
   get_depths();    
   get_times();
-  std::cout << "back from get_times" << std::endl;
 
   return(true);
 }
@@ -1658,7 +1656,7 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
   return(base + month_days + day + day_fraction);
 }
 
-bool LamssNetCdf::extract_date(std::string in, std::vector<int>& date)
+bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date)
 {
   // First change date/time separators '-' and ':' with spaces
   std::string mod_in = in;

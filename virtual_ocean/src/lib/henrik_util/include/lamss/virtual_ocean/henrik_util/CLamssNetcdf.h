@@ -52,7 +52,7 @@ class LamssNetCdf
 			 const std::vector<double>& grid_y,
 			 const std::vector<double>& grid_z);
   double datenum(const std::vector<int>& date_vec);
-  bool extract_date(std::string in, std::vector<int>& date);
+  bool extract_date(const std::string& in, std::vector<int>& date);
   std::vector<int> date_vec_;
   double datenum_start;
   
