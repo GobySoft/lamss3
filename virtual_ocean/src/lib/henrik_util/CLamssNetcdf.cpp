@@ -407,7 +407,7 @@ void LamssNetCdf::get_times()
   date_vec_.clear();
   // extract time origin
 
-  if (extract_date(time_units_,date_vec_))
+  if (extract_date(time_units_,date_vec_, nc_time_unit))
     {
       datenum_start = datenum(date_vec_);
       std::cout << "datenum: " << datenum_start << std::endl;
@@ -1656,7 +1656,8 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
   return(base + month_days + day + day_fraction);
 }
 
-bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date)
+bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date,
+			       double units_secs)
 {
   // First change date/time separators '-' and ':' with spaces
   std::string mod_in = in;
@@ -1682,6 +1683,25 @@ bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date)
   std::string temp;
   ss << mod_in;
   int found;
+  // first get unit string
+  if (!ss.eof())
+    ss >> temp;
+  std::string secs_str = "seconds";
+  std::string mins_str = "minutes";
+  std::string hour_str = "hours";
+  std::string days_str = "days";
+  if (temp == secs_str)
+    units_secs = 1;
+  else if (temp == mins_str)
+    units_secs = 60;
+  else if (temp == hour_str)
+    units_secs = 3600;
+  else if (temp == days_str)
+    units_secs = 24*3600;
+  else
+    units_secs = 1;
+  
+  std::cout << "Units: " << temp << " seconds " << units_secs << std::endl;
   date.clear();
   std::cout << "Date:";
   while (!ss.eof())

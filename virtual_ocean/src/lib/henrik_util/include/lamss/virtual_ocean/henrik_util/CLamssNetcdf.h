@@ -52,7 +52,8 @@ class LamssNetCdf
 			 const std::vector<double>& grid_y,
 			 const std::vector<double>& grid_z);
   double datenum(const std::vector<int>& date_vec);
-  bool extract_date(const std::string& in, std::vector<int>& date);
+  bool extract_date(const std::string& in, std::vector<int>& date,
+		    double units_secs);
   std::vector<int> date_vec_;
   double datenum_start;
   
@@ -87,6 +88,7 @@ class LamssNetCdf
   int bathy_varid_;
 
   std::string time_units_;
+  double nc_time_unit;
   
   bool scewed_grid;
   
