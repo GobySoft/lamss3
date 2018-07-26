@@ -31,8 +31,8 @@ message SimPassiveSonarConfig
   optional string acoustic_filename_suffix = 19 [default = ".DAT"];
   optional string nonacoustic_filename_prefix = 20 [default = "NAS"];
   optional string nonacoustic_filename_suffix = 21 [default = ".DAT"];
-  optional bool   mseas_svp_updates = 23 [default = false];
-  optional double mseas_update_interval = 24 [default = 60];
+  optional bool   svp_updates = 23 [default = false];
+  optional double svp_update_interval = 24 [default = 60];
   optional double svp_range_resolution = 25 [default = 200];
   optional double svp_depth_resolution = 26 [default = 20];
   optional string sync_path = 22 [default = ""];

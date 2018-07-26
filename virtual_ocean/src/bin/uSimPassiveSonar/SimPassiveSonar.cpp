@@ -81,8 +81,8 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     sampling_frequency(cfg_.sampling_frequency()),
     pinger_enabled(false),
     noise_level(cfg_.noise_level()),
-    mseas_svp_updates(cfg_.mseas_svp_updates()), 
-    mseas_update_interval(cfg_.mseas_update_interval()), 
+    svp_updates(cfg_.svp_updates()), 
+    svp_update_interval(cfg_.svp_update_interval()), 
     svp_range_resolution(cfg_.svp_range_resolution()), 
     svp_depth_resolution(cfg_.svp_depth_resolution()),
     base_dir_name(cfg_.base_dir_name()), 
@@ -263,7 +263,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     }
   sync = (sync_path != "");
   svp_requests.clear();
-  slow_loop_period = mseas_update_interval; 
+  slow_loop_period = svp_update_interval; 
 
 }
 
@@ -517,7 +517,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 	    }
 	}
     }
-  slow_loop_period = mseas_update_interval/(number_of_targets+1);
+  slow_loop_period = svp_update_interval/(number_of_targets+1);
 }
 
 void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
@@ -546,11 +546,11 @@ void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
 	  Targets[i].setTargetValues(tgt_num, tgt_on, values);
 	  // Targets[i].printTargetValues();
 	  //MOOSTrace("got %s\n", msg.m_sKey.c_str());
-	  // if first target info request svp from mseas
+	  // if first target info request svp from netcdf file
 	  int cn_num = findAcousticContact(Targets[i].target_id());
-	  if ( mseas_svp_updates && 
+	  if ( svp_updates && 
 	       (MOOSTime() - acoustic_contacts[cn_num].last_svp_request >= 
-		mseas_update_interval ))
+		svp_update_interval ))
 	    {
 	      requestSVPUpdate(acoustic_contacts[cn_num].contact,
 			       cn_num);
@@ -880,10 +880,10 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
 			      depth_min, depth_max, num_depths,
 			      source_bb_freq, cn_num);
 	    }
-	  // if mseas_svp_updates, request SVP
-	  if ( mseas_svp_updates && 
+	  // if svp_updates, request SVP
+	  if ( svp_updates && 
 	       (MOOSTime() - acoustic_contact.last_svp_request >= 
-		mseas_update_interval ) )
+		svp_update_interval ) )
 	    {
 	      requestSVPUpdate(acoustic_contact.contact,
 			       cn_num);
@@ -908,10 +908,10 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
 		      depth_min, depth_max, num_depths,
 		      source_bb_freq, cn_num);
 		  
-      // if mseas_svp_updates, request SVP
-      if (mseas_svp_updates &&
+      // if svp_updates, request SVP
+      if (svp_updates &&
 	  (MOOSTime() - acoustic_contact.last_svp_request >= 
-	   mseas_update_interval) )
+	   svp_update_interval) )
 	{
 	  requestSVPUpdate(acoustic_contact.contact,
 			   cn_num);
@@ -2516,8 +2516,8 @@ bool SimPassiveSonar::requestRayTrace(std::string cn,
 	      bellhop::protobuf::Environment* env = request.mutable_env();
 	      env->set_freq(freq);
 	      request.set_request_number(target_number);
-	      // mseas svp updates
-	      if (mseas_svp_updates && acoustic_contacts[i].svp_ready)
+	      // svp updates
+	      if (svp_updates && acoustic_contacts[i].svp_ready)
 		{
 		  request.mutable_env()->mutable_water_column()->
 		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
