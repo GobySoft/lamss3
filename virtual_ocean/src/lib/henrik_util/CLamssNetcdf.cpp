@@ -858,7 +858,8 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		  size_t indx_2 = indx_1+1;
 		  if (indx_2 >= utc_vec_.size())
 		    indx_2 = 0;
-		  std::cout << "indx_1,2 = " << indx_1 << ", " << indx_2 <<std::endl;
+		  if (debug)
+		    std::cout << "indx_1,2 = " << indx_1 << ", " << indx_2 <<std::endl;
 		  size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
 		  float val_1;
 		  int status_1 = nc_get_var1_float(ncid_, ssp_varid_, ssp_index_1, &val_1);
