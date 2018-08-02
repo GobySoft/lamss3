@@ -329,6 +329,30 @@ void LamssNetCdf::get_gdem_varnames()
 
 }
 
+void LamssNetCdf::get_hycom_varnames()
+{
+  // >>>>>>>>>> HYCOM variable names	
+
+  char ch[NC_MAX_NAME+1] ;
+
+  // >>>>>>>>>> temperature, salinity, u-vel, v-vel	
+  for (int i=4; i<=8; i++)
+    {
+      status = nc_inq_varname(ncid_, i , ch);
+      if (status != NC_NOERR)
+	{
+	  std::cout<<"ERROR - failed to get variable name for varid "<< i << std::endl;
+	  std::cout<<nc_strerror(status)<<std::endl;
+	}
+      else
+	{
+	  std::string varname = ch;
+	  std::cout << "varname " << i <<  ": " << varname << std::endl;
+	}
+    }
+  
+}
+
 void LamssNetCdf::get_lat_lon()
 {
   status = nc_inq_varid(ncid_, lon_ncname.c_str(), &lon_varid_);
@@ -612,6 +636,8 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   std::cout << "Opening hycom nc file " << nc_file_ << std::endl;
   open_nc_file(nc_file_);
 
+  get_hycom_varnames();
+  
   lon_ncname = "lon";
   lat_ncname = "lat";
   dep_ncname = "depth";
@@ -760,7 +786,7 @@ void LamssNetCdf::get_hycom_uv_varids_att()
       exit(EXIT_FAILURE);
     }
   
-  // >>>>>>>>>> v velocity 	
+  // >>>>>>>>>> v velocity (North) 	
 
   status = nc_inq_varid(ncid_, "vvel", &vvel_varid_);
   if (status != NC_NOERR)
@@ -772,7 +798,7 @@ void LamssNetCdf::get_hycom_uv_varids_att()
     }
   std::cout << "vvel_varid_=" << vvel_varid_ << std::endl;
 
-  // Salinity Attributes
+  // v velocity Attributes
 
   status = nc_get_att_float(ncid_,vvel_varid_, "scale_factor", &vvel_scaling);
   if (status != NC_NOERR)
