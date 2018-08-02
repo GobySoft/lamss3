@@ -622,7 +622,7 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   get_depth_dimension();
   get_time_dimension();
   // Get variable IDs and attributes
-  get_hycom_varids_att();
+  get_hycom_ts_varids_att();
   // get nc coordinates  
   get_lat_lon();
   get_depths();    
@@ -631,7 +631,7 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   return(true);
 }
   
-void LamssNetCdf::get_hycom_varids_att()
+void LamssNetCdf::get_hycom_ts_varids_att()
 {
   // >>>>>>>>>> temperature 	
 
@@ -710,6 +710,92 @@ void LamssNetCdf::get_hycom_varids_att()
   if (status != NC_NOERR)
     {
       std::cout<<"ERROR - failed to get missing value attribute for salinity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+}
+
+void LamssNetCdf::get_hycom_uv_varids_att()
+{
+  // >>>>>>>>>> u velocity (east) 	
+
+  status = nc_inq_varid(ncid_, "uvel", &uvel_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for u velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "uvel_varid_=" << uvel_varid_ << std::endl;
+
+  // u velocity Attributes
+
+  status = nc_get_att_float(ncid_,uvel_varid_, "scale_factor", &uvel_scaling);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get scaling attribute for u velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  status = nc_get_att_float(ncid_,uvel_varid_, "add_offset", &uvel_offset);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get offset attribute for u velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  status = nc_get_att_float(ncid_,temp_varid_, "missing_value", &uvel_missing);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get missing value attribute for temperature"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  // >>>>>>>>>> v velocity 	
+
+  status = nc_inq_varid(ncid_, "vvel", &vvel_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for v velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "vvel_varid_=" << vvel_varid_ << std::endl;
+
+  // Salinity Attributes
+
+  status = nc_get_att_float(ncid_,vvel_varid_, "scale_factor", &vvel_scaling);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get scaling attribute for v velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  status = nc_get_att_float(ncid_,vvel_varid_, "add_offset", &vvel_offset);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get offset attribute for v velocity"
+	       <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  
+  status = nc_get_att_float(ncid_,vvel_varid_, "missing_value", &vvel_missing);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get missing value attribute for v velocity"
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);

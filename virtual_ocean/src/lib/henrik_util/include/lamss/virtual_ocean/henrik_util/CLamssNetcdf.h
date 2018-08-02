@@ -85,6 +85,8 @@ class LamssNetCdf
   int ssp_varid_;
   int temp_varid_;
   int salt_varid_;
+  int uvel_varid_;
+  int vvel_varid_;
   int bathy_varid_;
 
   std::string time_units_;
@@ -154,7 +156,8 @@ class LamssNetCdf
 			   double lat_origin, double lon_origin,
 			   double moos_start, bool fixed_start);
   bool open_hycom_nc(std::string);
-  void get_hycom_varids_att();
+  void get_hycom_ts_varids_att();
+  void get_hycom_uv_varids_att();
   void get_hycom_profile(double lat_, double lon_,
 			 const std::vector<double>& dep_,
 			 double utc_time,
@@ -167,6 +170,12 @@ class LamssNetCdf
   float salt_offset;
   float salt_scaling;
   float salt_missing;
+  float uvel_offset;
+  float uvel_scaling;
+  float uvel_missing;
+  float vvel_offset;
+  float vvel_scaling;
+  float vvel_missing;
   
 };
 
