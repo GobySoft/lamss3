@@ -335,21 +335,31 @@ void LamssNetCdf::get_hycom_varnames()
 
   char ch[NC_MAX_NAME+1] ;
 
-  // >>>>>>>>>> temperature, salinity, u-vel, v-vel	
-  for (int i=4; i<=8; i++)
-    {
-      status = nc_inq_varname(ncid_, i , ch);
+  // >>>>>>>>>> Varid 5 is temperature or u-vel	
+      status = nc_inq_varname(ncid_, 5 , ch);
       if (status != NC_NOERR)
 	{
-	  std::cout<<"ERROR - failed to get variable name for varid "<< i << std::endl;
+	  std::cout<<"ERROR - failed to get variable name for varid 5" << std::endl;
 	  std::cout<<nc_strerror(status)<<std::endl;
 	}
       else
 	{
-	  std::string varname = ch;
-	  std::cout << "varname " << i <<  ": " << varname << std::endl;
+	  temp_ncname = ch;
+	  std::cout << "varname 5: " << temp_ncname << std::endl;
 	}
-    }
+  
+  // >>>>>>>>>> Varid 7 is salinity or v-vel	
+      status = nc_inq_varname(ncid_, 7 , ch);
+      if (status != NC_NOERR)
+	{
+	  std::cout<<"ERROR - failed to get variable name for varid 5" << std::endl;
+	  std::cout<<nc_strerror(status)<<std::endl;
+	}
+      else
+	{
+	  salt_ncname = ch;
+	  std::cout << "varname 7: " << salt_ncname << std::endl;
+	}
   
 }
 
@@ -648,7 +658,7 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   get_depth_dimension();
   get_time_dimension();
   // Get variable IDs and attributes
-  get_hycom_ts_varids_att();
+  get_hycom_varids_att();
   // get nc coordinates  
   get_lat_lon();
   get_depths();    
@@ -657,175 +667,96 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   return(true);
 }
   
-void LamssNetCdf::get_hycom_ts_varids_att()
+void LamssNetCdf::get_hycom_varids_att()
 {
   // >>>>>>>>>> temperature 	
 
-  status = nc_inq_varid(ncid_, "water_temp", &temp_varid_);
+  status = nc_inq_varid(ncid_, temp_ncname.c_str(), &temp_varid_);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get variable id for temperature"
+      std::cout<<"ERROR - failed to get variable id for " << temp_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
-  std::cout << "temp_varid_=" << temp_varid_ << std::endl;
+  std::cout << temp_ncname << "_varid_=" << temp_varid_ << std::endl;
 
-  // Temperature Attributes
+  // Temperature or U velocity Attributes
 
   status = nc_get_att_float(ncid_,temp_varid_, "scale_factor", &temp_scaling);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get scaling attribute for temperature"
+      std::cout<<"ERROR - failed to get scaling attribute for " << temp_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << temp_ncname << " scaling: " << temp_scaling << std::endl;
+  
   
   status = nc_get_att_float(ncid_,temp_varid_, "add_offset", &temp_offset);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get offset attribute for temperature"
+      std::cout<<"ERROR - failed to get offset attribute for " << temp_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << temp_ncname << " offset: " << temp_offset << std::endl;
   
   status = nc_get_att_float(ncid_,temp_varid_, "missing_value", &temp_missing);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get missing value attribute for temperature"
+      std::cout<<"ERROR - failed to get missing value attribute for " << temp_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << temp_ncname << " missing: " << temp_missing << std::endl;
   
-  // >>>>>>>>>> salinity 	
+  // >>>>>>>>>> salinityor or V velocity 	
 
-  status = nc_inq_varid(ncid_, "salinity", &salt_varid_);
+  status = nc_inq_varid(ncid_, salt_ncname.c_str(), &salt_varid_);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get variable id for salinity"
+      std::cout<<"ERROR - failed to get variable id for " << salt_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
-  std::cout << "salt_varid_=" << salt_varid_ << std::endl;
+  std::cout << salt_ncname << "_varid_=" << salt_varid_ << std::endl;
 
   // Salinity Attributes
 
   status = nc_get_att_float(ncid_,salt_varid_, "scale_factor", &salt_scaling);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get scaling attribute for salinity"
+      std::cout<<"ERROR - failed to get scaling attribute for " << salt_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << salt_ncname << " scaling: " << salt_scaling << std::endl;
   
   status = nc_get_att_float(ncid_,salt_varid_, "add_offset", &salt_offset);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get offset attribute for salinity"
+      std::cout<<"ERROR - failed to get offset attribute for " << salt_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
+  std::cout << salt_ncname << " offset: " << salt_offset << std::endl;
   
   status = nc_get_att_float(ncid_,salt_varid_, "missing_value", &salt_missing);
   if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get missing value attribute for salinity"
+      std::cout<<"ERROR - failed to get missing value attribute for " << salt_ncname
 	       <<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
       exit(EXIT_FAILURE);
     }
-  
-}
-
-void LamssNetCdf::get_hycom_uv_varids_att()
-{
-  // >>>>>>>>>> u velocity (east) 	
-
-  status = nc_inq_varid(ncid_, "uvel", &uvel_varid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get variable id for u velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  std::cout << "uvel_varid_=" << uvel_varid_ << std::endl;
-
-  // u velocity Attributes
-
-  status = nc_get_att_float(ncid_,uvel_varid_, "scale_factor", &uvel_scaling);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get scaling attribute for u velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  
-  status = nc_get_att_float(ncid_,uvel_varid_, "add_offset", &uvel_offset);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get offset attribute for u velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  
-  status = nc_get_att_float(ncid_,temp_varid_, "missing_value", &uvel_missing);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get missing value attribute for temperature"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  
-  // >>>>>>>>>> v velocity (North) 	
-
-  status = nc_inq_varid(ncid_, "vvel", &vvel_varid_);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get variable id for v velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  std::cout << "vvel_varid_=" << vvel_varid_ << std::endl;
-
-  // v velocity Attributes
-
-  status = nc_get_att_float(ncid_,vvel_varid_, "scale_factor", &vvel_scaling);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get scaling attribute for v velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  
-  status = nc_get_att_float(ncid_,vvel_varid_, "add_offset", &vvel_offset);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get offset attribute for v velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
-  
-  status = nc_get_att_float(ncid_,vvel_varid_, "missing_value", &vvel_missing);
-  if (status != NC_NOERR)
-    {
-      std::cout<<"ERROR - failed to get missing value attribute for v velocity"
-	       <<std::endl;
-      std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
-    }
+  std::cout << salt_ncname << " missing: " << salt_missing << std::endl;
   
 }
 
@@ -1156,28 +1087,28 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 		  }
 		else 
 		  {
-		    z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				*(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
-		      + temp_offset;
-		    z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				*(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
-		      + salt_offset;
+		    if (temp_val_1==temp_missing || temp_val_2==temp_missing)
+		      if (n==0)
+			z_tmp[n] = default_val;
+		      else
+			z_tmp[n] = z_tmp[n-1];
+		    else
+		      z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
+			+ temp_offset;
+		    
+		    if (salt_val_1==salt_missing || salt_val_2==salt_missing)
+		      if (n==0)
+			z_sal[n] = default_val;
+		      else
+			z_sal[n] = z_sal[n-1];
+		    else
+		      z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+				  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
+			+ salt_offset;
 		  }
 	      }
-	    // check for invalid numbers
-	    for (int i=0; i<3; i++)
-	      {
-		if (z_tmp[i]<0)
-		  if (i==0)
-		    z_tmp[i] = default_val;
-		  else
-		    z_tmp[i] = z_tmp[i-1];
-		if (z_sal[i]<0)
-		  if (i==0)
-		    z_sal[i] = default_val;
-		  else
-		    z_sal[i] = z_sal[i-1];
-	      }
+
 	    if (debug)
 	      std::cout << "done with z_tmp,z_sal" << std::endl;
 	    //get lat/lon/bathy of closest grid point
