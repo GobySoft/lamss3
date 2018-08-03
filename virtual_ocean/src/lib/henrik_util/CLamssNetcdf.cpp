@@ -1087,7 +1087,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 		  }
 		else 
 		  {
-		    if (temp_val_1==temp_missing || temp_val_2==temp_missing)
+		    if (temp_val_1== (short)temp_missing ||
+			temp_val_2== (short)temp_missing)
 		      if (n==0)
 			z_tmp[n] = default_val;
 		      else
@@ -1097,7 +1098,8 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 				  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
 			+ temp_offset;
 		    
-		    if (salt_val_1==salt_missing || salt_val_2==salt_missing)
+		    if (salt_val_1==(short)salt_missing ||
+			salt_val_2==(short)salt_missing)
 		      if (n==0)
 			z_sal[n] = default_val;
 		      else
