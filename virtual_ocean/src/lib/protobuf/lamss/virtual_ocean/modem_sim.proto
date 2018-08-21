@@ -1,4 +1,5 @@
 import "goby/common/protobuf/option_extensions.proto";
+import "goby/acomms/protobuf/mm_driver.proto";
 
 message ImpulseResponse
 {
@@ -85,10 +86,19 @@ message NavUpdate
   required double heading = 7;
 }
 
+message ReceiveStats
+{
+  required int32 modem_tcp_port = 1;
+  required int32 tx_modem_tcp_port = 2;
+  required bool packet_success = 3;
+  optional micromodem.protobuf.ReceiveStatistics mm_stats = 4;
+}
+
 message NetSimManagerRequest
 {
   required int32 id = 1;	
   repeated NavUpdate nav = 2;
+  repeated ReceiveStats stats = 3;
 }
 
 message NetSimManagerResponse
