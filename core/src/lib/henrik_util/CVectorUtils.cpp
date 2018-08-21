@@ -59,13 +59,14 @@ bool CmyVectorUtils::dbl_vec2str(vector<double> numbers, string& output)
 
 vector<double> CmyVectorUtils::zeros(int m, int n)
 {
-  vector<double> values;
+  vector<double> values(m*n,0);
+  /*
   values.clear();
   for (int i=0; i<m; i++)
     
     for (int j=0; j<n; j++)
       values.push_back(0.0);
-  
+  */
   return(values);
 }
 
