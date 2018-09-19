@@ -64,7 +64,7 @@ double CRandom::gauss_dev(double mu, double sigma)
   //calculate Gaussian random deviates of complex variables.
   // Consegutive calls yield real and imaginary parts.
   //mu = mean of distribution
-  //sigma= standard deviation
+  //sigma= variance
   // static double S;
   //  static int phase = 0;
   double X;
@@ -94,7 +94,7 @@ double CRandom::gauss_real(double mu, double sigma)
 {
   //calculate Gaussian random deviates of a real variable.
   //mu = mean of distribution
-  //sigma= standard deviation
+  //sigma= variance
 
   double X;
 
