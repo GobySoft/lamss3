@@ -263,7 +263,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     }
   sync = (sync_path != "");
   svp_requests.clear();
-  slow_loop_period = svp_update_interval; 
+  slow_loop_period = svp_update_interval/2; 
 
 }
 
@@ -470,7 +470,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
     }
   else
     glog.is(DEBUG1) && glog << "No resetting " << endl;
-  
+  int active_targets = 0;
   for (int i = 0; i< number_of_targets; i++)
     {
       bool register_done = false;
@@ -516,8 +516,10 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 				       << findAcousticContact(Targets[i].target_id()) << std::endl;
 	    }
 	}
+      if (Targets[i].target_on)
+	active_targets += 1;
     }
-  slow_loop_period = svp_update_interval/(number_of_targets+1);
+  slow_loop_period = svp_update_interval/(active_targets+2);
 }
 
 void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
