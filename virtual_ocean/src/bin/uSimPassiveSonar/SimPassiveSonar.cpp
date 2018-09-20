@@ -2553,8 +2553,8 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      SVP::Request svp_request;
 	      std::string serialized_svp_request;
 	      double ael_lat, ael_lon, source_pos_lat, source_pos_lon;
-	      acoustic_contacts[i].svp_request_id = contact_number;
-	      svp_request.set_request_id(contact_number);
+	      acoustic_contacts[i].svp_request_id = contact_number+1;
+	      svp_request.set_request_id(contact_number+1);
 	      svp_request.set_utc_time(MOOSTime());
 	      m_Geodesy.UTM2LatLong(ael_x,ael_y,ael_lat,ael_lon); 
 	      m_Geodesy.UTM2LatLong(acoustic_contacts[i].contact_x,
