@@ -548,7 +548,7 @@ void SimPassiveSonar::handle_target_sim_state(const CMOOSMsg& msg)
 	  //MOOSTrace("got %s\n", msg.m_sKey.c_str());
 	  // if first target info request svp from netcdf file
 	  int cn_num = findAcousticContact(Targets[i].target_id());
-	  if ( svp_updates && 
+	  if ( svp_updates && tgt_on &&
 	       (MOOSTime() - acoustic_contacts[cn_num].last_svp_request >= 
 		svp_update_interval ))
 	    {
