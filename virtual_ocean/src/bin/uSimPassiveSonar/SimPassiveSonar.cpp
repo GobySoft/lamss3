@@ -2697,7 +2697,8 @@ double SimPassiveSonar::getAmbientNoise(double depth,
 	glog.is(DEBUG1) && glog << "nl=" << nl
 				<< ", Fs=" << sampling_frequency
 				<< ", nfft=" << nfft << endl;
-      double p_intens = 1e-12 * pow(10.0,nl/10) 
+	//      double p_intens = 1e-12 * pow(10.0,nl/10) 
+      double p_intens = pow(10.0,nl/10) 
 	* sampling_frequency * 0.5 * nfft;
       double rho = 1000;
       // Compute correlated noise only for spectrum of 
