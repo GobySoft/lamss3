@@ -252,6 +252,11 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   glog.is(VERBOSE) && glog << "Each file represents about " << file_interval_time
 			   << "seconds of data" << std::endl;
   
+  // Coherent sources
+  if (cfg_.coherent_sources())
+    {
+      read_weight_file(cfg_.source_weight_file());
+    }
   // Now that we have some parameters, allocate some matricies
   sum_of_timeseries = gsl_matrix_calloc (num_array_elements,num_samples);
   if (vsa)
@@ -1030,10 +1035,31 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	      // source_spect_mag.at(f_iter) = source_bb_amp*sqrt((double) nfft/sampling_frequency);
 	      // or 
 	      //source_spect_mag.at(f_iter) = source_bb_amp*sqrt((double) nfft); 
-
+	      
 	      //Correction AJP 3 NOV 2010 (Generate broadband source with the correct spectral level.)
   	      source_spect_mag.at(f_iter) = source_bb_amp*sqrt(((double) nfft)*sampling_frequency*0.5); 
 	      source_spect_phase.at(f_iter) = 0;
+	      if (cfg_.coherent_sources())
+		{
+		  std::vector<double> frq(1,f);
+		  std::vector<double> mag(1,0);
+		  std::vector<double> phase(1,0);
+		  vecUtils.interp(src_wgt_freq,src_wgt_mag[tgt_count],frq,mag);
+		  vecUtils.interp(src_wgt_freq,src_wgt_phase[tgt_count],frq,phase);
+		  source_spect_mag.at(f_iter) *= mag[0];
+		  source_spect_phase.at(f_iter) = phase[0];
+		}
+	      else
+		{
+		  //  Add a random phase for all freq componants except f=0, and f=nyquist
+		  // (whose freq component must have a phase of zero if the time domain 
+		  // signal is to be real).
+		  if(f_iter != 0 && f_iter != num_freqs-1)
+		    {
+		      //	      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_1);
+		      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[tgt_count]);
+		    }
+		}
 	    }
 	  else
 	    {
@@ -1041,14 +1067,6 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	      source_spect_phase.at(f_iter) = 0;
 	    }
 	  
-	  //  Add a random phase for all freq componants except f=0, and f=nyquist
-	  // (whose freq componant must have a phase of zero if the time domain 
-	  // signal is to be real).
-	  if(f_iter != 0 && f_iter != num_freqs-1)
-	    {
-	      //	      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_1);
-	      source_spect_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[tgt_count]);
-	    }
 	}
       
       // Now we must now take the source spectrum and add the appropriate phase 
@@ -3017,6 +3035,65 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
 
       fclose (cov_data_file);
       glog.is(VERBOSE) && glog << "Read Covariance file: " << covmat_filename_buff 
+			       << endl;
+    }
+  return(true);  
+}
+
+bool SimPassiveSonar::read_weight_file(string src_wgt_file)
+{
+  char wgt_filename[1000]; 
+  // Sure hope nobody wants a filename longer than 1000 chars
+  sprintf(wgt_filename,"%s",src_wgt_file.c_str());
+  
+  FILE * wgt_file;
+  if ( (wgt_file = fopen(wgt_filename, "rb")) == NULL)
+    {
+      glog << "Unable to open a file: " <<  wgt_filename << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
+      exit(EXIT_FAILURE);
+    }
+  else
+    {
+      glog.is(DEBUG2) && glog << "Start reading file" << endl;
+      int num_freq;
+      double fmin, df;
+      
+      fread(&num_freq, sizeof(int), 1 , wgt_file);
+      fread(&fmin, sizeof(double), 1 , wgt_file);
+      fread(&df, sizeof(double), 1 , wgt_file);
+
+      int num_sources;
+
+      fread(&num_sources, sizeof(int), 1 , wgt_file);
+      glog.is(DEBUG1) && glog << "Done reading header, fmin= " << fmin
+			      << ", df =" << df
+			      << ", num_freq=" << num_freq
+			      << ", num_sources=" << num_sources<< endl;
+
+      src_wgt_freq.resize(num_freq);
+      for (int f_iter=0; f_iter < num_freq; f_iter++)
+	  src_wgt_freq[f_iter] = fmin + f_iter*df;
+
+      src_wgt_mag.resize(num_sources);
+      src_wgt_phase.resize(num_sources);
+      for (int i=0; i<num_sources; i++)
+	{
+	  src_wgt_mag[i].resize(num_freq);
+	  src_wgt_phase[i].resize(num_freq);
+	  for (int f_iter=0; f_iter < num_freq; f_iter++)
+	    {
+	      double mag,phase;
+	      fread(&mag, sizeof(double), 1 , wgt_file);
+	      fread(&phase, sizeof(double), 1 , wgt_file);
+	      src_wgt_mag[i][f_iter] = mag;
+	      src_wgt_phase[i][f_iter] = phase;
+	    }
+	}
+
+      fclose (wgt_file);
+      glog.is(VERBOSE) && glog << "Read source weight file: " << wgt_filename 
 			       << endl;
     }
   return(true);  

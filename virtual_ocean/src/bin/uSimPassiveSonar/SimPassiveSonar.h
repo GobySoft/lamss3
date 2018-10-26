@@ -399,7 +399,13 @@ class SimPassiveSonar : public GobyMOOSApp
     bool write_nas_file_verbose(double timestamp);
     bool write_eigenray_file();
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
-    std::vector<double> read_replica(std::string replica_path);      
+    std::vector<double> read_replica(std::string replica_path);
+
+    // Weights for coherent sources
+    bool read_weight_file(string src_wgt_file);
+    std::vector<double> src_wgt_freq;
+    std::vector<std::vector<double> > src_wgt_mag;
+    std::vector<std::vector<double> > src_wgt_phase;
 };
 
 #endif 
