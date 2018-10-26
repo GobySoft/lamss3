@@ -783,6 +783,8 @@ void SimPassiveSonar::slow_loop(double curr_time)
     {
       m_Comms.Notify("SVP_REQUEST", svp_requests[svp_requests.size()-1]);
       svp_requests.pop_back();
+      glog << "Published SVP_REQUEST. Remaining in queue"
+	   << svp_requests.size() << endl;
     }  
 
   last_slow_loop_t_ = curr_time;
@@ -2591,6 +2593,8 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	      //m_Comms.Notify("SVP_REQUEST", serialized_svp_request);
 	      // Queue request for slow loop
 	      svp_requests.push_back(serialized_svp_request);
+	      glog << "Queued SVP request for source id " << svp_request.request_id() 
+		   << endl; 
 	      // if not ready use old one
 	      // acoustic_contacts[i].svp_ready = false;
 	      acoustic_contacts[i].last_svp_request = MOOSTime();	    
