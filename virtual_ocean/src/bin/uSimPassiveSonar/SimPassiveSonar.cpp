@@ -697,8 +697,17 @@ void SimPassiveSonar::loop()
 	  
 	  // generate corrrelated  noise spectrum
 	  generate_corr_noise_spectrum();
+
 	  
 	  // Passive targets are added in the spectral domain
+	  if (cfg_.coherent_sources() && number_of_targets>0)
+	    {
+	      for(int f_iter=0; f_iter < num_freqs; f_iter++)
+		{
+		  freq_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[0]);
+		}
+	    }
+	      
 	  for (int i=0; i<number_of_targets; i++)
 	    {
 	      glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
@@ -1049,7 +1058,7 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 		  vecUtils.interp(src_wgt_freq,src_wgt_mag[tgt_count],frq,mag);
 		  vecUtils.interp(src_wgt_freq,src_wgt_phase[tgt_count],frq,phase);
 		  source_spect_mag.at(f_iter) *= mag[0];
-		  source_spect_phase.at(f_iter) = phase[0];
+		  source_spect_phase.at(f_iter) = phase[0]+freq_phase.at(f_iter);
 		}
 	      else
 		{
@@ -1785,6 +1794,24 @@ bool SimPassiveSonar::save_spectral_timeseries()
 bool SimPassiveSonar::initialize_spectrum()
 {
 
+  hydrophones.resize(num_array_elements);
+  if (vsa)
+    {
+      x_accelerometers.resize(num_array_elements);
+      y_accelerometers.resize(num_array_elements);
+      z_accelerometers.resize(num_array_elements);
+    }
+  for (int elem_iter=0; elem_iter < num_array_elements; elem_iter++)
+    {
+      hydrophones[elem_iter].initSpectrum(nfft);
+      if (vsa)
+	{
+	  x_accelerometers[elem_iter].initSpectrum(nfft);
+	  y_accelerometers[elem_iter].initSpectrum(nfft);
+	  z_accelerometers[elem_iter].initSpectrum(nfft);
+	}
+    }
+  /*
   if (hydrophones.size() == num_array_elements && hydrophones[0].spectrum.size() == nfft)
     {
       for (int elem_iter=0; elem_iter < num_array_elements; elem_iter++)
@@ -1821,6 +1848,7 @@ bool SimPassiveSonar::initialize_spectrum()
 	    }
 	}
     }
+  */
   return(true);
 }
 
@@ -3170,9 +3198,11 @@ double SimPassiveSonar::get_ssp_value(bellhop::protobuf::Environment::WaterColum
 bool CSensor::initSpectrum(int nfft_in)
 {
   nfft = nfft_in;
-  spectrum.clear();
-  for (int i=0; i< nfft; i++)
-    spectrum.push_back(0.0);
+  spectrum.resize(nfft,0.0);
+  clearSpectrum();
+  //  spectrum.clear();
+  //  for (int i=0; i< nfft; i++)
+  //    spectrum.push_back(0.0);
   return(true);
 }
 

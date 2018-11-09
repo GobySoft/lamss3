@@ -232,6 +232,9 @@ class SimPassiveSonar : public GobyMOOSApp
     std::vector<double> tone_freqs;
     std::vector<double> tone_amps;
 
+    // Frequency phase randomization for coherent source arrays
+    std::vector<double> freq_phase;
+    
     // environmental parameters
     double water_depth; // Used for region of spherical spreading.
     double water_c;
