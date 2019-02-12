@@ -697,11 +697,13 @@ void SimPassiveSonar::loop()
 	  
 	  // generate corrrelated  noise spectrum
 	  generate_corr_noise_spectrum();
+	  glog.is(DEBUG1) && glog << "Noise realizations done" << endl;
 
 	  
 	  // Passive targets are added in the spectral domain
 	  if (cfg_.coherent_sources() && number_of_targets>0)
 	    {
+	      freq_phase.resize(num_freqs);
 	      for(int f_iter=0; f_iter < num_freqs; f_iter++)
 		{
 		  freq_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[0]);
@@ -1028,13 +1030,18 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
       
       int f_lo = int(f_lower*nfft/sampling_frequency);
       int f_up = int(f_upper*nfft/sampling_frequency);
-
+      glog.is(DEBUG1) && glog << "Generating signale spectrum num_freqs "
+			      << num_freqs << std::endl;
       vector<double> source_spect_mag(num_freqs,0); 
       vector<double> source_spect_phase(num_freqs,0); 
       
       source_spect_mag.at(0) = 0;
       source_spect_phase.at(0) = 0;
-      
+      glog.is(DEBUG1) && glog << "Generating signal spectrum, tgt_count "
+			      << tgt_count
+			      << " f_lower " << f_lower
+			      << " f_upper " << f_upper
+			      << std::endl;
       for(int f_iter=0; f_iter < num_freqs; f_iter++)
 	{
 	  double f = f_iter/(nfft/sampling_frequency);
@@ -1687,6 +1694,7 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
 	  z_accelerometers[elem_iter].addToSpectrum(vec_z.getSpectrum());
 	}
     }
+
   return true;
 }
 
