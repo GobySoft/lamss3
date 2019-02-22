@@ -716,7 +716,9 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
           node_report.setY(camp_y);
           node_report.setLat(vehicle_pos.camp_lat());
           node_report.setLon(vehicle_pos.camp_lon());
-          node_report.setDepth(100);
+          node_report.setDepth(vehicle_pos.camp_modem_depth());
+	  node_report.setSpeed(vehicle_pos.camp_drift_speed());
+	  node_report.setHeading(vehicle_pos.camp_drift_heading());
           publish("NODE_REPORT", node_report.getSpec());
 
 	  // reset deploy duration counter
