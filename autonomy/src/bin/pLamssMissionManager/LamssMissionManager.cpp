@@ -711,7 +711,7 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	  abort_y = camp_y + abort_y_offset;
 
           NodeRecord node_report("camp_sargo", "icecamp");
-
+	  node_report.setTimeStamp(vehicle_pos.time());
           node_report.setX(camp_x);
           node_report.setY(camp_y);
           node_report.setLat(vehicle_pos.camp_lat());
