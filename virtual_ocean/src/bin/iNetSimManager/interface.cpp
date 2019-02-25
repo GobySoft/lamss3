@@ -15,6 +15,8 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/protobuf/frontseat.pb.h"
+#include "goby/acomms/protobuf/modem_message.pb.h"
+#include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/moos/moos_string.h"
 
 #include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
@@ -44,6 +46,7 @@ class InterfaceNetSimManager : public GobyMOOSApp
     void check_connected();
     void handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data);
     void handle_node_report(const CMOOSMsg& msg);
+    void handle_modem_receive(const goby::acomms::protobuf::ModemTransmission& rx_data);
     
 private:
     const InterfaceNetSimManagerConfig& cfg_;
@@ -64,6 +67,8 @@ private:
         double heading;
     };
 
+    // maps modem id -> modem_tcp_port
+    std::map<int, int> modem_tcp_port_;
 };
 
 InterfaceNetSimManager* InterfaceNetSimManager::inst_ = 0;
@@ -114,7 +119,11 @@ InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg
             subscribe(cfg_.node_report_var(), &InterfaceNetSimManager::handle_node_report, this);
             break;
     }
-    
+
+    subscribe_pb("ACOMMS_MODEM_RECEIVE", &InterfaceNetSimManager::handle_modem_receive, this);
+
+    for(int i = 0, n = cfg_.modem_id_mapping_size(); i < n; ++i)
+        modem_tcp_port_[cfg_.modem_id_mapping(i).modem_id()] = cfg_.modem_id_mapping(i).modem_tcp_port();        
 }
 
 
@@ -228,3 +237,32 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::F
         }
     }
 }
+
+void InterfaceNetSimManager::handle_modem_receive(const goby::acomms::protobuf::ModemTransmission& rx_data)
+{
+    if(rx_data.ExtensionSize(micromodem::protobuf::receive_stat) < 1)
+        return;
+    
+    const micromodem::protobuf::ReceiveStatistics& stats = rx_data.GetExtension(micromodem::protobuf::receive_stat, 0);
+
+    if(!modem_tcp_port_.count(stats.source()))
+    {
+        glog.is(WARN) && glog << "No tcp port mapping for modem id: " << stats.source() << std::endl;
+        return;
+    }
+    
+    NetSimManagerRequest req;
+    req.set_id(request_id_++);
+    ReceiveStats& netsim_stats = *req.add_stats();
+    netsim_stats.set_modem_tcp_port(cfg_.modem_tcp_port());
+    netsim_stats.set_tx_modem_tcp_port(modem_tcp_port_[stats.source()]);
+    netsim_stats.set_packet_success(stats.mode() == micromodem::protobuf::RECEIVE_GOOD);
+    *netsim_stats.mutable_mm_stats() = stats;
+                    
+    if(client_->connected())
+    {
+        glog.is(DEBUG1) && glog << "Sent stats: " << req.ShortDebugString() << std::endl;
+        client_->write(req);
+    }
+}
+
