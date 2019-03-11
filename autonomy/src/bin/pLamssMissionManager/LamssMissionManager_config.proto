@@ -12,7 +12,9 @@ message LamssMissionManagerConfig
   optional double min_opbox_distance = 2 [default = 500];
   optional double operation_radius   = 3 [default = 10000];
   optional double operation_radius_percent   = 4 [default = 95];
-  repeated OpBoxVertex opbox_vertex = 5;
+  
+  optional bool dynamic_opregion = 5 [default = false];
+  repeated OpBoxVertex opbox_vertex = 6;
   message OpBoxVertex
         {
            required double x = 1 ;

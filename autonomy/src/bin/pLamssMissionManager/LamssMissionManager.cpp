@@ -61,6 +61,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       abort_y_offset(cfg_.abort_y()),
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
       slow_loop_period_(10),
+      got_first_tracking_msg(false),
       last_slow_loop_t_(0)
 {
 
@@ -101,6 +102,24 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
 
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+
+    // Set up initial OpRegion if dynamic
+    if (cfg_.dynamic_opregion())
+      {
+	opregion.clear();
+	for (int i=0; i<cfg_.opbox_vertex_size(); i++)
+	  if (!opregion.add_vertex(cfg_.opbox_vertex(i).x(),
+				   cfg_.opbox_vertex(i).y(),true))
+	    {
+	      glog << "Error: OpRegion non-convex" << std::endl;
+	    }
+	opregion.set_label("OpRegion");
+	std::string str = opregion.get_spec();
+	publish("OPREGION_UPDATE",str);
+	opregion_init = opregion;
+	opregion.set_label("OpRegionInit");
+	
+      }
 
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
@@ -207,6 +226,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
 	    }
+	  // Update abort mission for ice motion
 	  update_abort_mission();
 	}
       else if (abort_mode_active_)
@@ -706,6 +726,23 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				      vehicle_pos.camp_lon(),
 				      camp_y, camp_x))
 	{
+	  // save initial camp location
+	  if (!got_first_tracking_msg)
+	    {
+	      camp_x_init = camp_x;
+	      camp_y_init = camp_y;
+	      got_first_tracking_msg = true;
+	    }
+	  else if (cfg_.dynamic_opregion())
+	    {
+	      opregion = opregion_init;
+	      opregion.shift_horz(camp_x - camp_x_init);
+	      opregion.shift_vert(camp_y - camp_y_init);
+	      opregion.set_label("OpRegion");
+	      std::string str = opregion.get_spec();
+	      publish("OPREGION_UPDATE",str);
+	    }
+	  
 	  // update abort location
 	  abort_x = camp_x + abort_x_offset;
 	  abort_y = camp_y + abort_y_offset;

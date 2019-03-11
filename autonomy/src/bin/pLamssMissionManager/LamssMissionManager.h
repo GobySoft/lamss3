@@ -16,6 +16,7 @@
 
 //#include "MBUtils.h"
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "XYPolygon.h"
 
 class TrackManagerException : public std::runtime_error
 {
@@ -37,7 +38,7 @@ class LamssMissionManager : public GobyMOOSApp
     LamssMissionManager& operator=(const LamssMissionManager&);
 
     CMOOSGeodesy m_Geodesy;
-
+    XYPolygon opregion, opregion_init;
     
     // synchronous event
     void loop();    
@@ -101,7 +102,15 @@ class LamssMissionManager : public GobyMOOSApp
     bool tracking_;
     double target_bearing_;
     int collaborator_id_;
+    
+    //
+    // Initial camp location
+    //
+    bool got_first_tracking_msg;
+    double camp_x_init;
+    double camp_y_init;
 
+    
     //
     // Abort location
     //
