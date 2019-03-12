@@ -746,8 +746,10 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      publish("OPREGION_UPDATE",cc.str());
 	      // Zamboni Loiters for ice camp ops
 	      std::stringstream cent;
-	      cent << "center_assign=(" << camp_x-camp_x_init
-		   << "," << camp_y-camp_y_init << ")";
+	      cent << "center_assign=("
+		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
+		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init
+		   << ")";
 	      publish("SENSOR_DEPLOY",cent.str());
 	    }
 	  
