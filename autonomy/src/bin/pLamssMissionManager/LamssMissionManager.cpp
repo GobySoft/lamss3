@@ -735,12 +735,20 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	    }
 	  else if (cfg_.dynamic_opregion())
 	    {
+	      // Update OpRegion to follow ice camp
 	      opregion = opregion_init;
 	      opregion.shift_horz(camp_x - camp_x_init);
 	      opregion.shift_vert(camp_y - camp_y_init);
 	      opregion.set_label("OpRegion");
-	      std::string str = opregion.get_spec();
-	      publish("OPREGION_UPDATE",str);
+	      std::string poly = opregion.get_spec();
+	      std::stringstream cc;
+	      cc << "polygon=" << poly;
+	      publish("OPREGION_UPDATE",cc.str());
+	      // Zamboni Loiters for ice camp ops
+	      std::stringstream cent;
+	      cent << "center_assign=(" << camp_x-camp_x_init
+		   << "," << camp_y-camp_y_init << ")";
+	      publish("SENSOR_DEPLOY",cent.str());
 	    }
 	  
 	  // update abort location
