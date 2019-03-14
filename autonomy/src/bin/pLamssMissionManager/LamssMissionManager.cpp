@@ -96,13 +96,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
-
-    scheduler_.initiate_processor(fsm_);
-
-    fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
-
-    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
-
     // Set up initial OpRegion if dynamic
     if (cfg_.dynamic_opregion())
       {
@@ -127,6 +120,14 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
     if (cfg_.homing_beacon_frequency() > 0)
       publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());
+
+    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+
+    // Start fsm thread
+    scheduler_.initiate_processor(fsm_);
+
+    fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
+
 
 }
 
@@ -750,6 +751,12 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
 	      publish("SENSOR_DEPLOY",cent.str());
+	      // Consistent stationkeeping point
+	      std::stringstream statn;
+	      cent << "station_pt="
+		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
+		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
+	      publish("DEPLOY_STATION",statn.str());
 	    }
 	  
 	  // update abort location
