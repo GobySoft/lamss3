@@ -62,6 +62,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
       slow_loop_period_(10),
       got_first_tracking_msg(false),
+      on_trackline(false),
       last_slow_loop_t_(0)
 {
 
@@ -91,6 +92,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
     subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
+    subscribe("ON_TRACKLINE", &LamssMissionManager::handle_on_trackline, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     // intialize MOOSGeodesy
@@ -565,6 +567,12 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
     }
 }
 
+void LamssMissionManager::handle_on_trackline(const CMOOSMsg& msg)
+{
+  std::string str = msg.GetString();
+  on_trackline = MOOSStrCmp(str,"TRUE");
+}
+
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 {
   double opreg_perimeter_distance = msg.GetDouble();
@@ -751,12 +759,23 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
 	      publish("SENSOR_DEPLOY",cent.str());
-	      // Consistent stationkeeping point
+	      // Consistent station keeping point
 	      std::stringstream statn;
-	      cent << "station_pt="
+	      statn << "station_pt="
 		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
 	      publish("DEPLOY_STATION",statn.str());
+	      // Move racetrack unless on trackline
+	      if (!on_trackline)
+		{
+		  std::stringstream trck;
+		  trck << "center_assign="
+		       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
+		       << ","
+		       << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
+		  publish("SENSOR_RACETRACK",trck.str());
+		  
+		}
 	    }
 	  
 	  // update abort location

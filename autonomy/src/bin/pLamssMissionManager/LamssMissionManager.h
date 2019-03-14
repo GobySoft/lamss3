@@ -71,6 +71,7 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_target_bearing(const CMOOSMsg& msg);
     void handle_survey_flag(const CMOOSMsg& msg);
     void handle_gps_update(const CMOOSMsg& msg);
+    void handle_on_trackline(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     
@@ -119,6 +120,8 @@ class LamssMissionManager : public GobyMOOSApp
     // Offset of abort point (hydrohole) from origin (camp)
     double abort_x_offset;
     double abort_y_offset;
+
+    bool on_trackline;
 };
 
 #endif
