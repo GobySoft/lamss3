@@ -769,7 +769,7 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      if (!on_trackline)
 		{
 		  std::stringstream trck;
-		  trck << "center_assign="
+		  trck << "points="
 		       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		       << ","
 		       << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
