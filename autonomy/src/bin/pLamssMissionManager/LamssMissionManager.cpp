@@ -759,9 +759,10 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
 	      publish("SENSOR_DEPLOY",cent.str());
+	      //publish("HOMING_CONFIG",cent.str());
 	      // Consistent station keeping point
 	      std::stringstream statn;
-	      statn << "station_pt="
+	      statn << "point="
 		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
 		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
 	      publish("DEPLOY_STATION",statn.str());
