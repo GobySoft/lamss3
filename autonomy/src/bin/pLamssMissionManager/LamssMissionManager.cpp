@@ -439,7 +439,10 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  command_received_ = true;
 	  command_received_cond_.notify_one();
 	}
-
+      // Set camp location at deploy for zamboni behaviors
+      camp_x_deploy = camp_x_last;
+      camp_y_deploy = camp_y_last;
+      
       post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
@@ -756,32 +759,35 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      // Zamboni Loiters for ice camp ops
 	      std::stringstream cent;
 	      cent << "center_assign="
-		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
-		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
+		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
 	      publish("SENSOR_DEPLOY",cent.str());
 	      //publish("HOMING_CONFIG",cent.str());
 	      // Consistent station keeping point
 	      std::stringstream statn;
 	      statn << "point="
-		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
-		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
+		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
 	      publish("DEPLOY_STATION",statn.str());
 	      // Move racetrack unless on trackline
 	      if (!in_track)
 		{
 		  std::stringstream trck;
 		  trck << "points="
-		       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_init
+		       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
 		       << ","
-		       << last_deploy_cmd_.deploy_y() + camp_y-camp_y_init;
+		       << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
 		  publish("SENSOR_RACETRACK",trck.str());
 		  
 		}
 	    }
+	  // save camp location for possible deploy zambony being relative to deploy location
+	  camp_x_last = camp_x;
+	  camp_y_last = camp_y;
 	  
 	  // update abort location
-	  abort_x = camp_x + abort_x_offset;
-	  abort_y = camp_y + abort_y_offset;
+	  abort_x = (camp_x-camp_x_init) + abort_x_offset;
+	  abort_y = (camp_y-camp_y_init) + abort_y_offset;
 
           NodeRecord node_report("camp_sargo", "icecamp");
 	  node_report.setTimeStamp(vehicle_pos.time());

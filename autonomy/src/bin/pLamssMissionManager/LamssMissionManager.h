@@ -110,6 +110,10 @@ class LamssMissionManager : public GobyMOOSApp
     bool got_first_tracking_msg;
     double camp_x_init;
     double camp_y_init;
+    double camp_x_last;
+    double camp_y_last;
+    double camp_x_deploy;
+    double camp_y_deploy;
 
     
     //
