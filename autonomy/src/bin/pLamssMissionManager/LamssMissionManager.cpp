@@ -209,11 +209,12 @@ void LamssMissionManager::slow_loop(double curr_time)
     {
       if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
-	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
-	  if (remaining <= 0.0)
+	  double stale_acomms = curr_time - last_acomms_;
+	  double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
+	  if (stale_acomms >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
-			 << "Deploy duration exceeded - initiating Abort"
+			 << "Deploy duration exceeded w/o acomms - initiating Abort"
 			 << std::endl;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
@@ -322,6 +323,7 @@ void LamssMissionManager::homing_prosecute()
   publish("TRACKER_COMMAND","RESET");
   std::stringstream ss2;
   ss2 << "depth=" << cfg_.abort_depth() ;
+  publish("DEPTH_MODE","SINGLE");
   publish("SENSOR_DEPTH_TRACKING",ss2.str());
   publish("SENSOR_DEPTH_DEPLOY",ss2.str());
 
@@ -496,6 +498,9 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 
       if (prosecute_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
+      // Force single depth for prosecute
+        publish("DEPTH_MODE","SINGLE");
+
       // prosecute only accepted if already in active mission
       if (mission_active_)
 	{
