@@ -3127,6 +3127,8 @@ bool SimPassiveSonar::read_weight_file(string src_wgt_file)
 	      double mag,phase;
 	      fread(&mag, sizeof(double), 1 , wgt_file);
 	      fread(&phase, sizeof(double), 1 , wgt_file);
+	      // Sign change tested 03222019
+	      phase =-phase;
 	      // Unwrap phase for interpolation
 	      if (f_iter>0)
 		{
