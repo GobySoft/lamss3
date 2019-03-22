@@ -63,6 +63,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       slow_loop_period_(10),
       got_first_tracking_msg(false),
       in_track(false),
+      depth_adapting(false),
       last_slow_loop_t_(0)
 {
 
@@ -203,7 +204,7 @@ void LamssMissionManager::slow_loop(double curr_time)
       }
     }
 
-  // Check if Deploy Duration exceeded
+  // Check if Deploy Duration exceeded or if tracking updates stale
 
   if ( mission_active_ && !homing_mode_active_)
     {
@@ -222,6 +223,14 @@ void LamssMissionManager::slow_loop(double curr_time)
 		publish("USBL_ENABLED","TRUE");
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
+	    }
+	  else if (stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration() && !depth_adapting)
+	    {
+	      goby::glog << group("helm")
+			 << "25% of deploy duration exceeded w/o acomms - going to acomms depth"
+			 << std::endl;
+		publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+		depth_adapting = true;
 	    }
 	  else
 	    {
@@ -448,10 +457,13 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
-	last_acomms_ = MOOSTime();
-
+	  last_acomms_ = MOOSTime();
+      if (last_deploy_cmd_.depth_mode() == LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
+	depth_adapting = true;
+      else
+	depth_adapting = false;
       publish("SURVEY_COMPLETED","FALSE");
-
+      
       // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
       if (last_deploy_cmd_.homing_enabled() &&
          last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&

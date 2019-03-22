@@ -126,6 +126,7 @@ class LamssMissionManager : public GobyMOOSApp
     double abort_y_offset;
 
     bool in_track;
+    bool depth_adapting;
 };
 
 #endif
