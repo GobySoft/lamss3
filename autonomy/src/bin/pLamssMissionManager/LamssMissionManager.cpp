@@ -403,6 +403,10 @@ void LamssMissionManager::initial_deploy()
       // This is important for dynamic scenarios such as in ICEX
       init_deploy_cmd.set_deploy_x(abort_x);
       init_deploy_cmd.set_deploy_y(abort_y);
+      // If adapt depth mode, keep it for survey return
+      if (depth_adapting)
+	init_deploy_cmd.set_depth_mode(
+	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
