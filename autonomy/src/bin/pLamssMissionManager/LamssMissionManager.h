@@ -13,6 +13,7 @@
 #include "LamssMissionManager_config.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
@@ -114,7 +115,11 @@ class LamssMissionManager : public GobyMOOSApp
     double camp_y_last;
     double camp_x_deploy;
     double camp_y_deploy;
-
+    
+    double last_tracking_msg;
+    
+    CMeasAvg camp_x_spd_filt;
+    CMeasAvg camp_y_spd_filt;
     
     //
     // Abort location

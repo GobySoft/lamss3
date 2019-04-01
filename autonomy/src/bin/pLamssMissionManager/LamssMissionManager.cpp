@@ -765,6 +765,7 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      camp_x_init = camp_x;
 	      camp_y_init = camp_y;
 	      got_first_tracking_msg = true;
+	      last_tracking_msg = vehicle_pos.time();
 	    }
 	  else if (cfg_.dynamic_opregion())
 	    {
@@ -805,6 +806,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	  // save camp location for possible deploy zambony being relative to deploy location
 	  camp_x_last = camp_x;
 	  camp_y_last = camp_y;
+	  // Use current vehicle time stamp
+	  last_tracking_msg = vehicle_pos.time();
 	  
 	  // update abort location
 	  abort_x = (camp_x-camp_x_init) + abort_x_offset;
