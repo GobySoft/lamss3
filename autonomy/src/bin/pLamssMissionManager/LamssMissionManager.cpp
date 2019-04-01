@@ -60,7 +60,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       abort_x_offset(cfg_.abort_x()),
       abort_y_offset(cfg_.abort_y()),
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
-      slow_loop_period_(10),
+      slow_loop_period_(15),
       got_first_tracking_msg(false),
       in_track(false),
       depth_adapting(false),
@@ -166,6 +166,10 @@ void LamssMissionManager::loop()
 
 void LamssMissionManager::slow_loop(double curr_time)
 {
+  // First update deploy and abort parameters
+  if (cfg_.dynamic_opregion() && got_first_tracking_msg)
+    update_deploy_parameters();
+  
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
@@ -174,7 +178,7 @@ void LamssMissionManager::slow_loop(double curr_time)
     {
     double station_range =
       sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
-	   pow(last_nav_.local_fix().y() - last_deploy_cmd_.deploy_y(),2));
+	   pow(last_nav_.local_fix().y()-last_deploy_cmd_.deploy_y(),2));
     if (cfg_.operation_radius() > 0 &&
 	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
 	  {
@@ -773,67 +777,18 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      got_first_tracking_msg = true;
 	      last_tracking_msg = vehicle_pos.time();
 	    }
-	  else if (cfg_.dynamic_opregion())
-	    {
-	      // Update camp speed filters
-	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
-			    (vehicle_pos.time()-last_tracking_msg));
-	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
-			    (vehicle_pos.time()-last_tracking_msg));
-	      // Update OpRegion to follow ice camp
-	      opregion = opregion_init;
-	      opregion.shift_horz(camp_x - camp_x_init);
-	      opregion.shift_vert(camp_y - camp_y_init);
-	      opregion.set_label("OpRegion");
-	      std::string poly = opregion.get_spec();
-	      std::stringstream cc;
-	      cc << "polygon=" << poly;
-	      publish("OPREGION_UPDATE",cc.str());
-	      // Zamboni Loiters for ice camp ops
-	      std::stringstream cent;
-	      cent << "center_assign="
-		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
-	      publish("SENSOR_DEPLOY",cent.str());
-	      //publish("HOMING_CONFIG",cent.str());
-	      // Consistent station keeping point
-	      std::stringstream statn;
-	      statn << "point="
-		   << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-		   << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
-	      publish("DEPLOY_STATION",statn.str());
-	      // Move racetrack unless on trackline
-	      if (!in_track)
-		{
-		  std::stringstream trck;
-		  trck << "points="
-		       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-		       << ","
-		       << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
-		  publish("SENSOR_RACETRACK",trck.str());
-		  
-		}
-	    }
+
+	  // Update camp speed filters
+	  camp_x_spd_filt.setVal((camp_x-camp_x_last)/
+				 (vehicle_pos.time()-last_tracking_msg));
+	  camp_y_spd_filt.setVal((camp_y-camp_y_last)/
+				 (vehicle_pos.time()-last_tracking_msg));
 	  // save camp location for possible deploy zambony being relative to deploy location
 	  camp_x_last = camp_x;
 	  camp_y_last = camp_y;
 	  // Use current vehicle time stamp
 	  last_tracking_msg = vehicle_pos.time();
 	  
-	  // update abort location
-	  abort_x = (camp_x-camp_x_init) + abort_x_offset;
-	  abort_y = (camp_y-camp_y_init) + abort_y_offset;
-
-          NodeRecord node_report("camp_sargo", "icecamp");
-	  node_report.setTimeStamp(vehicle_pos.time());
-          node_report.setX(camp_x);
-          node_report.setY(camp_y);
-          node_report.setLat(vehicle_pos.camp_lat());
-          node_report.setLon(vehicle_pos.camp_lon());
-          node_report.setDepth(vehicle_pos.camp_modem_depth());
-	  node_report.setSpeed(vehicle_pos.camp_drift_speed());
-	  node_report.setHeading(vehicle_pos.camp_drift_heading());
-          publish("NODE_REPORT", node_report.getSpec());
 
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
@@ -845,6 +800,18 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				  << " camp_x=" << camp_x
 				  << " camp_y=" << camp_y
 				  << std::endl;
+	  
+	    NodeRecord node_report("camp_sargo", "icecamp");
+	    node_report.setTimeStamp(vehicle_pos.time());
+	    node_report.setX(camp_x);
+	    node_report.setY(camp_y);
+	    node_report.setLat(vehicle_pos.camp_lat());
+	    node_report.setLon(vehicle_pos.camp_lon());
+	    node_report.setDepth(vehicle_pos.camp_modem_depth());
+	    node_report.setSpeed(vehicle_pos.camp_drift_speed());
+	    node_report.setHeading(vehicle_pos.camp_drift_heading());
+	    publish("NODE_REPORT", node_report.getSpec());
+
 	}
       else
 	{
@@ -960,4 +927,51 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
 
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
 
+}
+
+void LamssMissionManager::update_deploy_parameters()
+{
+  double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
+    (MOOSTime()-last_tracking_msg);
+  double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
+    (MOOSTime()-last_tracking_msg);
+  {
+    // Update OpRegion to follow ice camp
+    opregion = opregion_init;
+    opregion.shift_horz(camp_x - camp_x_init);
+    opregion.shift_vert(camp_y - camp_y_init);
+    opregion.set_label("OpRegion");
+    std::string poly = opregion.get_spec();
+    std::stringstream cc;
+    cc << "polygon=" << poly;
+    publish("OPREGION_UPDATE",cc.str());
+    // Zamboni Loiters for ice camp ops
+    std::stringstream cent;
+    cent << "center_assign="
+	 << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	 << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+    publish("SENSOR_DEPLOY",cent.str());
+    //publish("HOMING_CONFIG",cent.str());
+    // Consistent station keeping point
+    std::stringstream statn;
+    statn << "point="
+	  << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	  << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+    publish("DEPLOY_STATION",statn.str());
+    // Move racetrack unless on trackline
+    if (!in_track)
+      {
+	std::stringstream trck;
+	trck << "points="
+	     << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	     << ","
+	     << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	publish("SENSOR_RACETRACK",trck.str());
+	
+      }
+  }
+  // update abort location
+  abort_x = (camp_x-camp_x_init) + abort_x_offset;
+  abort_y = (camp_y-camp_y_init) + abort_y_offset;
+    
 }
