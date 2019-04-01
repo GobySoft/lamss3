@@ -64,7 +64,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       got_first_tracking_msg(false),
       in_track(false),
       depth_adapting(false),
-      last_slow_loop_t_(0)
+      last_slow_loop_t_(0),
+      filter_length(10)
 {
 
     goby::glog.set_lock_action(lock);
@@ -117,6 +118,9 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	
       }
 
+    camp_x_spd_filt.configAvg(filter_length);
+    camp_y_spd_filt.configAvg(filter_length);
+    
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
     mission_start_time_ = MOOSTime();
@@ -455,8 +459,10 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  command_received_cond_.notify_one();
 	}
       // Set camp location at deploy for zamboni behaviors
-      camp_x_deploy = camp_x_last;
-      camp_y_deploy = camp_y_last;
+      camp_x_deploy = camp_x_last + camp_x_spd_filt.getAvg()*
+	(MOOSTime() - last_tracking_msg);
+      camp_y_deploy = camp_y_last + camp_y_spd_filt.getAvg()*
+	(MOOSTime() - last_tracking_msg);
       
       post_transit_route();
 
@@ -769,6 +775,11 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	    }
 	  else if (cfg_.dynamic_opregion())
 	    {
+	      // Update camp speed filters
+	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
+			    (vehicle_pos.time()-last_tracking_msg));
+	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
+			    (vehicle_pos.time()-last_tracking_msg));
 	      // Update OpRegion to follow ice camp
 	      opregion = opregion_init;
 	      opregion.shift_horz(camp_x - camp_x_init);

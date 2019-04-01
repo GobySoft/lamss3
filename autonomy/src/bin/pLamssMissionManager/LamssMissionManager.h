@@ -120,7 +120,7 @@ class LamssMissionManager : public GobyMOOSApp
     
     CMeasAvg camp_x_spd_filt;
     CMeasAvg camp_y_spd_filt;
-    
+    int filter_length;    
     //
     // Abort location
     //
