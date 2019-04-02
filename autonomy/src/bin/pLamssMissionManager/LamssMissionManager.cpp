@@ -55,10 +55,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
       initial_deploy_done_(false),
-      abort_x(cfg_.abort_x()),
-      abort_y(cfg_.abort_y()),
-      abort_x_offset(cfg_.abort_x()),
-      abort_y_offset(cfg_.abort_y()),
+      abort_x(cfg_.abort_x_offset()),
+      abort_y(cfg_.abort_y_offset()),
+      abort_x_offset(cfg_.abort_x_offset()),
+      abort_y_offset(cfg_.abort_y_offset()),
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
       slow_loop_period_(15),
       got_first_tracking_msg(false),
@@ -776,6 +776,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      camp_y_init = camp_y;
 	      got_first_tracking_msg = true;
 	      last_tracking_msg = vehicle_pos.time();
+	      abort_x =camp_x + abort_x_offset;
+	      abort_y =camp_y + abort_y_offset;
 	    }
 
 	  // Update camp speed filters
@@ -970,8 +972,11 @@ void LamssMissionManager::update_deploy_parameters()
 	
       }
   }
-  // update abort location
-  abort_x = (camp_x-camp_x_init) + abort_x_offset;
-  abort_y = (camp_y-camp_y_init) + abort_y_offset;
-    
+  // update abort location. Note that defined as offset relative to camp
+  abort_x = camp_x + abort_x_offset;
+  abort_y = camp_y + abort_y_offset;
+  // update homing beacon location (assumed to be abort location
+  std::stringstream bc;
+  bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
+  publish("BEACON_UPDATE",bc.str());
 }
