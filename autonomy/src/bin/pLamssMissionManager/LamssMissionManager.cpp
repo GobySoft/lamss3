@@ -415,6 +415,12 @@ void LamssMissionManager::initial_deploy()
       if (depth_adapting)
 	init_deploy_cmd.set_depth_mode(
 	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+      // If stale acomms, continue with current duration timer
+      double stale_acomms = MOOSTime() - last_acomms_;
+      double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
+      if (remaining < init_deploy_cmd.deploy_duration())
+	init_deploy_cmd.set_deploy_duration(remaining);
+
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
@@ -776,13 +782,17 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	      camp_y_init = camp_y;
 	      got_first_tracking_msg = true;
 	      last_tracking_msg = vehicle_pos.time();
+	      camp_x_spd_filt.configAvg(filter_length);
+	      camp_y_spd_filt.configAvg(filter_length);
 	    }
-
-	  // Update camp speed filters
-	  camp_x_spd_filt.setVal((camp_x-camp_x_last)/
-				 (vehicle_pos.time()-last_tracking_msg));
-	  camp_y_spd_filt.setVal((camp_y-camp_y_last)/
-				 (vehicle_pos.time()-last_tracking_msg));
+	  else
+	    {
+	      // Update camp speed filters
+	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
+				     (vehicle_pos.time()-last_tracking_msg));
+	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
+				     (vehicle_pos.time()-last_tracking_msg));
+	    }
 	  // save camp location for possible deploy zambony being relative to deploy location
 	  camp_x_last = camp_x;
 	  camp_y_last = camp_y;
@@ -808,8 +818,16 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	    node_report.setLat(vehicle_pos.camp_lat());
 	    node_report.setLon(vehicle_pos.camp_lon());
 	    node_report.setDepth(vehicle_pos.camp_modem_depth());
-	    node_report.setSpeed(vehicle_pos.camp_drift_speed());
-	    node_report.setHeading(vehicle_pos.camp_drift_heading());
+	    //	    node_report.setSpeed(vehicle_pos.camp_drift_speed());
+	    //	    node_report.setHeading(vehicle_pos.camp_drift_heading());
+	    double camp_drift_speed = sqrt(pow(camp_x_spd_filt.getAvg(),2)+
+				     pow(camp_y_spd_filt.getAvg(),2));
+	    node_report.setSpeed(camp_drift_speed);
+	    double camp_drift_heading =
+	      atan2(camp_x_spd_filt.getAvg(),camp_y_spd_filt.getAvg())*180/M_PI;
+	    if (camp_drift_heading < 0)
+	      camp_drift_heading +=360;
+	    node_report.setHeading(camp_drift_heading);
 	    publish("NODE_REPORT", node_report.getSpec());
 
 	}
