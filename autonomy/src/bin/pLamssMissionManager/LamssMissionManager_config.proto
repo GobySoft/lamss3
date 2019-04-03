@@ -30,8 +30,8 @@ message LamssMissionManagerConfig
   }
   optional int32  topside_id = 13      [default = 1];
 
-  optional double abort_x = 20 [default = 0];
-  optional double abort_y = 21[default = 0];
+  optional double abort_x_offset = 20 [default = 0];
+  optional double abort_y_offset = 21[default = 0];
   optional double abort_depth = 22 [default = 30];
   optional double abort_speed = 23 [default = 1.5];
   optional LAMSS_DEPLOY initial_deploy = 24;
