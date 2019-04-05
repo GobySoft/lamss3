@@ -259,6 +259,11 @@ void LamssMissionManager::slow_loop(double curr_time)
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
+	      // Update duration of abort heading behavior
+	      //	      std::stringstream cc;
+	      //	      cc << "duration=" << remaining;
+	      //	      publish("ABORT_HEADING",cc.str());
+	      update_abort_mission();
 	      // If homing using towed array go to prosecute homing state
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::TOWED)
 		{
