@@ -253,7 +253,14 @@ void LamssMissionManager::slow_loop(double curr_time)
       else if (abort_mode_active_)
 	{
 	  double remaining =  abort_duration_ - (curr_time - abort_time_);
-	  if (remaining > 0.0)
+	  if (remaining < 4*slow_loop_period_)
+	    {
+	      // Enter return mode 
+	      queue_event<EvNewMission>();
+	      queue_event<EvStartDeploy>();
+	      queue_event<EvReturnToBase>();
+	    }
+	  else
 	    {
 	      goby::glog << group("helm")
 		<< "Abort time remaining: " << remaining
@@ -276,14 +283,6 @@ void LamssMissionManager::slow_loop(double curr_time)
 		    }
 		}
 	    }
-	  /*	  // Let the helm finish the ABORT
-
-	  else
-	    {
-	      queue_event<EvNewMission>();
-	      queue_event<EvStartDrifting>();
-	    }
-	  */
 	}
     }
   else if (homing_mode_active_)
@@ -993,7 +992,7 @@ void LamssMissionManager::update_deploy_parameters()
 	
       }
   }
-  // update abort location. Note that defined as offset relative to camp
+  // update abort location. Note that it's defined as offset relative to camp
   abort_x = camp_x + abort_x_offset;
   abort_y = camp_y + abort_y_offset;
   // update homing beacon location (assumed to be abort location
