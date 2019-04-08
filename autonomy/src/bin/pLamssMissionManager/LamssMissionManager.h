@@ -53,6 +53,7 @@ class LamssMissionManager : public GobyMOOSApp
 			   double node_hdg, double node_dep );
     void initial_deploy();
     void initial_transit();
+    void homing_return();
 
     // mail handlers
 

@@ -256,9 +256,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  if (remaining < 4*slow_loop_period_)
 	    {
 	      // Enter return mode 
-	      queue_event<EvNewMission>();
-	      queue_event<EvStartDeploy>();
-	      queue_event<EvReturnToBase>();
+	      homing_return();
 	    }
 	  else
 	    {
@@ -428,6 +426,33 @@ void LamssMissionManager::initial_deploy()
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
+  publish("LAMSS_DEPLOY_OUT", serialized);
+}
+
+void LamssMissionManager::homing_return()
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
+  homing_cmd.set__time(MOOSTime());
+
+  homing_cmd.set__rcv_id(vehicle_id_);
+
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  //  init_deploy_cmd.set__src_id(cfg_.topside_id());
+  homing_cmd.set__src_id(vehicle_id_);
+  homing_cmd.set_auto_prosecute(false);
+  // for auto redeploy, center at current abort location
+  // This is important for dynamic scenarios such as in ICEX
+  homing_cmd.set_deploy_x(abort_x);
+  homing_cmd.set_deploy_y(abort_y);
+  // If adapt depth mode, keep it for survey return
+  if (depth_adapting)
+    homing_cmd.set_depth_mode(
+	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+  homing_cmd.set_homing_enabled(true);
+  std::string serialized;
+  serialize_for_moos(&serialized,homing_cmd);
   publish("LAMSS_DEPLOY_OUT", serialized);
 }
 
