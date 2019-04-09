@@ -446,6 +446,7 @@ void LamssMissionManager::homing_return()
   // This is important for dynamic scenarios such as in ICEX
   homing_cmd.set_deploy_x(abort_x);
   homing_cmd.set_deploy_y(abort_y);
+  homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
   // If adapt depth mode, keep it for survey return
   if (depth_adapting)
     homing_cmd.set_depth_mode(
