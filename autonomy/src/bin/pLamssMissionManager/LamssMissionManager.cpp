@@ -453,6 +453,8 @@ void LamssMissionManager::homing_return()
   homing_cmd.set_deploy_y(abort_y);
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
   homing_cmd.set_homing_enabled(true);
+  // Force non abort in case we lost comms
+  last_acomms_ = MOOSTime();
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
   publish("LAMSS_DEPLOY_OUT", serialized);
@@ -523,8 +525,21 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  std::stringstream cent;
 	  cent << "center_assign="
 	       << last_deploy_cmd_.deploy_x()
-	       << "," << last_deploy_cmd_.deploy_y() ;
+	       << "," << last_deploy_cmd_.deploy_y();
 	  publish("HOMING_CONFIG",cent.str());
+	  publish("USBL_ENABLED","TRUE");
+	}
+      // USBL Homing for recovery
+      else if (last_deploy_cmd_.homing_enabled() &&
+         last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_HOMING &&
+         cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+	{
+	  std::stringstream wpt;
+	  wpt << "points="
+	       << abort_x
+	       << "," << abort_y
+	       << "#radius=" << last_deploy_cmd_.deploy_upper_depth();
+	  publish("HOMING_STATION",wpt.str());
 	  publish("USBL_ENABLED","TRUE");
 	}
       else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
