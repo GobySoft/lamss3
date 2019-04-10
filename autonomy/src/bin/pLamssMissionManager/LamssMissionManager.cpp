@@ -518,7 +518,14 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       if (last_deploy_cmd_.homing_enabled() &&
          last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
-        publish("USBL_ENABLED","TRUE");
+	{
+	  std::stringstream cent;
+	  cent << "center_assign="
+	       << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	       << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	  publish("HOMING_CONFIG",cent.str());
+	  publish("USBL_ENABLED","TRUE");
+	}
       else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
         publish("USBL_ENABLED","TRUE");
