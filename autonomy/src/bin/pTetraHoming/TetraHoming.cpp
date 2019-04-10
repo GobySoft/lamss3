@@ -129,6 +129,12 @@ bool TetraHoming::Iterate()
       stringstream ss;
       ss << "center_assign = " << m_loiter_x << "," << m_loiter_y;
       Notify(m_return_update_var, ss.str());
+      std::stringstream wpt;
+      wpt << "points="
+	  << m_loiter_x
+	  << ","
+	  << m_loiter_y;
+      Notify("HOMING_STATION",wpt.str());
     }
   } else if (m_mission_state == "ABORT") {
     cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
