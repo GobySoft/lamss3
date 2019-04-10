@@ -452,10 +452,6 @@ void LamssMissionManager::homing_return()
   homing_cmd.set_deploy_x(abort_x);
   homing_cmd.set_deploy_y(abort_y);
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
-  // If adapt depth mode, keep it for survey return
-  if (depth_adapting)
-    homing_cmd.set_depth_mode(
-	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
   homing_cmd.set_homing_enabled(true);
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
