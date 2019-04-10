@@ -252,7 +252,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	}
       else if (abort_mode_active_)
 	{
-	  double remaining =  abort_duration_ - (curr_time - abort_time_);
+	  // Abort_duration is now updated in slow loop, not only at abort time.
+	  // double remaining =  abort_duration_ - (curr_time - abort_time_);
+	  double remaining =  abort_duration_;
 	  if (remaining < 4*slow_loop_period_)
 	    {
 	      // Enter return mode 
@@ -290,10 +292,13 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  // Finish homing prosecute and extend abort duration
 	      queue_event<EvResumeAbort>();
-	      abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
-	      std::stringstream ss;
-	      ss << "duration=" << abort_duration_ ;
-	      publish("ABORT_HEADING", ss.str());
+	      // Abort location now constantly updated in slow loop
+	      /*
+		abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
+		std::stringstream ss;
+		ss << "duration=" << abort_duration_ ;
+		publish("ABORT_HEADING", ss.str());
+	      */
 	}
     }
 
@@ -770,7 +775,7 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
   boost::mutex::scoped_try_lock lk(moos_mutex_);
   if (homing_mode_active_ && tracking_)
     {
-      abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
+      // abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
       double new_heading = target_bearing_;
       if (new_heading < 0)
 	new_heading += 360;
