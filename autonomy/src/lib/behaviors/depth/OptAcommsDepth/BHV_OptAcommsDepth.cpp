@@ -652,7 +652,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		    }
 		  //the closer the two top rays are, the higher the penalty
 		  if (max_rat > 0)
-		    tl *= max_rat; 
+		    tl /= max_rat; 
 		    
 		  
 		  mean_tl += tl;
@@ -662,7 +662,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 				       << ",depth=" << depth[i]
 				       << " tl=" << tl
 				       << " Multipath award="
-				       << 10*log10(max_rat)
+				       << -10*log10(max_rat)
 				       << std::endl;
 		  
 		  if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
