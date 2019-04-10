@@ -522,7 +522,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  std::stringstream cent;
 	  cent << "center_assign="
 	       << last_deploy_cmd_.deploy_x()
-	       << "," << last_deploy_cmd_.deploy_y()
+	       << "," << last_deploy_cmd_.deploy_y() ;
 	  publish("HOMING_CONFIG",cent.str());
 	  publish("USBL_ENABLED","TRUE");
 	}
