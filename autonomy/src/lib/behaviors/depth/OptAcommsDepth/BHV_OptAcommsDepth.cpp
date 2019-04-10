@@ -624,6 +624,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		  double elev=0;
 		  double pow_max = 1e-30;
 		  double tl = 1e-30;
+		  int iray_max = 0;
+		  double pow_ratio = 1;
 		  for (int iray = 0; iray < eig.num_rays; iray++)
 		    {
 		      //if (eig.bundle[iray].dip_receiver >= dip_min &&
@@ -633,16 +635,35 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      tl += pow_ray;
 		      if (pow_ray > pow_max)
 			{
+			  iray_max = iray;
 			  elev = eig.bundle[iray].dip_receiver;
 			  pow_max = pow_ray;
 			} 
 		      //}
 		    }
-		  if (debug) file_out_ << ",range=" << ranges[j] << ",depth=" << depth[i]
-				       << " tl=" << tl << std::endl;
+		  // Find how pow_max is above the next
+		  double max_rat = 0;
+		  for (int iray = 0; iray < eig.num_rays; iray++)
+		    {
+		      double pow_ray = pow(eig.bundle[iray].amp,2);
+		      double rat = pow_ray/pow_max;
+		      if (iray != iray_max && rat > max_rat)
+			max_rat = rat;
+		    }
+		  //the closer the two top rays are, the higher the penalty
+		  if (max_rat > 0)
+		    tl *= max_rat; 
+		    
+		  
 		  mean_tl += tl;
 
 		  tl = - tl_factor * 10.0 * log10(tl);
+		  if (debug) file_out_ << ",range=" << ranges[j]
+				       << ",depth=" << depth[i]
+				       << " tl=" << tl
+				       << " Multipath award="
+				       << 10*log10(max_rat)
+				       << std::endl;
 		  
 		  if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
 		    max_tl = tl;
