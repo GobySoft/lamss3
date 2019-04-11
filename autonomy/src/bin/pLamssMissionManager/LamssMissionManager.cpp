@@ -255,7 +255,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  // Abort_duration is now updated in slow loop, not only at abort time.
 	  // double remaining =  abort_duration_ - (curr_time - abort_time_);
 	  double remaining =  abort_duration_;
-	  if (remaining < 4*slow_loop_period_)
+	  if (remaining < 10*slow_loop_period_)
 	    {
 	      // Enter return mode 
 	      homing_return();
