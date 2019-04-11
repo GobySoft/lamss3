@@ -258,7 +258,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  if (remaining < 10*slow_loop_period_)
 	    {
 	      // Enter return mode 
-	      glog.is(VERBOSE) && glog << "Entering homing_return"; 
+	      goby::glog << group("helm")
+			 << "Entering homing_return" << std::endl; 
 	      homing_return();
 	    }
 	  else
