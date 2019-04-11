@@ -652,7 +652,9 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		    }
 		  //the closer the two top rays are, the higher the penalty
 		  if (max_rat > 0)
-		    tl /= max_rat; 
+		    tl /= max_rat;
+		  else
+		    tl *= 4;       //Award single ray locations with 6 dB
 		    
 		  
 		  mean_tl += tl;
