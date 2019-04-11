@@ -120,7 +120,8 @@ bool TetraHoming::OnConnectToServer()
 
 bool TetraHoming::Iterate()
 {
-  if (m_deploy_mission == "RETURN") {
+  if ((m_mission_state == "DEPLOY") &&
+      (m_deploy_mission == "RETURN" || m_deploy_mission == "HOMING")) {
     cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
     cout << "range std. dev. = " << m_std_range << " must be <= " << m_valid_std_range << endl;
     if ((m_std_azimuth <= m_valid_std_azimuth) && (m_std_range <= m_valid_std_range)) {
@@ -130,7 +131,7 @@ bool TetraHoming::Iterate()
       ss << "center_assign = " << m_loiter_x << "," << m_loiter_y;
       Notify(m_return_update_var, ss.str());
       std::stringstream wpt;
-      wpt << "points="
+      wpt << "point="
 	  << m_loiter_x
 	  << ","
 	  << m_loiter_y;
