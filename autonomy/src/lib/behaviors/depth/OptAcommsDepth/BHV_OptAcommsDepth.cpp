@@ -69,35 +69,36 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
     depth_max(5000.0),
     number_depths(301),
     theta_min(-60.0),
-  theta_max(60.0),
-  number_theta(1000),
-  max_number_bounces(6),
-  tl_factor(1),
-  adapt_tl_threshold(0.5),
-  tl_threshold(0.5),
-  active_region(true),
-  peak_filter_(true),
-  optimize_tl(true),
-  optimize_snr(false),
-  optimize_se(false),
-  optimize_nl(false),
-  log_open(false),
-  svp_depth_resolution(5.0),
-  svp_range_resolution(200.0),
-  mseas_update_interval(41),
-  last_svp_request_(0),
-  svp_ready(false),
-  svp_requested(false),
-  got_lat_origin(false),
-  got_long_origin(false),
-  geo_init(false),
-  valid_tl(false),
-  new_ivp(false),
-  water_depth(6000.0),
-  surface_sound_speed(1480.0),
-  sound_speed_gradient(0.016),
-  beam_width(6.0),
-  dip_min(-10.0),
+    theta_max(60.0),
+    number_theta(1000),
+    max_number_bounces(6),
+    tl_factor(1),
+    adapt_tl_threshold(0.5),
+    tl_threshold(0.5),
+    active_region(true),
+    peak_filter_(true),
+    optimize_tl(true),
+    optimize_snr(false),
+    optimize_se(false),
+    optimize_nl(false),
+    multipath_penalty(false),
+    log_open(false),
+    svp_depth_resolution(5.0),
+    svp_range_resolution(200.0),
+    mseas_update_interval(41),
+    last_svp_request_(0),
+    svp_ready(false),
+    svp_requested(false),
+    got_lat_origin(false),
+    got_long_origin(false),
+    geo_init(false),
+    valid_tl(false),
+    new_ivp(false),
+    water_depth(6000.0),
+    surface_sound_speed(1480.0),
+    sound_speed_gradient(0.016),
+    beam_width(6.0),
+    dip_min(-10.0),
     dip_max(10.0),
     debug(false)
 {
@@ -192,6 +193,12 @@ bool BHV_OptCohAcoustDepth::setParam(std::string param, std::string val)
     {
       adapt_tl_threshold = as<double>(val);
       tl_threshold = adapt_tl_threshold;
+      return true;
+    }    
+    else if(param == "multipath_penalty")
+    {
+      multipath_penalty = MOOSStrCmp(val,"true") ||
+	MOOSStrCmp(val,"TRUE") ;
       return true;
     }    
     else if(param == "max_number_bounces")
@@ -598,7 +605,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      double max_tl = -1e6;
 	      double min_tl = 1e6;
 	      double min_tl_dep;
-	      double mean_tl = 0;
+	      double mean_power = 0;
 	      double closest_tl = 0;
 	      double depth_diff = 1e6;
 	      std::vector<double> dep_tl;
@@ -623,7 +630,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		    }
 		  double elev=0;
 		  double pow_max = 1e-30;
-		  double tl = 1e-30;
+		  double power = 1e-30;
+
 		  int iray_max = 0;
 		  double pow_ratio = 1;
 		  for (int iray = 0; iray < eig.num_rays; iray++)
@@ -632,34 +640,36 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      //  eig.bundle[iray].dip_receiver <= dip_max)
 		      //{
 		      double pow_ray = pow(eig.bundle[iray].amp,2);
-		      tl += pow_ray;
+		      power += pow_ray;
 		      if (pow_ray > pow_max)
 			{
 			  iray_max = iray;
 			  elev = eig.bundle[iray].dip_receiver;
 			  pow_max = pow_ray;
 			} 
-		      //}
 		    }
-		  // Find how pow_max is above the next
 		  double max_rat = 0;
-		  for (int iray = 0; iray < eig.num_rays; iray++)
+		  // multipath penalty if enabled
+		  if (multipath_penalty)
 		    {
-		      double pow_ray = pow(eig.bundle[iray].amp,2);
-		      double rat = pow_ray/pow_max;
-		      if (iray != iray_max && rat > max_rat)
-			max_rat = rat;
+		      // Find how pow_max is above the next
+		      for (int iray = 0; iray < eig.num_rays; iray++)
+			{
+			  double pow_ray = pow(eig.bundle[iray].amp,2);
+			  double rat = pow_ray/pow_max;
+			  if (iray != iray_max && rat > max_rat)
+			    max_rat = rat;
+			}
+		      //the closer the two top rays are, the higher the penalty
+		      if (max_rat > 0)
+			power /= max_rat;
+		      else
+			power *= 4;       //Award single ray locations with 6 dB
 		    }
-		  //the closer the two top rays are, the higher the penalty
-		  if (max_rat > 0)
-		    tl /= max_rat;
-		  else
-		    tl *= 4;       //Award single ray locations with 6 dB
 		    
-		  
-		  mean_tl += tl;
+		  mean_power += power;
 
-		  tl = - tl_factor * 10.0 * log10(tl);
+		  double tl = - tl_factor * 10.0 * log10(power);
 		  if (debug) file_out_ << ",range=" << ranges[j]
 				       << ",depth=" << depth[i]
 				       << " tl=" << tl
@@ -683,7 +693,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		  val_elev.push_back(elev*180.0/M_PI);
 		}
 	      
-	      mean_tl = - tl_factor * 10*log10(mean_tl/number_depths);
+	      double mean_tl = - tl_factor *
+		10*log10(mean_power/number_depths);
 	      double pitch_required = 
 		fabs(atan2(-(min_tl_dep - current_depth),
 			   fabs(ranges[j]-current_range) )
