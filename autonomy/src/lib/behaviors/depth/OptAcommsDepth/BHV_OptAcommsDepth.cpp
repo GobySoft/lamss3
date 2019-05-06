@@ -352,6 +352,11 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       file_out_ << goby_time() << " peak_filter=" << peak_filter_ << std::endl; 
       file_out_ << goby_time() << " optimize=" << optimize << std::endl; 
       file_out_ << goby_time() << " sonar=" << tolower(sonar) << std::endl; 
+      if (multipath_penalty)
+	file_out_ << goby_time() << " multipath penalty enabled" << std::endl; 
+      else
+	file_out_ << goby_time() << " multipath penalty disabled" << std::endl; 
+	
     }
   bool ok_dep;
   double current_depth = getBufferDoubleVal("NAV_DEPTH", ok_dep);
