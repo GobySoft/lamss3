@@ -1807,3 +1807,325 @@ bool LamssNetCdf::extract_date(const std::string& in, std::vector<int>& date,
   else
     return(false);
 }
+
+void LamssNetCdf::initialize_eof_nc(std::string nc_file)
+{
+  nc_is_open_  = false;
+  
+  if (open_eof_nc(nc_file)) {
+    std::cout<<std::endl<<" in initialize eof" <<std::endl;
+      // scewed_grid - false;
+      // geodesy_.Initialise(lat_origin,lon_origin);
+
+      // // conversion of nc times to utc
+      // double utc_start;
+      // double utc_incr;
+      // double nc_unit;
+      // if (datenum_start >= 0)
+      //   {
+      //     utc_start =  (datenum_start-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*nc_time_unit;
+      //     nc_unit = nc_time_unit;
+      //   }
+      // else
+      //   {
+      //     utc_start =  (HYCOM_TIME_ORIGIN-UTC_ORIGIN)*24.0*3600.0 + time_vec_[0]*
+      //       HYCOM_TIME_UNIT;
+      //     nc_unit = HYCOM_TIME_UNIT;
+      //   }
+
+      // if (time_vec_.size() > 1)
+      //   utc_incr = ((time_vec_.back() - time_vec_[0])/(time_vec_.size()-1))*nc_unit;
+      // else
+      //   utc_incr = nc_unit;
+      
+      // init_timebase(moos_start,utc_start,utc_incr,fixed_start);
+    }
+}
+
+bool LamssNetCdf::open_eof_nc(std::string nc_file_)
+{
+  
+  if(nc_is_open_) return(true);
+  std::cout << "Opening eof nc file " << nc_file_ << std::endl;
+  open_nc_file(nc_file_);
+
+  get_eof_varnames();
+
+  eof_dim_eofs_ncname = "dim_eofs";
+  eof_dim_depth_ncname = "dim_depth";
+
+  // // Get dimensions
+  get_eof_depth_dimension();
+  get_eof_dimension();
+  // Get variable IDs and attributes
+  get_eof_depths();
+  get_eof_weights();
+  get_eof_baseval();
+  get_num_eofs();
+  get_num_depth();
+ // get_hycom_varids_att();
+  // // get nc coordinates  
+  // get_lat_lon();
+  // get_times();
+
+  return(true);
+}
+
+void LamssNetCdf::get_eof_varnames()
+{
+  // >>>>>>>>>> HYCOM variable names	
+
+  char ch[NC_MAX_NAME+1] ;
+
+  // >>>>>>>>>> Varid 0 is depths 	
+  status = nc_inq_varname(ncid_, 0 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 0" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_depths = ch;
+      std::cout << "varname 0 : " << eof_depths << std::endl;
+    }
+
+  // >>>>>>>>>> Varid 1 is weights
+  status = nc_inq_varname(ncid_, 1 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 1" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_weights = ch;
+      std::cout << "varname 1 : " << eof_weights << std::endl;
+    }
+
+  // >>>>>>>>>> Varid 2 is eofs
+  status = nc_inq_varname(ncid_, 2 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 2" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_eofs = ch;
+      std::cout << "varname 2 : " << eof_eofs << std::endl;
+    }
+
+  // >>>>>>>>>> Varid 3 is baseval 	
+  status = nc_inq_varname(ncid_, 3 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 3" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_baseval = ch;
+      std::cout << "varname 3 : " << eof_baseval << std::endl;
+    }
+
+  // >>>>>>>>>> Varid 4 is num_eofs
+  status = nc_inq_varname(ncid_, 4 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 4" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_num_eofs = ch;
+      std::cout << "varname 4 : " << eof_num_eofs << std::endl;
+    }
+ 
+  // >>>>>>>>>> Varid 5 is num_depth
+  status = nc_inq_varname(ncid_, 5 , ch);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable name for varid 5" << std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+    }
+  else
+    {
+      eof_num_depth = ch;
+      std::cout << "varname 5: " << eof_num_depth << std::endl;
+    }
+  
+ 
+}
+
+void LamssNetCdf::get_eof_dimension()
+{
+
+  // >>>>>>>>>> EOF dimension
+
+  status = nc_inq_dimid(ncid_, eof_dim_eofs_ncname.c_str(), &eofid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for eofs."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "eofid_=" << eofid_ << std::endl;
+
+  status = nc_inq_dimlen (ncid_, eofid_, &eof_len);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get eof_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "eof_len=" << eof_len<< std::endl;
+
+}
+
+void LamssNetCdf::get_eof_depth_dimension()
+{
+
+  // >>>>>>>>>> Depth	
+
+  status = nc_inq_dimid(ncid_, eof_dim_depth_ncname.c_str(), &depid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dimension id for dep."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "depid_=" << depid_ << std::endl;
+
+  status = nc_inq_dimlen (ncid_, depid_, &dep_len);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get dep_length."<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "dep_len=" << dep_len << std::endl;
+
+}
+
+void LamssNetCdf::get_eof_depths()
+{
+  status = nc_inq_varid(ncid_, eof_depths.c_str(), &dep_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for depth"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "dep_varid_=" << dep_varid_ << std::endl;
+
+  dep_vec_.resize(dep_len);
+  status = nc_get_var_double (ncid_, dep_varid_, &dep_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get depth vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "depths: ";
+  for (int ij=0;ij<dep_vec_.size();ij++) {
+    std::cout << dep_vec_[ij] << ", ";
+      }
+  std::cout << std::endl;
+}
+
+void LamssNetCdf::get_eof_weights()
+{
+  status = nc_inq_varid(ncid_, eof_weights.c_str(), &eof_weights_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for weights"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "weights_varid_=" << eof_weights_varid_ << std::endl;
+
+  weights_vec_.resize(eof_len);
+  status = nc_get_var_double (ncid_, eof_weights_varid_, &weights_vec_[0]);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get weights vector"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "weights: ";
+  for (int ij=0;ij<weights_vec_.size();ij++) {
+    std::cout << weights_vec_[ij] << ", ";
+  }
+  std::cout << std::endl;
+}
+
+void LamssNetCdf::get_eof_baseval()
+{
+  status = nc_inq_varid(ncid_, eof_baseval.c_str(), &eof_baseval_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for baseval"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "baseval_varid_=" << eof_baseval_varid_ << std::endl;
+
+  status = nc_get_var_double (ncid_, eof_baseval_varid_, &eof_baseval_value);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get baseval value"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << std::endl << " baseval: " << eof_baseval_value << std::endl;
+}
+
+void LamssNetCdf::get_num_eofs()
+{
+  status = nc_inq_varid(ncid_, eof_num_eofs.c_str(), &eof_num_eofs_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for num_eofs"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "num_eofs_varid_=" << eof_num_eofs_varid_ << std::endl;
+
+  status = nc_get_var_double (ncid_, eof_num_eofs_varid_, &eof_num_eofs_value);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get num_eofs value"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << std::endl << " num_eofs value: " << eof_num_eofs_value << std::endl;
+}
+
+void LamssNetCdf::get_num_depth()
+{
+  status = nc_inq_varid(ncid_, eof_num_depth.c_str(), &eof_num_depth_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for num_depth"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+  std::cout << "num_depth_varid_=" << eof_num_depth_varid_ << std::endl;
+
+  status = nc_get_var_double (ncid_, eof_num_depth_varid_, &eof_num_depth_value);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get num_depth value"<<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << std::endl << " num_depth value: " << eof_num_depth_value << std::endl;
+}

@@ -67,6 +67,7 @@ class LamssNetCdf
   std::vector<double> dep_vec_;
   std::vector<float> time_vec_;
   std::vector<float> utc_vec_;
+  std::vector<double> weights_vec_;
 
   
   int ncid_;
@@ -77,6 +78,7 @@ class LamssNetCdf
   int timeid_;
   int sspid_;
   int bathyid_;
+  int eofid_;
     
   int lat_varid_;
   int lon_varid_;
@@ -109,6 +111,7 @@ class LamssNetCdf
   size_t lon_len;
   size_t dep_len;
   size_t time_len;
+  size_t eof_len;
 
   CMOOSGeodesy geodesy_;
   CmyVectorUtils vecUtils;    
@@ -168,7 +171,35 @@ class LamssNetCdf
   float salt_offset;
   float salt_scaling;
   float salt_missing;
-  
+
+  //EOF specific functions and variables
+  void initialize_eof_nc(std::string nc_file);
+  bool open_eof_nc(std::string);
+  void get_eof_varnames();
+  void get_eof_dimension();
+  void get_eof_depth_dimension();
+  void get_eof_depths();
+  void get_eof_weights();
+  void get_eof_baseval();
+  void get_num_eofs();
+  void get_num_depth();
+
+  std::string eof_num_depth;
+  std::string eof_num_eofs;
+  std::string eof_baseval;
+  std::string eof_eofs;
+  std::string eof_weights;
+  std::string eof_depths;
+
+  std::string eof_dim_eofs_ncname;
+  std::string eof_dim_depth_ncname;
+  int eof_weights_varid_;
+  int eof_baseval_varid_;
+  int eof_num_eofs_varid_;
+  int eof_num_depth_varid_;
+  double eof_baseval_value;
+  double eof_num_eofs_value;
+  double eof_num_depth_value;
 };
 
 #endif 
