@@ -28,6 +28,9 @@ class TetraHoming : public CMOOSApp
    double       m_valid_std_range;
    double       m_loiter_x;
    double       m_loiter_y;
+   // Beacon location estimate published by pLamssMissionManager
+   double       m_aco_beacon_x;
+   double       m_aco_beacon_y;
    std::string  m_return_update_var;
    std::string  m_abort_update_var;
 

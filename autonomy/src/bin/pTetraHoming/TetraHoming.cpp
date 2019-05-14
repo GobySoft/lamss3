@@ -84,6 +84,15 @@ bool TetraHoming::OnNewMail(MOOSMSG_LIST &NewMail)
      else if (MOOSStrCmp(msg.GetKey(), "S-MOCAB_STD_RANGE")) {
         m_std_range = msg.GetDouble();
      }
+     else if (MOOSStrCmp(msg.GetKey(), "BEACON_UPDATE")) {
+        string update = msg.GetString();
+        string beacon_x, beacon_y;
+        beacon_x = tokStringParse(update, "beacon_x", ',', '=');
+        beacon_y = tokStringParse(update, "beacon_y", ',', '=');
+        if (!beacon_x.empty()) m_aco_beacon_x = atof(beacon_x.c_str());
+        if (!beacon_y.empty()) m_aco_beacon_y = atof(beacon_y.c_str());
+     }
+
 
 #if 0 // Keep these around just for template
     string key   = msg.GetKey();
@@ -121,12 +130,22 @@ bool TetraHoming::OnConnectToServer()
 bool TetraHoming::Iterate()
 {
   if ((m_mission_state == "DEPLOY") &&
-      (m_deploy_mission == "RETURN" || m_deploy_mission == "HOMING")) {
-    cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
-    cout << "range std. dev. = " << m_std_range << " must be <= " << m_valid_std_range << endl;
-    if ((m_std_azimuth <= m_valid_std_azimuth) && (m_std_range <= m_valid_std_range)) {
-      m_loiter_x = m_target_x;
-      m_loiter_y = m_target_y;
+      (m_deploy_mission == "RETURN" || m_deploy_mission == "HOMING"))
+    {
+      cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
+      cout << "range std. dev. = " << m_std_range << " must be <= " << m_valid_std_range << endl;
+      if ((m_std_azimuth <= m_valid_std_azimuth) && (m_std_range <= m_valid_std_range))
+	{
+	  // Good homing estimate
+	  m_loiter_x = m_target_x;
+	  m_loiter_y = m_target_y;
+	}
+      else
+	{
+	  // else use best current estimate from pLamssMissionManager
+	  m_loiter_x = m_aco_beacon_x;
+	  m_loiter_y = m_aco_beacon_y;
+	}
       stringstream ss;
       ss << "center_assign = " << m_loiter_x << "," << m_loiter_y;
       Notify(m_return_update_var, ss.str());
@@ -137,7 +156,7 @@ bool TetraHoming::Iterate()
 	  << m_loiter_y;
       Notify("HOMING_STATION",wpt.str());
     }
-  } else if (m_mission_state == "ABORT") {
+  else if (m_mission_state == "ABORT") {
     cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
     cout << "range std. dev. = " << m_std_range << " must be <= " << m_valid_std_range << endl;
     if ((m_std_azimuth <= m_valid_std_azimuth) && (m_std_range <= m_valid_std_range)) {
