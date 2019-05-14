@@ -92,7 +92,7 @@ public:
   int tl_factor;
   double adapt_tl_threshold;
   double tl_threshold;
-  bool multipath_penalty;
+  int multipath_penalty;
   
   std::vector<double> dom, range;
   std::vector<double> dom_tl_save, range_tl_save;

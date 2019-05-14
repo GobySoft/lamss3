@@ -81,7 +81,7 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
     optimize_snr(false),
     optimize_se(false),
     optimize_nl(false),
-    multipath_penalty(false),
+    multipath_penalty(0),
     log_open(false),
     svp_depth_resolution(5.0),
     svp_range_resolution(200.0),
@@ -197,8 +197,7 @@ bool BHV_OptCohAcoustDepth::setParam(std::string param, std::string val)
     }    
     else if(param == "multipath_penalty")
     {
-      multipath_penalty = MOOSStrCmp(val,"true") ||
-	MOOSStrCmp(val,"TRUE") ;
+      multipath_penalty = as<double>(val);
       return true;
     }    
     else if(param == "max_number_bounces")
@@ -352,11 +351,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       file_out_ << goby_time() << " peak_filter=" << peak_filter_ << std::endl; 
       file_out_ << goby_time() << " optimize=" << optimize << std::endl; 
       file_out_ << goby_time() << " sonar=" << tolower(sonar) << std::endl; 
-      if (multipath_penalty)
-	file_out_ << goby_time() << " multipath penalty enabled" << std::endl; 
-      else
-	file_out_ << goby_time() << " multipath penalty disabled" << std::endl; 
-	
+      file_out_ << goby_time() << " multipath penalty=" << multipath_penalty
+		<< std::endl; 
     }
   bool ok_dep;
   double current_depth = getBufferDoubleVal("NAV_DEPTH", ok_dep);
@@ -639,6 +635,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 
 		  int iray_max = 0;
 		  double pow_ratio = 1;
+		  double max_tau;
 		  for (int iray = 0; iray < eig.num_rays; iray++)
 		    {
 		      //if (eig.bundle[iray].dip_receiver >= dip_min &&
@@ -651,25 +648,27 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 			  iray_max = iray;
 			  elev = eig.bundle[iray].dip_receiver;
 			  pow_max = pow_ray;
+			  max_tau = eig.bundle[iray].tau;
 			} 
 		    }
 		  double max_rat = 0;
 		  // multipath penalty if enabled
-		  if (multipath_penalty)
+		  if (multipath_penalty > 0)
 		    {
 		      // Find how pow_max is above the next
 		      for (int iray = 0; iray < eig.num_rays; iray++)
 			{
 			  double pow_ray = pow(eig.bundle[iray].amp,2);
 			  double rat = pow_ray/pow_max;
-			  if (iray != iray_max && rat > max_rat)
+			  if (iray != iray_max && rat > max_rat
+			      && fabs(max_tau-eig.bundle[iray].tau) < 0.02)
 			    max_rat = rat;
 			}
 		      //the closer the two top rays are, the higher the penalty
 		      if (max_rat > 0)
-			power /= max_rat;
+			power *= pow(max_rat,-multipath_penalty);
 		      else
-			power *= 4;       //Award single ray locations with 6 dB
+			power *= pow(4,multipath_penalty);  //Award single ray locations with 6 dB
 		    }
 		    
 		  mean_power += power;

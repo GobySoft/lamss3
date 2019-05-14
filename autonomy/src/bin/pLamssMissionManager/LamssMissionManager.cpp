@@ -259,7 +259,12 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    {
 	      // Enter return mode 
 	      goby::glog << group("helm")
-			 << "Entering homing_return" << std::endl; 
+			 << "Entering homing_return" << std::endl;
+	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+		{
+		  // Make sure homing is on if available before activating return command
+		  publish("USBL_ENABLED","TRUE");
+		}
 	      homing_return();
 	    }
 	  else
