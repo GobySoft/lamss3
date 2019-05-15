@@ -248,5 +248,6 @@ void TetraHoming::RegisterVariables()
   m_Comms.Register("S-MOCAB_TGT_Y");
   m_Comms.Register("S-MOCAB_STD_AZIMUTH");
   m_Comms.Register("S-MOCAB_STD_RANGE");
+  m_Comms.Register("BEACON_UPDATE");
 }
 
