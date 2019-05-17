@@ -214,11 +214,12 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 	{
 	  CAcousticNode update;
 	  update.name = tolower(node_name);
-	  bool got_node_utc = MOOSValFromString(update.utc,
-						node_report,"UTC_TIME");
+	  bool got_node_utc = MOOSValFromString(update.utc,node_report,"UTC_TIME") ||
+	    MOOSValFromString(update.utc,node_report,"TIME");
 	  bool got_node_x = MOOSValFromString(update.x,node_report,"X");
 	  bool got_node_y = MOOSValFromString(update.y,node_report,"Y");
-	  bool got_node_dep = MOOSValFromString(update.depth,node_report,"DEPTH");
+	  bool got_node_dep = MOOSValFromString(update.depth,node_report,"DEPTH") ||
+	    MOOSValFromString(update.depth,node_report,"DEP");
 	  bool got_node_spd = MOOSValFromString(update.speed,node_report,"SPD");
 	  bool got_node_hdg = MOOSValFromString(update.heading,node_report,"HDG");
 	  update.ok_info = got_node_utc && got_node_x && got_node_y && got_node_dep && got_node_spd && got_node_hdg;
