@@ -1863,10 +1863,9 @@ bool LamssNetCdf::open_eof_nc(std::string nc_file_)
   get_eof_baseval();
   get_num_eofs();
   get_num_depth();
- // get_hycom_varids_att();
+  //get_eofs();
   // // get nc coordinates  
   // get_lat_lon();
-  // get_times();
 
   return(true);
 }
