@@ -712,12 +712,10 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 			<< ", mean_tl-min_tl=" << closest_tl-min_tl
 			<< ", adapt_tl_threshold=" << tl_threshold
 			<< std::endl;
-	      //  if ((fabs(pitch_required) > max_pitch_required) 
-	      //    && (fabs(pitch_required) <= max_pitch) 
-	      if (pitch_required < min_pitch_required
-		  && mean_tl - min_tl >= tl_threshold
-		  //		  && min_tl <= mean_tl-adapt_tl_threshold
-		  && ranges[j] <= range_max)
+	      // If benefit of new depth is large ignore pitch required.
+	      if ( (( mean_tl - min_tl >=2*tl_threshold) ||
+		    (pitch_required < min_pitch_required && mean_tl - min_tl >= tl_threshold))
+		   && ranges[j] <= range_max )
 		{
 		  dom = dep_tl;
 		  range = val_tl; 
