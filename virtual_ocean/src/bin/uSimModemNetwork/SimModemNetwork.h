@@ -85,6 +85,7 @@ class SimModemNetwork : public GobyMOOSApp
     void handle_netsim_nav_update(const NavUpdate& nav);
     void handle_impulse_request(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
+    void handle_noise_vert_dir(const CMOOSMsg& msg);
     void handle_svp_info(const CMOOSMsg& msg);
 
     SimModemNetworkConfig& cfg_;
@@ -146,6 +147,9 @@ class SimModemNetwork : public GobyMOOSApp
     bool parseNoiseProfile( std::string noise_in, 
 			   std::vector<double>& dom_nl,
 			   std::vector<double>& noise_db);
+    bool parseNoiseDirectionality( std::string noise_in, 
+				   std::vector<double>& dom_nl,
+				   std::vector<double>& noise_db);
     double get_ambient_noise(double depth, 
 			     vector<double> dom_nl,
 			     vector<double> noise_db);
@@ -156,6 +160,8 @@ class SimModemNetwork : public GobyMOOSApp
     bool noise_profile;
     std::vector<double> depth_nl;
     std::vector<double> noise_db;
+    std::vector<double> depth_noise_dir;
+    std::vector<double> noise_dir_db;
 
     
     std::vector<CAcousticContact> acoustic_contacts;

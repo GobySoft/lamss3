@@ -89,6 +89,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
   subscribe("TRANSMIT_TEST", &SimModemNetwork::handle_transmit_test, this);
   subscribe("AMBIENT_NL_DEPTH", &SimModemNetwork::handle_ambient_nl_depth, this);    
+  subscribe("NOISE_VERT_DIR", &SimModemNetwork::handle_noise_vert_dir, this);    
 
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
@@ -222,6 +223,9 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 	    MOOSValFromString(update.depth,node_report,"DEP");
 	  bool got_node_spd = MOOSValFromString(update.speed,node_report,"SPD");
 	  bool got_node_hdg = MOOSValFromString(update.heading,node_report,"HDG");
+	  if (!MOOSValFromString(update.pitch,node_report,"PITCH"))
+	    update.pitch = 0.0;
+	  
 	  update.ok_info = got_node_utc && got_node_x && got_node_y && got_node_dep && got_node_spd && got_node_hdg;
 	  // Make sure it is latest and full node report (ignore fill-ins)
 	  if (update.ok_info && update.utc > Nodes[i].utc)
@@ -361,6 +365,14 @@ void SimModemNetwork::handle_ambient_nl_depth(const CMOOSMsg& msg)
   noise_profile = parseNoiseProfile(msg.m_sVal, 
 				    depth_nl,
 				    noise_db);
+}
+
+void SimModemNetwork::handle_noise_vert_dir(const CMOOSMsg& msg)
+{
+  // noise depth profile
+  noise_profile = parseNoiseDirectionality(msg.m_sVal, 
+					   depth_noise_dir,
+					   noise_dir_db);
 }
 
 double SimModemNetwork::get_ambient_noise(double depth, 
@@ -621,12 +633,12 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 {
   // Project absolute vs response onto physical orientation
   double deg2rad = M_PI/180;
-  double hd_ang = ownship_heading*deg2rad;
-  double el_ang = ownship_pitch;
-  double vs_costh = cos(hd_ang);
-  double vs_sinth = sin(hd_ang);
-  double vs_cosel = cos(el_ang);
-  double vs_sinel = sin(el_ang);
+  double hdg_ang = ownship_heading*deg2rad;
+  double pitch_ang = ownship_pitch;
+  double vs_costh = cos(hdg_ang);
+  double vs_sinth = sin(hdg_ang);
+  double vs_cosel = cos(pitch_ang);
+  double vs_sinel = sin(pitch_ang);
       
   double range_x = (ownship_x - contact_x);
   double range_y = (ownship_y - contact_y);
@@ -650,7 +662,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 	  local_z[i] = cfg_.array_element(i).z_offset();
 	}
 
-      array_locations(ownship_x, ownship_y, -ownship_depth, hd_ang, el_ang,
+      array_locations(ownship_x, ownship_y, -ownship_depth, hdg_ang, pitch_ang,
 		      local_x,local_y,local_z,ael_x,ael_y,ael_z);
       for (int i=0; i<nelm; i++)
 	{
@@ -1185,6 +1197,89 @@ bool SimModemNetwork::parseNoiseProfile( string noise_in,
     }
   catch (boost::bad_lexical_cast&)
     { return false; }
+  return(true);
+}    
+
+bool SimModemNetwork::parseNoiseDirectionality( string noise_in, 
+					  vector<double>& dom_nl,
+					  vector<double>& noise_db)
+{
+  bool elev;
+  // read the ambient noise profile
+  dom_nl.clear();
+  noise_db.clear();
+
+  std::string depths_nl, nls;    
+  if ( val_from_string(depths_nl, noise_in, "theta") )
+    elev = false;
+  else if ( val_from_string(depths_nl, noise_in, "elevation") )
+      elev=true;
+  else
+    return(false);
+
+  bool got_it = false;
+  if ( val_from_string(nls, noise_in, "S")  )
+    {
+      got_it = true;
+    }
+  else if ( val_from_string(nls, noise_in, "delta") )
+    {
+      got_it = true;
+    }
+  else 
+    {
+      got_it = false;
+      glog << "Error parsing Noise Directionality" << endl;
+      return(false);
+    }
+
+  std::vector<std::string> depth_nl_vec;
+  std::vector<std::string> nl_vec;
+  boost::split(depth_nl_vec, depths_nl, boost::is_any_of(","));
+  boost::split(nl_vec, nls, boost::is_any_of(","));
+
+
+  try
+    {
+      
+      BOOST_FOREACH(const std::string& s, depth_nl_vec)
+        {
+	  if(s=="inf")
+	    dom_nl.push_back(std::numeric_limits<double>::infinity());
+	  else
+	    dom_nl.push_back(boost::lexical_cast<double>(s));
+        }
+      
+      double max_noise = 0;
+      BOOST_FOREACH(const std::string& s, nl_vec)
+        {
+	  if(s=="inf")
+	    noise_db.push_back(std::numeric_limits<double>::infinity());
+	  else
+            {
+	      double d = boost::lexical_cast<double>(s);
+	      if(d > max_noise)
+		max_noise = d;
+	      noise_db.push_back(d);
+            }
+        }
+      
+      // remove infinity values in favor of MAX non infinite TL.
+      BOOST_FOREACH(double& d, noise_db)
+        {
+	  if(d == std::numeric_limits<double>::infinity())
+	    d = max_noise;
+        }
+    }
+  catch (boost::bad_lexical_cast&)
+    { return false; }
+
+  // If directionality specified in elevation, convert to polar angle
+  if (elev)
+    {
+      for (unsigned int i=0; i<dom_nl.size(); i++)
+	dom_nl[i] = 90 - dom_nl[i];
+    }
   return(true);
 }    
 
