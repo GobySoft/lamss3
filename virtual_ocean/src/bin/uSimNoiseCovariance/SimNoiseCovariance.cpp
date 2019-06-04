@@ -844,6 +844,7 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now, int i_f
 // local horizontal array coordinates, i.e. 
 // delta_x = 0
 // delta_y = R_h
+/*
 bool ComputeCovariance::initialize(double freq, 
 				   double sound_speed, 
 				   vector<double> theta, 
@@ -1131,3 +1132,4 @@ complex<double> ComputeCovariance::filon(vector<double> x,
   return(csum);
 }
 
+*/
