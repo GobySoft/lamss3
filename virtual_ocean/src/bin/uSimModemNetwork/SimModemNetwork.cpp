@@ -76,7 +76,9 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     svp_depth_resolution(cfg_.svp_depth_resolution()),
     sound_speed(1500.0),
     acomms_frequency(cfg_.acomms_frequency()),
-    replica_path(cfg_.test_replica())
+    replica_path(cfg_.test_replica()),
+    noise_profile(false),
+    noise_direct(false)
 {
 
   set_ignore_stale(false);
@@ -285,6 +287,10 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 		contact_depth,contact_heading,contact_speed) ; 
   if (got_info && generate_eigenray_table(acoustic_contacts[con]))  
     {
+      // Set variables needed for noise covariances
+      sampling_frequency = request.sampling_frequency();
+      nfft = request.nfft();
+      
       glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
       ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
@@ -298,10 +304,14 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       std::vector<double> elevation;
       std::vector<int> surface_bounces;
       std::vector<int> bottom_bounces;
-
+    // ael moved here from modem_ray_arrivals for use in noise cvar computation
+      std::vector<double> ael_x;
+      std::vector<double> ael_y;
+      std::vector<double> ael_z;
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
 			 delay,amplitude,doppler,elevation,
-			 surface_bounces,bottom_bounces);
+			 surface_bounces,bottom_bounces,
+			 ael_x,ael_y,ael_z);
       // delay[num_rays][num_elem]
       if (delay.size() > 0)
 	{
@@ -323,14 +333,31 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
 	}
+
+      // The receiver is in the last range sector
+      bellhop::protobuf::Environment::WaterColumn* water_column =
+	acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
+
       if (request.array_element_size() > 0)
-	message.set_number_array_elements(request.array_element_size());
+	{
+	  message.set_number_array_elements(request.array_element_size());
+	  // Compute Noise covariance matrix if noise is correlated
+	  if (computeNoiseCovariance(acoustic_contacts[con].noise_level,
+				     get_ssp_value(water_column,ownship_depth),
+				     ael_x,ael_y,ael_z) )
+	    {
+	      std::string covmat_path =  cfg_.base_dir_name() +
+		acoustic_contacts[con].ownship + "_" + 
+		goby::common::goby_file_timestamp() + ".cov";
+	      write_covmat_file(covmat_path,acoustic_contacts[con].noise_level);
+	      message.set_covariance_file(covmat_path);
+	    }
+				 
+	}
       else
 	message.set_number_array_elements(1);
 
       message.set_noise_level(acoustic_contacts[con].noise_level);
-      // The receiver is in the last range sector
-      bellhop::protobuf::Environment::WaterColumn* water_column = acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
 
       message.set_surface_sound_speed(get_ssp_value(water_column,0));
       message.set_bottom_sound_speed(get_ssp_value(water_column,
@@ -370,9 +397,24 @@ void SimModemNetwork::handle_ambient_nl_depth(const CMOOSMsg& msg)
 void SimModemNetwork::handle_noise_vert_dir(const CMOOSMsg& msg)
 {
   // noise depth profile
-  noise_profile = parseNoiseDirectionality(msg.m_sVal, 
-					   depth_noise_dir,
-					   noise_dir_db);
+  noise_direct = parseNoiseDirectionality(msg.m_sVal, 
+					  dom_noise_dir,
+					  noise_dir_db);
+  if (noise_direct)
+    {
+      glog << "noise_direct=true" << endl;
+      noise_dir_theta.resize(dom_noise_dir.size());
+      noise_dir_power.resize(dom_noise_dir.size());
+      
+      for (int i=0; i < dom_noise_dir.size(); i++)
+	{
+	  noise_dir_theta[i] = dom_noise_dir[i]*M_PI/180.0;
+	  noise_dir_power[i] = pow(10.0,noise_dir_db[i]/10);
+	}
+    }
+  else
+    glog << "noise_direct=false" << endl;
+  
 }
 
 double SimModemNetwork::get_ambient_noise(double depth, 
@@ -629,7 +671,11 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
 					  std::vector<double> & doppler,
 					  std::vector<double> & elevation,
 					  std::vector<int> & surface_bounces,
-					  std::vector<int> & bottom_bounces)
+					  std::vector<int> & bottom_bounces,
+					  std::vector<double>& ael_x,
+					  std::vector<double>& ael_y,
+					  std::vector<double>& ael_z
+)
 {
   // Project absolute vs response onto physical orientation
   double deg2rad = M_PI/180;
@@ -645,8 +691,9 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   double range = sqrt(range_x*range_x + range_y*range_y);
 
   // Modem receiving array
-  std::vector<double> local_x, local_y, local_z, ael_x, ael_y, ael_z, 
-    ael_range, ael_depth;
+  //  std::vector<double> local_x, local_y, local_z, ael_x, ael_y, ael_z, ael_range, ael_depth;
+  // ael arrays moved to header for use in computeNoiseCovar
+  std::vector<double> local_x, local_y, local_z, ael_range, ael_depth;
   int nelm = cfg_.array_element_size();
   if (nelm >0)
     {
@@ -1353,5 +1400,175 @@ void SimModemNetwork::array_locations(double nav_x,
       ael_z[i] =  nav_z +  local_z[i]*cp+local_y[i]*sp;
     }
 
+}
+
+bool SimModemNetwork::computeNoiseCovariance(double nl,
+					     double water_c,
+					     std::vector<double> array_x,
+					     std::vector<double> array_y,
+					     std::vector<double> array_z
+					     )
+{
+
+  if (noise_direct || ISOTROPIC)
+    {
+
+      double p_intens = pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
+      double rho = 1000;
+      // Compute correlated noise only for spectrum of 
+      // interest
+      double num_freqs = nfft/2+1;
+      double delta_f = sampling_frequency/nfft;
+      minimum_frequency = cfg_.acomms_frequency()-0.5*cfg_.acomms_bandwidth();
+      maximum_frequency = cfg_.acomms_frequency()+0.5*cfg_.acomms_bandwidth();
+      indx_first = 0;
+      if (minimum_frequency >= 0)
+	indx_first = int(minimum_frequency/delta_f);
+      indx_last = num_freqs;
+      if (maximum_frequency < 0.5*sampling_frequency)
+	indx_last = int(maximum_frequency/delta_f);
+
+      glog << "Building correlated noise covariances, indx_first, indx_last= "
+	   << indx_first << "," << indx_last << endl;
+      
+      int num_elem = array_x.size();
+      
+      std::vector<double> delta_r;
+      std::vector<double> delta_z;
+      
+      std::vector<double> delta_y;
+      std::vector<double> delta_x;
+      std::vector<double> delta_R;
+      for (int j = 0; j < num_elem; j++)
+	for (int i = 0; i < num_elem; i++)
+	  {
+	    delta_z.push_back(array_z[i] - array_z[j]);
+	    
+	    if (ISOTROPIC)
+	      {
+		delta_x.push_back(array_x[i] - array_x[j]);
+		delta_y.push_back(array_y[i] - array_y[j]);
+		//Distance between sensor i and sensor j
+		delta_R.push_back(sqrt(pow(array_x[i]-array_x[j],2) 
+				       + pow(array_y[i]-array_y[j],2) 
+				       + pow(array_z[i]-array_z[j],2))); 
+	      }
+	    else
+	      {
+		//Horizontal distance between sensor i and sensor j
+		delta_r.push_back(sqrt(pow(array_x[i]-array_x[j],2) 
+				       + pow(array_y[i]-array_y[j],2))); 
+	      }
+	  }
+      // Clear noise covariances
+      noise_covar.clear();
+      
+      for (int k = indx_first; k<= indx_last; k++)
+	{
+	  double freq = k*delta_f;
+	  
+	  std::vector<std::complex<double> > cov;
+	  CovMat newcov;
+	  
+	  cov.clear();
+	  cov = vecUtils.zzeros(num_elem,num_elem);
+	  if (k > 0)
+	    {
+	      compCov.initialize(freq,water_c,noise_dir_theta,noise_dir_power);
+	      double norm = 0;
+	      for (int i = 0; i < num_elem; i++)
+		{
+		  for (int j = 0; j <= i; j++)
+		    {
+		      int indx = i + num_elem * j;
+		      std::complex<double> hyd_cov;
+		      if (ISOTROPIC)
+			compCov.hydIsotropicCovariance(delta_R[indx], hyd_cov);
+		      else
+			compCov.hydCovariance(delta_r[indx], delta_z[indx],hyd_cov);
+		      cov[indx] = hyd_cov;
+		    }
+		  norm += cov[i*(1+num_elem)].real();
+		}
+	      norm /= num_elem;
+	      // now scale covariances
+	      double scale = p_intens/norm;
+	      
+	      for (int i=0; i<num_elem*num_elem; i++)
+		cov[i] *= scale;
+	      
+	    }
+	  newcov.putCovMat(num_elem, freq, cov);
+	  noise_covar.push_back(newcov);
+	}	  
+      glog <<"Built covariance matrices" << endl;
+      return(true);
+    }
+  else
+    return(false);
+  
+}
+
+bool SimModemNetwork::write_covmat_file(std::string filename,
+					       double nl_now)
+{
+
+  FILE * cov_data_file;
+  if ( (cov_data_file = fopen(filename.c_str(), "wb")) == NULL)
+    {
+      glog << "Unable to open a file:" << filename << endl;
+      exit(EXIT_FAILURE);
+    }
+  else
+    {
+      // Compute correlated noise only for spectrum of 
+      // interest
+      double delta_f = sampling_frequency/nfft;
+      double t_now = MOOSTime();
+
+      fwrite(&t_now, sizeof(double), 1 , cov_data_file);
+      fwrite(&nl_now, sizeof(double), 1 , cov_data_file);
+      fwrite(&minimum_frequency, sizeof(double), 1 , cov_data_file);
+      fwrite(&minimum_frequency, sizeof(double), 1 , cov_data_file);
+      fwrite(&delta_f, sizeof(double), 1 , cov_data_file);
+      fwrite(&indx_first, sizeof(int), 1 , cov_data_file);
+      fwrite(&indx_last, sizeof(int), 1 , cov_data_file);
+
+      int num_sensors;
+
+      fwrite(&num_sensors, sizeof(int), 1 , cov_data_file);
+
+      for (int f_iter=indx_first; f_iter <= indx_last; f_iter++)
+	{
+	  
+	  vector<complex<double> > covmat;
+	  vector<complex<double> > chollow;
+	  double f;
+
+	  noise_covar[f_iter-indx_first].getCovLow(num_sensors, f, covmat);
+	  noise_covar[f_iter-indx_first].getCholLow(num_sensors, f, chollow);
+	  fwrite(&f, sizeof(double), 1 , cov_data_file);
+
+	  int num = num_sensors*(num_sensors+1)/2;
+	  for (int i=0; i<num; i++)
+	    {
+	      float rr = float(covmat[i].real()); 
+	      float ri = float(covmat[i].imag()); 
+	      fwrite(&rr, sizeof(float), 1 , cov_data_file);
+	      fwrite(&ri, sizeof(float), 1 , cov_data_file);
+	    }
+	  for (int i=0; i<num; i++)
+	    {
+	      float rr = float(chollow[i].real()); 
+	      float ri = float(chollow[i].imag()); 
+	      fwrite(&rr, sizeof(float), 1 , cov_data_file);
+	      fwrite(&ri, sizeof(float), 1 , cov_data_file);
+	    }
+	}
+
+      fclose (cov_data_file);
+      glog << "Wrote covatiance file: "<< filename << endl;
+    }
+  return(true);  
 }
 

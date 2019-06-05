@@ -26,6 +26,8 @@
 
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
+#include "lamss/lib_henrik_util/CCovMat.h"
+#include "lamss/lib_henrik_util/CNoiseCovariance.h"
 
 class CAcousticNode
 {
@@ -153,16 +155,35 @@ class SimModemNetwork : public GobyMOOSApp
     double get_ambient_noise(double depth, 
 			     vector<double> dom_nl,
 			     vector<double> noise_db);
+    bool computeNoiseCovariance(double nl,
+				double water_c,
+				std::vector<double> array_x,
+				std::vector<double> array_y,
+				std::vector<double> array_z
+				);
+    bool write_covmat_file(std::string filename, double nl_now);
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
 		       double depth);
-
+    // Noise covariance stuff added 190605
     double noise_level;
     bool noise_profile;
     std::vector<double> depth_nl;
     std::vector<double> noise_db;
-    std::vector<double> depth_noise_dir;
+    bool noise_direct;
+    std::vector<double> dom_noise_dir;
     std::vector<double> noise_dir_db;
-
+    std::vector<double> noise_dir_theta;
+    std::vector<double> noise_dir_power;
+    double sampling_frequency;
+    int nfft;
+    double minimum_frequency;
+    double maximum_frequency;
+    int indx_first;
+    int indx_last;
+    bool ISOTROPIC;
+    // noise covariances
+    std::vector<CovMat> noise_covar;
+    ComputeCovariance compCov;
     
     std::vector<CAcousticContact> acoustic_contacts;
 
@@ -229,7 +250,11 @@ class SimModemNetwork : public GobyMOOSApp
 			    std::vector<double> & doppler,
 			    std::vector<double> & elevation,
 			    std::vector<int> & surface_bounces,
-			    std::vector<int> & bottom_bounces);
+			    std::vector<int> & bottom_bounces,
+			    std::vector<double> & ael_x,
+			    std::vector<double> & ael_y,
+			    std::vector<double> & ael_z
+			    );
     
     void array_locations(double nav_x, 
 			 double nav_y, 
