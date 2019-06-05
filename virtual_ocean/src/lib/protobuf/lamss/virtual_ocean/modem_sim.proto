@@ -25,6 +25,8 @@ message ImpulseResponse
   optional double surface_sound_speed = 7 [default = 1500];
   optional double bottom_sound_speed = 8 [default = 1500];
 
+  optional string covariance_file = 9;
+
   optional int32 request_id = 10;
   optional double request_time = 11;
 }
@@ -41,6 +43,9 @@ message ImpulseRequest
       required double z_offset = 3;
     }
 
+  optional double sampling_frequency = 6 [default = 12000];
+  optional int32 nfft = 7 [default = 2048];
+  
   optional int32 request_id = 10;
   optional double request_time = 11;
 }
