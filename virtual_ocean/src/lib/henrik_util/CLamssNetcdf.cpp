@@ -2178,7 +2178,7 @@ void LamssNetCdf::get_eofs()
   }
 }
 
-std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::vector<double> dep)
+std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::vector<double> dep_request)
 {
   //resize baseval_weighted_eofs to match eof_eofs_values
   baseval_weighted_eofs.resize(eof_num_eofs_value);
@@ -2189,14 +2189,14 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::
   //step 1: math for getting baseval_weighted_eofs
   for(size_t j = 0; j < eof_num_eofs_value; j++){
     for(size_t k = 0; k < eof_num_depth_value; k++){
-      baseval_weighted_eofs[j][k] = eof_eofs_values[j][k] * weights_vec_[j] + eof_baseval_values[k]; 
+      baseval_weighted_eofs[j][k] += eof_eofs_values[j][k] * weights_vec_[j]; 
     }
   }
 
   std::vector<double> svp_out;
   std::vector<double> svp;
   svp.resize(eof_num_depth_value);
-  svp_out.resize(dep.size());
+  svp_out.resize(dep_request.size());
 
  //step 2: vector double k = summation of [:] [k]
   for(size_t k=0; k<eof_num_depth_value;k++){
@@ -2204,26 +2204,30 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::
     for(size_t j=0; j< eof_num_eofs_value; j++){
       svp[k] += baseval_weighted_eofs[j][k];
     }
+    svp[k] += eof_baseval_values[k];
   }
-
+  //print svp for chcking
+  for(size_t k=0;k<eof_num_depth_value;k++){
+    std::cout<< std::endl<< "dep_vec_[" <<k <<"] = " <<dep_vec_[k] <<" svp[" << k <<"]= " << svp[k] << std::endl;
+  }
     //step 3: Interpolate by the  depth request
-  //   double min_depth = vecUtils.vmin(dep_);
-  // double max_depth = vecUtils.vmax(dep_);
+     double min_depth = vecUtils.vmin(dep_request);
+   double max_depth = vecUtils.vmax(dep_request);
 
-  // int dep_indx_1 = dep_vec_.size()-1;
-  // for  (int i=0; i<dep_vec_.size(); i++)
-  //   if (dep_vec_[i] <= min_depth)
-  //     dep_indx_1 = i;
-  // int dep_indx_2 = dep_indx_1;
-  // for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
-  //   if (dep_vec_[i] >= max_depth)
-  //     dep_indx_2 = i;
+  int dep_indx_1 = dep_vec_.size()-1;
+  for  (int i=0; i<dep_vec_.size(); i++)
+     if (dep_vec_[i] <= min_depth)
+       dep_indx_1 = i;
+   int dep_indx_2 = dep_indx_1;
+   for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
+     if (dep_vec_[i] >= max_depth)
+       dep_indx_2 = i;
 
-  //   if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
-  //     if (dep_indx_1 == dep_indx_2)
-  //       for (int i = 0; i< dep_.size(); i++)
-  //         svp_out[i] = svp[dep_indx_1];
-  //     else
-  //       bool ok = vecUtils.interp(dep_vec_,svp,dep_,svp_out);
+     if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
+       if (dep_indx_1 == dep_indx_2)
+         for (int i = 0; i< dep_request.size(); i++)
+           svp_out[i] = svp[dep_indx_1];
+       else
+         bool ok = vecUtils.interp(dep_vec_,svp,dep_request,svp_out);
   return(svp_out);
 }
