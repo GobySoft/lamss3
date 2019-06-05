@@ -180,9 +180,12 @@ class LamssNetCdf
   void get_eof_depth_dimension();
   void get_eof_depths();
   void get_eof_weights();
-  void get_eof_baseval();
+  void get_eof_basevals();
   void get_num_eofs();
   void get_num_depth();
+  void get_eofs();
+  std::vector<double> get_eof_profile(double lat_, double lon_,
+                                       std::vector<double> dep);
 
   std::string eof_num_depth;
   std::string eof_num_eofs;
@@ -197,9 +200,12 @@ class LamssNetCdf
   int eof_baseval_varid_;
   int eof_num_eofs_varid_;
   int eof_num_depth_varid_;
-  double eof_baseval_value;
+  int eof_eofs_varid_;
+  std::vector<double> eof_baseval_values;
   double eof_num_eofs_value;
   double eof_num_depth_value;
+  std::vector<std::vector<double> > eof_eofs_values;
+  std::vector<std::vector<double> > baseval_weighted_eofs;
 };
 
 #endif 
