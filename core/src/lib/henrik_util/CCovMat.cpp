@@ -92,7 +92,7 @@ bool CovMat::getCholLow(int nrcv, double& frq,  vector<complex<double> >& cholou
       if (!c_done)
 	while (!cholesky())
 	  {
-	    MOOSTrace("Freq = %f: Adding %f white noise intensity\n",frq,wn);
+	    //	    MOOSTrace("Freq = %f: Adding %f white noise intensity\n",frq,wn);
 	    addWhiteNoise(wn);
 	    wn *= 10.0;
 	  }

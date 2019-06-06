@@ -2,7 +2,7 @@
 // Laboratory for Autonomous Marine Sensing Systems (LAMSS)
 // Massachusetts Institute of Technology 
 // 
-// CTarget.h  
+// CCovMat.h  
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -24,9 +24,9 @@
 #ifndef __CCOVMAT_HEADER__
 #define __CCOVMAT_HEADER__
 
-#include "MOOS/libMOOS/MOOSLib.h"
-#include "MBUtils.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+//#include "MOOS/libMOOS/MOOSLib.h"
+//#include "MBUtils.h"
+//#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 #include <math.h>
 #include <time.h>
