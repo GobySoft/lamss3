@@ -78,7 +78,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     acomms_frequency(cfg_.acomms_frequency()),
     replica_path(cfg_.test_replica()),
     noise_profile(false),
-    noise_direct(false)
+    noise_direct(false),
+    ISOTROPIC(false)
 {
 
   set_ignore_stale(false);
