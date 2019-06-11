@@ -12,33 +12,44 @@ message LamssMissionManagerConfig
   optional double min_opbox_distance = 2 [default = 500];
   optional double operation_radius   = 3 [default = 10000];
   optional double operation_radius_percent   = 4 [default = 95];
-  optional double deploy_duration = 5 [default = 1800];
-  optional double prosecute_duration = 6 [default = 1200];
-  optional DeployLocationEnum deploy_location = 7 [default = STATION];
+  
+  optional bool dynamic_opregion = 5 [default = false];
+  repeated OpBoxVertex opbox_vertex = 6;
+  message OpBoxVertex
+        {
+           required double x = 1 ;
+           required double y = 2 ;
+	}
+  
+  optional double deploy_duration = 10 [default = 1800];
+  optional double prosecute_duration = 11 [default = 1200];
+  optional DeployLocationEnum deploy_location = 12 [default = STATION];
   enum DeployLocationEnum {
      STATION = 1;
      CURRENT = 2;
   }
-  optional int32  topside_id = 8      [default = 1];
-  optional double abort_x = 9 [default = 0];
-  optional double abort_y = 10[default = 0];
-  optional double abort_depth = 11 [default = 30];
-  optional double abort_speed = 12 [default = 1.5];
-  optional LAMSS_DEPLOY initial_deploy = 13;
-  optional LAMSS_TRANSIT initial_transit = 14;
-  optional HomingArrayEnum homing_array = 15 [default = NONE];
+  optional int32  topside_id = 13      [default = 1];
+
+  optional double abort_x_offset = 20 [default = 0];
+  optional double abort_y_offset = 21[default = 0];
+  optional double abort_depth = 22 [default = 30];
+  optional double abort_speed = 23 [default = 1.5];
+  optional LAMSS_DEPLOY initial_deploy = 24;
+  optional LAMSS_TRANSIT initial_transit = 25;
+  
+  optional HomingArrayEnum homing_array = 30 [default = NONE];
   enum HomingArrayEnum {
      USBL = 1;
      TOWED = 2;
      NONE = 3;
   }
-  optional double homing_beacon_frequency = 16 [default = 0];
-  optional double homing_interval = 17 [default = 600];
-  optional double homing_duration = 18 [default = 300];
-  optional string tracking_message = 19 [default = "ICEX_TRACKING_VEHICLE_POS_IN"];
-  optional string track_signal_update_message = 20 [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
-  optional double prosecute_center_frequency = 21 [default = 900];
-  optional double prosecute_bandwidth = 22 [default = 200];
+  optional double homing_beacon_frequency = 31 [default = 0];
+  optional double homing_interval = 32 [default = 600];
+  optional double homing_duration = 33 [default = 300];
+  optional string tracking_message = 34 [default = "ICEX_TRACKING_VEHICLE_POS_IN"];
+  optional string track_signal_update_message = 35 [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
+  optional double prosecute_center_frequency = 40 [default = 900];
+  optional double prosecute_bandwidth = 41 [default = 200];
 }
 
 

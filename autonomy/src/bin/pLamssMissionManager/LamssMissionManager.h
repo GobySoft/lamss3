@@ -13,9 +13,11 @@
 #include "LamssMissionManager_config.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
 #include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "XYPolygon.h"
 
 class TrackManagerException : public std::runtime_error
 {
@@ -37,7 +39,7 @@ class LamssMissionManager : public GobyMOOSApp
     LamssMissionManager& operator=(const LamssMissionManager&);
 
     CMOOSGeodesy m_Geodesy;
-
+    XYPolygon opregion, opregion_init;
     
     // synchronous event
     void loop();    
@@ -51,6 +53,7 @@ class LamssMissionManager : public GobyMOOSApp
 			   double node_hdg, double node_dep );
     void initial_deploy();
     void initial_transit();
+    void homing_return();
 
     // mail handlers
 
@@ -70,9 +73,10 @@ class LamssMissionManager : public GobyMOOSApp
     void handle_target_bearing(const CMOOSMsg& msg);
     void handle_survey_flag(const CMOOSMsg& msg);
     void handle_gps_update(const CMOOSMsg& msg);
+    void handle_in_track(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
-    
+    void update_deploy_parameters();
     void post_transit_route();
     // queue_event for FSM
     template<typename Event>
@@ -101,7 +105,23 @@ class LamssMissionManager : public GobyMOOSApp
     bool tracking_;
     double target_bearing_;
     int collaborator_id_;
-
+    
+    //
+    // Initial camp location
+    //
+    bool got_first_tracking_msg;
+    double camp_x_init;
+    double camp_y_init;
+    double camp_x_last;
+    double camp_y_last;
+    double camp_x_deploy;
+    double camp_y_deploy;
+    
+    double last_tracking_msg;
+    
+    CMeasAvg camp_x_spd_filt;
+    CMeasAvg camp_y_spd_filt;
+    int filter_length;    
     //
     // Abort location
     //
@@ -110,6 +130,9 @@ class LamssMissionManager : public GobyMOOSApp
     // Offset of abort point (hydrohole) from origin (camp)
     double abort_x_offset;
     double abort_y_offset;
+
+    bool in_track;
+    bool depth_adapting;
 };
 
 #endif

@@ -55,13 +55,17 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
       initial_deploy_done_(false),
-      abort_x(cfg_.abort_x()),
-      abort_y(cfg_.abort_y()),
-      abort_x_offset(cfg_.abort_x()),
-      abort_y_offset(cfg_.abort_y()),
+      abort_x(cfg_.abort_x_offset()),
+      abort_y(cfg_.abort_y_offset()),
+      abort_x_offset(cfg_.abort_x_offset()),
+      abort_y_offset(cfg_.abort_y_offset()),
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
-      slow_loop_period_(10),
-      last_slow_loop_t_(0)
+      slow_loop_period_(15),
+      got_first_tracking_msg(false),
+      in_track(false),
+      depth_adapting(false),
+      last_slow_loop_t_(0),
+      filter_length(10)
 {
 
     goby::glog.set_lock_action(lock);
@@ -90,24 +94,47 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
     subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
+    subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+    // Set up initial OpRegion if dynamic
+    if (cfg_.dynamic_opregion())
+      {
+	opregion.clear();
+	for (int i=0; i<cfg_.opbox_vertex_size(); i++)
+	  if (!opregion.add_vertex(cfg_.opbox_vertex(i).x(),
+				   cfg_.opbox_vertex(i).y(),true))
+	    {
+	      glog << "Error: OpRegion non-convex" << std::endl;
+	    }
+	opregion.set_label("OpRegion");
+	std::string str = opregion.get_spec();
+	publish("OPREGION_UPDATE",str);
+	opregion_init = opregion;
+	opregion.set_label("OpRegionInit");
+	
+      }
 
-    scheduler_.initiate_processor(fsm_);
-
-    fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
-
-    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
-
+    camp_x_spd_filt.configAvg(filter_length);
+    camp_y_spd_filt.configAvg(filter_length);
+    
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
     mission_start_time_ = MOOSTime();
 
     if (cfg_.homing_beacon_frequency() > 0)
       publish("HOMING_BEACON_FREQUENCY",cfg_.homing_beacon_frequency());
+
+    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+
+    // Start fsm thread
+    scheduler_.initiate_processor(fsm_);
+
+    fsm_thread_.reset(new boost::thread(boost::bind(&boost::statechart::fifo_scheduler<>::operator(), &scheduler_, 0)));
+
 
 }
 
@@ -139,6 +166,10 @@ void LamssMissionManager::loop()
 
 void LamssMissionManager::slow_loop(double curr_time)
 {
+  // First update deploy and abort parameters
+  if (cfg_.dynamic_opregion() && got_first_tracking_msg)
+    update_deploy_parameters();
+  
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
@@ -147,7 +178,7 @@ void LamssMissionManager::slow_loop(double curr_time)
     {
     double station_range =
       sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
-	   pow(last_nav_.local_fix().y() - last_deploy_cmd_.deploy_y(),2));
+	   pow(last_nav_.local_fix().y()-last_deploy_cmd_.deploy_y(),2));
     if (cfg_.operation_radius() > 0 &&
 	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
 	  {
@@ -181,17 +212,18 @@ void LamssMissionManager::slow_loop(double curr_time)
       }
     }
 
-  // Check if Deploy Duration exceeded
+  // Check if Deploy Duration exceeded or if tracking updates stale
 
   if ( mission_active_ && !homing_mode_active_)
     {
       if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
-	  double remaining = last_acomms_ + last_deploy_cmd_.deploy_duration() - curr_time ;
-	  if (remaining <= 0.0)
+	  double stale_acomms = curr_time - last_acomms_;
+	  double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
+	  if (stale_acomms >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
-			 << "Deploy duration exceeded - initiating Abort"
+			 << "Deploy duration exceeded w/o acomms - initiating Abort"
 			 << std::endl;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
@@ -200,6 +232,14 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
+	  else if (stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration() && !depth_adapting)
+	    {
+	      goby::glog << group("helm")
+			 << "25% of deploy duration exceeded w/o acomms - going to acomms depth"
+			 << std::endl;
+		publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+		depth_adapting = true;
+	    }
 	  else
 	    {
 	      goby::glog << group("helm")
@@ -207,17 +247,37 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
 	    }
+	  // Update abort mission for ice motion
 	  update_abort_mission();
 	}
       else if (abort_mode_active_)
 	{
-	  double remaining =  abort_duration_ - (curr_time - abort_time_);
-	  if (remaining > 0.0)
+	  // Abort_duration is now updated in slow loop, not only at abort time.
+	  // double remaining =  abort_duration_ - (curr_time - abort_time_);
+	  double remaining =  abort_duration_;
+	  if (remaining < 10*slow_loop_period_)
+	    {
+	      // Enter return mode 
+	      goby::glog << group("helm")
+			 << "Entering homing_return" << std::endl;
+	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+		{
+		  // Make sure homing is on if available before activating return command
+		  publish("USBL_ENABLED","TRUE");
+		}
+	      homing_return();
+	    }
+	  else
 	    {
 	      goby::glog << group("helm")
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
+	      // Update duration of abort heading behavior
+	      //	      std::stringstream cc;
+	      //	      cc << "duration=" << remaining;
+	      //	      publish("ABORT_HEADING",cc.str());
+	      update_abort_mission();
 	      // If homing using towed array go to prosecute homing state
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::TOWED)
 		{
@@ -230,14 +290,6 @@ void LamssMissionManager::slow_loop(double curr_time)
 		    }
 		}
 	    }
-	  /*	  // Let the helm finish the ABORT
-
-	  else
-	    {
-	      queue_event<EvNewMission>();
-	      queue_event<EvStartDrifting>();
-	    }
-	  */
 	}
     }
   else if (homing_mode_active_)
@@ -247,10 +299,13 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  // Finish homing prosecute and extend abort duration
 	      queue_event<EvResumeAbort>();
-	      abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
-	      std::stringstream ss;
-	      ss << "duration=" << abort_duration_ ;
-	      publish("ABORT_HEADING", ss.str());
+	      // Abort location now constantly updated in slow loop
+	      /*
+		abort_duration_ += cfg_.homing_duration() - slow_loop_period_;
+		std::stringstream ss;
+		ss << "duration=" << abort_duration_ ;
+		publish("ABORT_HEADING", ss.str());
+	      */
 	}
     }
 
@@ -299,6 +354,7 @@ void LamssMissionManager::homing_prosecute()
   publish("TRACKER_COMMAND","RESET");
   std::stringstream ss2;
   ss2 << "depth=" << cfg_.abort_depth() ;
+  publish("DEPTH_MODE","SINGLE");
   publish("SENSOR_DEPTH_TRACKING",ss2.str());
   publish("SENSOR_DEPTH_DEPLOY",ss2.str());
 
@@ -369,9 +425,45 @@ void LamssMissionManager::initial_deploy()
       // This is important for dynamic scenarios such as in ICEX
       init_deploy_cmd.set_deploy_x(abort_x);
       init_deploy_cmd.set_deploy_y(abort_y);
+      // If adapt depth mode, keep it for survey return
+      if (depth_adapting)
+	init_deploy_cmd.set_depth_mode(
+	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+      // If stale acomms, continue with current duration timer
+      double stale_acomms = MOOSTime() - last_acomms_;
+      double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
+      if (remaining < init_deploy_cmd.deploy_duration())
+	init_deploy_cmd.set_deploy_duration(remaining);
+
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
+  publish("LAMSS_DEPLOY_OUT", serialized);
+}
+
+void LamssMissionManager::homing_return()
+{
+  // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+  LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
+  homing_cmd.set__time(MOOSTime());
+
+  homing_cmd.set__rcv_id(vehicle_id_);
+
+  // Note that the initial will have topside origin to allow resetting
+  // deploy_duration by poking for no-modem use.
+  //  init_deploy_cmd.set__src_id(cfg_.topside_id());
+  homing_cmd.set__src_id(vehicle_id_);
+  homing_cmd.set_auto_prosecute(false);
+  // for auto redeploy, center at current abort location
+  // This is important for dynamic scenarios such as in ICEX
+  homing_cmd.set_deploy_x(abort_x);
+  homing_cmd.set_deploy_y(abort_y);
+  homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
+  homing_cmd.set_homing_enabled(true);
+  // Force non abort in case we lost comms
+  last_acomms_ = MOOSTime();
+  std::string serialized;
+  serialize_for_moos(&serialized,homing_cmd);
   publish("LAMSS_DEPLOY_OUT", serialized);
 }
 
@@ -416,19 +508,47 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  command_received_ = true;
 	  command_received_cond_.notify_one();
 	}
-
+      // Set camp location at deploy for zamboni behaviors
+      camp_x_deploy = camp_x_last + camp_x_spd_filt.getAvg()*
+	(MOOSTime() - last_tracking_msg);
+      camp_y_deploy = camp_y_last + camp_y_spd_filt.getAvg()*
+	(MOOSTime() - last_tracking_msg);
+      
       post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
-	last_acomms_ = MOOSTime();
-
+	  last_acomms_ = MOOSTime();
+      if (last_deploy_cmd_.depth_mode() == LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
+	depth_adapting = true;
+      else
+	depth_adapting = false;
       publish("SURVEY_COMPLETED","FALSE");
-
+      
       // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
       if (last_deploy_cmd_.homing_enabled() &&
          last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
-        publish("USBL_ENABLED","TRUE");
+	{
+	  std::stringstream cent;
+	  cent << "center_assign="
+	       << last_deploy_cmd_.deploy_x()
+	       << "," << last_deploy_cmd_.deploy_y();
+	  publish("HOMING_CONFIG",cent.str());
+	  publish("USBL_ENABLED","TRUE");
+	}
+      // USBL Homing for recovery
+      else if (last_deploy_cmd_.homing_enabled() &&
+         last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_HOMING &&
+         cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+	{
+	  std::stringstream wpt;
+	  wpt << "points="
+	       << abort_x
+	       << "," << abort_y
+	       << "#radius=" << last_deploy_cmd_.deploy_upper_depth();
+	  publish("HOMING_STATION",wpt.str());
+	  publish("USBL_ENABLED","TRUE");
+	}
       else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
         publish("USBL_ENABLED","TRUE");
@@ -470,6 +590,9 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 
       if (prosecute_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
+      // Force single depth for prosecute
+        publish("DEPTH_MODE","SINGLE");
+
       // prosecute only accepted if already in active mission
       if (mission_active_)
 	{
@@ -542,6 +665,12 @@ void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
 	  queue_event<EvStartDrifting>();
 	}
     }
+}
+
+void LamssMissionManager::handle_in_track(const CMOOSMsg& msg)
+{
+  std::string str = msg.GetString();
+  in_track = MOOSStrCmp(str,"TRUE");
 }
 
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
@@ -664,7 +793,7 @@ void LamssMissionManager::handle_tracking(const CMOOSMsg& msg)
   boost::mutex::scoped_try_lock lk(moos_mutex_);
   if (homing_mode_active_ && tracking_)
     {
-      abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
+      // abort_duration_ += 0.5*(current_time_ - last_homing_prosecute_);
       double new_heading = target_bearing_;
       if (new_heading < 0)
 	new_heading += 360;
@@ -706,20 +835,30 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				      vehicle_pos.camp_lon(),
 				      camp_y, camp_x))
 	{
-	  // update abort location
-	  abort_x = camp_x + abort_x_offset;
-	  abort_y = camp_y + abort_y_offset;
-
-          NodeRecord node_report("camp_sargo", "icecamp");
-
-          node_report.setX(camp_x);
-          node_report.setY(camp_y);
-          node_report.setLat(vehicle_pos.camp_lat());
-          node_report.setLon(vehicle_pos.camp_lon());
-          node_report.setDepth(vehicle_pos.camp_modem_depth());
-	  node_report.setSpeed(vehicle_pos.camp_drift_speed());
-	  node_report.setHeading(vehicle_pos.camp_drift_heading());
-          publish("NODE_REPORT", node_report.getSpec());
+	  // save initial camp location
+	  if (!got_first_tracking_msg)
+	    {
+	      camp_x_init = camp_x;
+	      camp_y_init = camp_y;
+	      got_first_tracking_msg = true;
+	      last_tracking_msg = vehicle_pos.time();
+	      camp_x_spd_filt.configAvg(filter_length);
+	      camp_y_spd_filt.configAvg(filter_length);
+	    }
+	  else
+	    {
+	      // Update camp speed filters
+	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
+				     (vehicle_pos.time()-last_tracking_msg));
+	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
+				     (vehicle_pos.time()-last_tracking_msg));
+	    }
+	  // save camp location for possible deploy zambony being relative to deploy location
+	  camp_x_last = camp_x;
+	  camp_y_last = camp_y;
+	  // Use current vehicle time stamp
+	  last_tracking_msg = vehicle_pos.time();
+	  
 
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
@@ -731,6 +870,26 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				  << " camp_x=" << camp_x
 				  << " camp_y=" << camp_y
 				  << std::endl;
+	  
+	    NodeRecord node_report("camp_sargo", "icecamp");
+	    node_report.setTimeStamp(vehicle_pos.time());
+	    node_report.setX(camp_x);
+	    node_report.setY(camp_y);
+	    node_report.setLat(vehicle_pos.camp_lat());
+	    node_report.setLon(vehicle_pos.camp_lon());
+	    node_report.setDepth(vehicle_pos.camp_modem_depth());
+	    //	    node_report.setSpeed(vehicle_pos.camp_drift_speed());
+	    //	    node_report.setHeading(vehicle_pos.camp_drift_heading());
+	    double camp_drift_speed = sqrt(pow(camp_x_spd_filt.getAvg(),2)+
+				     pow(camp_y_spd_filt.getAvg(),2));
+	    node_report.setSpeed(camp_drift_speed);
+	    double camp_drift_heading =
+	      atan2(camp_x_spd_filt.getAvg(),camp_y_spd_filt.getAvg())*180/M_PI;
+	    if (camp_drift_heading < 0)
+	      camp_drift_heading +=360;
+	    node_report.setHeading(camp_drift_heading);
+	    publish("NODE_REPORT", node_report.getSpec());
+
 	}
       else
 	{
@@ -846,4 +1005,54 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
 
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
 
+}
+
+void LamssMissionManager::update_deploy_parameters()
+{
+  double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
+    (MOOSTime()-last_tracking_msg);
+  double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
+    (MOOSTime()-last_tracking_msg);
+  {
+    // Update OpRegion to follow ice camp
+    opregion = opregion_init;
+    opregion.shift_horz(camp_x - camp_x_init);
+    opregion.shift_vert(camp_y - camp_y_init);
+    opregion.set_label("OpRegion");
+    std::string poly = opregion.get_spec();
+    std::stringstream cc;
+    cc << "polygon=" << poly;
+    publish("OPREGION_UPDATE",cc.str());
+    // Zamboni Loiters for ice camp ops
+    std::stringstream cent;
+    cent << "center_assign="
+	 << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	 << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+    publish("SENSOR_DEPLOY",cent.str());
+    //publish("HOMING_CONFIG",cent.str());
+    // Consistent station keeping point
+    std::stringstream statn;
+    statn << "point="
+	  << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	  << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+    publish("DEPLOY_STATION",statn.str());
+    // Move racetrack unless on trackline
+    if (!in_track)
+      {
+	std::stringstream trck;
+	trck << "points="
+	     << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	     << ","
+	     << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	publish("SENSOR_RACETRACK",trck.str());
+	
+      }
+  }
+  // update abort location. Note that it's defined as offset relative to camp
+  abort_x = camp_x + abort_x_offset;
+  abort_y = camp_y + abort_y_offset;
+  // update homing beacon location (assumed to be abort location
+  std::stringstream bc;
+  bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
+  publish("BEACON_UPDATE",bc.str());
 }
