@@ -171,7 +171,7 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
             glog.is(WARN) && glog << "Node report missing LON: " << s << std::endl;
             return;    
         }
-        if(!val_from_string(nr.depth, s, "DEPTH"))
+        if(!(val_from_string(nr.depth, s, "DEPTH") || val_from_string(nr.depth, s, "DEP")))
         {
             glog.is(WARN) && glog << "Node report missing DEPTH: " << s << std::endl;
             return;    
@@ -186,7 +186,7 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
             glog.is(WARN) && glog << "Node report missing HDG: " << s << std::endl;
             return;    
         }
-        if(!val_from_string(nr.time, s, "UTC_TIME"))
+        if(!(val_from_string(nr.time, s, "UTC_TIME") || val_from_string(nr.time, s, "TIME")))
         {
             glog.is(WARN) && glog << "Node report missing UTC_TIME: " << s << std::endl;
             return;    

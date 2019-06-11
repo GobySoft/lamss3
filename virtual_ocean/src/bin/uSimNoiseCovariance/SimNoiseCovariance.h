@@ -14,9 +14,11 @@
 
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
-#include "lamss/lib_henrik_util/CBessel.h"
+//#include "lamss/lib_henrik_util/CBessel.h"
+#include "lamss/lib_henrik_util/CNoiseCovariance.h"
 #include "lamss/lib_henrik_util/CCovMat.h"
 
+/*
 class ComputeCovariance
 {
  public:
@@ -54,6 +56,7 @@ class ComputeCovariance
   std::vector<double> k_r;
   std::vector<double> S;
 };
+*/
 
 class CSimNoiseCovariance : public CMOOSApp
 {
