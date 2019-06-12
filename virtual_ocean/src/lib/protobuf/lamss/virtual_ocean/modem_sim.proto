@@ -35,13 +35,6 @@ message ImpulseRequest
 {
   required string source = 1 ;
   required string receiver = 2;
-  repeated ArrayElement  array_element = 3;
-  message ArrayElement
-    {
-      required double x_offset = 1;
-      required double y_offset = 2;
-      required double z_offset = 3;
-    }
 
   optional double sampling_frequency = 6 [default = 12000];
   optional int32 nfft = 7 [default = 2048];
