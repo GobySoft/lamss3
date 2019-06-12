@@ -333,16 +333,17 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      raytrace -> set_surface_bounces(surface_bounces[j]);
 	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
+	  message.set_number_array_elements(delay[0].
+					    size());
 	}
 
       // The receiver is in the last range sector
       bellhop::protobuf::Environment::WaterColumn* water_column =
 	acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
 
-      if (request.array_element_size() > 0)
+      // Compute Noise covariance matrix if noise is correlated
+      if (delay[0].size() > 1)
 	{
-	  message.set_number_array_elements(request.array_element_size());
-	  // Compute Noise covariance matrix if noise is correlated
 	  if (computeNoiseCovariance(acoustic_contacts[con].noise_level,
 				     get_ssp_value(water_column,ownship_depth),
 				     ael_x,ael_y,ael_z) )
@@ -353,11 +354,8 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      write_covmat_file(covmat_path,acoustic_contacts[con].noise_level);
 	      message.set_covariance_file(covmat_path);
 	    }
-				 
 	}
-      else
-	message.set_number_array_elements(1);
-
+      
       message.set_noise_level(acoustic_contacts[con].noise_level);
 
       message.set_surface_sound_speed(get_ssp_value(water_column,0));
