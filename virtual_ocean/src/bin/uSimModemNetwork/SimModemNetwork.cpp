@@ -111,6 +111,12 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   debug = false;
   debug2 = false;
 
+  // prepare Bessel functions for noise covariances
+
+   compCov.besgen.initBessel(2,40*M_PI);
+
+   compCov.spherical_besgen.initSphBes(2,40*M_PI);
+
   start_time = MOOSTime();
 
   // Initilize nodes and acoustic contacts connections)
@@ -1533,7 +1539,10 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
       fwrite(&indx_first, sizeof(int), 1 , cov_data_file);
       fwrite(&indx_last, sizeof(int), 1 , cov_data_file);
 
-      int num_sensors;
+      
+      int num_sensors = 1;
+      if (cfg_.array_element_size() > 0)
+	num_sensors = cfg_.array_element_size();
 
       fwrite(&num_sensors, sizeof(int), 1 , cov_data_file);
 
