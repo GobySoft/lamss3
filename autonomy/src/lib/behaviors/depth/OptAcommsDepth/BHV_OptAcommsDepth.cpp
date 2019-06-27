@@ -853,7 +853,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  // For snr  add noise and tl
 	  int n = dom.size();
 	  int m = dom_nl.size();
-	  
+	  if (range.size() < dom.size())
+	    range.resize(dom.size(),0);
 	  for (int i = 0; i<n; i++)
 	    {
 	      if (dom[i] <= dom_nl[0]) 
