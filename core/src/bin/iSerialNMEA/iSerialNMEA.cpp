@@ -28,18 +28,11 @@
 
 #include "iSerialNMEA.h"
 
-#if GOBY_VERSION_MAJOR >= 2 
-#include "goby/common/logger.h"
-using namespace goby::common::logger;
-#include "goby/common/time.h"
+#include "goby/util/debug_logger.h"
+using namespace goby::util::logger;
+#include "goby/time/legacy.h"
 using goby::common::ptime2unix_double;
-using goby::common::Colors;
-#else
-#include "goby/util/logger.h"
-#include "goby/util/time.h"
-using goby::util::ptime2unix_double;
 using goby::util::Colors;
-#endif
 
 using goby::util::glogger;
 
@@ -54,7 +47,7 @@ CiSerialNMEA* CiSerialNMEA::get_instance()
 }
 
 CiSerialNMEA::CiSerialNMEA()
-    : GobyMOOSApp(&cfg_),
+    : goby::moos::GobyMOOSApp(&cfg_),
       m_nav_x(0),
       m_nav_y(0),
       m_lat(0),
