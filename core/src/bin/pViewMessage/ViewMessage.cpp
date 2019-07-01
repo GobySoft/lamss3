@@ -42,11 +42,11 @@ CViewMessage* CViewMessage::get_instance()
 
 
 CViewMessage::CViewMessage() :
-    GobyMOOSApp(&cfg_),    
+    goby::moos::GobyMOOSApp(&cfg_),    
     ownship_("unknown"),
     mission_state_("unknown")
 {
-    GobyMOOSApp::set_ignore_stale(false);
+    goby::moos::GobyMOOSApp::set_ignore_stale(false);
     
     subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
     subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
