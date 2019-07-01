@@ -20,7 +20,7 @@
 #include <boost/mpl/list.hpp>
 #include <iostream>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "goby/moos/protobuf/frontseat.pb.h"
 #include "goby/moos/frontseat/bluefin/bluefin.pb.h"
@@ -129,7 +129,7 @@ namespace lamss
                         state_str_(Mission_StateEnum_Name(state).substr(prefix_))
                         {
                             boost::mutex::scoped_lock lock(moos_mutex_);
-                            goby::glog.is(goby::common::logger::VERBOSE) && goby::glog << group("fsm") <<  state_str_ << std::endl;
+                            goby::glog.is(goby::util::logger::VERBOSE) && goby::glog << group("fsm") <<  state_str_ << std::endl;
                             state_ = state;
                             
                             publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY, "MISSION_STATE", state_str_));   
@@ -137,7 +137,7 @@ namespace lamss
                     virtual ~StateNotify()
                         {
 			  boost::mutex::scoped_lock lock(moos_mutex_);
-			  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+			  goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 			    << group("fsm") << "~" << state_str_ << std::endl;
 			}
 
@@ -253,13 +253,13 @@ namespace lamss
 
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  deploy_mode_active_ = true;
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Deploy Mode..."
 			       << "deploy_duration=" << last_deploy_cmd_.deploy_duration() 
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -278,12 +278,12 @@ namespace lamss
 	      Survey() 
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Survey Deploy Mode..."
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -304,12 +304,12 @@ namespace lamss
 	      Return() 
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Return Deploy Mode..."
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -333,14 +333,14 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  prosecute_mode_active_ = true;
 
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Prosecute Mode..."
 			       << "deploy_duration=" << last_deploy_cmd_.deploy_duration() 
 			       << ", prosecute_duration=" << last_prosecute_cmd_.prosecute_duration() 
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -359,12 +359,12 @@ namespace lamss
 	      Target() 
                 {
 		  boost::mutex::scoped_lock lock(moos_mutex_);
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Target Prosecute Mode..."
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -383,12 +383,12 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);
 		  homing_mode_active_ = true;
 		  publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"HOMING_ACTIVE","true"));
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Homing Prosecute Mode..."
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -416,13 +416,13 @@ namespace lamss
 		  abort_mode_active_ = true;
 		  abort_time_ = current_time_;
 
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Abort Mode..."
 			       << "abort_duration=" << abort_duration_ 
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
@@ -449,12 +449,12 @@ namespace lamss
 		  boost::mutex::scoped_lock lock(moos_mutex_);		  
 		  drifting_mode_active_ = true;
 
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "Entering Drifting Mode..."
 			       << std::endl;
 		  
-		  goby::glog.is(goby::common::logger::VERBOSE) && 
+		  goby::glog.is(goby::util::logger::VERBOSE) && 
 		    goby::glog << group("fsm") 
 			       << "success..." 
 			       << std::endl;
