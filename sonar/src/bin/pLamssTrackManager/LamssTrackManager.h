@@ -82,7 +82,7 @@ class TrackManagerException : public std::runtime_error
     { }
 };
 
-class LamssTrackManager : public GobyMOOSApp
+class LamssTrackManager : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;
