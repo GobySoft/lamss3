@@ -26,21 +26,14 @@
 #include <boost/math/special_functions.hpp>
 
 
-#include "goby/version.h"
-#if GOBY_VERSION_MAJOR >= 2
 #include "goby/moos/moos_string.h"
 using goby::moos::val_from_string;
-#else
-#include "goby/util/string.h"
-using goby::util::val_from_string;
-#endif
-
-//#include "goby/util/time.h"
+#include "goby/time/legacy.h"
 
 using namespace std;
 
-using namespace goby::common::logger;
-using namespace goby::common::logger_lock;
+using namespace goby::util::logger;
+using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
 using goby::common::goby_time;
 using goby::glog;
@@ -66,7 +59,7 @@ SimModemNetwork* SimModemNetwork::get_instance()
 }
 
 SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
-  : GobyMOOSApp(&cfg),
+  : goby::moos::GobyMOOSApp(&cfg),
     cfg_(cfg),
     max_number_bounces(cfg_.max_number_bounces()),
     mseas_svp_updates(cfg_.mseas_svp_updates()), 

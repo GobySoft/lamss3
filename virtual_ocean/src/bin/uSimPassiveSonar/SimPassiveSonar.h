@@ -67,7 +67,7 @@ class CAcousticContact
   SVP::Response svp_response;
 };
 
-class SimPassiveSonar : public GobyMOOSApp
+class SimPassiveSonar : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;

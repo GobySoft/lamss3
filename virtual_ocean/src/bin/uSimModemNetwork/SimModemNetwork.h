@@ -63,7 +63,7 @@ class CAcousticContact
   double noise_level;
 };
 
-class SimModemNetwork : public GobyMOOSApp
+class SimModemNetwork : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;
