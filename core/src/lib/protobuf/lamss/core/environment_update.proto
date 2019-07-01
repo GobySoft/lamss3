@@ -1,5 +1,5 @@
 import "dccl/protobuf/option_extensions.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 
 message LAMSS_ENVIRONMENT_UPDATE { 
 	option (dccl.msg).id = 58;

@@ -1,5 +1,5 @@
 import "dccl/protobuf/option_extensions.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 message VIEW_POLYGON { 
 	option (dccl.msg).id = 56;
 	option (dccl.msg).max_bytes = 64;
