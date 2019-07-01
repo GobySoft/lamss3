@@ -8,16 +8,16 @@
 
 #include <boost/thread.hpp>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/acomms/connect.h"
-#include "goby/common/time.h"
+#include "goby/time/legacy.h"
 
 #include "LamssAEL.h"
 
 #include "goby/moos/moos_protobuf_helpers.h"
 
-using namespace goby::common::logger;
-using namespace goby::common::logger_lock;
+using namespace goby::util::logger;
+using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
 using goby::common::goby_time;
 using goby::glog;
@@ -43,7 +43,7 @@ LamssAEL* LamssAEL::get_instance()
 }
 
 LamssAEL::LamssAEL(LamssAELConfig& cfg)
-    : GobyMOOSApp(&cfg),
+    : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
       nav_count_(0),
       filt_set_(false),
