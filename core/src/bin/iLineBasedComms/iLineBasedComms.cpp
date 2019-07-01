@@ -26,8 +26,8 @@
 #include <boost/algorithm/string.hpp>
 
 
-#include "goby/common/logger.h"
-using namespace goby::common::logger;
+#include "goby/util/debug_logger.h"
+using namespace goby::util::logger;
 
 #include "goby/moos/moos_serializer.h"
 
@@ -45,7 +45,7 @@ CiLineBasedComms* CiLineBasedComms::get_instance()
 
 // Construction / Destruction
 CiLineBasedComms::CiLineBasedComms()
-    : GobyMOOSApp(&cfg_),
+    : goby::moos::GobyMOOSApp(&cfg_),
       modem_(0)
 {
     if(cfg_.connection_type() == iLineBasedCommsConfig::CONNECTION_SERIAL)

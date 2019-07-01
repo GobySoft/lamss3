@@ -1,12 +1,12 @@
-import "@GOBY_MOOS_APP_PROTO@";
-import "@GOBY_OPTION_EXTENSIONS_PROTO@";
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
 
 message iLineBasedCommsConfig
 {
-  optional @GOBY_MOOS_APP_NAME@Config common = 1 [@GOBY_FIELD_DESCRIPTION@="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 
-  optional string write_to_var = 2 [@GOBY_FIELD_DESCRIPTION@="Variable to write incoming message"];
-  optional string read_from_var = 3 [@GOBY_FIELD_DESCRIPTION@="Variable to read outgoing messages from"];
+  optional string write_to_var = 2 [(goby.field).description="Variable to write incoming message"];
+  optional string read_from_var = 3 [(goby.field).description="Variable to read outgoing messages from"];
   
   enum ConnectionType { CONNECTION_SERIAL = 1; // Modem is connected by a tty serial line (e.g. RS-232)
                         CONNECTION_TCP_AS_CLIENT = 2; // Modem is connected by ethernet and is serving clients
@@ -14,17 +14,17 @@ message iLineBasedCommsConfig
                         CONNECTION_DUAL_UDP_BROADCAST = 4; // Presently unimplemented
   }
     
-  optional ConnectionType connection_type = 20 [default = CONNECTION_SERIAL, @GOBY_FIELD_DESCRIPTION@="Physical connection type from this computer (running Goby) to the GPS"];
+  optional ConnectionType connection_type = 20 [default = CONNECTION_SERIAL, (goby.field).description="Physical connection type from this computer (running Goby) to the GPS"];
   
   // required if connection_type == CONNECTION_SERIAL
-  optional string serial_port = 21 [@GOBY_FIELD_DESCRIPTION@="Serial port for CONNECTION_SERIAL", @GOBY_FIELD_EXAMPLE@="/dev/ttyS0"]; 
-  optional uint32 serial_baud = 22 [@GOBY_FIELD_DESCRIPTION@="Baud rate for CONNECTION_SERIAL", @GOBY_FIELD_EXAMPLE@="19200"]; 
+  optional string serial_port = 21 [(goby.field).description="Serial port for CONNECTION_SERIAL", (goby.field).example="/dev/ttyS0"]; 
+  optional uint32 serial_baud = 22 [(goby.field).description="Baud rate for CONNECTION_SERIAL", (goby.field).example="19200"]; 
 
   // required if connection_type == CONNECTION_TCP_AS_CLIENT
-  optional string tcp_server = 23 [@GOBY_FIELD_DESCRIPTION@="IP Address or domain name for the server if CONNECTION_TCP_AS_CLIENT", @GOBY_FIELD_EXAMPLE@="192.168.1.111"]; 
+  optional string tcp_server = 23 [(goby.field).description="IP Address or domain name for the server if CONNECTION_TCP_AS_CLIENT", (goby.field).example="192.168.1.111"]; 
 
   // required if connection_type == CONNECTION_TCP_AS_CLIENT or CONNECTION_TCP_AS_SERVER
-  optional uint32 tcp_port = 24 [@GOBY_FIELD_DESCRIPTION@="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", @GOBY_FIELD_EXAMPLE@="50010"];
+  optional uint32 tcp_port = 24 [(goby.field).description="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", (goby.field).example="50010"];
 
   message BridgePair 
   { 
