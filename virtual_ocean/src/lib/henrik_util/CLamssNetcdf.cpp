@@ -2231,3 +2231,19 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::
          bool ok = vecUtils.interp(dep_vec_,svp,dep_request,svp_out);
   return(svp_out);
 }
+
+bool LamssNetCdf::handle_eof_weight_update_message(int index,double weight_update)
+{
+  //let's do some error checking such as index makes sense?
+  //must be between 0 and (size-1)
+  if(weights_vec_.empty() || index < 0 || index >= weights_vec_.size())
+    {
+      return false;
+    }
+  else
+    {
+      weights_vec_[index] = weight_update;
+    }
+
+  return true;
+}

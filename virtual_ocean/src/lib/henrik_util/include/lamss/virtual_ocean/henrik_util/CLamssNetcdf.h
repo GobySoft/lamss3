@@ -186,6 +186,7 @@ class LamssNetCdf
   void get_eofs();
   std::vector<double> get_eof_profile(double lat_, double lon_,
                                        std::vector<double> dep);
+  bool handle_eof_weight_update_message(int index, double weight_update);
 
   std::string eof_num_depth;
   std::string eof_num_eofs;
