@@ -97,6 +97,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
+    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -692,8 +693,15 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
   LAMSS_TRANSIT transit_cmd;
   parse_for_moos(msg.GetString(), &transit_cmd);
   last_transit_route_ = transit_cmd;
-  transit_x.clear();
-  transit_y.clear();
+  int n_wpt = transit_cmd.wpt_size();
+  transit_x.resize(n_wpt);
+  transit_y.resize(n_wpt);
+  for (int i=0; i<n_wpt; i++)
+    {
+      transit_x[i] = transit_cmd.wpt(i).x();
+      transit_y[i] = transit_cmd.wpt(i).y();
+    }
+  /*
   if (fabs(last_transit_route_.x_1()) > 1.0 && fabs(last_transit_route_.y_1()) > 1.0)
     {
       transit_x.push_back(last_transit_route_.x_1());
@@ -719,6 +727,7 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
       transit_x.push_back(last_transit_route_.x_5());
       transit_y.push_back(last_transit_route_.y_5());
     }
+  */
 }
 
 void LamssMissionManager::post_transit_route()
@@ -940,6 +949,15 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
   return(output);
 }
 
+void LamssMissionManager::handle_stowpipe_message(const CMOOSMsg& msg)
+{
+  LAMSS_STOWPIPE stowpipe_msg;
+  parse_for_moos(msg.GetString(),&stowpipe_msg);
+  glog.is(DEBUG1) && glog << "Got Stowpipe message, Stowpipe_ID " 
+			  << stowpipe_msg.Stowpipe_ID() << std::endl;
+  update_stowpipes(stowpipe_msg);
+}
+
 void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg)
 {
     goby::acomms::protobuf::DriverConfig cfg;
@@ -1055,4 +1073,83 @@ void LamssMissionManager::update_deploy_parameters()
   std::stringstream bc;
   bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
   publish("BEACON_UPDATE",bc.str());
+}
+
+//-----------------------------------------------------------------
+// Procedure: update_stowpipe_list
+//   Purpose: Maintain a list of known stowpipes, and the
+//            times they were last written to. In the dynamic scenario, they are updated
+//            when camp updates are received 
+
+void LamssMissionManager::update_stowpipes(LAMSS_STOWPIPE stowpipe_msg)
+{
+
+    CStowpipe Empty;
+  
+    // Current camp location
+    double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
+      (stowpipe_msg._time() - last_tracking_msg);
+    double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
+      (stowpipe_msg._time() - last_tracking_msg);
+    for(int i=0; i<Stowpipes.size(); i++) 
+      {
+	// if negative ID kill it
+	if (Stowpipes[i].ID == -stowpipe_msg.Stowpipe_ID())
+	  {
+	    for (int j=i; i<Stowpipes.size()-1; j++)
+	      Stowpipes[j] = Stowpipes[j+1];
+	    Stowpipes.pop_back();
+	    return;
+	  }
+        else if (Stowpipes[i].ID == stowpipe_msg.Stowpipe_ID()) 
+	  {
+	    // If it exists, Update values
+	    Stowpipes[i].utc = stowpipe_msg._time();
+	    Stowpipes[i].x = stowpipe_msg.Stowpipe_x();
+	    Stowpipes[i].y = stowpipe_msg.Stowpipe_y();
+	    Stowpipes[i].camp_x = camp_x;
+	    Stowpipes[i].camp_y = camp_y;
+	    Stowpipes[i].depth = stowpipe_msg.Depth();
+	    Stowpipes[i].bearing = stowpipe_msg.Bearing();
+	    Stowpipes[i].length = stowpipe_msg.Length();
+	    Stowpipes[i].width = stowpipe_msg.Width();
+	    Stowpipes[i].verteces = stowpipe_msg.Verteces();
+	    glog.is(VERBOSE) && glog << "Modified Stowpipe ID " << Stowpipes.ID
+				     << " Stowpipe_x = " << Stowpipes[i].x
+				     << " Stowpipe_y = " << Stowpipes[i].y
+				     << " Bearing = " << Stowpipes[i].bearing
+				     << " Length = " << Stowpipes[i].length
+				     << " Width = " << Stowpipes[i].width
+				     << " Verteces = " << Stowpipes[i].verteces
+				     << " camp_x = " << camp_x
+				     << " camp_y = " << camp_y
+				     << std::endl;
+	    return;
+	  }
+      }
+    // Does not exist, add one
+    int last = Stowpipes.size();
+    Stowpipes.resize(last+1);
+    Stowpipes[last].ID = stowpipe_msg.Stowpipe_ID();
+    Stowpipes[last].utc = stowpipe_msg._time();
+    Stowpipes[last].x = stowpipe_msg.Stowpipe_x();
+    Stowpipes[last].y = stowpipe_msg.Stowpipe_y();
+    Stowpipes[last].camp_x = camp_x;
+    Stowpipes[last].camp_y = camp_y;
+    Stowpipes[last].depth = stowpipe_msg.Depth();
+    Stowpipes[last].bearing = stowpipe_msg.Bearing();
+    Stowpipes[last].length = stowpipe_msg.Length();
+    Stowpipes[last].width = stowpipe_msg.Width();
+    Stowpipes[last].verteces = stowpipe_msg.Verteces();
+    glog.is(VERBOSE) && glog << "New Stowpipe ID " << Stowpipes[last].ID
+			     << " Stowpipe_x = " << Stowpipes[last].x
+			     << " Stowpipe_y = " << Stowpipes[last].y
+			     << " Bearing = " << Stowpipes[last].bearing
+			     << " Length = " << Stowpipes[last].length
+			     << " Width = " << Stowpipes[last].width
+			     << " Verteces = " << Stowpipes[last].verteces
+			     << " camp_x = " << camp_x
+			     << " camp_y = " << camp_y
+			     << std::endl;
+    return;
 }
