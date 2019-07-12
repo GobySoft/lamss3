@@ -1,0 +1,13 @@
+import "goby/moos/protobuf/moos_gateway_config.proto";
+
+package lamss.protobuf;
+
+message GobyGatewayConfig
+{
+    optional string multiplex_moos_var = 1 [default = "LIAISON_COMMANDER_OUT"];
+}
+
+extend goby.apps.moos.protobuf.GobyMOOSGatewayConfig
+{
+    optional GobyGatewayConfig goby_gateway_config = 1000;
+}
