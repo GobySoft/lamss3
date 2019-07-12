@@ -1,12 +1,18 @@
 #include "goby/middleware/transport-common.h"
 
 #include "goby/moos/middleware/moos_plugin_translator.h"
+#include "goby/moos/moos_translator.h"
 
 #include "lamss/lib_goby3_lamss_gateway/groups.h"
-#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h"
+
+#include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
+
+// ensure that liblamss_protobuf is linked in
+LAMSS_STATUS unused;
 
 class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
 {
@@ -14,32 +20,22 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
     pAcommsHandlerMultiplexTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-        sleep(1);
-
-        std::cout << "pAcommsHandlerMultiplexTranslation cfg: " << cfg.ShortDebugString()
-                  << std::endl;
-
-        std::cout << "plugin: middleware::SerializationSubscriptionRegex: " << std::type_index(typeid(goby::middleware::SerializationSubscriptionRegex<>)).hash_code() << std::endl;
-        std::cout << "plugin: middleware::SerializationHandlerBase<>: " << std::type_index(typeid(goby::middleware::SerializationHandlerBase<>)).hash_code() << std::endl;
-        
         this->goby()
             .interprocess()
-            .subscribe_regex<lamss::groups::pAcommsHandler_multiplex, google::protobuf::Message>(
-                [&](const std::vector<unsigned char>& data, int scheme, const std::string& type,
-                    const goby::middleware::Group& group) {
-                    std::cout << "Received: " << data.size() << " bytes from scheme: " << scheme
-                              << ", type: " << type << ", group: " << group << std::endl;
+            .subscribe_type_regex<lamss::groups::pAcommsHandler_multiplex,
+                                  google::protobuf::Message>(
+                [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type) {
+                    std::cout << "goby --> moos: type: " << type << ", msg: " << msg->ShortDebugString()
+                              << std::endl;
+
+                    std::string serialized;
+                    bool is_binary = serialize_for_moos(&serialized, *msg);
+                    CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
+                        cfg.GetExtension(lamss::protobuf::goby_gateway_config).multiplex_moos_var(),
+                        serialized, is_binary, goby::moos::moos_technique,
+                        msg->GetDescriptor()->full_name());
+                    moos().comms().Post(moos_msg);
                 });
-
-        this->goby()
-            .interprocess()
-            .subscribe<lamss::groups::pAcommsHandler_multiplex, LAMSS_DEPLOY, goby::middleware::MarshallingScheme::PROTOBUF>(
-                [this](const LAMSS_DEPLOY& deploy) 
-                {
-                    std::cout << "Deploy: " << deploy.ShortDebugString() << std::endl;
-                });
-
-
     }
 };
 
