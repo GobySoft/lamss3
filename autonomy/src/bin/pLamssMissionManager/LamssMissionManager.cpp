@@ -954,7 +954,7 @@ void LamssMissionManager::handle_stowpipe_message(const CMOOSMsg& msg)
   LAMSS_STOWPIPE stowpipe_msg;
   parse_for_moos(msg.GetString(),&stowpipe_msg);
   glog.is(DEBUG1) && glog << "Got Stowpipe message, Stowpipe_ID " 
-			  << stowpipe_msg.Stowpipe_ID() << std::endl;
+			  << stowpipe_msg.stowpipe_id() << std::endl;
   update_stowpipes(stowpipe_msg);
 }
 
@@ -1094,27 +1094,27 @@ void LamssMissionManager::update_stowpipes(LAMSS_STOWPIPE stowpipe_msg)
     for(int i=0; i<Stowpipes.size(); i++) 
       {
 	// if negative ID kill it
-	if (Stowpipes[i].ID == -stowpipe_msg.Stowpipe_ID())
+	if (Stowpipes[i].ID == -stowpipe_msg.stowpipe_id())
 	  {
 	    for (int j=i; i<Stowpipes.size()-1; j++)
 	      Stowpipes[j] = Stowpipes[j+1];
 	    Stowpipes.pop_back();
 	    return;
 	  }
-        else if (Stowpipes[i].ID == stowpipe_msg.Stowpipe_ID()) 
+        else if (Stowpipes[i].ID == stowpipe_msg.stowpipe_id()) 
 	  {
 	    // If it exists, Update values
 	    Stowpipes[i].utc = stowpipe_msg._time();
-	    Stowpipes[i].x = stowpipe_msg.Stowpipe_x();
-	    Stowpipes[i].y = stowpipe_msg.Stowpipe_y();
+	    Stowpipes[i].x = stowpipe_msg.stowpipe_x();
+	    Stowpipes[i].y = stowpipe_msg.stowpipe_y();
 	    Stowpipes[i].camp_x = camp_x;
 	    Stowpipes[i].camp_y = camp_y;
-	    Stowpipes[i].depth = stowpipe_msg.Depth();
-	    Stowpipes[i].bearing = stowpipe_msg.Bearing();
-	    Stowpipes[i].length = stowpipe_msg.Length();
-	    Stowpipes[i].width = stowpipe_msg.Width();
-	    Stowpipes[i].verteces = stowpipe_msg.Verteces();
-	    glog.is(VERBOSE) && glog << "Modified Stowpipe ID " << Stowpipes.ID
+	    Stowpipes[i].depth = stowpipe_msg.depth();
+	    Stowpipes[i].bearing = stowpipe_msg.bearing();
+	    Stowpipes[i].length = stowpipe_msg.length();
+	    Stowpipes[i].width = stowpipe_msg.width();
+	    Stowpipes[i].verteces = stowpipe_msg.verteces();
+	    glog.is(VERBOSE) && glog << "Modified Stowpipe ID " << Stowpipes[i].ID
 				     << " Stowpipe_x = " << Stowpipes[i].x
 				     << " Stowpipe_y = " << Stowpipes[i].y
 				     << " Bearing = " << Stowpipes[i].bearing
@@ -1130,17 +1130,17 @@ void LamssMissionManager::update_stowpipes(LAMSS_STOWPIPE stowpipe_msg)
     // Does not exist, add one
     int last = Stowpipes.size();
     Stowpipes.resize(last+1);
-    Stowpipes[last].ID = stowpipe_msg.Stowpipe_ID();
+    Stowpipes[last].ID = stowpipe_msg.stowpipe_id();
     Stowpipes[last].utc = stowpipe_msg._time();
-    Stowpipes[last].x = stowpipe_msg.Stowpipe_x();
-    Stowpipes[last].y = stowpipe_msg.Stowpipe_y();
+    Stowpipes[last].x = stowpipe_msg.stowpipe_x();
+    Stowpipes[last].y = stowpipe_msg.stowpipe_y();
     Stowpipes[last].camp_x = camp_x;
     Stowpipes[last].camp_y = camp_y;
-    Stowpipes[last].depth = stowpipe_msg.Depth();
-    Stowpipes[last].bearing = stowpipe_msg.Bearing();
-    Stowpipes[last].length = stowpipe_msg.Length();
-    Stowpipes[last].width = stowpipe_msg.Width();
-    Stowpipes[last].verteces = stowpipe_msg.Verteces();
+    Stowpipes[last].depth = stowpipe_msg.depth();
+    Stowpipes[last].bearing = stowpipe_msg.bearing();
+    Stowpipes[last].length = stowpipe_msg.length();
+    Stowpipes[last].width = stowpipe_msg.width();
+    Stowpipes[last].verteces = stowpipe_msg.verteces();
     glog.is(VERBOSE) && glog << "New Stowpipe ID " << Stowpipes[last].ID
 			     << " Stowpipe_x = " << Stowpipes[last].x
 			     << " Stowpipe_y = " << Stowpipes[last].y
