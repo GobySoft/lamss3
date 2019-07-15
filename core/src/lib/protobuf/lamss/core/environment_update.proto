@@ -12,8 +12,8 @@ message LAMSS_ENVIRONMENT_UPDATE {
         repeated EOFCoef eof_coef = 6 [(dccl.field).max_repeat=10];
         message EOFCoef
           {
-            required int32 num = 1 [(dccl.field).min=1, (dccl.field).max=64]; 
-            required double coef = 2 [(dccl.field).min=-2, (dccl.field).max=2, (dccl.field).precision=3];
+            optional int32 num = 1 [(dccl.field).min=1, (dccl.field).max=64]; 
+            optional double coef = 2 [(dccl.field).min=-3, (dccl.field).max=2, (dccl.field).precision=3];
           }
         optional int32  sea_state = 9 [(dccl.field).min=0, (dccl.field).max=7, default=0]; 
 } 
