@@ -50,6 +50,7 @@ message LamssMissionManagerConfig
   optional string track_signal_update_message = 35 [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
   optional double prosecute_center_frequency = 40 [default = 900];
   optional double prosecute_bandwidth = 41 [default = 200];
+  optional bool navigating_with_hydroman = 42 [default = false];
 }
 
 
