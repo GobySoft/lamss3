@@ -1,0 +1,13 @@
+//------------------------------------------------
+// uSimDVL config block
+
+ProcessConfig = uSimDVL
+{
+AppTick   = 4
+CommsTick = 4
+dvl_update_frequency = 1
+dvl_std = 0.005
+dvl_bias_err = 0.002
+ice_tracking_mode = 0 // ice tracking mode = 1, bottom-tracking mode = 0
+}
+
