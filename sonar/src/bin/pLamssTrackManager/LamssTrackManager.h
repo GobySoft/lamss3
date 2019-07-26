@@ -12,7 +12,7 @@
 #include "LamssTrackManager_config.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "MBUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CTrack.h>
@@ -94,7 +94,7 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     LamssTrackManager(const LamssTrackManager&);
     LamssTrackManager& operator=(const LamssTrackManager&);
 
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
 
     
     // synchronous event
