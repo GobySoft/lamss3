@@ -41,7 +41,7 @@
 
 #include "iSerialNMEA_config.pb.h"
 
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 // number of last speeds to average (where a speed is the time between two GPS points)
 #define SPEED_POINTS 5
@@ -121,7 +121,7 @@ class CiSerialNMEA :
 
     double m_speed[SPEED_POINTS];
 
-    CMOOSGeodesy m_geodesy;
+    goby::moos::CMOOSGeodesy m_geodesy;
 
     goby::util::LineBasedInterface* serial_;
     
