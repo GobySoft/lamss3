@@ -1,5 +1,5 @@
 import "dccl/protobuf/option_extensions.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 message LAMSS_CONTACT { 
 	option (dccl.msg).id = 23;
 	option (dccl.msg).max_bytes = 32;
