@@ -27,7 +27,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
 #include <netcdf.h>
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include "lamss/lib_henrik_util/CLamssNetcdf.h"
 #include <cmath>
 #include <cfloat>
@@ -89,7 +89,7 @@ class CiNoaaBathy : public CMOOSApp
     int publish_count_;
 
     LamssNetCdf NOAAbathy;
-    CMOOSGeodesy geodesy_;
+    goby::moos::CMOOSGeodesy geodesy_;
     
 };
 

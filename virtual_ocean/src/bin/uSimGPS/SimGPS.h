@@ -1,7 +1,7 @@
 #include <string>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 #ifndef SIMGPS_HEADER
 #define SIMGPS_HEADER
@@ -20,7 +20,7 @@ class CSimGPS : public CMOOSApp
   
  protected:
 
-  CMOOSGeodesy m_Geodesy;
+  goby::moos::CMOOSGeodesy m_Geodesy;
   bool on_surface; 
   double min_gps_time;
   double mark_gps_time;

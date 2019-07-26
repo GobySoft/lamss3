@@ -12,7 +12,7 @@
 #include <ctime>
 #include <limits>
 #include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -113,7 +113,7 @@ class LamssNetCdf
   size_t time_len;
   size_t eof_len;
 
-  CMOOSGeodesy geodesy_;
+  goby::moos::CMOOSGeodesy geodesy_;
   CmyVectorUtils vecUtils;    
 
   ///////
