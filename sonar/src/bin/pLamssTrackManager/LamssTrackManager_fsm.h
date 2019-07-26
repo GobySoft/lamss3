@@ -19,7 +19,7 @@
 #include <boost/mpl/list.hpp>
 #include <iostream>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "goby/moos/protobuf/frontseat.pb.h"
 #include "goby/moos/frontseat/bluefin/bluefin.pb.h"
@@ -129,7 +129,7 @@ namespace lamss
                         state_str_(BearingTrackEnum_Name(state).substr(prefix_))
                         {
                             boost::mutex::scoped_lock lock(moos_mutex_);
-                            goby::glog.is(goby::common::logger::VERBOSE) && 
+                            goby::glog.is(goby::util::logger::VERBOSE) && 
 			      goby::glog << group("fsm") <<  
 			      state_str_ << std::endl;
                             state_ = state;
@@ -140,7 +140,7 @@ namespace lamss
                     virtual ~StateNotify()
                         {
 			  boost::mutex::scoped_lock lock(moos_mutex_);
-			  goby::glog.is(goby::common::logger::VERBOSE) && 
+			  goby::glog.is(goby::util::logger::VERBOSE) && 
 			    goby::glog << group("fsm") << "~" << 
 			    state_str_ << std::endl;
 			}
@@ -168,7 +168,7 @@ namespace lamss
 		    // wait for initial deploy command
 		      dclt_idle_ = true; 
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","OFF"));
-		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		      goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 			<< group("track") << "TRACKER_COMMAND=OFF" << std::endl;
 		      while(!dclt_enable_)
 			dclt_cond_.wait(lock);
@@ -201,7 +201,7 @@ namespace lamss
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"TRACKER_COMMAND","ON"));
 		      m_buffer_length_ = cfg_->buffer_length_single();
 		      m_xy_sigma_ = cfg_->xy_sigma_single();
-		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		      goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 			<< group("track") << "TRACKER_COMMAND=ON" << std::endl;
 		    }
 		      
@@ -264,7 +264,7 @@ namespace lamss
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
 		      cue_in_range_ = true;
-		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		      goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 			<< group("fsm") << "Target Cue is inside range" << std::endl;
 		    }
 		  ~CueInRange()
@@ -283,7 +283,7 @@ namespace lamss
 		  SearchOrbit() 
 		    {
 		      boost::mutex::scoped_lock lock(moos_mutex_);
-		      goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		      goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 			<< group("fsm") << "Target Cue close, orbiting" << std::endl;
 		      cue_too_close_ = true;
 		      publish_queue_.push_back(CMOOSMsg(MOOS_NOTIFY,"IN_RANGE","TRUE"));
@@ -363,7 +363,7 @@ namespace lamss
 		  geo_track_report_count_= 0;
 		  m_buffer_length_ = cfg_->buffer_length_single();
 		  m_xy_sigma_ = cfg_->xy_sigma_single();
-		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		  goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 		    << group("fsm") << "TRACKING_MODE = SINGLE" << std::endl;
 
                 }
@@ -389,7 +389,7 @@ namespace lamss
 		  geo_track_report_count_= 0;
 		  m_buffer_length_ = cfg_->buffer_length_multiple();
 		  m_xy_sigma_ = cfg_->xy_sigma_multiple();
-		  goby::glog.is(goby::common::logger::VERBOSE) && goby::glog 
+		  goby::glog.is(goby::util::logger::VERBOSE) && goby::glog 
 		    << group("fsm") << "TRACKING_MODE = MULTIPLE" << std::endl;
                 }
 	      ~Multiple() 

@@ -3,14 +3,14 @@
 // Toby Schneider 
 // Massachusetts Institute of Technology 
 
-//#include "goby/common/logger.h"
-//#include "goby/common/time.h"
+//#include "goby/util/debug_logger.h"
+//#include "goby/time/legacy.h"
 //#include "goby/util/binary.h"
 
 #include "LamssTrackManager_fsm.h"
 
 //using goby::glog;
-//using namespace goby::common::logger;
+//using namespace goby::util::logger;
 //using goby::common::goby_time;
 
 boost::shared_ptr<LamssTrackManagerConfig> lamss::shared::fsm::cfg_;

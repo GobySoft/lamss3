@@ -1,10 +1,10 @@
 
 import "goby/moos/protobuf/goby_moos_app.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 
 message LamssTrackManagerConfig
 {
-  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
 
   optional int32  priority_threshold = 2 [default = 5];
   optional int32  filter_length   = 3 [default = 1];
