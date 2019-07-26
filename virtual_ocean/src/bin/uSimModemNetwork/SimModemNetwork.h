@@ -8,7 +8,7 @@
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CEigenRays.h>
 #include "lamss/lib_bellhop/environment.h"
@@ -100,7 +100,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     bool debug;
     bool debug2;
 
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
     double mseas_update_interval;
     double svp_range_resolution;

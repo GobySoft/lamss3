@@ -1506,7 +1506,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 	}
       else if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
 	{
-	  double raised_cosine_ratio;
+	  double raised_cosine_ratio = 0;
 	  source_window = vecUtils.tukey(t_src.size(),raised_cosine_ratio);
 	}
       else
@@ -2186,7 +2186,7 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
 	  system(sync_cmd.c_str());
 	}
     }
-  
+  return true;
 }
 
 
@@ -2304,6 +2304,8 @@ bool SimPassiveSonar::write_nas_file_verbose(double timestamp) {
 		  system(sync_cmd.c_str());
 		}
 	}
+
+   return true;
 }
 
 

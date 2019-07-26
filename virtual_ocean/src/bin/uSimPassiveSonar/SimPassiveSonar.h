@@ -8,7 +8,7 @@
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CRapRays.h>
 #include <lamss/lib_henrik_util/CEigenRays.h>
@@ -124,7 +124,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     std::vector<CSensor> z_accelerometers;
 
 
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
     bool svp_updates;
     double svp_update_interval;
     double svp_range_resolution;
