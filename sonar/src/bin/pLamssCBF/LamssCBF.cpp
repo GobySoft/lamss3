@@ -8,9 +8,9 @@
 
 #include <boost/thread.hpp>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/acomms/connect.h"
-#include "goby/common/time.h"
+#include "goby/time/legacy.h"
 
 #include "LamssCBF.h"
 
@@ -18,8 +18,8 @@
 #include "goby/moos/moos_protobuf_helpers.h"
 
 using namespace lamss::shared::fsm;
-using namespace goby::common::logger;
-using namespace goby::common::logger_lock;
+using namespace goby::util::logger;
+using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
 using goby::common::goby_time;
 using goby::glog;
@@ -44,7 +44,7 @@ LamssCBF* LamssCBF::get_instance()
 }
 
 LamssCBF::LamssCBF(LamssCBFConfig& cfg)
-    : GobyMOOSApp(&cfg),
+    : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssCBFFSM>()),
@@ -65,11 +65,11 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       last_slow_loop_t_(0)
 {
 
-    goby::glog.set_lock_action(lock);
-    goby::glog.add_group("fsm", goby::common::Colors::lt_magenta);
-    goby::glog.add_group("helm", goby::common::Colors::lt_green);
-    goby::glog.add_group("mac", goby::common::Colors::lt_blue);
-    goby::glog.add_group("track", goby::common::Colors::yellow);
+    goby::glog.set_lock_action(goby::util::logger_lock::lock);
+    goby::glog.add_group("fsm", goby::util::Colors::lt_magenta);
+    goby::glog.add_group("helm", goby::util::Colors::lt_green);
+    goby::glog.add_group("mac", goby::util::Colors::lt_blue);
+    goby::glog.add_group("track", goby::util::Colors::yellow);
 
     set_ignore_stale(false);
 

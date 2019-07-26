@@ -1,7 +1,7 @@
 // Copyright 2015 
 // Henrik Schmidt
 // Massachusetts Institute of Technology 
-// GobyMOOSApp Version of pBearingTracker
+// goby::moos::GobyMOOSApp Version of pBearingTracker
 /*--------------------------------------------------------------------------
 
 File:        pBearingTracker.cpp
@@ -31,9 +31,9 @@ Revisions:   JPI/DHG/SAIC 2006/07/06 Accomdate new VSA
 
 #include <boost/thread.hpp>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/acomms/connect.h"
-#include "goby/common/time.h"
+#include "goby/time/legacy.h"
 
 #include "LamssBearingTracker.h"
 #include "lamss/lib_anrp_util/sliva_parse.h"
@@ -47,8 +47,8 @@ FILE *fpPow = 0;  // debug beam power
 
 #include "goby/moos/moos_protobuf_helpers.h"
 
-using namespace goby::common::logger;
-using namespace goby::common::logger_lock;
+using namespace goby::util::logger;
+using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
 using goby::common::goby_time;
 using goby::glog;
@@ -82,7 +82,7 @@ LamssBearingTracker* LamssBearingTracker::get_instance()
 //***************************************************************************   
 
 LamssBearingTracker::LamssBearingTracker(LamssBearingTrackerConfig& cfg)
-    : GobyMOOSApp(&cfg),
+    : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
       new_btr(false),
       new_cosines(false),

@@ -39,7 +39,7 @@ class Nav
   double nav_utc;
 };
 
-class LamssAEL : public GobyMOOSApp
+class LamssAEL : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;

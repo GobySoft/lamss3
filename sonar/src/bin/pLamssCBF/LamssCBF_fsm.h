@@ -19,7 +19,7 @@
 #include <boost/mpl/list.hpp>
 #include <iostream>
 
-#include "goby/common/logger.h"
+#include "goby/util/debug_logger.h"
 #include "goby/moos/moos_protobuf_helpers.h"
 //#include "goby/moos/protobuf/frontseat.pb.h"
 //#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
@@ -99,7 +99,7 @@ namespace lamss
 	    state_str_(ProcessingStateEnum_Name(state).substr(prefix_))
 	  {
 	    boost::mutex::scoped_lock lock(moos_mutex_);
-	    goby::glog.is(goby::common::logger::VERBOSE) && 
+	    goby::glog.is(goby::util::logger::VERBOSE) && 
 	      goby::glog << group("fsm") <<  
 	      state_str_ << std::endl;
 	    state_ = state;
@@ -110,7 +110,7 @@ namespace lamss
 	  virtual ~StateNotify()
 	  {
 	    boost::mutex::scoped_lock lock(moos_mutex_);
-	    goby::glog.is(goby::common::logger::VERBOSE) && 
+	    goby::glog.is(goby::util::logger::VERBOSE) && 
 	      goby::glog << group("fsm") << "~" << 
 	      state_str_ << std::endl;
 	  }

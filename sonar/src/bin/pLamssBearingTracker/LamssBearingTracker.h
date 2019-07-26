@@ -44,7 +44,7 @@ class TargetsException : public std::runtime_error
     { }
 };
 
-class LamssBearingTracker : public GobyMOOSApp
+class LamssBearingTracker : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;

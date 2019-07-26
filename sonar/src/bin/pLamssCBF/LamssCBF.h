@@ -49,7 +49,7 @@ class SteeringVector
   Matrix       steering_vector_imag;    
 };
 
-class LamssCBF : public GobyMOOSApp
+class LamssCBF : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;
