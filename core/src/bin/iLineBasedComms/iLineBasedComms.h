@@ -38,9 +38,9 @@
 class CiLineBasedComms :
 #if GOBY_VERSION_MAJOR < 2
    public TesMoosApp {
-    typedef TesMoosApp GobyMOOSApp;
+    typedef TesMoosApp goby::moos::GobyMOOSApp;
 #else
-   public GobyMOOSApp  {       
+   public goby::moos::GobyMOOSApp  {       
 #endif
   public:
     static CiLineBasedComms* get_instance();
