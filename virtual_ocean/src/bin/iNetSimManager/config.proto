@@ -1,9 +1,9 @@
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 import "goby/moos/protobuf/goby_moos_app.proto";
 
 message InterfaceNetSimManagerConfig
 {
-    optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 
     required string netsim_manager_ip_addr = 2;
     optional uint32 netsim_manager_tcp_port = 3 [default = 61999];

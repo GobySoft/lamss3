@@ -32,7 +32,7 @@ class TargetsException : public std::runtime_error
     { }
 };
 
-class SimTargets : public GobyMOOSApp
+class SimTargets : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;

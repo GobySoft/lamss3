@@ -25,14 +25,13 @@
 #include "config.pb.h"
 
 using goby::glog;
-using goby::common::goby_time;
-using namespace goby::common::logger;
+using namespace goby::util::logger;
 
 
 boost::shared_ptr<InterfaceNetSimManagerConfig> master_config;
 
  
-class InterfaceNetSimManager : public GobyMOOSApp
+class InterfaceNetSimManager : public goby::moos::GobyMOOSApp
 {       
   public:
     static InterfaceNetSimManager* get_instance();
@@ -97,7 +96,7 @@ int main(int argc, char* argv[])
 
 
 InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg) :
-    GobyMOOSApp(&cfg),
+    goby::moos::GobyMOOSApp(&cfg),
     cfg_(cfg),
     client_(netsim::tcp_client::create(io_))
 {
@@ -240,10 +239,10 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::F
 
 void InterfaceNetSimManager::handle_modem_receive(const goby::acomms::protobuf::ModemTransmission& rx_data)
 {
-    if(rx_data.ExtensionSize(micromodem::protobuf::receive_stat) < 1)
+    if(rx_data.GetExtension(goby::acomms::micromodem::protobuf::transmission).receive_stat_size() < 1)
         return;
     
-    const micromodem::protobuf::ReceiveStatistics& stats = rx_data.GetExtension(micromodem::protobuf::receive_stat, 0);
+    const goby::acomms::micromodem::protobuf::ReceiveStatistics& stats = rx_data.GetExtension(goby::acomms::micromodem::protobuf::transmission).receive_stat(0);
 
     if(!modem_tcp_port_.count(stats.source()))
     {
@@ -256,7 +255,7 @@ void InterfaceNetSimManager::handle_modem_receive(const goby::acomms::protobuf::
     ReceiveStats& netsim_stats = *req.add_stats();
     netsim_stats.set_modem_tcp_port(cfg_.modem_tcp_port());
     netsim_stats.set_tx_modem_tcp_port(modem_tcp_port_[stats.source()]);
-    netsim_stats.set_packet_success(stats.mode() == micromodem::protobuf::RECEIVE_GOOD);
+    netsim_stats.set_packet_success(stats.mode() == goby::acomms::micromodem::protobuf::RECEIVE_GOOD);
     *netsim_stats.mutable_mm_stats() = stats;
                     
     if(client_->connected())
