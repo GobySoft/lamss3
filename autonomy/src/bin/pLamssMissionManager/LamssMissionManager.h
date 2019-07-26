@@ -26,7 +26,7 @@ class TrackManagerException : public std::runtime_error
     { }
 };
 
-class LamssMissionManager : public GobyMOOSApp
+class LamssMissionManager : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;
