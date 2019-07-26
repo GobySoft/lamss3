@@ -3,7 +3,7 @@
 // Massachusetts Institute of Technology 
 
 #ifndef LAMSSCBF_FSM20151106H
-#define LAMSSBBF_FSM20151106H
+#define LAMSSCBF_FSM20151106H
 
 #include <boost/statechart/event.hpp>
 #include <boost/statechart/state_machine.hpp>

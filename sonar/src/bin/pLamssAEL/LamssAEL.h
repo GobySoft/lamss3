@@ -8,7 +8,7 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "goby/moos/moos_protobuf_helpers.h"
@@ -65,7 +65,7 @@ class LamssAEL : public goby::moos::GobyMOOSApp
     
     static LamssAEL* inst_;    
 
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
     CRadianAvg pitch_filter;
     CRadianAvg roll_filter;
     CAngleAvg heading_filter;

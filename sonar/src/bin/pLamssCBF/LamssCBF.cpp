@@ -788,7 +788,7 @@ bool LamssCBF::generate_spatial_window()
     for (int k = 1; k <= num_elements_used_; k++)
       sum_win_spatial += win_spatial(k);
     win_spatial=win_spatial/sum_win_spatial;   
-  
+    return true;
 }
 
 //***************************************************************************
