@@ -115,6 +115,7 @@ bool CovMat::wnChol()
       c[indx_tri(i,i)] = sqrt(rr);
     }
   c_done = true;
+  return true;
 }
 
   bool CovMat::putCholLow(int nrcv, double frq,  vector<complex<double> > cholin)
