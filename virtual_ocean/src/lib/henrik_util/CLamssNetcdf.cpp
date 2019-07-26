@@ -861,7 +861,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		{
 		  int m_indx = month-1;
 		  m_indx = std::max(0,std::min(11,m_indx));
-		  size_t ssp_index[] = {m_indx,i_dep,min_ilat[n],min_ilon[n]};
+		  size_t ssp_index[] = {static_cast<size_t>(m_indx),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
 		  float val;
 		  status = nc_get_var1_float(ncid_, ssp_varid_, ssp_index, &val);
 		  if (status != NC_NOERR)
@@ -903,11 +903,11 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 		    indx_2 = 0;
 		  if (debug)
 		    std::cout << "indx_1,2 = " << indx_1 << ", " << indx_2 <<std::endl;
-		  size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
+		  size_t ssp_index_1[] = {static_cast<size_t>(indx_1),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
 		  float val_1;
 		  int status_1 = nc_get_var1_float(ncid_, ssp_varid_, ssp_index_1, &val_1);
 		  double dval_1 = double(val_1);
-		  size_t ssp_index_2[] = {indx_2,i_dep,min_ilat[n],min_ilon[n]};
+		  size_t ssp_index_2[] = {static_cast<size_t>(indx_2),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
 		  float val_2;
 		  int status_2 = nc_get_var1_float(ncid_, ssp_varid_, ssp_index_2, &val_2);
 		  double dval_2 = double(val_2);
@@ -1062,13 +1062,13 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
 	    for(int n=0;n<3;n++)
 	      {
 		// temperature and salinity
-		size_t ssp_index_1[] = {indx_1,i_dep,min_ilat[n],min_ilon[n]};
+		size_t ssp_index_1[] = {static_cast<size_t>(indx_1),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
 		short int temp_val_1,salt_val_1;
 		int status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
 						   ssp_index_1, &temp_val_1);
 		int status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
 						   ssp_index_1, &salt_val_1);
-		size_t ssp_index_2[] = {indx_2,i_dep,min_ilat[n],min_ilon[n]};
+		size_t ssp_index_2[] = {static_cast<size_t>(indx_2),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
 		short int temp_val_2,salt_val_2;
 		int status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
 						   ssp_index_2, &temp_val_2);
@@ -1405,7 +1405,7 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	  
 	  for (int i_dep=0; i_dep<dep_len; i_dep++)
 	    {
-	      size_t dep_ind[] = {min_ilat[n],min_ilon[n],(size_t) i_dep,2};
+	      size_t dep_ind[] = {static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n]),static_cast<size_t>((size_t) i_dep),static_cast<size_t>(2)};
 	      double dep_val;
 	      int status = nc_get_var1_double(ncid_, tgrid3id_, dep_ind, &dep_val);
 	      if (status != NC_NOERR)
@@ -1418,14 +1418,13 @@ void LamssNetCdf:: get_mseas_profile( double lat_, double lon_,
 	      dep_vec_[i_dep] = -dep_val;
 	      
 	      // temperature and salinity
-	      size_t ssp_index_1[] = {indx_1,min_ilat[n],min_ilon[n],
-				      (size_t) i_dep};
+	      size_t ssp_index_1[] = {static_cast<size_t>(indx_1),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n]),static_cast<size_t>(i_dep)};
 	      double temp_val_1,salt_val_1;
 	      int status_t_1 = nc_get_var1_double(ncid_, temp_varid_,
 					       ssp_index_1, &temp_val_1);
 	      int status_s_1 = nc_get_var1_double(ncid_, salt_varid_,
 					       ssp_index_1, &salt_val_1);
-	      size_t ssp_index_2[] = {indx_2,min_ilat[n],min_ilon[n],i_dep};
+	      size_t ssp_index_2[] = {static_cast<size_t>(indx_2),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n]),static_cast<size_t>(i_dep)};
 	      double temp_val_2,salt_val_2;
 	      int status_t_2 = nc_get_var1_double(ncid_, temp_varid_,
 						 ssp_index_2, &temp_val_2);
@@ -1559,7 +1558,7 @@ double LamssNetCdf:: get_mseas_bathy( double lat_, double lon_)
       for(int n=0;n<3;n++)
 	{
 	  //get lat/lon/bathy of closest grid point
-	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
+	  size_t bathy_index[] = {static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])}; 
 	  double val;
 	  status = nc_get_var1_double(ncid_, bathyid_, bathy_index, &val);
 	  if (status != NC_NOERR)
@@ -1653,7 +1652,7 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
       for(int n=0;n<3;n++)
 	{
 	  //get lat/lon/bathy of closest grid point
-	  size_t bathy_index[] = {min_ilat[n],min_ilon[n]}; 
+	  size_t bathy_index[] = {static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])}; 
 	  short val;
 	  status = nc_get_var1_short(ncid_, bathy_varid_, bathy_index, &val);
 	  if (status != NC_NOERR)
