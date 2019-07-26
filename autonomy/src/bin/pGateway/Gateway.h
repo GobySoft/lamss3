@@ -26,7 +26,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include <string>
 
 
@@ -44,7 +44,7 @@ class CGateway : public CMOOSApp
   
  protected:
 
-  CMOOSGeodesy m_Geodesy; 
+  goby::moos::CMOOSGeodesy m_Geodesy; 
   double start_time,deploy_x,deploy_y, deploy_spd, deploy_hdg,deploy_depth,depth_trigger;
   double deploy_lat,deploy_lon;
   int dest_addr;
