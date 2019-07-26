@@ -5,7 +5,7 @@
 
 #include <memory>
 #include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include <string>
 #include "lamss/lib_anrp_util/NMEAMessage.h"
 #include "goby/util/linebasedcomms.h"
@@ -27,7 +27,7 @@ public:
 
 
 private:
-	CMOOSGeodesy m_Geodesy;
+	goby::moos::CMOOSGeodesy m_Geodesy;
 	// insert local vars here
 	std::string SecondsSinceMidnight(int nDigits);
 	std::string gen_NMEAchecksum(const char *str);

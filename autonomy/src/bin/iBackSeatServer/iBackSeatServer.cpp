@@ -14,7 +14,7 @@
 #include <sys/time.h>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include "iBackSeatServer.h"
 #include "lamss/lib_anrp_util/CommServer.h"
 #include "lamss/lib_anrp_util/NMEAMessage.h"
