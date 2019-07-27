@@ -52,25 +52,25 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         bool   mdbl  = msg.IsDouble();
         bool   mstr  = msg.IsString();
 #endif
-        if (key == "HYDROMAN_IFS_X") {
+        if (key == "FRONTSEAT_X") {
             m_current_nav_x = dval;
             m_current_nav_x_time = MOOSTime();
         }
-        else if(key == "HYDROMAN_IFS_Y") {
+        else if(key == "FRONTSEAT_Y") {
             m_current_nav_y = dval;
             m_current_nav_y_time = MOOSTime();
         }
-        else if(key == "HYDROMAN_IFS_DEPTH") {
+        else if(key == "FRONTSEAT_DEPTH") {
             m_current_nav_depth = dval;
             m_current_nav_depth_time = MOOSTime();
         }
-        else if(key == "HYDROMAN_IFS_ROLL") {
+        else if(key == "FRONTSEAT_ROLL") {
             m_current_nav_roll = dval;
         }
-        else if(key == "HYDROMAN_IFS_PITCH") {
+        else if(key == "FRONTSEAT_PITCH") {
             m_current_nav_pitch = dval;
         }
-        else if(key == "HYDROMAN_IFS_HEADING") {
+        else if(key == "FRONTSEAT_HEADING") {
             m_current_nav_heading = dval;
         }
         else if(key == "NODE_REPORT") {        
@@ -207,12 +207,12 @@ bool SimDVL::OnStartUp()
 void SimDVL::RegisterVariables()
 {
     // Register("FOOBAR", 0);
-    Register("HYDROMAN_IFS_X", 0);
-    Register("HYDROMAN_IFS_Y", 0);
-    Register("HYDROMAN_IFS_DEPTH", 0);
-    Register("HYDROMAN_IFS_ROLL", 0);
-    Register("HYDROMAN_IFS_PITCH", 0);
-    Register("HYDROMAN_IFS_HEADING", 0);
+    Register("FRONTSEAT_X", 0);
+    Register("FRONTSEAT_Y", 0);
+    Register("FRONTSEAT_DEPTH", 0);
+    Register("FRONTSEAT_ROLL", 0);
+    Register("FRONTSEAT_PITCH", 0);
+    Register("FRONTSEAT_HEADING", 0);
     Register("NODE_REPORT", 0);
     
     
