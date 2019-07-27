@@ -472,7 +472,7 @@ void CSixDOFAUV::Derivatives(double t,ColumnVector& Zvec,ColumnVector& Zdot)
 	 << -m_dfRhoA_pon2*CL_pitch*uabsu;
 
   // Propeller RPM from percentage thrust
-  double rpm = m_dfDesiredThrust*m_dfMaxRPM/100;
+  double rpm = GetRPM(); 
   double Tp,Up,J,Kt;
 
   if (rpm==0) Tp=0;
