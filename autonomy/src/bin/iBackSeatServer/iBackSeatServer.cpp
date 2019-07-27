@@ -189,6 +189,33 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     {
         last_gps_sim_update_time = curr_time;
     }
+
+
+    if(Msg.GetKey() == "HYDROMAN_SIM_DVL_U")  
+    {
+        std::get<0>(sim_dvl_values) = Msg.GetDouble();
+        check_send_dvl();
+    }
+    else if(Msg.GetKey() == "HYDROMAN_SIM_DVL_V")
+    {
+        std::get<1>(sim_dvl_values) = Msg.GetDouble();
+        check_send_dvl();
+    }
+    else if(Msg.GetKey() == "HYDROMAN_SIM_DVL_W")
+    {
+        std::get<2>(sim_dvl_values) = Msg.GetDouble();        
+        check_send_dvl();
+    }
+    else if(Msg.GetKey() == "FRONTSEAT_RPM")  
+    {
+        std::stringstream bfrvl;
+        bfrvl << "$BFRVL," << SecondsSinceMidnight(3) << "," <<  std::fixed << std::setprecision(1) << Msg.GetDouble() << ",*";
+        string checksum=gen_NMEAchecksum(bfrvl.str().c_str());
+        bfrvl << checksum << "\r\n";
+        std::cout <<"To clients:["<<bfrvl.str()<<"]"<<std::endl;
+        tcp_server->write(bfrvl.str());            
+    }
+    
   }
 
   
@@ -231,24 +258,24 @@ bool CiBackSeatServer::OnConnectToServer()
     double dfLatOrigin;
     double dfLongOrigin;
 
-    if(m_MissionReader.GetValue("LatOrigin", sValu))
+    if(m_MissionReader.GetValue("LatOrigin", dfLatOrigin))
     {
-	dfLatOrigin = atof(sValu.c_str());
 	m_Comms.Notify("LAT_ORIGIN",dfLatOrigin);
     }
     else
     {
 	std::cout<<"No Lat Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
     }
 
-   if(m_MissionReader.GetValue("LongOrigin", sValu))
+   if(m_MissionReader.GetValue("LongOrigin", dfLongOrigin))
     {
-	dfLongOrigin = atof(sValu.c_str());
 	m_Comms.Notify("LONG_ORIGIN",dfLongOrigin);
     }
     else
     {
 	std::cout<<"No Long Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
     }
 
     if(!m_Geodesy.Initialise(dfLatOrigin, dfLongOrigin))
@@ -275,6 +302,7 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("FRONTSEAT_PITCH_RATE",0);
   m_Comms.Register("FRONTSEAT_HEADING",0);
   m_Comms.Register("FRONTSEAT_ELEVATOR",0);
+  m_Comms.Register("FRONTSEAT_RPM",0);
   m_Comms.Register("FRONTSEAT_DEPTH",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_X",0);
   m_Comms.Register("FRONTSEAT_BODY_VEL_Y",0);
@@ -283,6 +311,10 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("TRIM_REPORT",0);
   m_Comms.Register("INJECT_TO_BACKSEAT",0);
   m_Comms.Register("GPS_SIM_UPDATE_RECEIVED",0);  
+  m_Comms.Register("HYDROMAN_SIM_DVL_U", 0);
+  m_Comms.Register("HYDROMAN_SIM_DVL_V", 0);
+  m_Comms.Register("HYDROMAN_SIM_DVL_W", 0);
+  m_Comms.Register("HYDROMAN_SIM_DVL_TIME", 0);
   
   return true;
 }
@@ -659,4 +691,30 @@ string intToString(int val)
   string str = buff;
   return(str);
 }
+
+void CiBackSeatServer::check_send_dvl()
+{
+    double u = std::get<0>(sim_dvl_values),
+        v = std::get<1>(sim_dvl_values),
+        w = std::get<2>(sim_dvl_values);
+
+    // wait for the rest of the values to come in
+    if(std::isnan(u) || std::isnan(v) || std::isnan(w))
+        return;
+
+    std::stringstream bfdvl;
+    bfdvl << "$BFDVL," << SecondsSinceMidnight(3) << "," <<  std::fixed << std::setprecision(3) << u << "," << v << "," << w << ",0,0,0,0,15.0,"  << SecondsSinceMidnight(3) << "*";
+
+    string checksum=gen_NMEAchecksum(bfdvl.str().c_str());
+    bfdvl << checksum << "\r\n";
+    std::cout <<"To clients:["<<bfdvl.str()<<"]"<<std::endl;
+    tcp_server->write(bfdvl.str());
+    
+    // reset
+    sim_dvl_values = {std::numeric_limits<double>::quiet_NaN(),
+                      std::numeric_limits<double>::quiet_NaN(),
+                      std::numeric_limits<double>::quiet_NaN()
+    };
+}
+
 
