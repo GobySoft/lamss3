@@ -2294,7 +2294,8 @@ bool CArrayModel::dyssdt(double sd, vector<double> yss, vector<double>& dydt )
   
   dydt.push_back(cos(yss[1]));
   dydt.push_back(-sin(yss[1]));
-  
+
+  return true;
 }
 
 bool CArrayModel::cable_ode45(vector<double> x, vector<double> y_init, vector<double>& y)

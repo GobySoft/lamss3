@@ -4,12 +4,13 @@
 #include <math.h>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+//#include "goby/moos/moos_geodesy.h"
 
 // From lib_henrik_util
 #include <lamss/lib_henrik_util/CVectorUtils.h>
 #include <lamss/lib_henrik_util/str_num.h>
 
+#include <goby/moos/moos_geodesy.h>
 
 #ifndef SIMTOWEDARRAY_HEADER
 #define SIMTOWEDARRAY_HEADER
@@ -240,7 +241,8 @@ class CSimTowedArray : public CMOOSApp
   
  protected:
 
-  CMOOSGeodesy m_Geodesy;
+
+  goby::moos::CMOOSGeodesy m_Geodesy;
 
   bool ready;
   bool first, towing;

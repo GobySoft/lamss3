@@ -8,7 +8,7 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "goby/moos/protobuf/frontseat.pb.h"
@@ -87,7 +87,7 @@ class SimTargets : public goby::moos::GobyMOOSApp
     bool got_y;
     bool noRangeCrit;
     
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
     std::vector<CTarget> Targets;
     
 };
