@@ -43,7 +43,7 @@ class InterfaceNetSimManager : public goby::moos::GobyMOOSApp
     
     void loop();
     void check_connected();
-    void handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data);
+    void handle_nav_data(const goby::moos::protobuf::NodeStatus& data);
     void handle_node_report(const CMOOSMsg& msg);
     void handle_modem_receive(const goby::acomms::protobuf::ModemTransmission& rx_data);
     
@@ -112,7 +112,7 @@ InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg
     switch(cfg_.nav_source())
     {
         case InterfaceNetSimManagerConfig::IFRONTSEAT:
-            subscribe_pb("IFS_DATA_IN", &InterfaceNetSimManager::handle_frontseat_data, this);
+            subscribe_pb("NAV_DATA", &InterfaceNetSimManager::handle_nav_data, this);
             break;
         case InterfaceNetSimManagerConfig::NODE_REPORT:
             subscribe(cfg_.node_report_var(), &InterfaceNetSimManager::handle_node_report, this);
@@ -214,26 +214,23 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
 
 
 
-void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data)
+void InterfaceNetSimManager::handle_nav_data(const goby::moos::protobuf::NodeStatus& data)
 {
-    if(data.has_node_status())
-    {
-        NetSimManagerRequest req;
-        req.set_id(request_id_++);
-        auto& nav = *req.add_nav();
-        nav.set_modem_tcp_port(cfg_.modem_tcp_port());
-        nav.set_time(data.node_status().time());
-        nav.set_lat(data.node_status().global_fix().lat());
-        nav.set_lon(data.node_status().global_fix().lon());
-        nav.set_depth(data.node_status().global_fix().depth());
-        nav.set_speed(data.node_status().speed());
-        nav.set_heading(data.node_status().pose().heading());
+    NetSimManagerRequest req;
+    req.set_id(request_id_++);
+    auto& nav = *req.add_nav();
+    nav.set_modem_tcp_port(cfg_.modem_tcp_port());
+    nav.set_time(data.time());
+    nav.set_lat(data.global_fix().lat());
+    nav.set_lon(data.global_fix().lon());
+    nav.set_depth(data.global_fix().depth());
+    nav.set_speed(data.speed());
+    nav.set_heading(data.pose().heading());
         
-        if(client_->connected())
-        {
-            glog.is(DEBUG1) && glog << "Sent request (from IFS_DATA_IN): " << req.ShortDebugString() << std::endl;
-            client_->write(req);
-        }
+    if(client_->connected())
+    {
+    	glog.is(DEBUG1) && glog << "Sent request (from NAV_DATA): " << req.ShortDebugString() << std::endl;
+    	client_->write(req);
     }
 }
 
