@@ -656,6 +656,7 @@ void CMVSim::PostResults()
 			double dfPitchRate = pAUV->GetPitchRate();
 			double dfRudder    = pAUV->GetRudder();
 			double dfElevator  = pAUV->GetElevator();
+			double dfRPM       = pAUV->GetRPM();
 			double dfTowPosX   = pAUV->GetTowPosX();
 			double dfTowPosY   = pAUV->GetTowPosY();
 			double dfTowPosZ   = pAUV->GetTowPosZ();
@@ -721,6 +722,7 @@ void CMVSim::PostResults()
 			m_Comms.Notify(sP+"ROLL",0.0);
 			m_Comms.Notify(sP+"RUDDER",dfRudder);
 			m_Comms.Notify(sP+"ELEVATOR",dfElevator);
+			m_Comms.Notify(sP+"RPM",dfRPM);
 			m_Comms.Notify(sP+"TOW_POS_Z",dfTowPosZ);
 			m_Comms.Notify(sP+"TOW_VEL_X",dfTowVelX);
 			m_Comms.Notify(sP+"TOW_VEL_Y",dfTowVelY);

@@ -97,7 +97,7 @@ public:
 	double GetPos4X()    {return m_Pos4(1);};
 	double GetPos4Y()    {return m_Pos4(2);};
 	double GetPos4Z()    {return m_Pos4(3);};
-
+	double GetRPM()      {return m_dfDesiredThrust*m_dfMaxRPM/100;}    
 
 	void   SetX(double dfVal)       {m_State(1)   = dfVal;};
 	void   SetY(double dfVal)       {m_State(2)   = dfVal;};
