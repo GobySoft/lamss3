@@ -3,6 +3,7 @@
 #ifndef __CiBackSeatServer_h__
 #define __CiBackSeatServer_h__
 
+#include <tuple>
 #include <memory>
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "goby/moos/moos_geodesy.h"
@@ -32,8 +33,11 @@ private:
 	std::string SecondsSinceMidnight(int nDigits);
 	std::string gen_NMEAchecksum(const char *str);
 	void Translate(NMEAMessage Sentence);
+        void check_send_dvl();
+    
+    
 	std::string tcp_port;
-  	std::auto_ptr<goby::util::TCPServer> tcp_server;
+  	std::unique_ptr<goby::util::TCPServer> tcp_server;
 
     	std::string navx;
     	std::string navy;
@@ -67,7 +71,14 @@ private:
 	bool msgack;
 
         double last_gps_sim_update_time;
-      
+
+        // DVL u, v, w
+        std::tuple<double, double, double> sim_dvl_values{std::numeric_limits<double>::quiet_NaN(),
+                std::numeric_limits<double>::quiet_NaN(),
+                std::numeric_limits<double>::quiet_NaN()
+                };
+    
+    
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
 };
