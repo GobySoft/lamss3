@@ -85,7 +85,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
     subscribe("MISSION_STATE", &LamssTrackManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssTrackManager::handle_vehicle_id, this);
-    subscribe("IFS_DATA_IN", &LamssTrackManager::handle_ifs_data, this);    
+    subscribe("NAV_DATA", &LamssTrackManager::handle_nav_data, this);    
     subscribe("COLLABORATOR_ID", 
 	      &LamssTrackManager::handle_collaborator_id, this);    
     subscribe("COLLABORATOR_NAME", 
@@ -306,15 +306,12 @@ void LamssTrackManager::try_publish()
     }
 }
 
-void LamssTrackManager::handle_ifs_data(const CMOOSMsg& msg)
+void LamssTrackManager::handle_nav_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::FrontSeatInterfaceData data;
+    goby::moos::protobuf::NodeStatus data;
     parse_for_moos(msg.GetString(), &data);
-
-    if(data.has_node_status())
-    {
-        last_nav_ = data.node_status();
-    }
+    
+    last_nav_ = data;
 }
 
 void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
