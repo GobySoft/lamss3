@@ -55,7 +55,7 @@ class LamssAEL : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
-    void handle_ifs_data(const CMOOSMsg& msg);
+    void handle_nav_data(const CMOOSMsg& msg);
 
     ArrayNavigation computeAEL();
     double angle360(double angle);

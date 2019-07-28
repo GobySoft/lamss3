@@ -53,7 +53,7 @@ LamssAEL::LamssAEL(LamssAELConfig& cfg)
     set_ignore_stale(false);
 
     // set up subscriptions before starting separate thread
-    subscribe("IFS_DATA_IN", &LamssAEL::handle_ifs_data, this);    
+    subscribe("NAV_DATA", &LamssAEL::handle_nav_data, this);    
     //
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
@@ -111,25 +111,22 @@ void LamssAEL::slow_loop(double curr_time)
   last_slow_loop_t_ = curr_time;
 }
 
-void LamssAEL::handle_ifs_data(const CMOOSMsg& msg)
+void LamssAEL::handle_nav_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::FrontSeatInterfaceData data;
+    goby::moos::protobuf::NodeStatus data;
     parse_for_moos(msg.GetString(), &data);
+    
+    last_nav_ = data;
 
-    if(data.has_node_status())
+    if (filt_set_)
     {
-        last_nav_ = data.node_status();
-
-	if (filt_set_)
-	  {
-	    pitch_filter.setVal(last_nav_.pose().pitch()*pi/180);
-	    roll_filter.setVal(last_nav_.pose().roll()*pi/180);
-	    heading_filter.setVal(last_nav_.pose().heading());
-	  }
-
-        nav_count_++;
-	got_nav_ = true;
+	pitch_filter.setVal(last_nav_.pose().pitch()*pi/180);
+	roll_filter.setVal(last_nav_.pose().roll()*pi/180);
+	heading_filter.setVal(last_nav_.pose().heading());
     }
+
+    nav_count_++;
+    got_nav_ = true;
 }
 
 ArrayNavigation LamssAEL::computeAEL()
