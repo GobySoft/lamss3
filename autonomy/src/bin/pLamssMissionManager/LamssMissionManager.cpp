@@ -496,7 +496,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
         {
         	// post NAV_DATA
         	std::string serialized;
-  		serialize_for_moos(&serialized,data);
+  		serialize_for_moos(&serialized,last_nav_);
   		publish("NAV_DATA", serialized);
   		
   		// post NAV_*
