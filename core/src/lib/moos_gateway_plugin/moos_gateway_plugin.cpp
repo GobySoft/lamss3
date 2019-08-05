@@ -1,4 +1,4 @@
-#include "goby/middleware/transport-common.h"
+#include "goby/middleware/marshalling/protobuf.h"
 
 #include "goby/moos/middleware/moos_plugin_translator.h"
 #include "goby/moos/moos_translator.h"
