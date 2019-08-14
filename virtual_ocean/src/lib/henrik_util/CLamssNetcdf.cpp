@@ -2206,28 +2206,47 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::
     svp[k] += eof_baseval_values[k];
   }
   //print svp for chcking
+  std::cout<< std::endl;
   for(size_t k=0;k<eof_num_depth_value;k++){
-    std::cout<< std::endl<< "dep_vec_[" <<k <<"] = " <<dep_vec_[k] <<" svp[" << k <<"]= " << svp[k] << std::endl;
+    std::cout<< "dep_vec_[" <<k <<"] = " <<dep_vec_[k] <<" svp[" << k <<"]= " << svp[k] << std::endl;
   }
-    //step 3: Interpolate by the  depth request
-     double min_depth = vecUtils.vmin(dep_request);
-   double max_depth = vecUtils.vmax(dep_request);
+  std::cout<< std::endl;
 
-  int dep_indx_1 = dep_vec_.size()-1;
+  //step 3: Interpolate by the  depth request
+  double min_depth = vecUtils.vmin(dep_request);
+  double max_depth = vecUtils.vmax(dep_request);
+
+  std::cout << std::endl << "Interpolation stage: " << std::endl << std::endl;
+
+  std::cout << "Depth request boundaries:  [" << min_depth << " , " << max_depth << "]" << std::endl;
+  std::cout << "Known profile boundaries:  [" << vecUtils.vmin(dep_vec_) << " , " << vecUtils.vmax(dep_vec_) << "]" << std::endl;
+
+  // int dep_indx_1 = dep_vec_.size()-1;
+  int dep_indx_1 = 0;
   for  (int i=0; i<dep_vec_.size(); i++)
-     if (dep_vec_[i] <= min_depth)
-       dep_indx_1 = i;
-   int dep_indx_2 = dep_indx_1;
-   for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
-     if (dep_vec_[i] >= max_depth)
-       dep_indx_2 = i;
+    if (dep_vec_[i] <= min_depth)
+      dep_indx_1 = i;
 
-     if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
-       if (dep_indx_1 == dep_indx_2)
-         for (int i = 0; i< dep_request.size(); i++)
-           svp_out[i] = svp[dep_indx_1];
-       else
-         bool ok = vecUtils.interp(dep_vec_,svp,dep_request,svp_out);
+  // int dep_indx_2 = dep_indx_1;
+  int dep_indx_2 = dep_vec_.size()-1;
+  for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
+    if (dep_vec_[i] >= max_depth)
+      dep_indx_2 = i;
+
+  std::cout << "Indices: " << dep_vec_.size()-1 << " =-> [" << dep_indx_1 << " , " << dep_indx_2 << "]" << std::endl;
+
+  if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
+    if (dep_indx_1 == dep_indx_2)
+      for (int i = 0; i< dep_request.size(); i++)
+        svp_out[i] = svp[dep_indx_1];
+    else
+      bool ok = vecUtils.interp(dep_vec_,svp,dep_request,svp_out);
+
+  std::cout<< std::endl;
+  for(int i = 0, n=svp_out.size(); i<n; ++i)
+    std::cout << i << " dep_request: " << dep_request[i] << " svp_out: " << svp_out[i] << std::endl;
+  std::cout<< std::endl;
+  
   return(svp_out);
 }
 
