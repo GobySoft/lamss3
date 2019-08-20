@@ -21,7 +21,7 @@
 
 #include "lamss/lib_bellhop/iBellhop_messages.pb.h"
 #include "lamss/lib_bellhop/svp_request_response.pb.h"
-#include "ivp/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 
 #include "IvPBehavior.h"
 #include "ConditionalParam.h"
@@ -118,7 +118,7 @@ public:
   CRapRays rap_trace;
 
 // SVP updates 
-  CMOOSGeodesy m_Geodesy;
+  goby::moos::CMOOSGeodesy m_Geodesy;
   void requestSVPUpdate();
   bool handleSVPResponse(std::string cn);
   SVP::Response svp_response;

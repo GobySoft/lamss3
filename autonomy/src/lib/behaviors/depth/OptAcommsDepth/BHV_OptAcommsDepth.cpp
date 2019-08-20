@@ -32,7 +32,7 @@
 #if GOBY_VERSION_MAJOR >= 2
 #include "goby/moos/moos_string.h"
 using goby::moos::val_from_string;
-#include "goby/common/time.h"
+#include "goby/time/legacy.h"
 using goby::common::goby_time;
 #include "goby/moos/moos_protobuf_helpers.h"
 #else

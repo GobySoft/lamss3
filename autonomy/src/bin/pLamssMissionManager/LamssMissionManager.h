@@ -16,7 +16,7 @@
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
-#include "MOOS/libMOOSGeodesy/MOOSGeodesy.h"
+#include "goby/moos/moos_geodesy.h"
 #include "XYPolygon.h"
 
 class TrackManagerException : public std::runtime_error
@@ -42,7 +42,7 @@ class CStowpipe
   int verteces;
 };
 
-class LamssMissionManager : public GobyMOOSApp
+class LamssMissionManager : public goby::moos::GobyMOOSApp
 {
   public:
     static void* driver_library_handle_;
@@ -54,7 +54,7 @@ class LamssMissionManager : public GobyMOOSApp
     LamssMissionManager(const LamssMissionManager&);
     LamssMissionManager& operator=(const LamssMissionManager&);
 
-    CMOOSGeodesy m_Geodesy;
+    goby::moos::CMOOSGeodesy m_Geodesy;
     XYPolygon opregion, opregion_init;
     
     // synchronous event

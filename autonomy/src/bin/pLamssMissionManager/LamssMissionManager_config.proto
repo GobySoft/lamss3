@@ -1,13 +1,13 @@
 
 import "goby/moos/protobuf/goby_moos_app.proto";
-import "goby/common/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
 import "lamss_deploy.proto";
 import "lamss_transit.proto";
 
 
 message LamssMissionManagerConfig
 {
-  optional GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
 
   optional double min_opbox_distance = 2 [default = 500];
   optional double operation_radius   = 3 [default = 10000];
