@@ -26,7 +26,7 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                                   google::protobuf::Message>(
                 [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type) {
                     glog.is_debug2() && glog << "To MOOS: " << msg->ShortDebugString() << std::endl;
-                    
+
                     std::string serialized;
                     bool is_binary = serialize_for_moos(&serialized, *msg);
                     CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
@@ -56,6 +56,17 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                 return;
             }
             this->goby().interprocess().publish<lamss::groups::acomms_expire>(pb_msg);
+        });
+
+        this->moos().add_trigger("ACOMMS_MAC_SLOT_START", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
         });
     }
 };
