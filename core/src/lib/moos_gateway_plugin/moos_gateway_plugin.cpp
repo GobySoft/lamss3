@@ -25,9 +25,8 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
             .subscribe_type_regex<lamss::groups::pAcommsHandler_multiplex,
                                   google::protobuf::Message>(
                 [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type) {
-                    std::cout << "goby --> moos: type: " << type
-                              << ", msg: " << msg->ShortDebugString() << std::endl;
-
+                    glog.is_debug2() && glog << "To MOOS: " << msg->ShortDebugString() << std::endl;
+                    
                     std::string serialized;
                     bool is_binary = serialize_for_moos(&serialized, *msg);
                     CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
