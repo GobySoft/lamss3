@@ -949,13 +949,13 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
   return(output);
 }
 
-void LamssMissionManager::handle_stowpipe_message(const CMOOSMsg& msg)
+void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
 {
-  LAMSS_STOWPIPE stowpipe_msg;
-  parse_for_moos(msg.GetString(),&stowpipe_msg);
-  glog.is(DEBUG1) && glog << "Got Stowpipe message, Stowpipe_ID " 
-			  << stowpipe_msg.stowpipe_id() << std::endl;
-  update_stowpipes(stowpipe_msg);
+  LAMSS_STOVEPIPE stovepipe_msg;
+  parse_for_moos(msg.GetString(),&stovepipe_msg);
+  glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
+			  << stovepipe_msg.stovepipe_id() << std::endl;
+  update_stovepipes(stovepipe_msg);
 }
 
 void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg)
@@ -1076,51 +1076,51 @@ void LamssMissionManager::update_deploy_parameters()
 }
 
 //-----------------------------------------------------------------
-// Procedure: update_stowpipe_list
-//   Purpose: Maintain a list of known stowpipes, and the
+// Procedure: update_stovepipe_list
+//   Purpose: Maintain a list of known stovepipes, and the
 //            times they were last written to. In the dynamic scenario, they are updated
 //            when camp updates are received 
 
-void LamssMissionManager::update_stowpipes(LAMSS_STOWPIPE stowpipe_msg)
+void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 {
 
-    CStowpipe Empty;
+    CStovepipe Empty;
   
     // Current camp location
     double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
-      (stowpipe_msg._time() - last_tracking_msg);
+      (stovepipe_msg._time() - last_tracking_msg);
     double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
-      (stowpipe_msg._time() - last_tracking_msg);
-    for(int i=0; i<Stowpipes.size(); i++) 
+      (stovepipe_msg._time() - last_tracking_msg);
+    for(int i=0; i<Stovepipes.size(); i++) 
       {
 	// if negative ID kill it
-	if (Stowpipes[i].ID == -stowpipe_msg.stowpipe_id())
+	if (Stovepipes[i].ID == -stovepipe_msg.stovepipe_id())
 	  {
-	    for (int j=i; i<Stowpipes.size()-1; j++)
-	      Stowpipes[j] = Stowpipes[j+1];
-	    Stowpipes.pop_back();
+	    for (int j=i; i<Stovepipes.size()-1; j++)
+	      Stovepipes[j] = Stovepipes[j+1];
+	    Stovepipes.pop_back();
 	    return;
 	  }
-        else if (Stowpipes[i].ID == stowpipe_msg.stowpipe_id()) 
+        else if (Stovepipes[i].ID == stovepipe_msg.stovepipe_id()) 
 	  {
 	    // If it exists, Update values
-	    Stowpipes[i].utc = stowpipe_msg._time();
-	    Stowpipes[i].x = stowpipe_msg.stowpipe_x();
-	    Stowpipes[i].y = stowpipe_msg.stowpipe_y();
-	    Stowpipes[i].camp_x = camp_x;
-	    Stowpipes[i].camp_y = camp_y;
-	    Stowpipes[i].depth = stowpipe_msg.depth();
-	    Stowpipes[i].bearing = stowpipe_msg.bearing();
-	    Stowpipes[i].length = stowpipe_msg.length();
-	    Stowpipes[i].width = stowpipe_msg.width();
-	    Stowpipes[i].verteces = stowpipe_msg.verteces();
-	    glog.is(VERBOSE) && glog << "Modified Stowpipe ID " << Stowpipes[i].ID
-				     << " Stowpipe_x = " << Stowpipes[i].x
-				     << " Stowpipe_y = " << Stowpipes[i].y
-				     << " Bearing = " << Stowpipes[i].bearing
-				     << " Length = " << Stowpipes[i].length
-				     << " Width = " << Stowpipes[i].width
-				     << " Verteces = " << Stowpipes[i].verteces
+	    Stovepipes[i].utc = stovepipe_msg._time();
+	    Stovepipes[i].x = stovepipe_msg.stovepipe_x();
+	    Stovepipes[i].y = stovepipe_msg.stovepipe_y();
+	    Stovepipes[i].camp_x = camp_x;
+	    Stovepipes[i].camp_y = camp_y;
+	    Stovepipes[i].depth = stovepipe_msg.depth();
+	    Stovepipes[i].bearing = stovepipe_msg.bearing();
+	    Stovepipes[i].length = stovepipe_msg.length();
+	    Stovepipes[i].width = stovepipe_msg.width();
+	    Stovepipes[i].verteces = stovepipe_msg.verteces();
+	    glog.is(VERBOSE) && glog << "Modified Stovepipe ID " << Stovepipes[i].ID
+				     << " Stovepipe_x = " << Stovepipes[i].x
+				     << " Stovepipe_y = " << Stovepipes[i].y
+				     << " Bearing = " << Stovepipes[i].bearing
+				     << " Length = " << Stovepipes[i].length
+				     << " Width = " << Stovepipes[i].width
+				     << " Verteces = " << Stovepipes[i].verteces
 				     << " camp_x = " << camp_x
 				     << " camp_y = " << camp_y
 				     << std::endl;
@@ -1128,26 +1128,26 @@ void LamssMissionManager::update_stowpipes(LAMSS_STOWPIPE stowpipe_msg)
 	  }
       }
     // Does not exist, add one
-    int last = Stowpipes.size();
-    Stowpipes.resize(last+1);
-    Stowpipes[last].ID = stowpipe_msg.stowpipe_id();
-    Stowpipes[last].utc = stowpipe_msg._time();
-    Stowpipes[last].x = stowpipe_msg.stowpipe_x();
-    Stowpipes[last].y = stowpipe_msg.stowpipe_y();
-    Stowpipes[last].camp_x = camp_x;
-    Stowpipes[last].camp_y = camp_y;
-    Stowpipes[last].depth = stowpipe_msg.depth();
-    Stowpipes[last].bearing = stowpipe_msg.bearing();
-    Stowpipes[last].length = stowpipe_msg.length();
-    Stowpipes[last].width = stowpipe_msg.width();
-    Stowpipes[last].verteces = stowpipe_msg.verteces();
-    glog.is(VERBOSE) && glog << "New Stowpipe ID " << Stowpipes[last].ID
-			     << " Stowpipe_x = " << Stowpipes[last].x
-			     << " Stowpipe_y = " << Stowpipes[last].y
-			     << " Bearing = " << Stowpipes[last].bearing
-			     << " Length = " << Stowpipes[last].length
-			     << " Width = " << Stowpipes[last].width
-			     << " Verteces = " << Stowpipes[last].verteces
+    int last = Stovepipes.size();
+    Stovepipes.resize(last+1);
+    Stovepipes[last].ID = stovepipe_msg.stovepipe_id();
+    Stovepipes[last].utc = stovepipe_msg._time();
+    Stovepipes[last].x = stovepipe_msg.stovepipe_x();
+    Stovepipes[last].y = stovepipe_msg.stovepipe_y();
+    Stovepipes[last].camp_x = camp_x;
+    Stovepipes[last].camp_y = camp_y;
+    Stovepipes[last].depth = stovepipe_msg.depth();
+    Stovepipes[last].bearing = stovepipe_msg.bearing();
+    Stovepipes[last].length = stovepipe_msg.length();
+    Stovepipes[last].width = stovepipe_msg.width();
+    Stovepipes[last].verteces = stovepipe_msg.verteces();
+    glog.is(VERBOSE) && glog << "New Stovepipe ID " << Stovepipes[last].ID
+			     << " Stovepipe_x = " << Stovepipes[last].x
+			     << " Stovepipe_y = " << Stovepipes[last].y
+			     << " Bearing = " << Stovepipes[last].bearing
+			     << " Length = " << Stovepipes[last].length
+			     << " Width = " << Stovepipes[last].width
+			     << " Verteces = " << Stovepipes[last].verteces
 			     << " camp_x = " << camp_x
 			     << " camp_y = " << camp_y
 			     << std::endl;

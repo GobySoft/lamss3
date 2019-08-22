@@ -26,7 +26,7 @@ class TrackManagerException : public std::runtime_error
     { }
 };
 
-class CStowpipe
+class CStovepipe
 {
  public:
   int ID;
@@ -91,12 +91,12 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_gps_update(const CMOOSMsg& msg);
     void handle_in_track(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
-    void handle_stowpipe_message(const CMOOSMsg& msg);
+    void handle_stovepipe_message(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     void update_deploy_parameters();
     void post_transit_route();
-    // Stowpipe manager
-    void update_stowpipes(LAMSS_STOWPIPE stowpipe_msg);
+    // Stovepipe manager
+    void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -153,8 +153,8 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
 
     bool in_track;
     bool depth_adapting;
-    // Dynamic stowpipes (following ice in ICEX)
-    std::vector<CStowpipe> Stowpipes;
+    // Dynamic stovepipes (following ice in ICEX)
+    std::vector<CStovepipe> Stovepipes;
 };
 
 #endif

@@ -33,7 +33,7 @@
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_stowpipe.pb.h"
+#include "lamss/lib_lamss_protobuf/lamss_stovepipe.pb.h"
 
 namespace lamss
 {
