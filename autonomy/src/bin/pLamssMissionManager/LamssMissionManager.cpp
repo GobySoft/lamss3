@@ -97,6 +97,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
+    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -692,8 +693,15 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
   LAMSS_TRANSIT transit_cmd;
   parse_for_moos(msg.GetString(), &transit_cmd);
   last_transit_route_ = transit_cmd;
-  transit_x.clear();
-  transit_y.clear();
+  int n_wpt = transit_cmd.wpt_size();
+  transit_x.resize(n_wpt);
+  transit_y.resize(n_wpt);
+  for (int i=0; i<n_wpt; i++)
+    {
+      transit_x[i] = transit_cmd.wpt(i).x();
+      transit_y[i] = transit_cmd.wpt(i).y();
+    }
+  /*
   if (fabs(last_transit_route_.x_1()) > 1.0 && fabs(last_transit_route_.y_1()) > 1.0)
     {
       transit_x.push_back(last_transit_route_.x_1());
@@ -719,6 +727,7 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
       transit_x.push_back(last_transit_route_.x_5());
       transit_y.push_back(last_transit_route_.y_5());
     }
+  */
 }
 
 void LamssMissionManager::post_transit_route()
@@ -940,6 +949,15 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
   return(output);
 }
 
+void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
+{
+  LAMSS_STOVEPIPE stovepipe_msg;
+  parse_for_moos(msg.GetString(),&stovepipe_msg);
+  glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
+			  << stovepipe_msg.stovepipe_id() << std::endl;
+  update_stovepipes(stovepipe_msg);
+}
+
 void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg)
 {
     goby::acomms::protobuf::DriverConfig cfg;
@@ -1055,4 +1073,83 @@ void LamssMissionManager::update_deploy_parameters()
   std::stringstream bc;
   bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
   publish("BEACON_UPDATE",bc.str());
+}
+
+//-----------------------------------------------------------------
+// Procedure: update_stovepipe_list
+//   Purpose: Maintain a list of known stovepipes, and the
+//            times they were last written to. In the dynamic scenario, they are updated
+//            when camp updates are received 
+
+void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
+{
+
+    CStovepipe Empty;
+  
+    // Current camp location
+    double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
+      (stovepipe_msg._time() - last_tracking_msg);
+    double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
+      (stovepipe_msg._time() - last_tracking_msg);
+    for(int i=0; i<Stovepipes.size(); i++) 
+      {
+	// if negative ID kill it
+	if (Stovepipes[i].ID == -stovepipe_msg.stovepipe_id())
+	  {
+	    for (int j=i; i<Stovepipes.size()-1; j++)
+	      Stovepipes[j] = Stovepipes[j+1];
+	    Stovepipes.pop_back();
+	    return;
+	  }
+        else if (Stovepipes[i].ID == stovepipe_msg.stovepipe_id()) 
+	  {
+	    // If it exists, Update values
+	    Stovepipes[i].utc = stovepipe_msg._time();
+	    Stovepipes[i].x = stovepipe_msg.stovepipe_x();
+	    Stovepipes[i].y = stovepipe_msg.stovepipe_y();
+	    Stovepipes[i].camp_x = camp_x;
+	    Stovepipes[i].camp_y = camp_y;
+	    Stovepipes[i].depth = stovepipe_msg.depth();
+	    Stovepipes[i].bearing = stovepipe_msg.bearing();
+	    Stovepipes[i].length = stovepipe_msg.length();
+	    Stovepipes[i].width = stovepipe_msg.width();
+	    Stovepipes[i].verteces = stovepipe_msg.verteces();
+	    glog.is(VERBOSE) && glog << "Modified Stovepipe ID " << Stovepipes[i].ID
+				     << " Stovepipe_x = " << Stovepipes[i].x
+				     << " Stovepipe_y = " << Stovepipes[i].y
+				     << " Bearing = " << Stovepipes[i].bearing
+				     << " Length = " << Stovepipes[i].length
+				     << " Width = " << Stovepipes[i].width
+				     << " Verteces = " << Stovepipes[i].verteces
+				     << " camp_x = " << camp_x
+				     << " camp_y = " << camp_y
+				     << std::endl;
+	    return;
+	  }
+      }
+    // Does not exist, add one
+    int last = Stovepipes.size();
+    Stovepipes.resize(last+1);
+    Stovepipes[last].ID = stovepipe_msg.stovepipe_id();
+    Stovepipes[last].utc = stovepipe_msg._time();
+    Stovepipes[last].x = stovepipe_msg.stovepipe_x();
+    Stovepipes[last].y = stovepipe_msg.stovepipe_y();
+    Stovepipes[last].camp_x = camp_x;
+    Stovepipes[last].camp_y = camp_y;
+    Stovepipes[last].depth = stovepipe_msg.depth();
+    Stovepipes[last].bearing = stovepipe_msg.bearing();
+    Stovepipes[last].length = stovepipe_msg.length();
+    Stovepipes[last].width = stovepipe_msg.width();
+    Stovepipes[last].verteces = stovepipe_msg.verteces();
+    glog.is(VERBOSE) && glog << "New Stovepipe ID " << Stovepipes[last].ID
+			     << " Stovepipe_x = " << Stovepipes[last].x
+			     << " Stovepipe_y = " << Stovepipes[last].y
+			     << " Bearing = " << Stovepipes[last].bearing
+			     << " Length = " << Stovepipes[last].length
+			     << " Width = " << Stovepipes[last].width
+			     << " Verteces = " << Stovepipes[last].verteces
+			     << " camp_x = " << camp_x
+			     << " camp_y = " << camp_y
+			     << std::endl;
+    return;
 }
