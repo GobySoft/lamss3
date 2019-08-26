@@ -19,7 +19,8 @@ message InterfaceNetSimManagerConfig
     
     optional NavigationSource nav_source = 20 [default = IFRONTSEAT];
     optional string node_report_var = 21 [default = "NODE_REPORT"];
-
+    optional string node_report_name = 23;
+    
     message ModemIdMapping
     {
         required uint32 modem_id = 1;
