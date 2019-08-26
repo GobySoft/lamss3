@@ -880,7 +880,8 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 				  << " camp_y=" << camp_y
 				  << std::endl;
 	  
-	    NodeRecord node_report("camp_sargo", "icecamp");
+	  //	    NodeRecord node_report("camp_sargo", "icecamp");
+	  NodeRecord node_report(cfg_.topside_name(), "icecamp");
 	    node_report.setTimeStamp(vehicle_pos.time());
 	    node_report.setX(camp_x);
 	    node_report.setY(camp_y);
