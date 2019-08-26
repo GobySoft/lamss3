@@ -12,6 +12,9 @@ constexpr goby::middleware::Group acomms_ack_original{"lamss::moos::ACOMMS_ACK_O
 constexpr goby::middleware::Group acomms_expire{"lamss::moos::ACOMMS_EXPIRE"};
 constexpr goby::middleware::Group acomms_mac_slot_start{"lamss::moos::ACOMMS_MAC_SLOT_START"};
 
+
+constexpr goby::middleware::Group lamss_status_in{"lamss::moos::LAMSS_STATUS_IN"};
+
 } // namespace groups
 } // namespace lamss
 

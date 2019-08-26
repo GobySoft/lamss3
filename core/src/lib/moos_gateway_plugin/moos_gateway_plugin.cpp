@@ -71,6 +71,25 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
     }
 };
 
+class NavStatusTranslation : public goby::moos::Translator
+{
+  public:
+    NavStatusTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        this->moos().add_trigger("LAMSS_STATUS_IN", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::lamss_status_in>(pb_msg);
+        });
+    }
+};
+
 extern "C"
 {
     void goby3_moos_gateway_load(
@@ -78,6 +97,7 @@ extern "C"
             handler)
     {
         handler->launch_thread<pAcommsHandlerMultiplexTranslation>();
+        handler->launch_thread<NavStatusTranslation>();
     }
 
     void goby3_moos_gateway_unload(
@@ -85,5 +105,6 @@ extern "C"
             handler)
     {
         handler->join_thread<pAcommsHandlerMultiplexTranslation>();
+        handler->join_thread<NavStatusTranslation>();
     }
 }
