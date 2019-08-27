@@ -97,7 +97,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
-    
+    subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -1065,6 +1065,24 @@ void LamssMissionManager::update_deploy_parameters()
 	     << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
 	publish("SENSOR_RACETRACK",trck.str());
 	
+      }
+    //
+    // Update stovepipes and publish
+    //
+    for (int i=0; i< Stovepipes.size(); i++)
+      {
+	std::stringstream stvp;
+	stvp << "name=stvp_" << Stovepipes[i].ID
+	     << "#polygon= format=ellipse ,label=stvp_"
+	     << Stovepipes[i].ID 
+	     << ", x=" << Stovepipes[i].x+camp_x-Stovepipes[i].camp_x
+	     << ", y=" << Stovepipes[i].y+camp_y-Stovepipes[i].camp_y
+	     << ", degs="  << 90.0-Stovepipes[i].bearing
+	     << ", pts="  << Stovepipes[i].verteces
+	     << ", major="  << Stovepipes[i].length/2
+	     << ", minor="  << Stovepipes[i].width/2;
+	publish("OBSTACLE_ALERT",stvp.str());
+
       }
   }
   // update abort location. Note that it's defined as offset relative to camp
