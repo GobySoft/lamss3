@@ -74,6 +74,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     // mail handlers
 
     void handle_ifs_data(const CMOOSMsg& msg);
+    void handle_hydroman_data(const CMOOSMsg& msg);
     void handle_status(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
