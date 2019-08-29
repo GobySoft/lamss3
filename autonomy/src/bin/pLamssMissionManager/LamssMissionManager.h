@@ -40,6 +40,7 @@ class CStovepipe
   double length;
   double width;
   int verteces;
+  bool spawned;
 };
 
 class LamssMissionManager : public goby::moos::GobyMOOSApp

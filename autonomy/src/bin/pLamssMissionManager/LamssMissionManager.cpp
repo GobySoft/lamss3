@@ -1071,13 +1071,26 @@ void LamssMissionManager::update_deploy_parameters()
     //
     for (int i=0; i< Stovepipes.size(); i++)
       {
+	double degs = 90.0-Stovepipes[i].bearing;
+	if (degs > 360)
+	  degs -= 360;
+	else if (degs < 0)
+	  degs += 360;
+	std::string name;
+	if (Stovepipes[i].spawned)
+	  name = "avd_obstacle_stvp_" + intToString(Stovepipes[i].ID);
+	else
+	  {
+	    name = "_stvp_" + intToString(Stovepipes[i].ID);
+	    Stovepipes[i].spawned = true;
+	  }
 	std::stringstream stvp;
-	stvp << "name=stvp_" << Stovepipes[i].ID
+	stvp << "name=" << name
 	     << "#polygon= format=ellipse ,label=stvp_"
 	     << Stovepipes[i].ID 
 	     << ", x=" << Stovepipes[i].x+camp_x-Stovepipes[i].camp_x
 	     << ", y=" << Stovepipes[i].y+camp_y-Stovepipes[i].camp_y
-	     << ", degs="  << 90.0-Stovepipes[i].bearing
+	     << ", degs="  << degs
 	     << ", pts="  << Stovepipes[i].verteces
 	     << ", major="  << Stovepipes[i].length/2
 	     << ", minor="  << Stovepipes[i].width/2;
@@ -1160,6 +1173,7 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
     Stovepipes[last].length = stovepipe_msg.length();
     Stovepipes[last].width = stovepipe_msg.width();
     Stovepipes[last].verteces = stovepipe_msg.verteces();
+    Stovepipes[last].spawned = false;
     glog.is(VERBOSE) && glog << "New Stovepipe ID " << Stovepipes[last].ID
 			     << " Stovepipe_x = " << Stovepipes[last].x
 			     << " Stovepipe_y = " << Stovepipes[last].y
