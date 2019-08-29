@@ -87,6 +87,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_collaborator_id, this);
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
     subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
+    subscribe("HYDROMAN_NAV_DATA", &LamssMissionManager::handle_hydroman_data, this);
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);
     subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);
@@ -492,6 +493,109 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
     if(data.has_node_status())
     {
         last_nav_ = data.node_status();
+        if (cfg_.navigating_with_hydroman() == false)
+        {
+        	// post NAV_DATA
+        	std::string serialized;
+  		serialize_for_moos(&serialized,last_nav_);
+  		publish("NAV_DATA", serialized);
+  		
+  		// post NAV_*
+  		publish("NAV_X", last_nav_.local_fix().x());
+        	publish("NAV_Y", last_nav_.local_fix().y());
+        	publish("NAV_LAT", last_nav_.global_fix().lat());
+		publish("NAV_LONG", last_nav_.global_fix().lon());
+		if (last_nav_.local_fix().has_z())
+            		publish("NAV_Z", last_nav_.local_fix().z());
+        	if (last_nav_.global_fix().has_depth())
+			publish("NAV_DEPTH", last_nav_.global_fix().depth());
+		const double pi = 3.14159;
+        	if (last_nav_.pose().has_heading())
+        	{
+            		double yaw = -last_nav_.pose().heading() * pi / 180.0;
+            		while (yaw < -pi) yaw += 2 * pi;
+            		while (yaw >= pi) yaw -= 2 * pi;
+            		publish("NAV_YAW", yaw);
+            		publish("NAV_HEADING", last_nav_.pose().heading());
+		}	
+		publish("NAV_SPEED", last_nav_.speed());	
+		if (last_nav_.pose().has_pitch())
+            		publish("NAV_PITCH", last_nav_.pose().pitch() * pi / 180.0);
+        	if (last_nav_.pose().has_roll())
+            		publish("NAV_ROLL", last_nav_.pose().roll() * pi / 180.0);
+        	if (last_nav_.global_fix().has_altitude())
+			publish("NAV_ALTITUDE", last_nav_.global_fix().altitude());	
+		// surface for GPS variable
+        	if (last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS &&
+            		last_nav_.global_fix().lon_source() == goby::moos::protobuf::GPS)
+        	{
+            		std::stringstream ss;
+            		ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
+            		publish("GPS_UPDATE_RECEIVED", ss.str());
+		}	
+			
+        }
+    }
+}
+
+void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
+{
+    goby::moos::protobuf::NodeStatus data;
+    parse_for_moos(msg.GetString(), &data);
+
+    if (cfg_.navigating_with_hydroman() == true)
+    {
+  	// post NAV_*
+  	publish("NAV_X", data.local_fix().x());
+        publish("NAV_Y", data.local_fix().y());
+        
+        double lat;
+  	double lon;
+  	if (!m_Geodesy.UTM2LatLong(data.local_fix().x(),data.local_fix().y(),lat,lon))
+    	{
+      		glog.is(DEBUG2) && glog
+		<< "Error in UTM2LatLong conversion" << std::endl;
+    	}
+        publish("NAV_LAT", lat);
+        publish("NAV_LONG",lon);
+        
+	if (data.local_fix().has_z())
+	{
+		publish("NAV_Z", data.local_fix().z());
+		publish("NAV_DEPTH", data.local_fix().z());
+	}        		
+	const double pi = 3.14159;
+        if (data.pose().has_heading())
+        {
+            	double yaw = -data.pose().heading() * pi / 180.0;
+            	while (yaw < -pi) yaw += 2 * pi;
+            	while (yaw >= pi) yaw -= 2 * pi;
+            	publish("NAV_YAW", yaw);
+            	publish("NAV_HEADING", data.pose().heading());
+	}	
+	publish("NAV_SPEED", data.speed());	
+	if (data.pose().has_pitch())
+            	publish("NAV_PITCH", data.pose().pitch() * pi / 180.0);
+        if (data.pose().has_roll())
+            	publish("NAV_ROLL", data.pose().roll() * pi / 180.0);
+        if (data.global_fix().has_altitude())
+		publish("NAV_ALTITUDE", data.global_fix().altitude());	
+	// surface for GPS variable
+        if (data.global_fix().lat_source() == goby::moos::protobuf::GPS &&
+            	data.global_fix().lon_source() == goby::moos::protobuf::GPS)
+        {
+            	std::stringstream ss;
+            	ss << "Timestamp=" << std::setprecision(15) << data.time();
+            	publish("GPS_UPDATE_RECEIVED", ss.str());
+	}
+	
+	// post NAV_DATA
+	data.mutable_global_fix()->set_lat(lat);
+  	data.mutable_global_fix()->set_lon(lon);
+  	data.mutable_global_fix()->set_depth(data.local_fix().z());
+        std::string serialized;
+  	serialize_for_moos(&serialized,data);
+  	publish("NAV_DATA", serialized);
     }
 }
 
