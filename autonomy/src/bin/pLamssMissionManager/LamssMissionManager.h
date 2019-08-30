@@ -65,7 +65,8 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void try_publish();
     void send_deploy();
     void homing_prosecute();
-    std::string NodeReport(std::string node_name, std::string node_type, 
+    std::string NodeReport(std::string node_name, std::string node_type,
+			   double utc_time,
 			   double node_x, double node_y, double node_spd, 
 			   double node_hdg, double node_dep );
     void initial_deploy();

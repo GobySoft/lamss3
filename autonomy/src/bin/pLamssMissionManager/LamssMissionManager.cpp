@@ -1002,7 +1002,14 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	    if (camp_drift_heading < 0)
 	      camp_drift_heading +=360;
 	    node_report.setHeading(camp_drift_heading);
-	    publish("NODE_REPORT", node_report.getSpec());
+	    //publish("NODE_REPORT", node_report.getSpec());
+	    
+	    // std::string ndrep = NodeReport(cfg_.topside_name(),"icecamp",
+	    //					   vehicle_pos.time(),
+	    //				   camp_x,camp_y,
+	    //				   camp_drift_speed,camp_drift_heading,
+	    //				   vehicle_pos.camp_modem_depth());
+	    // publish("NODE_REPORT", ndrep);
 
 	}
       else
@@ -1012,7 +1019,14 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
     }
  }
 
-std::string LamssMissionManager::NodeReport(std::string node_name, std::string node_type, double node_x, double node_y, double node_spd, double node_hdg, double node_dep )
+std::string LamssMissionManager::NodeReport(std::string node_name,
+					    std::string node_type,
+					    double utc_time,
+					    double node_x,
+					    double node_y,
+					    double node_spd,
+					    double node_hdg,
+					    double node_dep )
 {
 
   double node_lat;
@@ -1027,7 +1041,7 @@ std::string LamssMissionManager::NodeReport(std::string node_name, std::string n
       return("Error in UTM2LatLong conversion\n");
     }
 
-  output += "UTC_TIME=" + doubleToString(MOOSTime(),1);
+  output += "UTC_TIME=" + doubleToString(utc_time,1);
   output += ",";
 
   output += "X=" + doubleToString(node_x,2);
