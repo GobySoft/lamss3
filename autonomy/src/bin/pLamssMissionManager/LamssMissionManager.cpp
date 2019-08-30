@@ -643,7 +643,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	}
       // USBL Homing for recovery
       else if (last_deploy_cmd_.homing_enabled() &&
-         last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_HOMING &&
+         last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RECOVERY &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
 	{
 	  std::stringstream wpt;
