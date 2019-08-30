@@ -562,7 +562,7 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 	if (data.local_fix().has_z())
 	{
 		publish("NAV_Z", data.local_fix().z());
-		publish("NAV_DEPTH", data.local_fix().z());
+		publish("NAV_DEPTH", data.global_fix().depth());
 	}        		
 	const double pi = 3.14159;
         if (data.pose().has_heading())
@@ -592,7 +592,7 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 	// post NAV_DATA
 	data.mutable_global_fix()->set_lat(lat);
   	data.mutable_global_fix()->set_lon(lon);
-  	data.mutable_global_fix()->set_depth(data.local_fix().z());
+  	data.mutable_global_fix()->set_depth(data.global_fix().depth());
         std::string serialized;
   	serialize_for_moos(&serialized,data);
   	publish("NAV_DATA", serialized);
