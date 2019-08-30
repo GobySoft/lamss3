@@ -562,8 +562,11 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 	if (data.local_fix().has_z())
 	{
 		publish("NAV_Z", data.local_fix().z());
+	}       
+	if (data.global_fix().has_depth())
+	{
 		publish("NAV_DEPTH", data.global_fix().depth());
-	}        		
+	}		
 	const double pi = 3.14159;
         if (data.pose().has_heading())
         {
