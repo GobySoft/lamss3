@@ -234,7 +234,7 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 	    {
 	      Nodes[i] = update;
 	      glog.is(DEBUG1) && glog << "Got info for node: " 
-				  << node_name << endl;
+                    << node_name << " " << node_report << endl;
 	    }
 	}
     }
