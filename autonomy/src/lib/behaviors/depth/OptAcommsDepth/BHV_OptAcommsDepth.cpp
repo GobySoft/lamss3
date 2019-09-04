@@ -89,6 +89,7 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
     last_svp_request_(0),
     svp_ready(false),
     svp_requested(false),
+    svp_request_id(11),
     got_lat_origin(false),
     got_long_origin(false),
     geo_init(false),
@@ -1184,7 +1185,7 @@ void BHV_OptCohAcoustDepth::requestSVPUpdate()
   if (ok_osx && ok_osy && ok_cnx && ok_cny)
     {
       double os_lat, os_lon, cn_lat, cn_lon;
-      svp_request.set_request_id(11);
+      svp_request.set_request_id(svp_request_id);
       svp_request.set_utc_time(MOOSTime());
       
       m_Geodesy.UTM2LatLong(osx,osy,os_lat,os_lon); 
@@ -1215,8 +1216,12 @@ bool BHV_OptCohAcoustDepth::handleSVPResponse(std::string serialized_svp_respons
 {
   parse_for_moos(serialized_svp_response, &svp_response);
   file_out_ << goby_time() << "Got SVP update for source id " << svp_response.request_id() 
-	   << endl; 
-  svp_ready =true;
-  svp_requested = false;
+	   << endl;
+  // was it for me?
+  if (svp_response.request_id() == svp_request_id)
+    {
+      svp_ready =true;
+      svp_requested = false;
+    }
   return(svp_ready);
 }
