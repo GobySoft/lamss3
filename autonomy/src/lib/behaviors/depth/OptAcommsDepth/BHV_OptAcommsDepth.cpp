@@ -53,7 +53,7 @@ using goby::util::as;
 
 BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
   : IvPBehavior(gdomain),
-    last_calc_time_(now()),
+    last_calc_time_(goby_time()),
     calculate_interval_(boost::posix_time::seconds(10)),
     look_ahead_seconds_(120),
     depth_envelope_(1000),
@@ -89,7 +89,6 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
     last_svp_request_(0),
     svp_ready(false),
     svp_requested(false),
-    svp_request_id(11),
     got_lat_origin(false),
     got_long_origin(false),
     geo_init(false),
@@ -307,7 +306,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	}
     }
 
-  if (now() >= last_svp_request_ + mseas_update_interval)
+  if (MOOSTime() >= last_svp_request_ + mseas_update_interval)
     {
       requestSVPUpdate();
     }
@@ -315,7 +314,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
     {
       std::string serialized_svp_response = 
 	getBufferStringVal("SVP_RESPONSE",svp_ready);
-      if (svp_requested && now() >= last_svp_request_ + 2 && svp_ready)
+      if (svp_requested && MOOSTime() >= last_svp_request_ + 2 && svp_ready)
 	handleSVPResponse(serialized_svp_response);
     }
 
@@ -334,34 +333,34 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 
       file_out_.open(log_name.c_str());
       log_open = true;
-      file_out_ << now() << " look_ahead_seconds=" << look_ahead_seconds_ << std::endl; 
-      file_out_ << now() << " calculate_interval=" << calculate_interval_ << std::endl; 
-      file_out_ << now() << " collaborator=" << collaborator_ << std::endl; 
-      file_out_ << now() << " depth_envelope=" << depth_envelope_ << std::endl; 
-      file_out_ << now() << " depth_uncertainty=" << depth_uncertainty_ << std::endl; 
-      file_out_ << now() << " activation_range=" << departure_range_ << std::endl; 
-      file_out_ << now() << " departure_range=" << departure_range_ << std::endl; 
-      file_out_ << now() << " approach_range=" << approach_range_ << std::endl; 
-      file_out_ << now() << " range_max=" << range_max << std::endl; 
-      file_out_ << now() << " depth_min=" << depth_min << std::endl; 
-      file_out_ << now() << " depth_max=" << depth_max << std::endl; 
-      file_out_ << now() << " number_depths=" << number_depths << std::endl; 
-      file_out_ << now() << " theta_min=" << theta_min << std::endl; 
-      file_out_ << now() << " theta_max=" << theta_max << std::endl; 
-      file_out_ << now() << " number_theta=" << number_theta << std::endl; 
-      file_out_ << now() << " peak_filter=" << peak_filter_ << std::endl; 
-      file_out_ << now() << " optimize=" << optimize << std::endl; 
-      file_out_ << now() << " sonar=" << tolower(sonar) << std::endl; 
-      file_out_ << now() << " multipath penalty=" << multipath_penalty
+      file_out_ << goby_time() << " look_ahead_seconds=" << look_ahead_seconds_ << std::endl; 
+      file_out_ << goby_time() << " calculate_interval=" << calculate_interval_ << std::endl; 
+      file_out_ << goby_time() << " collaborator=" << collaborator_ << std::endl; 
+      file_out_ << goby_time() << " depth_envelope=" << depth_envelope_ << std::endl; 
+      file_out_ << goby_time() << " depth_uncertainty=" << depth_uncertainty_ << std::endl; 
+      file_out_ << goby_time() << " activation_range=" << departure_range_ << std::endl; 
+      file_out_ << goby_time() << " departure_range=" << departure_range_ << std::endl; 
+      file_out_ << goby_time() << " approach_range=" << approach_range_ << std::endl; 
+      file_out_ << goby_time() << " range_max=" << range_max << std::endl; 
+      file_out_ << goby_time() << " depth_min=" << depth_min << std::endl; 
+      file_out_ << goby_time() << " depth_max=" << depth_max << std::endl; 
+      file_out_ << goby_time() << " number_depths=" << number_depths << std::endl; 
+      file_out_ << goby_time() << " theta_min=" << theta_min << std::endl; 
+      file_out_ << goby_time() << " theta_max=" << theta_max << std::endl; 
+      file_out_ << goby_time() << " number_theta=" << number_theta << std::endl; 
+      file_out_ << goby_time() << " peak_filter=" << peak_filter_ << std::endl; 
+      file_out_ << goby_time() << " optimize=" << optimize << std::endl; 
+      file_out_ << goby_time() << " sonar=" << tolower(sonar) << std::endl; 
+      file_out_ << goby_time() << " multipath penalty=" << multipath_penalty
 		<< std::endl; 
     }
   bool ok_dep;
   double current_depth = getBufferDoubleVal("NAV_DEPTH", ok_dep);
   double current_speed = getBufferDoubleVal("NAV_SPEED", ok_dep);
   
-  // file_out_ << now() << "now(): "  << now()  << std::endl;
-  // file_out_ << now() << "last_calc_time_: "  << last_calc_time_  << std::endl;
-  // file_out_ << now() << "calculate_interval_: "  << calculate_interval_  << std::endl;
+  // file_out_ << goby_time() << "goby_time(): "  << goby_time()  << std::endl;
+  // file_out_ << goby_time() << "last_calc_time_: "  << last_calc_time_  << std::endl;
+  // file_out_ << goby_time() << "calculate_interval_: "  << calculate_interval_  << std::endl;
   
   
   // Initialize range and depth arrays
@@ -382,7 +381,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
   
   if (get_tl)
     {
-      if(now() > last_calc_time_ + calculate_interval_)
+      if(goby_time() > last_calc_time_ + calculate_interval_)
 	{
 	  double forecast_range=0;
 	  double forecast_time=0;
@@ -416,7 +415,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		delta_range = 1.0;
 	    }
 
-	  file_out_ << now() << " Preparing Bellhop request " << std::endl
+	  file_out_ << goby_time() << " Preparing Bellhop request " << std::endl
 		    << "forecast_time=" << forecast_time << std::endl
 		    << "forecast_range=" << forecast_range << std::endl
 		    << "current_range=" << current_range << std::endl
@@ -461,7 +460,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  // Generate random request id
 	  request_id = int(1e9 * rand()/RAND_MAX);
 	  request.set_request_number(request_id);
-          file_out_ << now() << "Bellhoprequest " << request_id << std::endl;
+          file_out_ << goby_time() << "Bellhoprequest " << request_id << std::endl;
 
 	  // mseas svp updates
 	  if (svp_ready)
@@ -479,7 +478,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  // Wait for Bellhop before making next request
 
           new_tl = false;
-	  last_calc_time_ = now();
+	  last_calc_time_ = goby_time();
 	}    
       
       bool ok_resp;
@@ -500,12 +499,12 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      if (response.has_output_file())
 		{
 		  std::string bellhop_in = response.output_file();
-		  file_out_ << now() << "Bellhop response " << request_id << " --- " << bellhop_in << std::endl;
+		  file_out_ << goby_time() << "Bellhop response " << request_id << " --- " << bellhop_in << std::endl;
 		
 		  new_tl=eigenray_table.readEigenRayTable(bellhop_in, max_number_bounces);
 		  if (new_tl)
 		    {
-		      file_out_ << now() << "Got ray_table, ranges: " 
+		      file_out_ << goby_time() << "Got ray_table, ranges: " 
 				<< eigenray_table.num_ranges 
 				<< " depths: " << eigenray_table.num_depths
 				<< std::endl; 
@@ -514,13 +513,13 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      request_id =0;
 		    }
 		  else
-		    file_out_ << now() << "error reading eigenray table " << std::endl;
+		    file_out_ << goby_time() << "error reading eigenray table " << std::endl;
 		}
 	      else
 		{
-		  file_out_ << now() << "Bellhop response " << request_id 
+		  file_out_ << goby_time() << "Bellhop response " << request_id 
 			    << std::endl;
-		  file_out_ << now() << "No eigenray table produced " 
+		  file_out_ << goby_time() << "No eigenray table produced " 
 			    << std::endl;
 		  request_id = 0;
 		  new_tl = 0;
@@ -533,7 +532,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      active_region =  ( ok_range && ok_rate &&
 				 ( ((current_range > departure_range_) && (current_rate > 0.0)) ||
 				   ((current_range < approach_range_) && (current_rate < 0.0))) );
-	      file_out_ << now() 
+	      file_out_ << goby_time() 
 			<< " current range=" << current_range 
 			<< " current range rate=" << current_rate 
 			<< " current depth=" << current_depth 
@@ -587,7 +586,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  // If new bellhop tl received, update tl table	
 	  std::vector<double> ranges;
 	  int num_ranges = eigenray_table.getRanges(ranges);
-          if (debug) file_out_ << now() << "ranges = " << ranges << std::endl;
+          if (debug) file_out_ << goby_time() << "ranges = " << ranges << std::endl;
 
 	  // loop over forecast ranges and make sure we can 
 	  // reach depth of future minimum tl
@@ -626,7 +625,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		  // for most energetic ray
 		  if (eig.num_rays <= 0)
 		    {
-		      file_out_ << now()
+		      file_out_ << goby_time()
 				<< ">>> No eigenrays - returning " << std::endl;
 		      return(0);
 		    }
@@ -704,7 +703,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		fabs(atan2(-(min_tl_dep - current_depth),
 			   fabs(ranges[j]-current_range) )
 		     *180./M_PI );
-	      file_out_ << now() << " current range=" << current_range 
+	      file_out_ << goby_time() << " current range=" << current_range 
 			<< ", pitch required=" << pitch_required
 			<< ", min_pitch required=" << min_pitch_required
 			<< ", min_tl_dep=" << min_tl_dep
@@ -733,22 +732,22 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		}
 	      else
 		tl_threshold = adapt_tl_threshold;
-	      if (debug) file_out_ << now()
+	      if (debug) file_out_ << goby_time()
 				   << " ranges[" << j << "]=" << ranges[j] 
 				   << ", depth_opt=" << min_tl_dep
 				   << ", pitch required=" << pitch_required
 				   << std::endl;
 	    }
-	  file_out_ << now() << " range_opt=" << range_opt 
+	  file_out_ << goby_time() << " range_opt=" << range_opt 
 		    << ", depth_opt=" << depth_opt
 		    << ", min_tl=" << min_tl_opt
 		    << ", mean_tl=" << mean_tl_opt
 		    << ", pitch required=" << min_pitch_required
 		    << std::endl;
 
-	  //file_out_ << now() << "domain: " << dom << std::endl;
-	  //file_out_ << now() << "tl_range: " << range << std::endl;
-	  //file_out_ << now() << "elev_angle: " << elev_angle << std::endl;
+	  //file_out_ << goby_time() << "domain: " << dom << std::endl;
+	  //file_out_ << goby_time() << "tl_range: " << range << std::endl;
+	  //file_out_ << goby_time() << "elev_angle: " << elev_angle << std::endl;
 
 	  if (valid_tl)
 	    {
@@ -978,11 +977,11 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  indx_max_theta = idum;
 	}
 
-      //      file_out_ << now() << "Elevation angle: " << dom_ag << std::endl;
-      // file_out_ << now() << "Array Gain: " << range_ag << std::endl;
+      //      file_out_ << goby_time() << "Elevation angle: " << dom_ag << std::endl;
+      // file_out_ << goby_time() << "Array Gain: " << range_ag << std::endl;
 
-      // file_out_ << now() << "indx, min_theta: " << indx_min_theta << ", " << min_theta << std::endl;
-      // file_out_ << now() << "indx, max_theta: " << indx_max_theta << ", " << max_theta << std::endl;
+      // file_out_ << goby_time() << "indx, min_theta: " << indx_min_theta << ", " << min_theta << std::endl;
+      // file_out_ << goby_time() << "indx, max_theta: " << indx_max_theta << ", " << max_theta << std::endl;
 
       int m = dom_ag.size();
       std::vector<double> ag;
@@ -1007,16 +1006,16 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  ag.push_back(ag_int);
 	  range[i] -= ag_int;
 	}
-      //      file_out_ << now() << "array_gain: " << ag << std::endl;
+      //      file_out_ << goby_time() << "array_gain: " << ag << std::endl;
 
       valid_ag = true;      
     }
   else
     valid_ag = true;
   
-  // file_out_ << now() << "domain: " << dom << std::endl;
-  // file_out_ << now() << "range: " << range << std::endl;
-  // file_out_ << now() << "max_range: " << range << std::endl;
+  // file_out_ << goby_time() << "domain: " << dom << std::endl;
+  // file_out_ << goby_time() << "range: " << range << std::endl;
+  // file_out_ << goby_time() << "max_range: " << range << std::endl;
   
   if ( valid_tl && valid_nl && valid_ag)
     {
@@ -1111,7 +1110,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       ss << "domain={" << dom << "}," << "range={" << range << "}";
       if (new_ivp)
 	{     
-	  file_out_ << now() << std::endl << " Resultng IvPFunction: " << std::endl 
+	  file_out_ << goby_time() << std::endl << " Resultng IvPFunction: " << std::endl 
 		    << "domain={" << dom << "}," << std::endl 
 		    << "range={" << range << "}" << std::endl;
 	  new_ivp=false;
@@ -1185,8 +1184,8 @@ void BHV_OptCohAcoustDepth::requestSVPUpdate()
   if (ok_osx && ok_osy && ok_cnx && ok_cny)
     {
       double os_lat, os_lon, cn_lat, cn_lon;
-      svp_request.set_request_id(svp_request_id);
-      svp_request.set_utc_time(now());
+      svp_request.set_request_id(11);
+      svp_request.set_utc_time(MOOSTime());
       
       m_Geodesy.UTM2LatLong(osx,osy,os_lat,os_lon); 
       m_Geodesy.UTM2LatLong(cnx,cny,cn_lat,cn_lon); 
@@ -1202,27 +1201,22 @@ void BHV_OptCohAcoustDepth::requestSVPUpdate()
       
       serialize_for_moos(&serialized_svp_request, svp_request);
       postMessage("SVP_REQUEST", serialized_svp_request, "repeatable");
-      file_out_ << now() << "Requesting SVP update" << serialized_svp_request << endl; 
-      last_svp_request_ = now();
+      file_out_ << goby_time() << "Requesting SVP update" << serialized_svp_request << endl; 
+      last_svp_request_ = MOOSTime();
       svp_requested = true;
     }
   else
     {
-      file_out_ << now() << "Waiting for NAV Info" << endl; 
+      file_out_ << goby_time() << "Waiting for NAV Info" << endl; 
     }
 }
 
 bool BHV_OptCohAcoustDepth::handleSVPResponse(std::string serialized_svp_response)
 {
   parse_for_moos(serialized_svp_response, &svp_response);
-  file_out_ << now() << "Got SVP update for source id " << svp_response.request_id() 
-	   << endl;
-  // was it for me?
-  if ( (svp_response.request_id() == svp_request_id) ||
-      (!svp_ready && !svp_requested) )
-    {
-      svp_ready =true;
-      svp_requested = false;
-    }
+  file_out_ << goby_time() << "Got SVP update for source id " << svp_response.request_id() 
+	   << endl; 
+  svp_ready =true;
+  svp_requested = false;
   return(svp_ready);
 }
