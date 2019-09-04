@@ -1,3 +1,5 @@
+#include <ivp/XYCircle.h>
+
 #include "goby/middleware/marshalling/protobuf.h"
 
 #include "goby/moos/middleware/moos_plugin_translator.h"
@@ -7,6 +9,8 @@
 
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
+#include "lamss/lib_lamss_protobuf/node_status.pb.h"
+#include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
@@ -90,6 +94,61 @@ class NavStatusTranslation : public goby::moos::Translator
     }
 };
 
+class NodeReportTranslation : public goby::moos::Translator
+{
+  public:
+    NodeReportTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        {
+            goby::moos::protobuf::TranslatorEntry entry;
+            entry.set_protobuf_name(lamss::protobuf::LegacyNodeReport::descriptor()->full_name());
+            auto& create = *entry.add_create();
+            create.set_technique(goby::moos::protobuf::TranslatorEntry::
+                                     TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
+            create.set_moos_var("NODE_REPORT");
+            translator_.add_entry(entry);
+        }
+
+        this->moos().add_trigger("NODE_REPORT", [&](const CMOOSMsg& moos_msg) {
+            std::map<std::string, CMOOSMsg> moos_msgs = {{moos_msg.GetKey(), moos_msg}};
+            auto pb_msg = translator_.moos_to_protobuf<std::shared_ptr<google::protobuf::Message>>(
+                moos_msgs, "lamss.protobuf.LegacyNodeReport");
+
+            auto nr = std::dynamic_pointer_cast<lamss::protobuf::LegacyNodeReport>(pb_msg);
+            if (nr->has_time() && !nr->has_utc_time())
+                nr->set_utc_time(nr->time());
+            else if (nr->has_utc_time() && !nr->has_time())
+                nr->set_time(nr->utc_time());
+
+            this->goby().interprocess().publish<lamss::groups::node_report>(nr);
+        });
+    }
+
+  private:
+    goby::moos::MOOSTranslator translator_;
+};
+
+class ViewGeometryTranslation : public goby::moos::Translator
+{
+  public:
+    ViewGeometryTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::view_geometry, lamss::protobuf::ViewCircle>(
+                [this](const lamss::protobuf::ViewCircle& circle) {
+                    XYCircle ivp_circle(circle.center_x(), circle.center_y(), circle.radius());
+                    ivp_circle.set_active(circle.active());
+
+                    if (circle.has_label())
+                        ivp_circle.set_label(circle.label());
+                    this->moos().comms().Notify("VIEW_CIRCLE", ivp_circle.get_spec());
+                });
+    }
+};
+
 extern "C"
 {
     void goby3_moos_gateway_load(
@@ -98,6 +157,8 @@ extern "C"
     {
         handler->launch_thread<pAcommsHandlerMultiplexTranslation>();
         handler->launch_thread<NavStatusTranslation>();
+        handler->launch_thread<NodeReportTranslation>();
+        handler->launch_thread<ViewGeometryTranslation>();
     }
 
     void goby3_moos_gateway_unload(
@@ -106,5 +167,7 @@ extern "C"
     {
         handler->join_thread<pAcommsHandlerMultiplexTranslation>();
         handler->join_thread<NavStatusTranslation>();
+        handler->join_thread<NodeReportTranslation>();
+        handler->join_thread<ViewGeometryTranslation>();
     }
 }
