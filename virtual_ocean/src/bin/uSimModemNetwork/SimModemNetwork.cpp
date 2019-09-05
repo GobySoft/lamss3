@@ -132,6 +132,9 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 	      New.new_svp_requested = false;
 	      New.last_request = 0;
 	      New.last_svp_request = 0;
+	      New.last_rate = 0;
+	      New.last_rate_update = MOOSTime();
+	      New.last_range = 0;
 	      acoustic_contacts.push_back(New);
 	      glog.is(VERBOSE) && glog << "Creating contact " << New.contact
 				       << "->" << New.ownship << endl;
@@ -615,7 +618,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    r_max = -1e8;
    dep_min = 1e8;
    dep_max = -1e8;
-   double spacing=1e8;
+   double depth_spacing=1e8;
    
    double range_x = (ownship_x - contact_x);
    double range_y = (ownship_y - contact_y);
@@ -627,7 +630,12 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    dep_min = std::min(depth,dep_min);
    dep_max = std::max(depth,dep_max);
 
-   double range_box = fabs(delta_t*acoustic_contact.last_rate);
+   double range_box;
+   if (fabs(acoustic_contact.last_rate) < 10)
+     range_box = fabs(delta_t*acoustic_contact.last_rate);
+   else
+     range_box = 0;
+   
    if (acoustic_contact.last_rate <= 0)
      r_min -= range_box;
    if (acoustic_contact.last_rate >= 0)
@@ -638,16 +646,17 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    else
      num_r = 3;
       
-   // Raytracing resolution less critical for horizontal variability 
+   dep_min -= 1;
+   dep_max += 1;
    num_dep = 3;
-   spacing = (dep_max-dep_min)/(num_dep-1);
-
+   depth_spacing = (dep_max-dep_min)/(num_dep-1);
+   
    glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
 			   << " r_max: " << r_max
-			   << " spacing: " << spacing
+			   << " depth_spacing: " << depth_spacing
 			   << " num ranges: " << num_r
 			   << ", num depths: " << num_dep << std::endl;
-   if (acoustic_contact.last_rate_update > 0)
+   if (acoustic_contact.last_range > 0)
      {
        acoustic_contact.last_rate = (range-acoustic_contact.last_range)/delta_t;	    
        glog.is(DEBUG1) && glog << endl << ">>> rate_update= " 
