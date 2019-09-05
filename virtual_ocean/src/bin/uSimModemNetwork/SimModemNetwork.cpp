@@ -647,6 +647,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
      num_r = 3;
       
    dep_min -= 1;
+   dep_min = std::max(dep_min,0.0);
    dep_max += 1;
    num_dep = 3;
    depth_spacing = (dep_max-dep_min)/(num_dep-1);
