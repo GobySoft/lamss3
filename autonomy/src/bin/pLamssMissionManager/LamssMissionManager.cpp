@@ -1093,7 +1093,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      double h_lon;
 	      m_Geodesy.UTM2LatLong(h_x,h_y,h_lat,h_lon);
 	      std::stringstream mm;
-	      mm << "h_" << i ;
+	      mm << "h" << i+1;
 	      NodeRecord node_report(mm.str(),"buoy");
 	      node_report.setTimeStamp(tracking_result.vehicle_tx_time());
 	      node_report.setX(h_x);
