@@ -19,6 +19,9 @@ constexpr goby::middleware::Group node_report{"lamss::moos::NODE_REPORT"};
 
 constexpr goby::middleware::Group view_geometry{"lamss::moos::view_geometry"};
 
+constexpr goby::middleware::Group acomms_raw_in{"lamss::moos::acomms_raw_in"};
+constexpr goby::middleware::Group acomms_raw_out{"lamss::moos::acomms_raw_out"};
+
 } // namespace groups
 } // namespace lamss
 

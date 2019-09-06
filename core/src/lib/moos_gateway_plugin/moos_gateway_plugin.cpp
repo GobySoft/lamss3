@@ -11,6 +11,7 @@
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
+#include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
@@ -72,6 +73,25 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
             }
             this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
         });
+
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::acomms_raw_in, lamss::protobuf::NamedModemRaw>(
+                [this](const lamss::protobuf::NamedModemRaw& message) {
+                    // post GPS for iSerialNMEA
+                    // $GPRMC
+                    //    |
+                    // 0123
+                    const std::string::size_type talker_start_pos = 3;
+                    const std::string::size_type talker_size = 3;
+                    if (message.msg().raw().size() > (talker_start_pos + talker_size) &&
+                        (message.msg().raw().substr(talker_start_pos, talker_size) == "RMC" ||
+                         message.msg().raw().substr(talker_start_pos, talker_size) == "GGA"))
+                    {
+                        this->moos().comms().Notify(
+                            boost::to_upper_copy(message.name()) + "_GPS_IN", message.msg().raw());
+                    }
+                });
     }
 };
 
