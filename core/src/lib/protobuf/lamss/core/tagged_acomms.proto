@@ -1,0 +1,18 @@
+import "goby/protobuf/option_extensions.proto";
+import "goby/acomms/protobuf/modem_message.proto";
+
+package lamss.protobuf;
+
+message NamedModemTransmission
+{
+    optional string name = 1;
+    optional int32 index = 2;
+    required goby.acomms.protobuf.ModemTransmission msg = 3;
+}
+
+message NamedModemRaw
+{
+    optional string name = 1;
+    optional int32 index = 2;
+    required goby.acomms.protobuf.ModemRaw msg = 3;
+}
