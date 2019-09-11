@@ -97,7 +97,13 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 		  bool valid = !isnan(ray.amp);
 		  arr_file >> val;
 		  ray.phase = val * M_PI/180.0;
+
+		  // 2019-09-10 :: Oscar Viquez (oviquezr@mit.edu)
+		  // Bellhop 2019 uses a complex delay formulation -- keeping real part only
 		  arr_file >> ray.tau;
+		  arr_file >> val; // dismiss imaginary part of delay
+
+		  // Continue reading file:
 		  arr_file >> val;
 		  ray.dip_source = val * M_PI/180.0;
 		  arr_file >> val;
