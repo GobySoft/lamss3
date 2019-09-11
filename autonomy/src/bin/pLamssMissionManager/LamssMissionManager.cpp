@@ -1005,7 +1005,7 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	    if (camp_drift_heading < 0)
 	      camp_drift_heading +=360;
 	    node_report.setHeading(camp_drift_heading);
-	    //publish("NODE_REPORT", node_report.getSpec());
+	    publish("NODE_REPORT", node_report.getSpec());
 	    
 	    // std::string ndrep = NodeReport(cfg_.topside_name(),"icecamp",
 	    //					   vehicle_pos.time(),
