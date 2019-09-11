@@ -37,12 +37,15 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
   if(arr_file.is_open())
     {
       
+      string nDim;
+      arr_file >> nDim;
+
       double freq;
       arr_file >> freq;
+
       int num_sources;
       arr_file >> num_sources;
-      arr_file >> num_depths;
-      arr_file >> num_ranges;
+
       if (num_sources != 1)
 	{
 	  MOOSTrace("readEigenRayTable: Error - Only one source  allowed \n");
@@ -50,6 +53,8 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	}
 
       arr_file >> source_depth;
+
+      arr_file >> num_depths;      
       depth.clear();
       for (unsigned int i=0; i<num_depths; i++)
 	{
@@ -57,6 +62,8 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	  arr_file >> buf;
 	  depth.push_back(buf);
 	}
+
+      arr_file >> num_ranges;
       range.clear();
       for (unsigned int j=0; j<num_ranges; j++)
 	{
