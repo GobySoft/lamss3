@@ -13,6 +13,7 @@
 #include "LamssMissionManager_config.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
+#include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
@@ -94,6 +95,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_gps_update(const CMOOSMsg& msg);
     void handle_in_track(const CMOOSMsg& msg);
     void handle_tracking_message(const CMOOSMsg& msg);
+    void handle_icex20_tracking_message(const CMOOSMsg& msg);
     void handle_stovepipe_message(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     void update_deploy_parameters();

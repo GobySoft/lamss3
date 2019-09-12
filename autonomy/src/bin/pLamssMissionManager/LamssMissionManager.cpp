@@ -96,7 +96,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
     subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
-    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
+    //    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
+    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
     // intialize MOOSGeodesy
@@ -1021,6 +1022,96 @@ void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
 	}
     }
  }
+
+void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
+{
+  lamss::icex::protobuf::TrackingResult tracking_result;
+  parse_for_moos(msg.GetString(), &tracking_result);
+  // Only handle messages for me
+  if (tracking_result.dest() == vehicle_id_)
+    {
+      double delta_x = tracking_result.vehicle_pos().dx();
+      double delta_y = tracking_result.vehicle_pos().dy();;
+      double camp_x = tracking_result.hydrohole_pos().x();
+      double camp_y = tracking_result.hydrohole_pos().y();
+      double camp_lat;
+      double camp_lon;
+      if (m_Geodesy.UTM2LatLong(camp_x,camp_y,camp_lat,camp_lon))
+	{
+	  // save initial camp location
+	  if (!got_first_tracking_msg)
+	    {
+	      camp_x_init = camp_x;
+	      camp_y_init = camp_y;
+	      got_first_tracking_msg = true;
+	      last_tracking_msg = tracking_result.vehicle_tx_time();
+	      camp_x_spd_filt.configAvg(filter_length);
+	      camp_y_spd_filt.configAvg(filter_length);
+	    }
+	  else
+	    {
+	      // Update camp speed filters
+	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
+				     (tracking_result.vehicle_tx_time()-last_tracking_msg));
+	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
+				     (tracking_result.vehicle_tx_time()-last_tracking_msg));
+	    }
+	  // save camp location for possible deploy zambony being relative to deploy location
+	  camp_x_last = camp_x;
+	  camp_y_last = camp_y;
+	  // Use current vehicle time stamp
+	  last_tracking_msg = tracking_result.vehicle_tx_time();
+	  
+	  // reset deploy duration counter
+	  last_acomms_ = MOOSTime();
+	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
+				   << " delta_x=" <<  delta_x 
+				   << " delta_y=" << delta_y 
+				   << " camp_x=" << camp_x
+				   << " camp_y=" << camp_y
+				   << std::endl;
+	  
+	  NodeRecord node_report(cfg_.topside_name(), "hydrohole");
+	  node_report.setTimeStamp(tracking_result.vehicle_tx_time());
+	  node_report.setX(camp_x);
+	  node_report.setY(camp_y);
+	  node_report.setLat(camp_lat);
+	  node_report.setLon(camp_lon);
+	  node_report.setDepth(0.0);
+	  node_report.setSpeed(tracking_result.hydrohole_drift().speed());
+	  node_report.setHeading(tracking_result.hydrohole_drift().heading());
+	    //publish("NODE_REPORT", node_report.getSpec());
+
+
+	  // Modem buoys and stovepipes
+	  for (int i=0; i<tracking_result.modem_pos_size(); i++)
+	    {
+	      double h_x = tracking_result.modem_pos(i).x();
+	      double h_y = tracking_result.modem_pos(i).y();
+	      double h_z = tracking_result.modem_pos(i).z();
+	      double h_lat;
+	      double h_lon;
+	      m_Geodesy.UTM2LatLong(h_x,h_y,h_lat,h_lon);
+	      std::stringstream mm;
+	      mm << "h" << i+1;
+	      NodeRecord node_report(mm.str(),"buoy");
+	      node_report.setTimeStamp(tracking_result.vehicle_tx_time());
+	      node_report.setX(h_x);
+	      node_report.setY(h_y);
+	      node_report.setLat(h_lat);
+	      node_report.setLon(h_lon);
+	      node_report.setDepth(h_z);
+	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
+	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
+	      publish("NODE_REPORT", node_report.getSpec());
+	    }
+	}
+      else
+	{
+	  glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
+	}
+    }
+}
 
 std::string LamssMissionManager::NodeReport(std::string node_name,
 					    std::string node_type,
