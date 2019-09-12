@@ -57,11 +57,16 @@ LamssAEL::LamssAEL(LamssAELConfig& cfg)
     //
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
+    // intialize MOOSGeodesy
+
+    m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
     pitch_filter.configAvg(cfg_.filter_length());
     roll_filter.configAvg(cfg_.filter_length());
     heading_filter.configAvg(cfg_.filter_length());
     filt_set_ = true;
-
+    glog << "initialized filters" << std::endl;
+    
     // for mooring, set last_nav_
 
     if (cfg_.is_mooring())
