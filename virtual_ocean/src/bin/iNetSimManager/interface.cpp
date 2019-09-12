@@ -157,7 +157,10 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
 
     std::string name;
     val_from_string(name, s, "NAME");
-    if(boost::iequals(name, cfg_.common().community()))
+
+    std::string this_name = cfg_.has_node_report_name() ? cfg_.node_report_name() : cfg_.common().community();
+    
+    if(boost::iequals(this_name, name))
     {
         NodeReport nr;
         if(!val_from_string(nr.lat, s, "LAT"))
