@@ -775,6 +775,7 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   // doppler_corrections
   double vr_S;
   double vr_R;
+  contact_pitch = 0;
   ray_doppler_vel(contact_speed, (90.0-contact_heading)*M_PI/180.0, 
 		  contact_pitch,
 		  ownship_speed, (90.0-ownship_heading)*M_PI/180.0, 
