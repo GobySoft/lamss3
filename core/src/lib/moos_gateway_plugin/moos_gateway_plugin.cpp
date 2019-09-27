@@ -10,8 +10,8 @@
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
-#include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
+#include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
@@ -127,6 +127,10 @@ class NodeReportTranslation : public goby::moos::Translator
             create.set_technique(goby::moos::protobuf::TranslatorEntry::
                                      TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
             create.set_moos_var("NODE_REPORT");
+            auto& publish = *entry.add_publish();
+            publish.set_technique(goby::moos::protobuf::TranslatorEntry::
+                                  TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
+            publish.set_moos_var("NODE_REPORT");
             translator_.add_entry(entry);
         }
 
@@ -143,6 +147,16 @@ class NodeReportTranslation : public goby::moos::Translator
 
             this->goby().interprocess().publish<lamss::groups::node_report>(nr);
         });
+
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::node_report_out, lamss::protobuf::LegacyNodeReport>(
+                [this](const lamss::protobuf::LegacyNodeReport& nr)
+                {
+                    std::multimap<std::string, CMOOSMsg> moos_msgs = translator_.protobuf_to_moos(nr);
+                    for(auto moos_msg_p : moos_msgs)
+                        this->moos().comms().Post(moos_msg_p.second);
+                });
     }
 
   private:
