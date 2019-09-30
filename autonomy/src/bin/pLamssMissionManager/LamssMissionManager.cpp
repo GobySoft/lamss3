@@ -1103,7 +1103,17 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      node_report.setDepth(h_z);
 	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
 	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
-	      publish("NODE_REPORT", node_report.getSpec());
+	      //	      publish("NODE_REPORT", node_report.getSpec());
+	      std::string ndrep =
+		NodeReport(mm.str(),"buoy",
+			   tracking_result.vehicle_tx_time(),
+			   h_x,h_y,
+			   tracking_result.hydrohole_drift().speed(),
+			   tracking_result.hydrohole_drift().heading(),
+			   h_z);
+	    //				   camp_drift_speed,camp_drift_heading,
+	    //				   vehicle_pos.camp_modem_depth());
+	      publish("NODE_REPORT", ndrep);
 	    }
 	}
       else
