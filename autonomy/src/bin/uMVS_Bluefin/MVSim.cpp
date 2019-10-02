@@ -647,6 +647,10 @@ void CMVSim::PostResults()
 			if(m_Params.m_bAddNoise)
 				dfBodyVelX+=MOOSWhiteNoise(m_Params.m_dfXYVelStd);
 
+			double dfBodyVelZ = pAUV->GetBodyVelZ();
+			if(m_Params.m_bAddNoise)
+				dfBodyVelZ+=MOOSWhiteNoise(m_Params.m_dfXYVelStd);
+
 			double dfSpeed = pAUV->GetSpeed();
 			if(m_Params.m_bAddNoise)
 				dfSpeed=hypot(dfBodyVelY,dfBodyVelX);
@@ -716,6 +720,7 @@ void CMVSim::PostResults()
 //			m_Comms.Notify("NAV_HEADING",dfHeading);
 			m_Comms.Notify(sP+"BODY_VEL_Y",dfBodyVelY);
 			m_Comms.Notify(sP+"BODY_VEL_X",dfBodyVelX);
+			m_Comms.Notify(sP+"BODY_VEL_Z",dfBodyVelZ);
 			m_Comms.Notify(sP+"PITCH",dfPitch);
 			m_Comms.Notify(sP+"PITCH_RATE",dfPitchRate);
 			// Roll of zero added tu pub list
