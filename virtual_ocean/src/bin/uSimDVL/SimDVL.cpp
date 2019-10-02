@@ -57,15 +57,18 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         else if (key == "FRONTSEAT_BODY_VEL_X") {
             m_current_v = dval;             // MOOS convension X is sway
         }
+        else if (key == "FRONTSEAT_BODY_VEL_Z") {
+            m_current_w = -dval;             // MOOS convension Z is up
+        }
         else if(key == "FRONTSEAT_DEPTH") {
             m_current_nav_depth = dval;
             m_current_nav_depth_time = MOOSTime();
         }
         else if(key == "FRONTSEAT_ROLL") {
-            m_current_nav_roll = dval;
+            m_current_nav_roll = dval*180/M_PI;
         }
         else if(key == "FRONTSEAT_PITCH") {
-            m_current_nav_pitch = dval;
+            m_current_nav_pitch = dval*180/M_PI;
         }
         else if(key == "FRONTSEAT_HEADING") {
             m_current_nav_heading = dval;
@@ -78,7 +81,7 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
             	{
             		MOOSValFromString(m_icecamp_speed,sval,"SPD");
             		MOOSValFromString(m_icecamp_heading,sval,"HDG");
-                    MOOSTrace("Ice sheet drift: speed %.2f, heading %.1f \n",m_icecamp_speed,m_icecamp_heading);
+                    // MOOSTrace("Ice sheet drift: speed %.2f, heading %.1f \n",m_icecamp_speed,m_icecamp_heading);
             	}
             }
                
@@ -108,18 +111,27 @@ bool SimDVL::OnConnectToServer()
 
 bool SimDVL::Iterate()
 {
-    // Calculating z vel of AUV
-    m_current_w = (m_current_nav_depth - m_previous_nav_depth)/(m_current_nav_depth_time-m_previous_nav_depth_time);
-    // Calculating the ice-camp drift velocity in AUV body frame
-    m_icecamp_u = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180 - m_current_nav_heading*M_PI/180);
-    m_icecamp_v = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180 - m_current_nav_heading*M_PI/180);
-    // Calculating vel of AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-    m_current_u = m_current_u - m_icecamp_u;
-    m_current_v = m_current_v - m_icecamp_v;
+    // Converting ground relative AUV velocity from body frame to earth frame
+    double m_current_ydot = m_current_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_current_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
+    double m_current_xdot = m_current_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_current_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
+    double m_current_zdot = m_current_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_current_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_current_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
+    MOOSTrace("Real AUV vel: xdot=%.2f, ydot=%.2f, zdot=%.2f \n",m_current_xdot,m_current_ydot,m_current_zdot);
+    // Converting the ice-camp drift velocity to earth frame
+    m_icecamp_ydot = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180);
+    m_icecamp_xdot = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180);
+    double m_icecamp_zdot = 0.0;
+    // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+    double auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+    double auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+    double auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+    // Converting ice relative AUV velocity from earth-frame to body frame
+    double auvVelRelIce_u = auvVelRelIce_ydot*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) + auvVelRelIce_xdot*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180) - auvVelRelIce_zdot*sin(m_current_nav_pitch*M_PI/180);
+    double auvVelRelIce_v = auvVelRelIce_ydot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) - cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_heading*M_PI/180)) + auvVelRelIce_xdot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)+cos(m_current_nav_roll*M_PI/180)*cos(m_current_nav_heading*M_PI/180)) + auvVelRelIce_zdot*sin(m_current_nav_roll*M_PI/180)*cos(m_current_nav_pitch*M_PI/180);
+    double auvVelRelIce_w = auvVelRelIce_ydot*(cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_heading*M_PI/180)) + auvVelRelIce_xdot*(cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)-sin(m_current_nav_roll*M_PI/180)*cos(m_current_nav_heading*M_PI/180)) + auvVelRelIce_zdot * cos(m_current_nav_roll*M_PI/180)*cos(m_current_nav_pitch*M_PI/180);
     // adding DVL uncertainties
-    std::normal_distribution<double> dist_dvl_u(m_current_u, c_dvl_velocity_std);
-    std::normal_distribution<double> dist_dvl_v(m_current_v, c_dvl_velocity_std);
-    std::normal_distribution<double> dist_dvl_w(m_current_w, c_dvl_velocity_std);
+    std::normal_distribution<double> dist_dvl_u(auvVelRelIce_u, c_dvl_velocity_std);
+    std::normal_distribution<double> dist_dvl_v(auvVelRelIce_v, c_dvl_velocity_std);
+    std::normal_distribution<double> dist_dvl_w(auvVelRelIce_w, c_dvl_velocity_std);
     double m_dvl_u = dist_dvl_u(gen) + (c_dvl_velocity_bias); //white error and bias error
     double m_dvl_v = dist_dvl_v(gen) + (c_dvl_velocity_bias);
     double m_dvl_w = dist_dvl_w(gen) + (c_dvl_velocity_bias);
@@ -132,7 +144,7 @@ bool SimDVL::Iterate()
         Notify("HYDROMAN_SIM_DVL_U", m_dvl_u);
         Notify("HYDROMAN_SIM_DVL_V", m_dvl_v);
         Notify("HYDROMAN_SIM_DVL_W", m_dvl_w);
-        MOOSTrace("DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,m_dvl_v,m_dvl_w);
+        // MOOSTrace("DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,m_dvl_v,m_dvl_w);
         m_dvl_data_post_time = m_current_u_time + c_dvl_update_frequency;
     }
     
@@ -211,5 +223,6 @@ void SimDVL::RegisterVariables()
     Register("NODE_REPORT", 0);
     Register("FRONTSEAT_BODY_VEL_Y", 0);
     Register("FRONTSEAT_BODY_VEL_X", 0);
+    Register("FRONTSEAT_BODY_VEL_Z", 0);
 }
 

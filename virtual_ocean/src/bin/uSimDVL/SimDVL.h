@@ -52,6 +52,9 @@ class SimDVL : public CMOOSApp
     double m_icecamp_heading;
     double m_icecamp_u;
     double m_icecamp_v;
+    double m_icecamp_ydot;
+    double m_icecamp_xdot;
+    double m_icecamp_w;
 };
 
 #endif 
