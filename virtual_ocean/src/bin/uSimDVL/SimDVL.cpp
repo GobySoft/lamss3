@@ -60,6 +60,12 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         else if (key == "FRONTSEAT_BODY_VEL_Z") {
             m_current_w = -dval;             // MOOS convension Z is up
         }
+        else if (key == "CURRENT_X") {
+            m_current_water_vel_x = dval;             // east
+        }
+        else if (key == "CURRENT_Y") {
+            m_current_water_vel_y = dval;             // north
+        }
         else if(key == "FRONTSEAT_DEPTH") {
             m_current_nav_depth = dval;
             m_current_nav_depth_time = MOOSTime();
@@ -120,10 +126,22 @@ bool SimDVL::Iterate()
     m_icecamp_ydot = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180);
     m_icecamp_xdot = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180);
     double m_icecamp_zdot = 0.0;
-    // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-    double auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
-    double auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
-    double auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+    // If DVL has bottom-lock, then include water current velocity as well
+    if (c_dvl_bottom_lock==1)
+    {
+        // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+        // Adding water velocity since DVL has bottom lock
+        auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
+        auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
+        auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+    }
+    if (c_dvl_bottom_lock==0)
+    {
+        // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+        auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+        auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+        auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+    }
     // Converting ice relative AUV velocity from earth-frame to body frame
     double auvVelRelIce_u = auvVelRelIce_ydot*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) + auvVelRelIce_xdot*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180) - auvVelRelIce_zdot*sin(m_current_nav_pitch*M_PI/180);
     double auvVelRelIce_v = auvVelRelIce_ydot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) - cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_heading*M_PI/180)) + auvVelRelIce_xdot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)+cos(m_current_nav_roll*M_PI/180)*cos(m_current_nav_heading*M_PI/180)) + auvVelRelIce_zdot*sin(m_current_nav_roll*M_PI/180)*cos(m_current_nav_pitch*M_PI/180);
@@ -205,6 +223,11 @@ bool SimDVL::OnStartUp()
         c_ice_sheet_name = sVal;
         MOOSTrace("Ice sheet name: %s \n",c_ice_sheet_name);
     }
+    if(m_MissionReader.GetConfigurationParam("dvl_bottom_lock",sVal))
+    {
+        c_dvl_bottom_lock = atof(sVal.c_str());
+        MOOSTrace("DVL bottom lock: %i \n",c_dvl_bottom_lock);
+    }
     m_dvl_data_post_time = m_current_u_time;
     RegisterVariables();
     return(true);
@@ -224,5 +247,7 @@ void SimDVL::RegisterVariables()
     Register("FRONTSEAT_BODY_VEL_Y", 0);
     Register("FRONTSEAT_BODY_VEL_X", 0);
     Register("FRONTSEAT_BODY_VEL_Z", 0);
+    Register("CURRENT_X", 0);
+    Register("CURRENT_Y", 0); 
 }
 

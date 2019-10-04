@@ -30,6 +30,7 @@ class SimDVL : public CMOOSApp
     double c_dvl_velocity_std;
     double c_dvl_velocity_bias;
     int c_ice_tracking_mode;
+    int c_dvl_bottom_lock;
     std::string c_ice_sheet_name;
 
  private: // State variables
@@ -55,6 +56,12 @@ class SimDVL : public CMOOSApp
     double m_icecamp_ydot;
     double m_icecamp_xdot;
     double m_icecamp_w;
+    double m_current_water_vel_x;
+    double m_current_water_vel_y;
+
+    double auvVelRelIce_xdot;
+    double auvVelRelIce_ydot;
+    double auvVelRelIce_zdot;
 };
 
 #endif 
