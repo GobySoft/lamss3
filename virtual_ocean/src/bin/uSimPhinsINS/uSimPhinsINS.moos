@@ -1,0 +1,11 @@
+//------------------------------------------------
+// uSimPhinsINS config block
+
+ProcessConfig = uSimPhinsINS
+{
+   AppTick   = 4
+   CommsTick = 4
+   phins_ip=127.0.0.1
+   phins_port=14000
+}
+
