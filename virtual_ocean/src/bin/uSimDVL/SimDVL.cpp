@@ -121,7 +121,7 @@ bool SimDVL::Iterate()
     double m_current_ydot = m_current_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_current_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
     double m_current_xdot = m_current_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_current_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
     double m_current_zdot = m_current_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_current_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_current_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
-    MOOSTrace("Real AUV vel: xdot=%.2f, ydot=%.2f, zdot=%.2f \n",m_current_xdot,m_current_ydot,m_current_zdot);
+    MOOSTrace("AUV vel relative to water: xdot=%.2f, ydot=%.2f, zdot=%.2f \n",m_current_xdot,m_current_ydot,m_current_zdot);
     // Converting the ice-camp drift velocity to earth frame
     m_icecamp_ydot = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180);
     m_icecamp_xdot = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180);

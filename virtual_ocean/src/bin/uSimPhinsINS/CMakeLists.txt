@@ -13,6 +13,8 @@ ADD_EXECUTABLE(uSimPhinsINS ${SRC})
 
 TARGET_LINK_LIBRARIES(uSimPhinsINS
    ${MOOS_LIBRARIES}
+   ${GOBY_LIBRARIES}
+   ${LAMSS_PROTOBUF_LIBRARY}
    boost_system
    mbutil
    m
