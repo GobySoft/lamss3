@@ -100,6 +100,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
+    subscribe("SURVEY_WPT_INDEX",&LamssMissionManager::handle_survey_wpt_index, this);    
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -123,6 +124,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
     camp_x_spd_filt.configAvg(filter_length);
     camp_y_spd_filt.configAvg(filter_length);
+    survey_wpt_index = 0;
+    new_wpt_index = false;
     
     // Avoid abort on startup
     last_acomms_ = MOOSTime();
@@ -1103,7 +1106,8 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      node_report.setDepth(h_z);
 	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
 	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
-	      //	      publish("NODE_REPORT", node_report.getSpec());
+	      publish("NODE_REPORT", node_report.getSpec());
+	      /*
 	      std::string ndrep =
 		NodeReport(mm.str(),"buoy",
 			   tracking_result.vehicle_tx_time(),
@@ -1111,15 +1115,24 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 			   tracking_result.hydrohole_drift().speed(),
 			   tracking_result.hydrohole_drift().heading(),
 			   h_z);
-	    //				   camp_drift_speed,camp_drift_heading,
-	    //				   vehicle_pos.camp_modem_depth());
 	      publish("NODE_REPORT", ndrep);
+	      */
 	    }
 	}
       else
 	{
 	  glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
 	}
+    }
+}
+
+void LamssMissionManager::handle_survey_wpt_index(const CMOOSMsg& msg)
+{
+  int wpt_index = msg.GetDouble();
+  if (wpt_index != survey_wpt_index)
+    {
+      survey_wpt_index = wpt_index;
+      new_wpt_index = true;
     }
 }
 
@@ -1264,12 +1277,6 @@ void LamssMissionManager::update_deploy_parameters()
     std::stringstream cc;
     cc << "polygon=" << poly;
     publish("OPREGION_UPDATE",cc.str());
-    // Zamboni Loiters for ice camp ops
-    std::stringstream cent;
-    cent << "center_assign="
-	 << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-	 << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
-    publish("SENSOR_DEPLOY",cent.str());
     //publish("HOMING_CONFIG",cent.str());
     // Consistent station keeping point
     std::stringstream statn;
@@ -1287,6 +1294,62 @@ void LamssMissionManager::update_deploy_parameters()
 	     << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
 	publish("SENSOR_RACETRACK",trck.str());
 	
+      }
+
+    
+    if (new_wpt_index)
+      {
+	if (last_deploy_cmd_.deploy_mode() ==
+	    LAMSS_DEPLOY::DEPLOY_MODE_LOITER )
+	  {
+	    // Zamboni Loiters for ice camp ops
+	    std::stringstream cent;
+	    cent << "center_assign="
+		 << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		 << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	    publish("SENSOR_DEPLOY",cent.str());
+	  }
+        else if (last_deploy_cmd_.deploy_mode() ==
+		 LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER )
+	  {
+	    //
+	    // Save shifted lawnmower config for publication at next waypoint
+	    // capture
+	    //     format: "points=format=lawnmower,x=%10%,y=%11%,height=%19%,
+	    //     width=%20%,lane_width=%21%,rows=east-west,degs=%18%#speed=%12%"
+	    std::stringstream clwnm;
+	    clwnm <<  "points=format=lawnmower,x="
+		  << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		  << ",y="
+		  << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy
+		  << ",height=" << last_deploy_cmd_.survey_length()
+		  << ",width=" << last_deploy_cmd_.survey_width()
+		  << ",lane_width=" << last_deploy_cmd_.survey_period()
+		  << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
+		  << "#currix=" << survey_wpt_index;
+	    std::string survey_config = clwnm.str();
+	    publish("SURVEY_CONFIG",survey_config);
+	  }
+	else if (last_deploy_cmd_.deploy_mode() ==
+		 LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG )
+	  {
+	    //
+	    // same for zigzag
+	    //
+	    std::stringstream czz;
+	    czz <<  "points=zigzag:"
+		<< last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		<< "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy
+		<< "," << last_deploy_cmd_.survey_heading()
+		<< "," << last_deploy_cmd_.survey_length()
+		<< "," << last_deploy_cmd_.survey_period()
+		<< "," << last_deploy_cmd_.survey_width()
+		<< "#currix=" << survey_wpt_index;
+	    std::string zigzag_status = czz.str();
+	    publish("SURVEY_CONFIG",zigzag_status);
+	  }
+	
+	new_wpt_index = false;
       }
     //
     // Update stovepipes and publish

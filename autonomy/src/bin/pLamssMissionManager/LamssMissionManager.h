@@ -97,6 +97,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_tracking_message(const CMOOSMsg& msg);
     void handle_icex20_tracking_message(const CMOOSMsg& msg);
     void handle_stovepipe_message(const CMOOSMsg& msg);
+    void handle_survey_wpt_index(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     void update_deploy_parameters();
     void post_transit_route();
@@ -156,6 +157,9 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     double abort_x_offset;
     double abort_y_offset;
 
+    int survey_wpt_index;
+    bool new_wpt_index;
+    
     bool in_track;
     bool depth_adapting;
     // Dynamic stovepipes (following ice in ICEX)
