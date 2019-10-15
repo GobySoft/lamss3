@@ -203,7 +203,7 @@ bool SimDVL::OnStartUp()
     if(m_MissionReader.GetConfigurationParam("ice_sheet_name",sVal))
     {
         c_ice_sheet_name = sVal;
-        MOOSTrace("Ice sheet name: %s \n",c_ice_sheet_name);
+        MOOSTrace("Ice sheet name: %s \n",c_ice_sheet_name.c_str());
     }
     m_dvl_data_post_time = m_current_u_time;
     RegisterVariables();
