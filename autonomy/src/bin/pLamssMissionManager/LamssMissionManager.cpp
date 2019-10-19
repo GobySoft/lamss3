@@ -657,7 +657,8 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  wpt << "points="
 	       << abort_x
 	       << "," << abort_y
-	       << "#radius=" << last_deploy_cmd_.deploy_upper_depth();
+	       << "#radius=" << last_deploy_cmd_.deploy_upper_depth()
+	       << "#nm_radius=" << 2*last_deploy_cmd_.deploy_upper_depth();
 	  publish("HOMING_STATION",wpt.str());
 	  publish("USBL_ENABLED","TRUE");
 	}
