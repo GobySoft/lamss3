@@ -303,16 +303,16 @@ void SimPhinsINS::PublishPhinsDataMOOSVar()
   phins_data.mutable_attitude_deg()->set_heading(m_current_nav_heading);
   // Setting linear acceleration vessel frame data
   phins_data.mutable_acce_vessel_frame_msec2()->set_xv1(m_ins_udot);
-  phins_data.mutable_acce_vessel_frame_msec2()->set_xv2(-m_ins_vdot); // xv2 is positive port
-  phins_data.mutable_acce_vessel_frame_msec2()->set_xv3(-m_ins_wdot); // xv3 is positive up
+  phins_data.mutable_acce_vessel_frame_msec2()->set_xv2(-1*m_ins_vdot); // xv2 is positive port
+  phins_data.mutable_acce_vessel_frame_msec2()->set_xv3(-1*m_ins_wdot); // xv3 is positive up
   // Setting linear acceleration vessel frame stdev data
   phins_data.mutable_acce_vessel_frame_stdev()->set_xv1(c_ins_stdev);
   phins_data.mutable_acce_vessel_frame_stdev()->set_xv2(c_ins_stdev);
   phins_data.mutable_acce_vessel_frame_stdev()->set_xv3(c_ins_stdev);
   // Setting speed vessel frame data
   phins_data.mutable_speed_vessel_frame_msec()->set_xv1(m_ins_calc_u);
-  phins_data.mutable_speed_vessel_frame_msec()->set_xv2(-m_ins_calc_v); // xv2 is positive port
-  phins_data.mutable_speed_vessel_frame_msec()->set_xv3(-m_ins_calc_w); // xv3 is positive up
+  phins_data.mutable_speed_vessel_frame_msec()->set_xv2(-1*m_ins_calc_v); // xv2 is positive port
+  phins_data.mutable_speed_vessel_frame_msec()->set_xv3(-1*m_ins_calc_w); // xv3 is positive up
 
   std::string serialized;
   serialize_for_moos(&serialized,phins_data);
