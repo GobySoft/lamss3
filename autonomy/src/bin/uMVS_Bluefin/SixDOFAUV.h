@@ -71,6 +71,7 @@ public:
 	double GetYaw()      {return m_State(5);};
 	double GetBodyVelY() {return m_State(6);};
 	double GetBodyVelX() {return m_State(7);};
+	double GetBodyVelZ() {return m_State(8);};
 	double GetSpeed()    {return m_dfSpeed;};
 	double GetRudder()   {return m_dfRudder;};
 	double GetElevator() {return m_dfElevator;};
