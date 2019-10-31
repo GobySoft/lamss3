@@ -410,9 +410,14 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
 	      nfft = atoi(bite.c_str());
 	      if (MOOSValFromString(bite,Msg.m_sVal,"sampling_frequency"))
 		sampling_frequency = atof(bite.c_str());
+	      if (MOOSValFromString(bite,Msg.m_sVal,"min_frequency"))
+		minimum_frequency = atof(bite.c_str());
+	      if (MOOSValFromString(bite,Msg.m_sVal,"max_frequency"))
+		maximum_frequency = atof(bite.c_str());
 	      num_freqs = nfft/2 + 1; 
 	      MOOSTrace("Noise covariance for %0.3f seconds of data\n", nfft/sampling_frequency);
 	    }
+	  
 
 	}
     }
@@ -700,6 +705,7 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
     return(false);
 
   bool got_it = false;
+  bool delta = false;
   if ( val_from_string(nls, noise_in, "S")  )
     {
       got_it = true;
@@ -707,6 +713,7 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
   else if ( val_from_string(nls, noise_in, "delta") )
     {
       got_it = true;
+      delta = true;
     }
   else 
     {
@@ -740,6 +747,8 @@ bool CSimNoiseCovariance::parseNoiseDirectionality( string noise_in,
 	  else
             {
 	      double d = boost::lexical_cast<double>(s);
+	      if (delta)
+		d += noise_level;
 	      if(d > max_noise)
 		max_noise = d;
 	      noise_db.push_back(d);

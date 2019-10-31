@@ -2940,12 +2940,14 @@ bool SimPassiveSonar::parseNoiseDirectionality( string noise_in,
     }
 
   bool got_it = false;
+  bool delta = false;
   if ( val_from_string(nls, noise_in, "S")  )
     {
       got_it = true;
     }
   else if ( val_from_string(nls, noise_in, "delta") )
     {
+      delta = true;
       got_it = true;
     }
   else 
@@ -2984,6 +2986,8 @@ bool SimPassiveSonar::parseNoiseDirectionality( string noise_in,
 	  else
             {
 	      double d = boost::lexical_cast<double>(s);
+	      if (delta) 
+		d += noise_level;
 	      if(d > max_noise)
 		max_noise = d;
 	      noise_db.push_back(d);
