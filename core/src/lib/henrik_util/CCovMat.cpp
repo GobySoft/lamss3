@@ -68,6 +68,15 @@ bool CovMat::getCovMat(int nrcv, double& frq,  vector<complex<double> >& covout)
     }
 }
 
+complex<double> CovMat::Covar(int i, int j)
+{
+  // retiurning covariance, element i,j (i,j = 1,2...)
+  if (j<=i)
+    return(cov[indx_tri(i,j)]);
+  else
+    return(conjg(cov[indx_tri(i,j)]));
+}
+
 bool CovMat::getCovLow(int nrcv, double& frq,  vector<complex<double> >& covout)
 {
   if (nrcv == num_rcv)
