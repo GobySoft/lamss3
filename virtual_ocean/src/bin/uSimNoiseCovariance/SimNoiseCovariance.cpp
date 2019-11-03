@@ -112,12 +112,14 @@ bool CSimNoiseCovariance::OnStartUp()
   if(m_MissionReader.GetConfigurationParam("minimum_frequency",sVal))
   {
     minimum_frequency = atof(sVal.c_str());
+    minimum_frequency_save=minimum_frequency;
     MOOSTrace("Minimum processing frequency: %f\n",minimum_frequency);
   }
 
   if(m_MissionReader.GetConfigurationParam("maximum_frequency",sVal))
   {
     maximum_frequency = atof(sVal.c_str());
+    maximum_frequency_save=maximum_frequency;
     MOOSTrace("Maximum processing frequency: %f\n",maximum_frequency);
   }
 
@@ -131,6 +133,7 @@ bool CSimNoiseCovariance::OnStartUp()
   if(m_MissionReader.GetConfigurationParam("num_array_elements",sVal))
   {
     num_array_elements = atoi(sVal.c_str());
+    num_array_elements_save = num_array_elements;
     MOOSTrace("num_array_elements = %d \n",num_array_elements);
     // Initialize some vectors now that the we know the number of elements
     array_x.assign(num_array_elements,0);
@@ -230,7 +233,9 @@ if(m_MissionReader.GetConfigurationParam("array_type",sVal))
 	// Build the dft of the signal in a format similar to 
 	// matlab (same as gsl), described in
 	// http://www.gnu.org/software/gsl/manual/html_node/Overview-of-complex-data-FFTs.html
-	num_freqs = nfft/2 + 1; 
+	num_freqs = nfft/2 + 1;
+	nfft_save = nfft;
+	num_freqs_save = num_freqs;
 	MOOSTrace("Each file represents about %0.3f seconds of data\n", file_interval_time);
       }
     else
@@ -287,6 +292,18 @@ bool CSimNoiseCovariance::Iterate()
 	  MOOSTrace("calling computeNoiseCovariance\n");
 	  double nl = computeNoiseCovariance(-ael_z,depth_nl,noise_db); 
 	  MOOSTrace("Local ambient noise in dB: %f \n",nl);
+	  // restore input variables for cases where included in request
+	  nfft = nfft_save;
+	  num_freqs= num_freqs_save;
+	  sampling_frequency = sampling_frequency_save;
+	  minimum_frequency = minimum_frequency_save;
+	  maximum_frequency = maximum_frequency_save;
+	  num_array_elements = num_array_elements_save;
+	  array_x.resize(num_array_elements,0);
+	  array_y.resize(num_array_elements,0);
+	  array_z.resize(num_array_elements,0);
+	  array_heading.resize(num_array_elements,0);
+	  array_pitch.resize(num_array_elements,0);
 	}
     }
   return(true);
@@ -414,7 +431,16 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST &NewMail)
 		minimum_frequency = atof(bite.c_str());
 	      if (MOOSValFromString(bite,Msg.m_sVal,"max_frequency"))
 		maximum_frequency = atof(bite.c_str());
-	      num_freqs = nfft/2 + 1; 
+	      num_freqs = nfft/2 + 1;
+	      if (MOOSValFromString(bite,Msg.m_sVal,"num_array_elements"))
+		{
+		  num_array_elements = atoi(bite.c_str());
+		  array_x.resize(num_array_elements,0);
+		  array_y.resize(num_array_elements,0);
+		  array_z.resize(num_array_elements,0);
+		  array_heading.resize(num_array_elements,0);
+		  array_pitch.resize(num_array_elements,0);
+		}
 	      MOOSTrace("Noise covariance for %0.3f seconds of data\n", nfft/sampling_frequency);
 	    }
 	  
