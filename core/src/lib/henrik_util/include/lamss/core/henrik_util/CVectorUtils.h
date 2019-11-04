@@ -74,6 +74,12 @@ class CmyVectorUtils
   bool mmul(std::vector<std::complex<double> > A, int rows_A, int cols_A,
 			     std::vector<std::complex<double> > B, int cols_B, 
 			     std::vector<std::complex<double> >& C);
+  void cmmul(std::vector<std::vector<std::complex<double> > > A,
+	     std::vector<std::vector<std::complex<double> > > B,
+	     std::vector<std::vector<std::complex<double> > >& C);
+  void cmvmul(std::vector<std::vector<std::complex<double> > > A,
+	      std::vector<std::complex<double> >  B,
+	      std::vector<std::complex<double> >& C);
   std::vector<std::complex<double> > zzeros(int m, int n);
 
   //added by sdanesh

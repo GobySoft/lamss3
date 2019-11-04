@@ -658,6 +658,51 @@ bool CmyVectorUtils::mmul(vector<complex<double> > A, int rows_A, int cols_A, ve
   return(true);
 }
 
+void CmyVectorUtils::cmmul(vector<vector<complex<double> > > A,
+		       vector<vector<complex<double> > > B,
+		       vector<vector<complex<double> > >& C)
+{
+
+  // Matrix x matrix multiplication using c++ vector<vector> indexing
+  int rows_A = A.size();
+  int cols_A = B.size();
+  int cols_B = 0;
+  if (B.size()>0)
+    cols_B = B[0].size();
+    
+  C.resize(rows_A);
+  for (int j=0; j<cols_B; j++)
+    {
+      C[j].resize(cols_B);
+      for (int i=0; i<rows_A; i++)
+	{
+	  complex<double> sum = 0.0;
+	  for (int k=0; k<cols_A; k++)
+	    sum += A[i][k] * B[k][j];
+	  C[i][j] = sum;
+	}
+    }
+}
+
+void CmyVectorUtils::cmvmul(vector<vector<complex<double> > > A,
+		       vector<complex<double> >  B,
+		       vector<complex<double> >& C)
+{
+  // Matrix x vector multiplication using c++ vector<vector> indexing
+  int rows_A = A.size();
+  int cols_A = B.size();
+  int cols_B = 1;
+    
+  C.resize(rows_A);
+  for (int i=0; i<rows_A; i++)
+    {
+      complex<double> sum = 0.0;
+      for (int k=0; k<cols_A; k++)
+	sum += A[i][k] * B[k];
+      C[i] = sum;
+    }
+}
+
 vector<complex<double> >  CmyVectorUtils::zzeros(int m, int n)
 {
   vector<complex<double> > values;
