@@ -658,6 +658,27 @@ bool CmyVectorUtils::mmul(vector<complex<double> > A, int rows_A, int cols_A, ve
   return(true);
 }
 
+vector<double> CmyVectorUtils::conv(vector<double> A, vector<double> B)
+{
+  vector<double> C;
+  C.resize(A.size()+B.size(),0.0);
+  for (int t=0; t<C.size(); t++)
+    for (int tau=0; tau<A.size(); tau++)
+      C[t] += A[tau] * B[t-tau];
+  return(C);
+}
+
+vector<complex<double> > CmyVectorUtils::conv(vector<complex<double> > A,
+					     vector<complex<double> > B)
+{
+  vector<complex<double> > C;
+  C.resize(A.size()+B.size(),(0,0));
+  for (int t=0; t<C.size(); t++)
+    for (int tau=0; tau<A.size(); tau++)
+      C[t] += A[tau] * B[t-tau];
+  return(C);
+}
+
 void CmyVectorUtils::cmmul(vector<vector<complex<double> > > A,
 		       vector<vector<complex<double> > > B,
 		       vector<vector<complex<double> > >& C)
