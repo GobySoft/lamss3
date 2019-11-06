@@ -80,6 +80,10 @@ class CmyVectorUtils
   void cmvmul(std::vector<std::vector<std::complex<double> > > A,
 	      std::vector<std::complex<double> >  B,
 	      std::vector<std::complex<double> >& C);
+  std::vector<std::complex<double> > conv(std::vector<std::complex<double> > A,
+					  std::vector<std::complex<double> > B);
+  std::vector<double> conv(std::vector<double> A,
+			   std::vector<double> B);
   std::vector<std::complex<double> > zzeros(int m, int n);
 
   //added by sdanesh
