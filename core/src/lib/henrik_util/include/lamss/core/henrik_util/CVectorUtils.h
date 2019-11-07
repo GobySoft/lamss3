@@ -74,16 +74,23 @@ class CmyVectorUtils
   bool mmul(std::vector<std::complex<double> > A, int rows_A, int cols_A,
 			     std::vector<std::complex<double> > B, int cols_B, 
 			     std::vector<std::complex<double> >& C);
-  void cmmul(std::vector<std::vector<std::complex<double> > > A,
-	     std::vector<std::vector<std::complex<double> > > B,
-	     std::vector<std::vector<std::complex<double> > >& C);
-  void cmvmul(std::vector<std::vector<std::complex<double> > > A,
-	      std::vector<std::complex<double> >  B,
-	      std::vector<std::complex<double> >& C);
-  std::vector<std::complex<double> > conv(std::vector<std::complex<double> > A,
-					  std::vector<std::complex<double> > B);
-  std::vector<double> conv(std::vector<double> A,
-			   std::vector<double> B);
+  std::vector<std::vector<std::complex<double> > >
+    cmmul(const std::vector<std::vector<std::complex<double> > >& A,
+	  const std::vector<std::vector<std::complex<double> > >& B);
+  std::vector<std::complex<double> >
+    cmvmul(const std::vector<std::vector<std::complex<double> > >& A,
+	   const std::vector<std::complex<double> >&  B);
+  std::vector<std::vector<std::complex<double> > >
+    transp(const std::vector<std::vector<std::complex<double> > >& A);
+  std::vector<std::vector<double> >
+    transp(const std::vector<std::vector<double> >& A);
+  std::vector<std::complex<double> >
+    conv(const std::vector<std::complex<double> >& A,
+	 const std::vector<std::complex<double> >& B);
+  std::vector<double> conv(const std::vector<double>& A,
+			   const std::vector<double>& B);
+  std::vector<std::vector<std::complex<double> > >
+    cminv(std::vector<std::vector<std::complex<double> > >  A);
   std::vector<std::complex<double> > zzeros(int m, int n);
 
   //added by sdanesh

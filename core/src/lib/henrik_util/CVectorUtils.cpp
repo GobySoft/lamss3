@@ -326,6 +326,79 @@ bool CmyVectorUtils::minv(vector<double> a, int dim, vector<double>& c)
   return(true);
 }
 
+vector<vector<complex<double> > > CmyVectorUtils::cminv(vector<vector<complex<double> > >  A)
+{
+  vector<vector<complex<double> > >  C;
+  int dim = A.size();
+  if (A.size() < 1 || A[0].size() != A.size())
+    {
+      cout << "cminv: Dimension mismatch" <<  std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  C.resize(dim);
+  for (int i=0; i< dim; i++)
+    {
+      C[i].resize(dim,(0.0,0.0));
+      C[i][i] = (1.0,0.0);
+    }
+
+  for (int k=0; k<dim; k++)
+    {
+      // pivoting
+      double mx= fabs(A[k][k]);
+      int imx=k;
+      for (int i=k+1; i<dim; i++)
+	if (fabs(A[i][k]) > mx)
+	  {
+	    mx = fabs(A[i][k]);
+	    imx = i;
+	  }
+      if (imx > k)
+	{
+	  for (int j=k; j<dim;j++)
+	    {
+	      complex<double> temp = A[k][j];
+	      A[k][j] = A[imx][j];
+	      A[imx][j] = temp;
+	    }
+	  for (int j=0; j<dim;j++)
+	    {
+	      complex<double> temp = C[k][j];
+	      C[k][j] = C[imx][j];
+	      C[imx][j] = temp;
+	    }
+	}
+      // reduction
+      if (fabs(A[k][k]) == 0.0)
+	{
+	  cout << "cminv: matrix singular" << std::endl;
+	  exit(EXIT_FAILURE);
+	}
+      A[k][k] = 1.0/A[k][k];
+      for (int i=k+1; i< dim; i++)
+	{
+	  complex<double> fac=-A[i][k]*A[k][k];
+	  A[i][k]=(0,0);
+	  for (int j=k+1; j<dim; j++)
+	    A[i][j] += A[k][j]*fac;
+	  for (int j=0; j<dim; j++)
+	    C[i][j] += C[k][j]*fac;
+	}
+    }
+      // back substitition
+  for (int i=dim-1; i>=0; i--)
+      for (int j=0; j< dim; j++)
+	{
+	  complex<double> ss=C[i][j];
+	  for (int k=i+1; k<dim; k++)
+	    ss -= C[k][j]*A[i][k];
+	  C[i][j]=ss*A[i][i];
+	}
+
+  return(C);
+}
+
 bool CmyVectorUtils::bminv(vector<double> a, int dim, int bw, vector<double>& c)
 {
   nrows = dim;
@@ -658,7 +731,8 @@ bool CmyVectorUtils::mmul(vector<complex<double> > A, int rows_A, int cols_A, ve
   return(true);
 }
 
-vector<double> CmyVectorUtils::conv(vector<double> A, vector<double> B)
+vector<double> CmyVectorUtils::conv(const vector<double>& A,
+				    const vector<double>& B)
 {
   vector<double> C;
   C.resize(A.size()+B.size(),0.0);
@@ -668,8 +742,8 @@ vector<double> CmyVectorUtils::conv(vector<double> A, vector<double> B)
   return(C);
 }
 
-vector<complex<double> > CmyVectorUtils::conv(vector<complex<double> > A,
-					     vector<complex<double> > B)
+vector<complex<double> > CmyVectorUtils::conv(const vector<complex<double> >& A,
+					      const vector<complex<double> >& B)
 {
   vector<complex<double> > C;
   C.resize(A.size()+B.size(),(0,0));
@@ -679,15 +753,20 @@ vector<complex<double> > CmyVectorUtils::conv(vector<complex<double> > A,
   return(C);
 }
 
-void CmyVectorUtils::cmmul(vector<vector<complex<double> > > A,
-		       vector<vector<complex<double> > > B,
-		       vector<vector<complex<double> > >& C)
+vector<vector<complex<double> > >
+CmyVectorUtils::cmmul(const vector<vector<complex<double> > >& A,
+		      const vector<vector<complex<double> > >& B)
 {
-
+  vector<vector<complex<double> > > C;
   // Matrix x matrix multiplication using c++ vector<vector> indexing
   int rows_A = A.size();
   int cols_A = B.size();
-  int cols_B = 0;
+  int cols_B;
+  if (A.size() < 1 || A[0].size() != B.size())
+    {
+      cout << "cmmul: Dimension mismatch" <<  std::endl;
+      exit(EXIT_FAILURE);
+    }
   if (B.size()>0)
     cols_B = B[0].size();
     
@@ -703,17 +782,22 @@ void CmyVectorUtils::cmmul(vector<vector<complex<double> > > A,
 	  C[i][j] = sum;
 	}
     }
+  return(C);
 }
 
-void CmyVectorUtils::cmvmul(vector<vector<complex<double> > > A,
-		       vector<complex<double> >  B,
-		       vector<complex<double> >& C)
+vector<complex<double> >
+CmyVectorUtils::cmvmul(const vector<vector<complex<double> > >& A,
+		       const vector<complex<double> >&  B)
 {
+  vector<complex<double> > C;
   // Matrix x vector multiplication using c++ vector<vector> indexing
   int rows_A = A.size();
   int cols_A = B.size();
-  int cols_B = 1;
-    
+  if (A.size() < 1 || A[0].size() != B.size())
+    {
+      cout << "cmvmul: Dimension mismatch" <<  std::endl;
+      exit(EXIT_FAILURE);
+    }
   C.resize(rows_A);
   for (int i=0; i<rows_A; i++)
     {
@@ -722,6 +806,40 @@ void CmyVectorUtils::cmvmul(vector<vector<complex<double> > > A,
 	sum += A[i][k] * B[k];
       C[i] = sum;
     }
+  return(C);
+}
+
+vector<vector<complex<double> > >
+CmyVectorUtils::transp(const vector<vector<complex<double> >  >& A)
+{
+  vector<vector<complex<double> > > C;
+  if (A.size() > 0)
+    {
+      C.resize(A[0].size());
+      for (int i=0; i < C.size(); i++)
+	{
+	  C[i].resize(A.size());
+	  for (int j=0; j<C[i].size();j++)
+	    C[i][j] = conjg(A[j][i]);
+	}
+    }
+  return(C);
+}
+
+vector<vector<double> > CmyVectorUtils::transp(const vector<vector<double> >& A)
+{
+  vector<vector<double> >  C;
+  if (A.size() > 0)
+    {
+      C.resize(A[0].size());
+      for (int i=0; i < C.size(); i++)
+	{
+	  C[i].resize(A.size());
+	  for (int j=0; j<C[i].size();j++)
+	    C[i][j] = A[j][i];
+	}
+    }
+  return(C);
 }
 
 vector<complex<double> >  CmyVectorUtils::zzeros(int m, int n)
