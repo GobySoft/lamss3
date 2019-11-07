@@ -74,7 +74,7 @@ complex<double> CovMat::Covar(int i, int j)
   if (j<=i)
     return(cov[indx_tri(i,j)]);
   else
-    return(conjg(cov[indx_tri(i,j)]));
+    return(conjg(cov[indx_tri(j,i)]));
 }
 
 bool CovMat::getCovLow(int nrcv, double& frq,  vector<complex<double> >& covout)
