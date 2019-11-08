@@ -771,10 +771,10 @@ CmyVectorUtils::cmmul(const vector<vector<complex<double> > >& A,
     cols_B = B[0].size();
     
   C.resize(rows_A);
-  for (int j=0; j<cols_B; j++)
+  for (int i=0; i<rows_A; i++)
     {
-      C[j].resize(cols_B);
-      for (int i=0; i<rows_A; i++)
+      C[i].resize(cols_B);
+      for (int j=0; j<cols_B; j++)
 	{
 	  complex<double> sum = 0.0;
 	  for (int k=0; k<cols_A; k++)
