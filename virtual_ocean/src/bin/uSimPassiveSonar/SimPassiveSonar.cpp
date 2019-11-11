@@ -1739,7 +1739,8 @@ bool SimPassiveSonar::add_pinger_timeseries()
 		      indx_1 = std::max(indx_1,0);
 		      indx_2 = std::min(indx_2,num_samples-1);
 		      for (int i=indx_1; i<=indx_2; i++)
-			ts_hyd[i] += waveform[i+indx_offset];
+			ts_hyd[i] += waveform[i+indx_offset] *
+			  arr_amplitudes[i_elem][i_ray];
 		    }
 		}
 	      for(int i_samp=0; i_samp < num_samples; i_samp++)
