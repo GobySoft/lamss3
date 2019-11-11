@@ -62,14 +62,14 @@ message LAMSS_DEPLOY {
 	optional bool Clockwise = 22 [default=true];
 	optional ContactEnum Collaborator = 23;
 	enum ContactEnum{
-		 TRAIL_CONTACT_macrura = 0;
-		 TRAIL_CONTACT_unicorn = 1;
-		 TRAIL_CONTACT_resolution = 2;
-		 TRAIL_CONTACT_hydrohole = 3;
-		 TRAIL_CONTACT_h1 = 4;
-		 TRAIL_CONTACT_h2 = 5;
-		 TRAIL_CONTACT_h3 = 6;
-		 TRAIL_CONTACT_h4 = 7;
+		 macrura = 0;
+		 unicorn = 1;
+		 resolution = 2;
+		 hydrohole = 3;
+		 h1 = 4;
+		 h2 = 5;
+		 h3 = 6;
+		 h4 = 7;
 	}
 	optional double Trail_Range = 24 [(dccl.field).max=511, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double Trail_Angle = 25 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
