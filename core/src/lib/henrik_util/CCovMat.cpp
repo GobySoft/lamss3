@@ -68,13 +68,32 @@ bool CovMat::getCovMat(int nrcv, double& frq,  vector<complex<double> >& covout)
     }
 }
 
-complex<double> CovMat::Covar(int i, int j)
+vector<vector<complex<double> > > CovMat::getCCovMat()
 {
-  // retiurning covariance, element i,j (i,j = 1,2...)
+  // This version retrieves the covariance matrix using
+  // the C++ matrix indexing convention
+  vector<vector<complex<double> > > covout;
+  covout.resize(num_rcv);
+  for (unsigned int i=0; i <= num_rcv; i++)
+    covout[i].resize(num_rcv);
+    
+  for (unsigned int i=0; i <= num_rcv; i++)
+    for (unsigned int j=0; j <= i; j++)
+      {
+	covout[i][j] = cov[indx_tri(i+1,j+1)];
+	covout[j][i] = conjg(cov[indx_tri(i+1,j+1)]);
+      }
+  return(covout);
+}
+
+complex<double> CovMat::getCCovar(int i, int j)
+{
+  // returning covariance, element  1,2...)
+  // with calling indeces i,j being C style i,j = 0,1....
   if (j<=i)
-    return(cov[indx_tri(i,j)]);
+    return(cov[indx_tri(i+1,j+1)]);
   else
-    return(conjg(cov[indx_tri(j,i)]));
+    return(conjg(cov[indx_tri(j+1,i+1)]));
 }
 
 bool CovMat::getCovLow(int nrcv, double& frq,  vector<complex<double> >& covout)

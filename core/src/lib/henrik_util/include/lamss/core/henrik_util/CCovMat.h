@@ -50,7 +50,9 @@ class CovMat
   bool getCholLow(int nrcv, double& frq, std::vector<std::complex<double> >& c);
   bool putCovLow(int nrcv, double frq, std::vector<std::complex<double> > cov);
   bool putCholLow(int nrcv, double frq, std::vector<std::complex<double> > c);
-  std::complex<double> Covar(int i, int j);
+  // The following uses C++ indexing
+  std::complex<double> getCCovar(int i, int j);
+  std::vector<std::vector<std::complex<double> > > getCCovMat();
   void realization(std::vector<std::complex<double> >& out);
   bool scaleCovMat(double fac);
   bool wnChol();
