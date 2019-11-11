@@ -339,8 +339,8 @@ vector<vector<complex<double> > > CmyVectorUtils::cminv(vector<vector<complex<do
   C.resize(dim);
   for (int i=0; i< dim; i++)
     {
-      C[i].resize(dim,(0.0,0.0));
-      C[i][i] = (1.0,0.0);
+      C[i].resize(dim,complex<double>(0.0,0.0));
+      C[i][i] = complex<double>(1.0,0.0);
     }
 
   for (int k=0; k<dim; k++)
@@ -746,7 +746,8 @@ vector<complex<double> > CmyVectorUtils::conv(const vector<complex<double> >& A,
 					      const vector<complex<double> >& B)
 {
   vector<complex<double> > C;
-  C.resize(A.size()+B.size(),(0,0));
+  C.resize(A.size()+B.size(),complex<double>(0,0));
+
   for (int t=0; t<A.size(); t++)
     for (int tau=0; tau<B.size(); tau++)
       C[t+tau] += A[t] * B[tau];
@@ -776,7 +777,7 @@ CmyVectorUtils::cmmul(const vector<vector<complex<double> > >& A,
       C[i].resize(cols_B);
       for (int j=0; j<cols_B; j++)
 	{
-	  complex<double> sum = 0.0;
+	  complex<double> sum = complex<double>(0.0);
 	  for (int k=0; k<cols_A; k++)
 	    sum += A[i][k] * B[k][j];
 	  C[i][j] = sum;
@@ -801,7 +802,7 @@ CmyVectorUtils::cmvmul(const vector<vector<complex<double> > >& A,
   C.resize(rows_A);
   for (int i=0; i<rows_A; i++)
     {
-      complex<double> sum = 0.0;
+      complex<double> sum = complex<double>(0.0);
       for (int k=0; k<cols_A; k++)
 	sum += A[i][k] * B[k];
       C[i] = sum;
