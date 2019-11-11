@@ -47,8 +47,8 @@ message LAMSS_DEPLOY {
 		 SONAR_PROCESS_ON = 0;
 		 SONAR_PROCESS_OFF = 1;
 	}
-	optional double Deploy_X = 10 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double Deploy_Y = 11 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_X = 10 [default=0, (dccl.field).max=125000, (dccl.field).min=-100000, (dccl.field).precision=0];
+	optional double Deploy_Y = 11 [default=0, (dccl.field).max=125000, (dccl.field).min=-100000, (dccl.field).precision=0];
 	optional double Deploy_Speed = 12 [default=1.5, (dccl.field).max=2.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double Deploy_Upper_Depth = 13 [default=10, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double Deploy_Lower_Depth = 14 [default=20, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
