@@ -335,8 +335,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      raytrace -> set_surface_bounces(surface_bounces[j]);
 	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
-	  message.set_number_array_elements(delay[0].
-					    size());
+	  message.set_number_array_elements(cfg_.array_element_size());
 	}
 
       // The receiver is in the last range sector
@@ -344,7 +343,8 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
 
       // Compute Noise covariance matrix if noise is correlated
-      if (delay[0].size() > 1)
+      //if (delay[0].size() > 1)
+      if (cfg_.array_element_size() > 1)
 	{
 	  if (computeNoiseCovariance(acoustic_contacts[con].noise_level,
 				     get_ssp_value(water_column,ownship_depth),
