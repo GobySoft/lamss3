@@ -114,6 +114,7 @@ namespace lamss
 
             extern double current_time_;
             extern double last_acomms_;
+            extern double last_gps_;
 	    extern double abort_time_;
 	    extern double abort_duration_;
 

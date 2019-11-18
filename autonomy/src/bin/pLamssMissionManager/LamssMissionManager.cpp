@@ -747,6 +747,7 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 			   << std::endl;
   // reset deploy duration when getting GPS update
 	last_acomms_ = MOOSTime();
+	last_gps_ = MOOSTime();
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)

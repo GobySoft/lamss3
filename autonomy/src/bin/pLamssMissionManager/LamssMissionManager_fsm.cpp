@@ -42,6 +42,7 @@ bool lamss::shared::fsm::homing_mode_active_ = false;
 
 double lamss::shared::fsm::current_time_ = 0;
 double lamss::shared::fsm::last_acomms_ = 0;
+double lamss::shared::fsm::last_gps_ = 0;
 double lamss::shared::fsm::abort_time_ = 0;
 double lamss::shared::fsm::abort_duration_ = 0;
 
