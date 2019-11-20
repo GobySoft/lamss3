@@ -339,8 +339,9 @@ void LamssNetCdf::get_hycom_varnames()
       status = nc_inq_varname(ncid_, 5 , ch);
       if (status != NC_NOERR)
 	{
-	  std::cout<<"ERROR - failed to get variable name for varid 5" << std::endl;
+	  std::cout<<"ERROR - failed to get variable name for varid 5 (temp or u_vel" << std::endl;
 	  std::cout<<nc_strerror(status)<<std::endl;
+	  temp_ncname = "water_temp";
 	}
       else
 	{
@@ -352,8 +353,9 @@ void LamssNetCdf::get_hycom_varnames()
       status = nc_inq_varname(ncid_, 7 , ch);
       if (status != NC_NOERR)
 	{
-	  std::cout<<"ERROR - failed to get variable name for varid 5" << std::endl;
+	  std::cout<<"ERROR - failed to get variable name for varid 7 (salinity or v_vel)" << std::endl;
 	  std::cout<<nc_strerror(status)<<std::endl;
+	  salt_ncname = "salinity";
 	}
       else
 	{
