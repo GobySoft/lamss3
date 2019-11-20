@@ -335,34 +335,22 @@ void LamssNetCdf::get_hycom_varnames()
 
   char ch[NC_MAX_NAME+1] ;
 
-  // >>>>>>>>>> Varid 5 is temperature or u-vel	
-      status = nc_inq_varname(ncid_, 5 , ch);
-      if (status != NC_NOERR)
-	{
-	  std::cout<<"ERROR - failed to get variable name for varid 5 (temp or u_vel" << std::endl;
-	  std::cout<<nc_strerror(status)<<std::endl;
-	  temp_ncname = "water_temp";
-	}
-      else
-	{
-	  temp_ncname = ch;
-	  std::cout << "varname 5: " << temp_ncname << std::endl;
-	}
-  
-  // >>>>>>>>>> Varid 7 is salinity or v-vel	
-      status = nc_inq_varname(ncid_, 7 , ch);
-      if (status != NC_NOERR)
-	{
-	  std::cout<<"ERROR - failed to get variable name for varid 7 (salinity or v_vel)" << std::endl;
-	  std::cout<<nc_strerror(status)<<std::endl;
-	  salt_ncname = "salinity";
-	}
-      else
-	{
-	  salt_ncname = ch;
-	  std::cout << "varname 7: " << salt_ncname << std::endl;
-	}
-  
+  // >>>>>>>>>> Varid 5 is temperature or u-vel	 - NOT ALWAYS
+  //    status = nc_inq_varname(ncid_, 5 , ch);
+
+  temp_ncname = "water_temp";
+  status = nc_inq_varid(ncid_, temp_ncname.c_str(), &temp_varid_);
+  if (status != NC_NOERR)
+    {
+      temp_ncname = "water_u";
+    }
+
+  salt_ncname = "salinity";
+  status = nc_inq_varid(ncid_, salt_ncname.c_str(), &salt_varid_);
+  if (status != NC_NOERR)
+    {
+      salt_ncname = "water_v";
+    }
 }
 
 void LamssNetCdf::get_lat_lon()
