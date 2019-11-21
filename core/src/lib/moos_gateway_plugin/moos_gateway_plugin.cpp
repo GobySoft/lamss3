@@ -1,4 +1,5 @@
 #include <ivp/XYCircle.h>
+#include <ivp/XYSegList.h>
 
 #include "goby/middleware/marshalling/protobuf.h"
 
@@ -12,6 +13,7 @@
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
+#include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
@@ -129,7 +131,7 @@ class NodeReportTranslation : public goby::moos::Translator
             create.set_moos_var("NODE_REPORT");
             auto& publish = *entry.add_publish();
             publish.set_technique(goby::moos::protobuf::TranslatorEntry::
-                                  TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
+                                      TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
             publish.set_moos_var("NODE_REPORT");
             translator_.add_entry(entry);
         }
@@ -151,11 +153,10 @@ class NodeReportTranslation : public goby::moos::Translator
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::node_report_out, lamss::protobuf::LegacyNodeReport>(
-                [this](const lamss::protobuf::LegacyNodeReport& nr)
-                {
-                    std::multimap<std::string, CMOOSMsg> moos_msgs = translator_.protobuf_to_moos(nr);
-                    for(auto moos_msg_p : moos_msgs)
-                        this->moos().comms().Post(moos_msg_p.second);
+                [this](const lamss::protobuf::LegacyNodeReport& nr) {
+                    std::multimap<std::string, CMOOSMsg> moos_msgs =
+                        translator_.protobuf_to_moos(nr);
+                    for (auto moos_msg_p : moos_msgs) this->moos().comms().Post(moos_msg_p.second);
                 });
     }
 
@@ -179,6 +180,36 @@ class ViewGeometryTranslation : public goby::moos::Translator
                     if (circle.has_label())
                         ivp_circle.set_label(circle.label());
                     this->moos().comms().Notify("VIEW_CIRCLE", ivp_circle.get_spec());
+                });
+
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::view_geometry, VIEW_SEGLIST,
+                       goby::middleware::MarshallingScheme::PROTOBUF>(
+                [this](const VIEW_SEGLIST& seglist) {
+                    XYSegList ivp_seglist;
+                    ivp_seglist.set_color("edge", "darkred");
+                    ivp_seglist.set_color("vertex", "darkred");
+
+                    // for GEOV
+                    std::stringstream old_view_polygon;
+                    old_view_polygon << "active,true:label," << seglist.label()
+                                     << ":edge_size,0:vertex_size,0";
+
+                    for (int i = 0; i < std::min(seglist.point_x_size(), seglist.point_y_size());
+                         ++i)
+                    {
+                        ivp_seglist.add_vertex(seglist.point_x(i), seglist.point_y(i));
+                        old_view_polygon << ":" << seglist.point_x(i) << "," << seglist.point_y(i);
+                    }
+
+                    ivp_seglist.set_active(seglist.point_x_size() > 0);
+
+                    if (seglist.has_label())
+                        ivp_seglist.set_label(seglist.label());
+                    this->moos().comms().Notify("VIEW_SEGLIST", ivp_seglist.get_spec());
+
+                    this->moos().comms().Notify("OLD_VIEW_POLYGON", old_view_polygon.str());
                 });
     }
 };
