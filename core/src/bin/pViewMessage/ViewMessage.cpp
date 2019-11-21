@@ -47,10 +47,14 @@ CViewMessage::CViewMessage() :
     mission_state_("unknown")
 {
     goby::moos::GobyMOOSApp::set_ignore_stale(false);
+
+    if(cfg_.generate_view_objects())
+    {
+        subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
+        subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
+        subscribe("VIEW_SEGLIST", &CViewMessage::handle_view_seglist, this);
+    }
     
-    subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
-    subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
-    subscribe("VIEW_SEGLIST", &CViewMessage::handle_view_seglist, this);
     subscribe("VEHICLE_NAME", &CViewMessage::handle_vehicle_name, this);
     subscribe("MISSION_STATE", &CViewMessage::handle_mission_state, this);
 

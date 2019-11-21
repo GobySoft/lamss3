@@ -48,4 +48,6 @@ message ViewSegList
 message ViewMessageConfig
 {
   optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+
+    optional bool generate_view_objects = 10 [default = true];
 }
