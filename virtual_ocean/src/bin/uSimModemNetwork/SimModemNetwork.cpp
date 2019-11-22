@@ -300,7 +300,9 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       message.set_receiver(acoustic_contacts[con].ownship);
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
-      
+      double range = sqrt(pow(contact_x-ownship_x,2) +
+			  pow(contact_y-ownship_y,2) );
+      message.set_range(range);      
       std::vector<std::vector<double> >delay;
       std::vector<double> amplitude;
       std::vector<double> doppler;
