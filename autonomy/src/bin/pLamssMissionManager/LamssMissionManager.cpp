@@ -225,6 +225,7 @@ void LamssMissionManager::slow_loop(double curr_time)
       if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
 	  double stale_acomms = curr_time - last_acomms_;
+	  double stale_gps = curr_time - last_gps_;
 	  double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
 	  if (stale_acomms >= last_deploy_cmd_.deploy_duration())
 	    {
@@ -238,7 +239,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
-	  else if (stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration() && !depth_adapting)
+	  else if (stale_gps > 2.0 * last_deploy_cmd_.gps_interval() &&
+		   stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration()
+		   && !depth_adapting)
 	    {
 	      goby::glog << group("helm")
 			 << "25% of deploy duration exceeded w/o acomms - going to acomms depth"
@@ -437,6 +440,7 @@ void LamssMissionManager::initial_deploy()
 	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
       // If stale acomms, continue with current duration timer
       double stale_acomms = MOOSTime() - last_acomms_;
+      double stale_gps = MOOSTime() - last_gps_;
       double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
       if (remaining < init_deploy_cmd.deploy_duration())
 	init_deploy_cmd.set_deploy_duration(remaining);
@@ -746,7 +750,7 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
   glog.is(VERBOSE) && glog << "Received GPS update: " << msg.GetString()
 			   << std::endl;
   // reset deploy duration when getting GPS update
-	last_acomms_ = MOOSTime();
+  //	last_acomms_ = MOOSTime();
 	last_gps_ = MOOSTime();
 }
 
@@ -1069,6 +1073,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
+	  last_gps_ = MOOSTime();
 	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
 				   << " delta_x=" <<  delta_x 
 				   << " delta_y=" << delta_y 
