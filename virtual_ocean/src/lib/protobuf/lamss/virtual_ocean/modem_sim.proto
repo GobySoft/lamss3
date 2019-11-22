@@ -124,3 +124,12 @@ message EnvironmentImpulseRequest
   required int32 environment_id = 1;
   required ImpulseRequest req = 2;
 }
+
+message TransmitGroupVelocity
+{
+  required string source = 1;
+  required string receiver = 2;
+  required double last_range = 3;
+  required double last_delay = 4;
+  required double group_velocity = 5;
+}
