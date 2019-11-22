@@ -127,9 +127,10 @@ message EnvironmentImpulseRequest
 
 message TransmitGroupVelocity
 {
-  required string source = 1;
-  required string receiver = 2;
-  required double last_range = 3;
-  required double last_delay = 4;
-  required double group_velocity = 5;
+  required double timestamp = 1;
+  required string source = 2;
+  required string receiver = 3;
+  required double range = 4;
+  required double delay = 5;
+  required double group_velocity = 6;
 }
