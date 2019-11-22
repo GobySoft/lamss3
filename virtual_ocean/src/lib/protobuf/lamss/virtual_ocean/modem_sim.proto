@@ -29,6 +29,7 @@ message ImpulseResponse
 
   optional int32 request_id = 10;
   optional double request_time = 11;
+  optional double range = 12;
 }
 
 message ImpulseRequest
