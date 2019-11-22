@@ -337,7 +337,11 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      raytrace -> set_surface_bounces(surface_bounces[j]);
 	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
-	  message.set_number_array_elements(cfg_.array_element_size());
+	  if (cfg_.array_element_size() > 0)
+	    message.set_number_array_elements(cfg_.array_element_size());
+	  else
+	    message.set_number_array_elements(1);
+	    
 	}
 
       // The receiver is in the last range sector
