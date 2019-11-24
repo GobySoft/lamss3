@@ -29,6 +29,7 @@ message ImpulseResponse
 
   optional int32 request_id = 10;
   optional double request_time = 11;
+  optional double range = 12;
 }
 
 message ImpulseRequest
@@ -122,4 +123,14 @@ message EnvironmentImpulseRequest
 {
   required int32 environment_id = 1;
   required ImpulseRequest req = 2;
+}
+
+message TransmitGroupVelocity
+{
+  required double timestamp = 1;
+  required string source = 2;
+  required string receiver = 3;
+  required double range = 4;
+  required double delay = 5;
+  required double group_velocity = 6;
 }
