@@ -300,7 +300,9 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       message.set_receiver(acoustic_contacts[con].ownship);
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
-      
+      double range = sqrt(pow(contact_x-ownship_x,2) +
+			  pow(contact_y-ownship_y,2) );
+      message.set_range(range);      
       std::vector<std::vector<double> >delay;
       std::vector<double> amplitude;
       std::vector<double> doppler;
@@ -335,7 +337,11 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	      raytrace -> set_surface_bounces(surface_bounces[j]);
 	      raytrace -> set_bottom_bounces(bottom_bounces[j]);
 	    }
-	  message.set_number_array_elements(cfg_.array_element_size());
+	  if (cfg_.array_element_size() > 0)
+	    message.set_number_array_elements(cfg_.array_element_size());
+	  else
+	    message.set_number_array_elements(1);
+	    
 	}
 
       // The receiver is in the last range sector

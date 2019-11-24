@@ -1739,7 +1739,8 @@ bool SimPassiveSonar::add_pinger_timeseries()
 		      indx_1 = std::max(indx_1,0);
 		      indx_2 = std::min(indx_2,num_samples-1);
 		      for (int i=indx_1; i<=indx_2; i++)
-			ts_hyd[i] += waveform[i+indx_offset];
+			ts_hyd[i] += waveform[i+indx_offset] *
+			  arr_amplitudes[i_elem][i_ray];
 		    }
 		}
 	      for(int i_samp=0; i_samp < num_samples; i_samp++)
@@ -2940,12 +2941,14 @@ bool SimPassiveSonar::parseNoiseDirectionality( string noise_in,
     }
 
   bool got_it = false;
+  bool delta = false;
   if ( val_from_string(nls, noise_in, "S")  )
     {
       got_it = true;
     }
   else if ( val_from_string(nls, noise_in, "delta") )
     {
+      delta = true;
       got_it = true;
     }
   else 
@@ -2984,6 +2987,8 @@ bool SimPassiveSonar::parseNoiseDirectionality( string noise_in,
 	  else
             {
 	      double d = boost::lexical_cast<double>(s);
+	      if (delta) 
+		d += noise_level;
 	      if(d > max_noise)
 		max_noise = d;
 	      noise_db.push_back(d);

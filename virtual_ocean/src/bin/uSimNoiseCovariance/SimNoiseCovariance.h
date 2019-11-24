@@ -122,14 +122,20 @@ class CSimNoiseCovariance : public CMOOSApp
     // array and sampling parameters
     std::string array_type;
     int num_array_elements;
+    int num_array_elements_save;
     double sampling_frequency;  
+    double sampling_frequency_save;  
     int num_samples;
     int num_freqs;
+    int num_freqs_save;
     unsigned int nfft;
+    unsigned int nfft_save;
     double file_interval_time;
     bool noise_cov_built;
     double minimum_frequency;
     double maximum_frequency;
+    double minimum_frequency_save;
+    double maximum_frequency_save;
   
 
     // output file location and name
