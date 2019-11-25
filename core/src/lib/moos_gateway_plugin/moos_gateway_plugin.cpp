@@ -214,6 +214,25 @@ class ViewGeometryTranslation : public goby::moos::Translator
     }
 };
 
+class NetSimTranslation : public goby::moos::Translator
+{
+  public:
+    NetSimTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        this->moos().add_trigger("TRANSMISSION_GRP_VEL", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::transmission_grp_vel>(pb_msg);
+        });
+    }
+};
+
 extern "C"
 {
     void goby3_moos_gateway_load(
@@ -224,6 +243,7 @@ extern "C"
         handler->launch_thread<NavStatusTranslation>();
         handler->launch_thread<NodeReportTranslation>();
         handler->launch_thread<ViewGeometryTranslation>();
+        handler->launch_thread<NetSimTranslation>();
     }
 
     void goby3_moos_gateway_unload(
@@ -234,5 +254,6 @@ extern "C"
         handler->join_thread<NavStatusTranslation>();
         handler->join_thread<NodeReportTranslation>();
         handler->join_thread<ViewGeometryTranslation>();
+        handler->join_thread<NetSimTranslation>();
     }
 }
