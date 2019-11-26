@@ -213,21 +213,34 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 {
   std::string node_report = msg.GetString();
   std::string node_name;
-  MOOSValFromString(node_name,node_report,"NAME");
+ bool got_node_name = MOOSValFromString(node_name,node_report,"NAME") ||
+   MOOSValFromString(node_name,node_report,"name");
   for (int i=0; i<Nodes.size(); i++)
     {
       if ( MOOSStrCmp(tolower(node_name),tolower(Nodes[i].name)) )
 	{
 	  CAcousticNode update;
 	  update.name = tolower(node_name);
-	  bool got_node_utc = MOOSValFromString(update.utc,node_report,"UTC_TIME") ||
-	    MOOSValFromString(update.utc,node_report,"TIME");
-	  bool got_node_x = MOOSValFromString(update.x,node_report,"X");
-	  bool got_node_y = MOOSValFromString(update.y,node_report,"Y");
-	  bool got_node_dep = MOOSValFromString(update.depth,node_report,"DEPTH") ||
-	    MOOSValFromString(update.depth,node_report,"DEP");
-	  bool got_node_spd = MOOSValFromString(update.speed,node_report,"SPD");
-	  bool got_node_hdg = MOOSValFromString(update.heading,node_report,"HDG");
+	  bool got_node_utc =
+	    MOOSValFromString(update.utc,node_report,"UTC_TIME") ||
+	    MOOSValFromString(update.utc,node_report,"TIME") ||
+	    MOOSValFromString(update.utc,node_report,"utc_time") ||
+	    MOOSValFromString(update.utc,node_report,"time");
+	  bool got_node_x = MOOSValFromString(update.x,node_report,"X") ||
+	    MOOSValFromString(update.x,node_report,"x");
+	  bool got_node_y = MOOSValFromString(update.y,node_report,"Y") ||
+	    MOOSValFromString(update.y,node_report,"y");
+	  bool got_node_dep =
+	    MOOSValFromString(update.depth,node_report,"DEPTH") ||
+	    MOOSValFromString(update.depth,node_report,"DEP") ||
+	    MOOSValFromString(update.depth,node_report,"depth") ||
+	    MOOSValFromString(update.depth,node_report,"dep");
+	  bool got_node_spd =
+	    MOOSValFromString(update.speed,node_report,"SPD") ||
+	    MOOSValFromString(update.speed,node_report,"spd");
+	  bool got_node_hdg =
+	    MOOSValFromString(update.heading,node_report,"HDG") ||
+	    MOOSValFromString(update.heading,node_report,"hdg");
 	  if (!MOOSValFromString(update.pitch,node_report,"PITCH"))
 	    update.pitch = 0.0;
 	  
@@ -284,12 +297,18 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
   int con = findAcousticContact(request.receiver(),request.source()); 
-  bool got_info = con != -1 &&
-      getNodeInfo(acoustic_contacts[con].ownship,ownship_x,ownship_y,
-                  ownship_depth,ownship_heading,ownship_speed) &&
-      getNodeInfo(acoustic_contacts[con].contact,contact_x,contact_y,
-                  contact_depth,contact_heading,contact_speed) ; 
-  if (got_info && generate_eigenray_table(acoustic_contacts[con]))  
+
+  bool got_info = con != -1 && 
+    getNodeInfo(acoustic_contacts[con].ownship,
+			      ownship_x,ownship_y,
+			      ownship_depth,ownship_heading,ownship_speed) &&
+    getNodeInfo(acoustic_contacts[con].contact,contact_x,contact_y,
+		contact_depth,contact_heading,contact_speed) ;
+  bool got_ray_table = false;
+  if (got_info)
+    got_ray_table= generate_eigenray_table(acoustic_contacts[con]);
+  
+  if (got_info && got_ray_table)  
     {
       // Set variables needed for noise covariances
       sampling_frequency = request.sampling_frequency();
@@ -378,15 +397,25 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
     }
   else
     {
-      glog.is(VERBOSE) && glog << "Insufficient info for impulse response "
-			       << request.source()
-			       << "->" 
-			       << request.receiver() << endl;
+      if (!got_info)
+	glog.is(VERBOSE) && glog << "Insufficient info for impulse response "
+				 << request.source()
+				 << "->" 
+				 << request.receiver() << endl;
+      else 
+	glog.is(VERBOSE) && glog << "No ray table generated "
+				 << request.source() 
+				 << "->" 
+				 << request.receiver() << endl;
       ImpulseResponse message;
       message.set_source(request.source());
       message.set_receiver(request.receiver());
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
+	  if (cfg_.array_element_size() > 0)
+	    message.set_number_array_elements(cfg_.array_element_size());
+	  else
+	    message.set_number_array_elements(1);
       std::string serialized_impulse_response;
       serialize_for_moos(&serialized_impulse_response,message);
       m_Comms.Notify("IMPULSE_RESPONSE", serialized_impulse_response);
@@ -511,7 +540,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 	}
       else
 	{
-	  glog.is(DEBUG3) && glog << "Waiting for info for " 
+	  glog.is(DEBUG1) && glog << "Waiting for info for " 
 				   << acoustic_contacts[i].contact
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
@@ -540,13 +569,13 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
       // Get the closest eigenray bundle
       eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
       
-      glog.is(VERBOSE) && glog << "Contact (" << acoustic_contact.contact << ") range = " << range_req
+      glog.is(DEBUG1) && glog << "Contact (" << acoustic_contact.contact << ") range = " << range_req
 			       << " Raytracing range = " << eig.range
 			       << endl;
-      glog.is(VERBOSE) && glog << "Ownship (" << acoustic_contact.ownship << ") depth = " << depth_req
+      glog.is(DEBUG1) && glog << "Ownship (" << acoustic_contact.ownship << ") depth = " << depth_req
 			       << " Raytracing depth = "
 			       << eig.receiver_depth << endl;
-      glog.is(VERBOSE) && glog << "Number of eigenrays: " 
+      glog.is(DEBUG1) && glog << "Number of eigenrays: " 
 			       << eig.num_rays << endl;
       tl_est = 1e-30;
       for (int iray = 0; iray < eig.num_rays; iray++)
@@ -554,7 +583,7 @@ bool SimModemNetwork::generate_eigenray_table(CAcousticContact& acoustic_contact
 	  tl_est += pow(eig.bundle[iray].amp,2);
 	}
       tl_est = - 10.0 * log10(tl_est/eig.num_rays);
-      glog.is(VERBOSE) && glog << "Incoherent TL = " << tl_est << endl;
+      glog.is(DEBUG1) && glog << "Incoherent TL = " << tl_est << endl;
       
       if (fabs(range_req - acoustic_contact.last_range) > 2*cfg_.raytracing_range_box())
 	{
