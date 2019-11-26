@@ -47,10 +47,14 @@ CViewMessage::CViewMessage() :
     mission_state_("unknown")
 {
     goby::moos::GobyMOOSApp::set_ignore_stale(false);
+
+    if(cfg_.generate_view_objects())
+    {
+        subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
+        subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
+        subscribe("VIEW_SEGLIST", &CViewMessage::handle_view_seglist, this);
+    }
     
-    subscribe("VIEW_POINT", &CViewMessage::handle_view_point, this);
-    subscribe("VIEW_POLYGON", &CViewMessage::handle_view_polygon, this);
-    subscribe("VIEW_SEGLIST", &CViewMessage::handle_view_seglist, this);
     subscribe("VEHICLE_NAME", &CViewMessage::handle_vehicle_name, this);
     subscribe("MISSION_STATE", &CViewMessage::handle_mission_state, this);
 
@@ -69,6 +73,10 @@ void CViewMessage::handle_view_point(const CMOOSMsg& msg)
     std::string view_point = msg.m_sVal;
     std::cout << "\ngot VIEW_POINT" << std::endl;
     XYPoint point = string2Point(view_point);
+
+    if(point.get_label().find("waypoint") == std::string::npos)
+        return;
+    
     std::cout << "XYPoint:" <<  point.get_spec() << std::endl;    
     lamss::protobuf::ViewPoint proto_point = to_protobuf(point);
     std::cout << "lamss.protobuf.ViewPoint: " << proto_point.ShortDebugString() << std::endl;
