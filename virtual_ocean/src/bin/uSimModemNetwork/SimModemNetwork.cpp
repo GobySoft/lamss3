@@ -297,7 +297,9 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
   int con = findAcousticContact(request.receiver(),request.source()); 
-  bool got_info = getNodeInfo(acoustic_contacts[con].ownship,
+
+  bool got_info = con != -1 && 
+    getNodeInfo(acoustic_contacts[con].ownship,
 			      ownship_x,ownship_y,
 			      ownship_depth,ownship_heading,ownship_speed) &&
     getNodeInfo(acoustic_contacts[con].contact,contact_x,contact_y,
@@ -395,20 +397,19 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
     }
   else
     {
-
       if (!got_info)
 	glog.is(VERBOSE) && glog << "Insufficient info for impulse response "
-				 << acoustic_contacts[con].contact 
+				 << request.source()
 				 << "->" 
-				 << acoustic_contacts[con].ownship << endl;
+				 << request.receiver() << endl;
       else 
 	glog.is(VERBOSE) && glog << "No ray table generated "
-				 << acoustic_contacts[con].contact 
+				 << request.source() 
 				 << "->" 
-				 << acoustic_contacts[con].ownship << endl;
+				 << request.receiver() << endl;
       ImpulseResponse message;
-      message.set_source(acoustic_contacts[con].contact);
-      message.set_receiver(acoustic_contacts[con].ownship);
+      message.set_source(request.source());
+      message.set_receiver(request.receiver());
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
 	  if (cfg_.array_element_size() > 0)
