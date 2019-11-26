@@ -17,4 +17,6 @@ message VIEW_SEGLIST {
 	} 
 	repeated double point_x = 6 [(dccl.field).max=10230.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, (dccl.field).max_repeat=9];
 	repeated double point_y = 7 [(dccl.field).max=10230.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, (dccl.field).max_repeat=9];
+
+        optional string label = 10 [(dccl.field).omit = true];
 } 
