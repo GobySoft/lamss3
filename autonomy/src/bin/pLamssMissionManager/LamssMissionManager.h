@@ -94,7 +94,6 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_survey_flag(const CMOOSMsg& msg);
     void handle_gps_update(const CMOOSMsg& msg);
     void handle_in_track(const CMOOSMsg& msg);
-    void handle_tracking_message(const CMOOSMsg& msg);
     void handle_icex20_tracking_message(const CMOOSMsg& msg);
     void handle_stovepipe_message(const CMOOSMsg& msg);
     void handle_survey_wpt_index(const CMOOSMsg& msg);
