@@ -735,7 +735,9 @@ vector<double> CmyVectorUtils::conv(const vector<double>& A,
 				    const vector<double>& B)
 {
   vector<double> C;
-  C.resize(A.size()+B.size(),0.0);
+  C.resize(A.size()+B.size());
+  for (int i=0; i<C.size(); i++)
+    C[i] =0.0;
   for (int t=0; t<A.size(); t++)
     for (int tau=0; tau<B.size(); tau++)
       C[t+tau] += A[t] * B[tau];
@@ -746,7 +748,9 @@ vector<complex<double> > CmyVectorUtils::conv(const vector<complex<double> >& A,
 					      const vector<complex<double> >& B)
 {
   vector<complex<double> > C;
-  C.resize(A.size()+B.size(),complex<double>(0,0));
+  C.resize(A.size()+B.size());
+  for (int i=0; i<C.size(); i++)
+    C[i] = complex<double>(0,0);
 
   for (int t=0; t<A.size(); t++)
     for (int tau=0; tau<B.size(); tau++)
