@@ -24,4 +24,5 @@ TARGET_LINK_LIBRARIES(pLamssMissionManager
   ${IVP_CONTACTS_LIBRARY}
   ${IVP_GEOMETRY_LIBRARY}
   ${IVP_MBUTIL_LIBRARY}
+  goby_frontseat_bluefin
  )

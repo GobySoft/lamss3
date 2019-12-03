@@ -101,6 +101,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
     subscribe("SURVEY_WPT_INDEX",&LamssMissionManager::handle_survey_wpt_index, this);    
+    subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &LamssMissionManager::handle_vehicle_transmit_selection, this);
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
@@ -1478,3 +1479,22 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 			     << std::endl;
     return;
 }
+
+
+// Receives VehicleTransmitSelection, checks against the current state (previous) and if different switches the modems by publishing ACOMMS_DRIVER_RESET
+void LamssMissionManager::handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg)
+{
+    glog.is(VERBOSE) && glog << "Received command to set modem to " << msg.ShortDebugString() << std::endl;    
+    if(msg.modem() == vehicle_transmit_.modem())
+    {
+        glog.is(VERBOSE) && glog << "Modem already set, doing nothing" << std::endl;
+    }
+    else
+    {
+        glog.is(VERBOSE) && glog << "Publishing reset to have pAcommsHandler swap modems" << std::endl;
+        publish("ACOMMS_DRIVER_RESET", "Reset");
+    }
+
+    vehicle_transmit_ = msg;
+}
+

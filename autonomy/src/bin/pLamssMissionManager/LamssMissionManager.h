@@ -103,6 +103,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void post_transit_route();
     // Stovepipe manager
     void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
+    void handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg);
 
     // queue_event for FSM
     template<typename Event>
@@ -164,6 +165,9 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     bool depth_adapting;
     // Dynamic stovepipes (following ice in ICEX)
     std::vector<CStovepipe> Stovepipes;
+
+    // Keep track of current transmit modem (10kHz or 25kHz)
+    lamss::icex::protobuf::VehicleTransmitSelection vehicle_transmit_;
 };
 
 #endif
