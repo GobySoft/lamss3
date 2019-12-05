@@ -33,7 +33,8 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 
   std::ifstream arr_file;
   arr_file.open(arr_file_path.c_str());
-
+  num_depths = 0;
+  num_ranges = 0;
   if(arr_file.is_open())
     {
       
