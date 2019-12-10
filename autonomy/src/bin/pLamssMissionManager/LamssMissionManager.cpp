@@ -96,7 +96,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
     subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
-    //    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_tracking_message, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
@@ -944,94 +943,6 @@ void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
       initial_deploy();
     }
 }
-
-void LamssMissionManager::handle_tracking_message(const CMOOSMsg& msg)
-{
-  lamss::icex::protobuf::VehiclePosition vehicle_pos;
-  parse_for_moos(msg.GetString(), &vehicle_pos);
-  // Only handle messages for me
-  if (vehicle_pos.dest() == vehicle_id_)
-    {
-      double moos_x;
-      double moos_y;
-      double camp_x;
-      double camp_y;
-      if ( m_Geodesy.LatLong2LocalUTM(vehicle_pos.lat(), vehicle_pos.lon(),
-				      moos_y, moos_x) &&
-	   m_Geodesy.LatLong2LocalUTM(vehicle_pos.camp_lat(),
-				      vehicle_pos.camp_lon(),
-				      camp_y, camp_x))
-	{
-	  // save initial camp location
-	  if (!got_first_tracking_msg)
-	    {
-	      camp_x_init = camp_x;
-	      camp_y_init = camp_y;
-	      got_first_tracking_msg = true;
-	      last_tracking_msg = vehicle_pos.time();
-	      camp_x_spd_filt.configAvg(filter_length);
-	      camp_y_spd_filt.configAvg(filter_length);
-	    }
-	  else
-	    {
-	      // Update camp speed filters
-	      camp_x_spd_filt.setVal((camp_x-camp_x_last)/
-				     (vehicle_pos.time()-last_tracking_msg));
-	      camp_y_spd_filt.setVal((camp_y-camp_y_last)/
-				     (vehicle_pos.time()-last_tracking_msg));
-	    }
-	  // save camp location for possible deploy zambony being relative to deploy location
-	  camp_x_last = camp_x;
-	  camp_y_last = camp_y;
-	  // Use current vehicle time stamp
-	  last_tracking_msg = vehicle_pos.time();
-	  
-
-	  // reset deploy duration counter
-	  last_acomms_ = MOOSTime();
-	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
-				  << " lat=" << vehicle_pos.lat()
-				  << " lon=" << vehicle_pos.lon()
-				  << " my_x=" << moos_x
-				  << " my_y=" << moos_y
-				  << " camp_x=" << camp_x
-				  << " camp_y=" << camp_y
-				  << std::endl;
-	  
-	  //	    NodeRecord node_report("camp_sargo", "icecamp");
-	  NodeRecord node_report(cfg_.topside_name(), "icecamp");
-	    node_report.setTimeStamp(vehicle_pos.time());
-	    node_report.setX(camp_x);
-	    node_report.setY(camp_y);
-	    node_report.setLat(vehicle_pos.camp_lat());
-	    node_report.setLon(vehicle_pos.camp_lon());
-	    node_report.setDepth(vehicle_pos.camp_modem_depth());
-	    //	    node_report.setSpeed(vehicle_pos.camp_drift_speed());
-	    //	    node_report.setHeading(vehicle_pos.camp_drift_heading());
-	    double camp_drift_speed = sqrt(pow(camp_x_spd_filt.getAvg(),2)+
-				     pow(camp_y_spd_filt.getAvg(),2));
-	    node_report.setSpeed(camp_drift_speed);
-	    double camp_drift_heading =
-	      atan2(camp_x_spd_filt.getAvg(),camp_y_spd_filt.getAvg())*180/M_PI;
-	    if (camp_drift_heading < 0)
-	      camp_drift_heading +=360;
-	    node_report.setHeading(camp_drift_heading);
-	    publish("NODE_REPORT", node_report.getSpec());
-	    
-	    // std::string ndrep = NodeReport(cfg_.topside_name(),"icecamp",
-	    //					   vehicle_pos.time(),
-	    //				   camp_x,camp_y,
-	    //				   camp_drift_speed,camp_drift_heading,
-	    //				   vehicle_pos.camp_modem_depth());
-	    // publish("NODE_REPORT", ndrep);
-
-	}
-      else
-	{
-	  glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
-	}
-    }
- }
 
 void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 {
