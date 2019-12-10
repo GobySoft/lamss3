@@ -102,6 +102,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void post_transit_route();
     // Stovepipe manager
     void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
+    void publish_stovepipe(int i,double camp_x,double camp_y);
     void handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg);
 
     // queue_event for FSM

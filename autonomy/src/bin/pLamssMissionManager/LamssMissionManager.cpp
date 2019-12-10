@@ -1275,31 +1275,7 @@ void LamssMissionManager::update_deploy_parameters()
     //
     for (int i=0; i< Stovepipes.size(); i++)
       {
-	double degs = 90.0-Stovepipes[i].bearing;
-	if (degs > 360)
-	  degs -= 360;
-	else if (degs < 0)
-	  degs += 360;
-	std::string name;
-	if (Stovepipes[i].spawned)
-	  name = "avd_obstacle_stvp_" + intToString(Stovepipes[i].ID);
-	else
-	  {
-	    name = "_stvp_" + intToString(Stovepipes[i].ID);
-	    Stovepipes[i].spawned = true;
-	  }
-	std::stringstream stvp;
-	stvp << "name=" << name
-	     << "#polygon= format=ellipse ,label=stvp_"
-	     << Stovepipes[i].ID 
-	     << ", x=" << Stovepipes[i].x+camp_x-Stovepipes[i].camp_x
-	     << ", y=" << Stovepipes[i].y+camp_y-Stovepipes[i].camp_y
-	     << ", degs="  << degs
-	     << ", pts="  << Stovepipes[i].verteces
-	     << ", major="  << Stovepipes[i].length/2
-	     << ", minor="  << Stovepipes[i].width/2;
-	publish("OBSTACLE_ALERT",stvp.str());
-
+	publish_stovepipe(i,camp_x,camp_y);
       }
   }
   // update abort location. Note that it's defined as offset relative to camp
@@ -1309,6 +1285,35 @@ void LamssMissionManager::update_deploy_parameters()
   std::stringstream bc;
   bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
   publish("BEACON_UPDATE",bc.str());
+}
+
+void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
+{
+  double degs = 90.0-Stovepipes[i].bearing;
+  if (degs > 360)
+    degs -= 360;
+  else if (degs < 0)
+    degs += 360;
+  std::string name;
+  if (Stovepipes[i].spawned)
+    name = "avd_obstacle_stvp_" + intToString(Stovepipes[i].ID);
+  else
+    {
+      name = "_stvp_" + intToString(Stovepipes[i].ID);
+      Stovepipes[i].spawned = true;
+    }
+  std::stringstream stvp;
+  stvp << "name=" << name
+       << "#polygon= format=ellipse ,label=stvp_"
+       << Stovepipes[i].ID 
+       << ", x=" << Stovepipes[i].x+camp_x-Stovepipes[i].camp_x
+       << ", y=" << Stovepipes[i].y+camp_y-Stovepipes[i].camp_y
+       << ", degs="  << degs
+       << ", pts="  << Stovepipes[i].verteces
+       << ", major="  << Stovepipes[i].length/2
+       << ", minor="  << Stovepipes[i].width/2;
+  publish("OBSTACLE_ALERT",stvp.str());
+  
 }
 
 //-----------------------------------------------------------------
@@ -1360,6 +1365,7 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 				     << " camp_x = " << camp_x
 				     << " camp_y = " << camp_y
 				     << std::endl;
+	    publish_stovepipe(i,camp_x,camp_y);
 	    return;
 	  }
       }
