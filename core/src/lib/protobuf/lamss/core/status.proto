@@ -136,6 +136,13 @@ message LAMSS_STATUS
         (dccl.field).units = {base_dimensions: "T"}
 
     ];
+
+    // temp until we have a dedicated status message
+    optional double hydroman_status_fused = 24 [
+        (dccl.field).max = 1000,
+        (dccl.field).min = 0,
+        (dccl.field).precision = 1,
+        default = nan];
 }
 
 enum Mission_StateEnum
