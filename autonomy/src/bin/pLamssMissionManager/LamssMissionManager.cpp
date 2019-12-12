@@ -762,6 +762,10 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
     ownship_modem_ids_.insert(vehicle_id_);
     for(auto id : cfg_.additional_modem_id())
         ownship_modem_ids_.insert(id);
+    for (auto id : ownship_modem_ids_)
+      {
+	glog << "Ownship modem ID: " << id << std::endl;
+      }
 }
 
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
