@@ -595,9 +595,9 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
         if (data.global_fix().lat_source() == goby::moos::protobuf::GPS &&
             	data.global_fix().lon_source() == goby::moos::protobuf::GPS)
         {
-            	std::stringstream ss;
-            	ss << "Timestamp=" << std::setprecision(15) << data.time();
-            	publish("GPS_UPDATE_RECEIVED", ss.str());
+            	// std::stringstream ss;
+            	// ss << "Timestamp=" << std::setprecision(15) << data.time();
+            	// publish("GPS_UPDATE_RECEIVED", ss.str());
 	}
 	
 	// post NAV_DATA
