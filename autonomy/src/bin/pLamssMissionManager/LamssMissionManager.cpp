@@ -615,7 +615,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
   LAMSS_DEPLOY deploy_cmd;
   parse_for_moos(msg.GetString(), &deploy_cmd);
   // Only handle messages for me
-  if (deploy_cmd._rcv_id() == vehicle_id_)
+  if (ownship_modem_ids_.count(deploy_cmd._rcv_id()))
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_deploy_cmd_ = deploy_cmd;
@@ -700,7 +700,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   // Only handle messages for me
-  if (prosecute_cmd._rcv_id() == vehicle_id_)
+  if (ownship_modem_ids_.count(prosecute_cmd._rcv_id()))
     {
       boost::lock_guard<boost::mutex> lock(moos_mutex_);
       last_prosecute_cmd_ = prosecute_cmd;
@@ -758,6 +758,14 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+    ownship_modem_ids_.clear();
+    ownship_modem_ids_.insert(vehicle_id_);
+    for(auto id : cfg_.additional_modem_id())
+        ownship_modem_ids_.insert(id);
+    for (auto id : ownship_modem_ids_)
+      {
+	glog << "Ownship modem ID: " << id << std::endl;
+      }
 }
 
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
@@ -949,7 +957,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
   lamss::icex::protobuf::TrackingResult tracking_result;
   parse_for_moos(msg.GetString(), &tracking_result);
   // Only handle messages for me
-  if (tracking_result.dest() == vehicle_id_)
+  if (ownship_modem_ids_.count(tracking_result.dest()))
     {
       double delta_x = tracking_result.vehicle_pos().dx();
       double delta_y = tracking_result.vehicle_pos().dy();;
@@ -1410,6 +1418,16 @@ void LamssMissionManager::handle_vehicle_transmit_selection(const lamss::icex::p
     {
         glog.is(VERBOSE) && glog << "Publishing reset to have pAcommsHandler swap modems" << std::endl;
         publish("ACOMMS_DRIVER_RESET", "Reset");
+
+
+        goby::acomms::protobuf::MACUpdate mac = cfg_.standard_mac();
+        if(msg.modem() == lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_25KHZ)
+            mac = cfg_.legacy_mac();
+
+        mac.set_src(vehicle_id_);
+        mac.set_dest(vehicle_id_);
+        mac.set_update_type(goby::acomms::protobuf::MACUpdate::ASSIGN);
+        publish_pb("ACOMMS_MAC_CYCLE_UPDATE", mac);
     }
 
     vehicle_transmit_ = msg;

@@ -168,6 +168,9 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
 
     // Keep track of current transmit modem (10kHz or 25kHz)
     lamss::icex::protobuf::VehicleTransmitSelection vehicle_transmit_;
+
+    // all modem ids for this vehicle (vehicle_id_ plus additional configured)
+    std::set<int> ownship_modem_ids_;
 };
 
 #endif
