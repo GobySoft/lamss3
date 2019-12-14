@@ -135,7 +135,7 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
 {
     glog << "XYSegList:" <<  seglist.get_spec() << std::endl;
     lamss::protobuf::ViewSegList proto_seglist ;
-    if (seglist.size() > 10)
+    if (seglist.size() >= 10)
       {
 	proto_seglist = convex_polygon(seglist);
 	is_polygon = true;
@@ -279,9 +279,9 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 		delta += 2*M_PI;
 	      if (delta >= 2*M_PI)
 		delta -= 2*M_PI;
-	      if (delta <= delta_min)
+	      if (delta <= delta_min+0.01)
 		{
-		  if (delta < delta_min)
+		  if (delta < delta_min-0.01)
 		    len_max = 0;
 		    
 		  double len =
@@ -306,7 +306,7 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 		    }
 		}
 	    }
-	if (min_indx != indx[0])
+	if (min_indx != indx[0] && indx.size() < 9)
 	  {
 	    // set the min_indx point as vertex
 	    point = out.add_point();
@@ -351,41 +351,18 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     out.set_destination(1);
 
     glog << "Seglist size is: " << seglist.size() << std::endl;
-    if (seglist.size() > 10 && seglist.size()%2 == 0)
-      {
-	
-	      lamss::protobuf::Point* point = out.add_point();
-	      point->set_x(seglist.get_vx(0));
-	      point->set_y(seglist.get_vy(0));
-	      point->set_z(seglist.get_vz(0));
-	      point = out.add_point();
-	      point->set_x(seglist.get_vx(1));
-	      point->set_y(seglist.get_vy(1));
-	      point->set_z(seglist.get_vz(1));
-	      point = out.add_point();
-	      point->set_x(seglist.get_vx(seglist.size()-1));
-	      point->set_y(seglist.get_vy(seglist.size()-1));
-	      point->set_z(seglist.get_vz(seglist.size()-1));
-	      point = out.add_point();
-	      point->set_x(seglist.get_vx(seglist.size()-2));
-	      point->set_y(seglist.get_vy(seglist.size()-2));
-	      point->set_z(seglist.get_vz(seglist.size()-2));
-      }
-    else
-      {
-	int seglist_inc = 1;
-	if (seglist.size() >= 10)
-	  seglist_inc = int(seglist.size()/10.0)+1;
-	
-	for(unsigned i = 0, n = seglist.size(); i < n; ++i)
-	  if (i%seglist_inc == 0)
-	    {
-	      lamss::protobuf::Point* point = out.add_point();
-	      point->set_x(seglist.get_vx(i));
-	      point->set_y(seglist.get_vy(i));
-	      point->set_z(seglist.get_vz(i));
-	    }
-      }
+    int seglist_inc = 1;
+    if (seglist.size() >= 10)
+      seglist_inc = int(seglist.size()/10.0)+1;
+    
+    for(unsigned i = 0, n = seglist.size(); i < n; ++i)
+      if (i%seglist_inc == 0)
+	{
+	  lamss::protobuf::Point* point = out.add_point();
+	  point->set_x(seglist.get_vx(i));
+	  point->set_y(seglist.get_vy(i));
+	  point->set_z(seglist.get_vz(i));
+	}
     const google::protobuf::EnumDescriptor* enum_desc =
         lamss::protobuf::ViewSegList::MissionType_descriptor();
 
