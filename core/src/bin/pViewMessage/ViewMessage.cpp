@@ -137,6 +137,7 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
     lamss::protobuf::ViewSegList proto_seglist ;
     if (seglist.size() >= 10)
       {
+	// if more than 9 points plot surrounding polygon
 	proto_seglist = convex_polygon(seglist);
 	is_polygon = true;
       }
