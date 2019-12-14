@@ -66,6 +66,7 @@ private:
 
   lamss::protobuf::ViewPoint to_protobuf(const XYPoint &point);
   XYPoint from_protobuf(const lamss::protobuf::ViewPoint &point);
+  lamss::protobuf::ViewSegList convex_polygon(const XYSegList &point);
   lamss::protobuf::ViewSegList to_protobuf(const XYSegList &point);
   XYSegList from_protobuf(const lamss::protobuf::ViewSegList &point);
 
