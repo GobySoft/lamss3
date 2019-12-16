@@ -43,6 +43,12 @@ message IXBlueINSData
     // Speed Vessel Frame
     optional speedVesselFrame speed_vessel_frame_msec = 12;
 
+    // Speed geographic Frame
+    optional speedGeographicFrame speed_geographic_frame_msec = 13;
+
+    // Speed geographic Frame Stdev
+    optional speedGeographicFrameDeviation speed_geographic_frame_stdev = 14;
+    
 }
 
 // Header message
@@ -149,4 +155,22 @@ message speedVesselFrame
     optional double xv1 = 1 [(dccl.field).units.base_dimensions = "LT^-1"];
     optional double xv2 = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
     optional double xv3 = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
+}
+
+// Speed geographic Frame
+message speedGeographicFrame
+{
+    option (dccl.msg).unit_system = "si";
+    optional double north = 1 [(dccl.field).units.base_dimensions = "LT^-1"];
+    optional double east = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
+    optional double up = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
+}
+
+// Speed geographic Frame Stdev
+message speedGeographicFrameDeviation
+{
+    option (dccl.msg).unit_system = "si";
+    optional double north = 1 [(dccl.field).units.base_dimensions = "LT^-1"];
+    optional double east = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
+    optional double up = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
 }
