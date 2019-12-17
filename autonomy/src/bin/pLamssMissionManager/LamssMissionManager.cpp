@@ -127,7 +127,12 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     survey_wpt_index = 0;
     new_wpt_index = false;
     
-    // Avoid abort on startup
+    // Make sure to publish the homing location in case we abort without tracvking message arrived
+    std::stringstream bc;
+    bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
+    publish("BEACON_UPDATE",bc.str());
+
+      // Avoid abort on startup
     last_acomms_ = MOOSTime();
     mission_start_time_ = MOOSTime();
 
@@ -175,7 +180,6 @@ void LamssMissionManager::slow_loop(double curr_time)
   // First update deploy and abort parameters
   if (cfg_.dynamic_opregion() && got_first_tracking_msg)
     update_deploy_parameters();
-  
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
