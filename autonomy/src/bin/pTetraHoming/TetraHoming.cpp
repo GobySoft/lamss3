@@ -149,6 +149,8 @@ bool TetraHoming::Iterate()
       stringstream ss;
       ss << "center_assign = " << m_loiter_x << "," << m_loiter_y;
       Notify(m_return_update_var, ss.str());
+      Notify("HOMING_X",m_loiter_x);
+      Notify("HOMING_Y",m_loiter_y);
       std::stringstream wpt;
       wpt << "point="
 	  << m_loiter_x
