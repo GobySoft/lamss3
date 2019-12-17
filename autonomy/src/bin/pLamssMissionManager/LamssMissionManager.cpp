@@ -227,7 +227,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
 	  double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
-	  if (stale_acomms >= last_deploy_cmd_.deploy_duration())
+	  if (stale_acomms >= last_deploy_cmd_.deploy_duration()
+	      && stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
 			 << "Deploy duration exceeded w/o acomms - initiating Abort"
