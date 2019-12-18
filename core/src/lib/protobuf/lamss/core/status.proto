@@ -155,7 +155,7 @@ message LAMSS_STATUS
         (dccl.field).precision = 0,
         (dccl.field).units = {base_dimensions: "L"}
     ];
-    optional bool homing_active = 27 [default = false];
+    optional bool homing_lock = 27 [default = false];
 }
 
 enum Mission_StateEnum
