@@ -130,7 +130,7 @@ bool TetraHoming::OnConnectToServer()
 bool TetraHoming::Iterate()
 {
   if ((m_mission_state == "DEPLOY") &&
-      (m_deploy_mission == "RETURN" || m_deploy_mission == "HOMING"))
+      (m_deploy_mission == "RETURN" || m_deploy_mission == "RECOVERY"))
     {
       cout << "azimuth std. dev. = " << m_std_azimuth*180/M_PI << " must be <= " << m_valid_std_azimuth*180/M_PI << endl;
       cout << "range std. dev. = " << m_std_range << " must be <= " << m_valid_std_range << endl;
@@ -139,12 +139,14 @@ bool TetraHoming::Iterate()
 	  // Good homing estimate
 	  m_loiter_x = m_target_x;
 	  m_loiter_y = m_target_y;
+	  Notify("HOMING_LOCK","TRUE");
 	}
       else
 	{
 	  // else use best current estimate from pLamssMissionManager
 	  m_loiter_x = m_aco_beacon_x;
 	  m_loiter_y = m_aco_beacon_y;
+	  Notify("HOMING_LOCK","FALSE");
 	}
       stringstream ss;
       ss << "center_assign = " << m_loiter_x << "," << m_loiter_y;
