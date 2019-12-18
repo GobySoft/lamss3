@@ -127,10 +127,12 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     survey_wpt_index = 0;
     new_wpt_index = false;
     
-    // Make sure to publish the homing location in case we abort without tracvking message arrived
+    // Make sure to publish the homing location in case we abort without tracking message arrived
     std::stringstream bc;
     bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
     publish("BEACON_UPDATE",bc.str());
+    Notify("HOMING_X",abort_x);
+    Notify("HOMING_Y",abort_y);
 
       // Avoid abort on startup
     last_acomms_ = MOOSTime();
