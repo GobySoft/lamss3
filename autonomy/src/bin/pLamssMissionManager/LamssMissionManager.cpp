@@ -131,8 +131,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     std::stringstream bc;
     bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
     publish("BEACON_UPDATE",bc.str());
-    Notify("HOMING_X",abort_x);
-    Notify("HOMING_Y",abort_y);
+    publish("HOMING_X",abort_x);
+    publish("HOMING_Y",abort_y);
 
       // Avoid abort on startup
     last_acomms_ = MOOSTime();
