@@ -133,4 +133,5 @@ message TransmitGroupVelocity
   required double range = 4;
   required double delay = 5;
   required double group_velocity = 6;
+  required double group_velocity_std = 7;
 }
