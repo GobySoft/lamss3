@@ -60,6 +60,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       abort_x_offset(cfg_.abort_x_offset()),
       abort_y_offset(cfg_.abort_y_offset()),
       homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
+      homing_lock(false),
       slow_loop_period_(15),
       got_first_tracking_msg(false),
       in_track(false),
@@ -96,6 +97,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
     subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
+    subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
@@ -127,7 +129,14 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     survey_wpt_index = 0;
     new_wpt_index = false;
     
-    // Avoid abort on startup
+    // Make sure to publish the homing location in case we abort without tracking message arrived
+    std::stringstream bc;
+    bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
+    publish("BEACON_UPDATE",bc.str());
+    publish("HOMING_X",abort_x);
+    publish("HOMING_Y",abort_y);
+
+      // Avoid abort on startup
     last_acomms_ = MOOSTime();
     mission_start_time_ = MOOSTime();
 
@@ -175,7 +184,6 @@ void LamssMissionManager::slow_loop(double curr_time)
   // First update deploy and abort parameters
   if (cfg_.dynamic_opregion() && got_first_tracking_msg)
     update_deploy_parameters();
-  
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
@@ -799,6 +807,12 @@ void LamssMissionManager::handle_in_track(const CMOOSMsg& msg)
   in_track = MOOSStrCmp(str,"TRUE");
 }
 
+void LamssMissionManager::handle_homing_lock(const CMOOSMsg& msg)
+{
+  std::string str = msg.GetString();
+  homing_lock = MOOSStrCmp(str,"TRUE");
+}
+
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 {
   double opreg_perimeter_distance = msg.GetDouble();
@@ -1289,11 +1303,16 @@ void LamssMissionManager::update_deploy_parameters()
   // update abort location. Note that it's defined as offset relative to camp
   abort_x = camp_x + abort_x_offset;
   abort_y = camp_y + abort_y_offset;
-  // update homing beacon location (assumed to be abort location
-  std::stringstream bc;
-  bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
-  publish("BEACON_UPDATE",bc.str());
-}
+  if (!homing_lock)
+    {
+      // update homing beacon location (assumed to be abort location
+      std::stringstream bc;
+      bc << "beacon_x=" << abort_x << ",beacon_y=" << abort_y ;
+      publish("BEACON_UPDATE",bc.str());
+      publish("HOMING_X",abort_x);
+      publish("HOMING_Y",abort_x);
+
+    }}
 
 void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 {
