@@ -143,6 +143,19 @@ message LAMSS_STATUS
         (dccl.field).min = 0,
         (dccl.field).precision = 1,
         default = nan];
+    optional double homing_x = 25 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional double homing_y = 26 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional bool homing_lock = 27 [default = false];
 }
 
 enum Mission_StateEnum
