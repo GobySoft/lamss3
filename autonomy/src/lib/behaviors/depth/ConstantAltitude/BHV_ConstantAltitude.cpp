@@ -46,6 +46,8 @@ BHV_ConstantAltitude::BHV_ConstantAltitude(IvPDomain gdomain) :
   depth_local      = 0;   // meters
   altitude = 0;
 
+  // default is normal downlooking DVL
+  m_inverted_dvl = false;
   // Behavior State Variable Initial Values:
 
   m_domain = subDomain(m_domain, "depth");
@@ -89,6 +91,8 @@ bool BHV_ConstantAltitude::setParam(string g_param, string g_val)
       altitude = dval;
       return(true);
     }
+  else if(g_param == "inverted_dvl")
+    return(setBooleanOnString(m_inverted_dvl, g_val));
   else if(g_param == "missing_altitude_critical")
     return(setBooleanOnString(m_missing_altitude_critical, g_val));
   return(false);
@@ -127,8 +131,18 @@ IvPFunction *BHV_ConstantAltitude::onRunState()
     }
 
   // check here for bottom altitude and change max depth if necessary
-  double curr_water_depth = curr_depth + curr_altitude;
-  depth_local = curr_water_depth-altitude;
+  if (m_inverted_dvl)
+    {
+      // For inverted DVL (ICEX) it is assumed that NAV_ALTITUDE is
+      // positive distance to bottom ice interface
+      double curr_ice_depth = curr_depth - curr_altitude;
+      depth_local = curr_ice_depth + altitude;
+    }
+  else
+    {
+      double curr_water_depth = curr_depth + curr_altitude;
+      depth_local = curr_water_depth-altitude;
+    }
   double peak_width = 0.1*altitude;
   ZAIC_PEAK zaic_depth(m_domain, "depth");
   zaic_depth.setSummit(depth_local);

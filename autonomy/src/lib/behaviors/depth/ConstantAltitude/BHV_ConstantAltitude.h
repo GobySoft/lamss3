@@ -42,6 +42,7 @@ private: // Behavior Parameters
   double      depth_local;
   double      altitude;
   bool        m_missing_altitude_critical;
+  bool        m_inverted_dvl;
 };
 
 extern "C" {
