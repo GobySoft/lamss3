@@ -44,6 +44,7 @@ private: // Behavior Parameters
   double      min_depth,max_depth,max_depth_local,new_depth;
   double      deploy_speed,deploy_depth;
   double      min_altitude;
+  bool        m_inverted_dvl;
 
 private: // Behavior State Variables
   bool        first_iteration;

@@ -59,6 +59,9 @@ BHV_SmartYoyo::BHV_SmartYoyo(IvPDomain gdomain) :
   mark_distance        = 0;
   start_time = 0;
   iter_time = 0;
+  // default is normal downlooking DVL
+  m_inverted_dvl = false;
+
 
   m_domain = subDomain(m_domain, "depth");
 
@@ -152,6 +155,8 @@ bool BHV_SmartYoyo::setParam(string g_param, string g_val)
       depth_function = g_val;
       return(true);
     } 
+  else if(g_param == "inverted_dvl")
+    return(setBooleanOnString(m_inverted_dvl, g_val));
 
   return(false);
 }
@@ -172,6 +177,9 @@ IvPFunction *BHV_SmartYoyo::onRunState()
 
   // if min_altitude > 0, check here for bottom altitude and change max depth if necessary
   double curr_water_depth = curr_depth + curr_altitude;
+  // for inverted DVL let IVP avoid collision with ice cover
+  if (m_inverted_dvl)
+    curr_altitude = 0;
   if (curr_altitude > 0 && curr_water_depth-min_altitude < max_depth && min_altitude > 0)
     max_depth_local = curr_water_depth-min_altitude;
   else
