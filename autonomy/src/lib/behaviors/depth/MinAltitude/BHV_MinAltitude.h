@@ -41,6 +41,7 @@ protected:
 private: // Behavior Parameters
   double      max_depth_local;
   double      min_altitude;
+  bool        m_inverted_dvl;
 
 };
 

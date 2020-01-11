@@ -30,6 +30,7 @@
 #include "MBUtils.h"
 #include "BuildUtils.h"
 #include "ZAIC_PEAK.h"
+#include "ZAIC_HEQ.h"
 #include "OF_Coupler.h"
 #include <iostream>
 
@@ -46,6 +47,8 @@ BHV_MinAltitude::BHV_MinAltitude(IvPDomain gdomain) :
   // Behavior Parameter Default Values:
   max_depth_local      = 0;   // meters
   min_altitude = 0;
+  // default is normal downlooking DVL
+  m_inverted_dvl = false;
 
   // Behavior State Variable Initial Values:
 
@@ -53,7 +56,6 @@ BHV_MinAltitude::BHV_MinAltitude(IvPDomain gdomain) :
 
   // Declare the variables we will need from the info_buffer
   addInfoVars("NAV_DEPTH");
-  addInfoVars("NAV_SPEED");
   addInfoVars("NAV_ALTITUDE");
 
 }
@@ -89,6 +91,8 @@ bool BHV_MinAltitude::setParam(string g_param, string g_val)
       min_altitude = dval;
       return(true);
     }
+  else if(g_param == "inverted_dvl")
+    return(setBooleanOnString(m_inverted_dvl, g_val));
   return(false);
 }
 
@@ -106,26 +110,46 @@ IvPFunction *BHV_MinAltitude::onRunState()
   // use only if valid, i.e. != 0
   if (ok1 && curr_altitude != 0.0)
     {
-      double curr_speed = getBufferDoubleVal("NAV_SPEED", ok2);
-      // check here for bottom altitude and change max depth if necessary
-      double curr_water_depth = curr_depth + curr_altitude;
-      max_depth_local = curr_water_depth-min_altitude;
-      double mid_depth = 0.5*max_depth_local;
-      
-      ZAIC_PEAK zaic_depth(m_domain, "depth");
-      zaic_depth.setSummit(0.0);
-      zaic_depth.setPeakWidth(max_depth_local);
-      zaic_depth.setBaseWidth(1.0);
-      // zaic_depth.setSummitDelta(0.0);  // Henrik's version
-      zaic_depth.setSummitDelta(0.1);   // A mikerb version Sep 20, 2007
-      zaic_depth.setMinMaxUtil(0, 100);
-      
-      IvPFunction *ipf_depth = zaic_depth.extractOF();
-
-      if(ipf_depth)
-          ipf_depth->setPWT(m_priority_wt);
-      
-      return(ipf_depth);
+      if (m_inverted_dvl)
+	{
+	  double curr_ice_depth = curr_depth - curr_altitude;
+	  double min_depth_local = curr_ice_depth+min_altitude+1.0;
+	  
+	  ZAIC_HEQ zaic_depth(m_domain, "depth");
+	  zaic_depth.setSummit(min_depth_local);
+	  zaic_depth.setBaseWidth(1.0);
+	  zaic_depth.setMinMaxUtil(0, 100);
+	  
+	  IvPFunction *ipf_depth = zaic_depth.extractOF();
+	  
+	  if(ipf_depth)
+	    ipf_depth->setPWT(m_priority_wt);
+	  
+	  return(ipf_depth);
+	}
+      else
+	{
+	  // check here for bottom altitude and change max depth
+	  // if necessary
+	  double curr_water_depth = curr_depth + curr_altitude;
+	  max_depth_local = curr_water_depth-min_altitude;
+	  double mid_depth = 0.5*max_depth_local;
+	  
+	  ZAIC_PEAK zaic_depth(m_domain, "depth");
+	  zaic_depth.setSummit(0.0);
+	  zaic_depth.setPeakWidth(max_depth_local);
+	  zaic_depth.setBaseWidth(1.0);
+	  // zaic_depth.setSummitDelta(0.0);  // Henrik's version
+	  zaic_depth.setSummitDelta(0.1);   // A mikerb version Sep 20, 2007
+	  zaic_depth.setMinMaxUtil(0, 100);
+	  
+	  IvPFunction *ipf_depth = zaic_depth.extractOF();
+	  
+	  if(ipf_depth)
+	    ipf_depth->setPWT(m_priority_wt);
+	  
+	  return(ipf_depth);
+	}
     }
   return(0);
 }
