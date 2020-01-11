@@ -10,6 +10,7 @@
 #include <string>
 #include "lamss/lib_anrp_util/NMEAMessage.h"
 #include "goby/util/linebasedcomms.h"
+#include <random>
 
 //#include </home/arjuna/goby/src/util/liblinebasedcomms/tcp_server.h>
 //#include <goby/util/liblinebasedcomms/tcp_server.h>
@@ -77,7 +78,15 @@ private:
                 std::numeric_limits<double>::quiet_NaN(),
                 std::numeric_limits<double>::quiet_NaN()
                 };
-    
+
+        // Ice-tracking DVL
+        double dvl_ice_track;
+    	double ice_roughness;
+    	double ice_thickness;
+    	double ice_roughness_mean;
+    	double ice_roughness_stdev;
+    	std::default_random_engine generator;
+    	std::normal_distribution<double> ice_roughness_dist;
     
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 

@@ -218,11 +218,24 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     
   }
 
+  if(dvl_ice_track == 0)
+  {
+      altitude = nav_z - last_bathy_z;
+      std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
+      m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
+      altitude_str = doubleToString(altitude,1);
+  }
+  else if (dvl_ice_track == 1)
+  {
+      altitude = dep - (ice_roughness + ice_thickness);
+      if (altitude<3) {
+        altitude = std::numeric_limits<double>::quiet_NaN();
+      }
+      std::cout <<"Ice thickness = "<<ice_thickness<<", Ice roughness = "<<ice_roughness<<", altitude = "<<altitude<<std::endl;
+      m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
+      altitude_str = doubleToString(altitude,1);
+  }
   
-  altitude = nav_z - last_bathy_z;
- std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
- m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
-  altitude_str = doubleToString(altitude,1);
 
   UpdateMOOSVariables(NewMail);
   
@@ -282,6 +295,28 @@ bool CiBackSeatServer::OnConnectToServer()
     {
 	std::cout<<"Error in initialising Geodesy"<<std::endl;
     }
+    string sVal;
+    if(m_MissionReader.GetConfigurationParam("dvl_ice_track",sVal))
+    {
+        dvl_ice_track = atof(sVal.c_str());
+        MOOSTrace("DVL ice track mode: %.1f \n",dvl_ice_track);
+    }
+    if(m_MissionReader.GetConfigurationParam("ice_thickness",sVal))
+    {
+        ice_thickness = atof(sVal.c_str());
+        MOOSTrace("Ice thickness: %.1f \n",ice_thickness);
+    }
+    if(m_MissionReader.GetConfigurationParam("ice_roughness_mean",sVal))
+    {
+        ice_roughness_mean = atof(sVal.c_str());
+        MOOSTrace("Ice roughness mean: %.1f \n",ice_roughness_mean);
+    }
+    if(m_MissionReader.GetConfigurationParam("ice_roughness_stdev",sVal))
+    {
+        ice_roughness_stdev = atof(sVal.c_str());
+        MOOSTrace("Ice roughness stdev: %.1f \n",ice_roughness_stdev);
+    }
+    std::normal_distribution<double> ice_roughness_dist(ice_roughness_mean,ice_roughness_stdev);
 
 
   //Register MOOS variables
@@ -470,6 +505,12 @@ string data_packet ="$BFMSC,"+SecondsSinceMidnight(3)+",Running*";
       
       tcp_server->write(data_packet);
     }
+
+  // Random ice roughness calculation
+  if (dvl_ice_track == 1)
+  {
+      ice_roughness = ice_roughness_dist(generator);
+  }
   return true;
 }
 
