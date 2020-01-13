@@ -19,6 +19,7 @@
 
 #include "goby/acomms/protobuf/driver_base.pb.h"
 #include "goby/acomms/protobuf/mm_driver.pb.h"
+#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
 
 #include "ivp/NodeRecord.h"
 
@@ -31,6 +32,9 @@ using goby::common::goby_time;
 using goby::glog;
 
 const double pi = 3.14159;
+
+// force goby_frontseat_bluefin to link to avoid missing extension error (Extension "goby.moos.protobuf.bluefin_data" is not defined or is not an extension of "goby.moos.protobuf.FrontSeatInterfaceData".)
+gpb::BluefinExtraData dummy;
 
 LamssMissionManager* LamssMissionManager::inst_ = 0;
 void* LamssMissionManager::driver_library_handle_= 0;
