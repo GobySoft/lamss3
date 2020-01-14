@@ -228,8 +228,8 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   else if (dvl_ice_track == 1)
   {
       altitude = dep - (ice_roughness + ice_thickness);
-      if (altitude<3) {
-        altitude = std::numeric_limits<double>::quiet_NaN();
+      if (altitude<3 || altitude>200) {
+        altitude = 0.0;
       }
       std::cout <<"Ice thickness = "<<ice_thickness<<", Ice roughness = "<<ice_roughness<<", altitude = "<<altitude<<std::endl;
       m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
