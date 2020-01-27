@@ -1034,9 +1034,9 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  // Modem buoys and stovepipes
 	  for (int i=0; i<tracking_result.modem_pos_size(); i++)
 	    {
-	      double h_x = tracking_result.modem_pos(i).x();
-	      double h_y = tracking_result.modem_pos(i).y();
-	      double h_z = tracking_result.modem_pos(i).z();
+              double h_x = tracking_result.hydrohole_pos().x() + tracking_result.modem_pos(i).dx();
+              double h_y = tracking_result.hydrohole_pos().y() + tracking_result.modem_pos(i).dy();
+              double h_z = tracking_result.modem_pos(i).z();
 	      double h_lat;
 	      double h_lon;
 	      m_Geodesy.UTM2LatLong(h_x,h_y,h_lat,h_lon);
@@ -1048,7 +1048,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      node_report.setY(h_y);
 	      node_report.setLat(h_lat);
 	      node_report.setLon(h_lon);
-	      node_report.setDepth(h_z);
+	      node_report.setDepth(-h_z);
 	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
 	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
 	      publish("NODE_REPORT", node_report.getSpec());
