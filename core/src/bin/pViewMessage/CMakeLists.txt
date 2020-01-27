@@ -18,5 +18,6 @@ TARGET_LINK_LIBRARIES(pViewMessage
   ${GOBY_LIBRARIES}
   ${Boost_LIBRARIES}
   ${PROTOBUF_LIBRARIES}
-)
+  lamss_protobuf
+  )
 

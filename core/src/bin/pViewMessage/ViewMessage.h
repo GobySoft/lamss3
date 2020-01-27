@@ -36,6 +36,7 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_protobuf_helpers.h"
+#include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
 
 #include "view_message.pb.h"
 
@@ -63,7 +64,10 @@ private:
   // set state
   void handle_vehicle_name(const CMOOSMsg &msg);
   void handle_mission_state(const CMOOSMsg &msg);
+    
 
+  void handle_icex_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& selection);
+    
   lamss::protobuf::ViewPoint to_protobuf(const XYPoint &point);
   XYPoint from_protobuf(const lamss::protobuf::ViewPoint &point);
   lamss::protobuf::ViewSegList convex_polygon(const XYSegList &point);
@@ -104,6 +108,9 @@ private:
 
   static lamss::protobuf::ViewMessageConfig cfg_;
   static CViewMessage *inst_;
+
+  int destination_;
+
 };
 
 #endif

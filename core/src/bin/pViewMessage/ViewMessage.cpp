@@ -46,7 +46,8 @@ CViewMessage* CViewMessage::get_instance()
 CViewMessage::CViewMessage() :
     goby::moos::GobyMOOSApp(&cfg_),    
     ownship_("unknown"),
-    mission_state_("unknown")
+    mission_state_("unknown"),
+    destination_(cfg_.destination())
 {
     goby::moos::GobyMOOSApp::set_ignore_stale(false);
 
@@ -64,6 +65,8 @@ CViewMessage::CViewMessage() :
     subscribe("IN_VIEW_SEGLIST", &CViewMessage::handle_in_view_seglist, this);
     subscribe("IN_VIEW_POLYGON", &CViewMessage::handle_in_view_polygon, this);
     subscribe("IN_VIEW_POINT", &CViewMessage::handle_in_view_point, this);
+
+    subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &CViewMessage::handle_icex_transmit_selection, this);
 }
 
 
@@ -200,7 +203,7 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
     lamss::protobuf::ViewPoint out;
 
     out.set_vehicle_name(ownship_);
-    out.set_destination(1);
+    out.set_destination(destination_);
 
     out.set_active(point.active());
     out.mutable_point()->set_x(point.x());
@@ -234,7 +237,7 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
    lamss::protobuf::ViewSegList out;
     out.set_vehicle_name(ownship_);
 
-    out.set_destination(1);
+    out.set_destination(destination_);
 
     glog << "Seglist size is: " << seglist.size() << std::endl;
     std::vector<int> indx;
@@ -349,7 +352,7 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     lamss::protobuf::ViewSegList out;
     out.set_vehicle_name(ownship_);
 
-    out.set_destination(1);
+    out.set_destination(destination_);
 
     glog << "Seglist size is: " << seglist.size() << std::endl;
     int seglist_inc = 1;
@@ -408,3 +411,19 @@ XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglis
     out.set_edge_size(1);
     return out;
 }
+
+void CViewMessage::handle_icex_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& selection)
+{
+    switch(selection.modem())
+    {
+        case lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_10KHZ:
+            destination_ = cfg_.destination();
+            break;
+        case lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_25KHZ:
+            destination_ = cfg_.icex_25khz_id();
+            break;
+            
+    }
+    
+}
+    
