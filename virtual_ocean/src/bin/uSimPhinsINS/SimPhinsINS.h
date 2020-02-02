@@ -107,6 +107,7 @@ class SimPhinsINS : public CMOOSApp
  UDPClient *m_udp_client;
  const u_char* startOfData;
  size_t dataLength;
+
 };
 
 #endif 

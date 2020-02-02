@@ -137,7 +137,7 @@ bool SimPhinsINS::Iterate()
   double auv_w = GrndRel_auv_ydot*(cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_heading*M_PI/180)) + GrndRel_auv_xdot*(cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)-sin(m_current_nav_roll*M_PI/180)*cos(m_current_nav_heading*M_PI/180)) + GrndRel_auv_zdot * cos(m_current_nav_roll*M_PI/180)*cos(m_current_nav_pitch*M_PI/180);
   MOOSTrace("Vel: u=%.4f, v=%.4f, w=%.4f \n",auv_u,auv_v,auv_w);
   // Differentiate to Calculate acceleration components
-  if (m_current_u_received == true && (m_current_u_time-m_prev_u_time)<2)
+  if (m_current_u_received == true && (m_current_u_time-m_prev_u_time)<2 && (m_current_u_time-m_prev_u_time)>0 && isnan(auv_u)==0 && isnan(auv_v)==0 && isnan(auv_w)==0)
   {
     m_auv_udot = (auv_u-m_prev_auv_u)/(m_current_u_time-m_prev_u_time);
     m_auv_vdot = (auv_v-m_prev_auv_v)/(m_current_u_time-m_prev_u_time);
@@ -157,7 +157,7 @@ bool SimPhinsINS::Iterate()
   double ins_calc_ydot;
   double ins_calc_xdot;
   double ins_calc_zdot;
-  if (isnan(m_ins_udot)==0 && isnan(m_ins_vdot)==0 && isnan(m_ins_wdot)==0)
+  if (isnan(m_ins_udot)==0 && isnan(m_ins_vdot)==0 && isnan(m_ins_wdot)==0 && (m_current_u_time-m_prev_u_time)<2)
   {
     m_ins_calc_u = m_ins_calc_u + m_ins_udot * (m_current_u_time-m_prev_u_time);
     m_ins_calc_v = m_ins_calc_v + m_ins_vdot * (m_current_u_time-m_prev_u_time);
