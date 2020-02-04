@@ -55,7 +55,7 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
             m_current_u_time = MOOSTime();
         }
         else if (key == "FRONTSEAT_BODY_VEL_X") {
-            m_current_v = dval;             // MOOS convension X is sway
+            m_current_v = -dval;             // MOOS convension X is sway. (Weird. But X seems positive port)
         }
         else if (key == "FRONTSEAT_BODY_VEL_Z") {
             m_current_w = -dval;             // MOOS convension Z is up

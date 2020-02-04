@@ -66,7 +66,7 @@ bool SimPhinsINS::OnNewMail(MOOSMSG_LIST &NewMail)
       m_ins_update_no +=1;
     }
     else if (key == "FRONTSEAT_BODY_VEL_X") {
-      m_current_v = dval;             // MOOS convension X is sway
+      m_current_v = -dval;             // MOOS convension X is sway. (Weird. But X seems positive port)
     }
     else if (key == "FRONTSEAT_BODY_VEL_Z") {
       m_current_w = -dval;             // MOOS convension Z is up
