@@ -117,6 +117,13 @@ bool SimDVL::OnConnectToServer()
 
 bool SimDVL::Iterate()
 {
+    // DVL inversion when the vehicle is tracking ice
+    if (c_inverted_dvl==1){
+        m_current_u = m_current_u;
+        m_current_v = -m_current_v;
+        m_current_w = -m_current_w;
+    }
+
     // Converting ground relative AUV velocity from body frame to earth frame
     double m_current_ydot = m_current_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_current_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
     double m_current_xdot = m_current_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_current_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
@@ -227,6 +234,11 @@ bool SimDVL::OnStartUp()
     {
         c_dvl_bottom_lock = atof(sVal.c_str());
         MOOSTrace("DVL bottom lock: %i \n",c_dvl_bottom_lock);
+    }
+    if(m_MissionReader.GetConfigurationParam("inverted_dvl",sVal))
+    {
+        c_inverted_dvl = atof(sVal.c_str());
+        MOOSTrace("Inverted DVL: %i \n",c_inverted_dvl);
     }
     m_dvl_data_post_time = m_current_u_time;
     RegisterVariables();

@@ -32,6 +32,7 @@ class SimDVL : public CMOOSApp
     int c_ice_tracking_mode;
     int c_dvl_bottom_lock;
     std::string c_ice_sheet_name;
+    double c_inverted_dvl;
 
  private: // State variables
     double m_dvl_data_post_time;
