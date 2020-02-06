@@ -60,6 +60,7 @@ CiBackSeatServer::CiBackSeatServer()
 
   msgack = false;
   last_gps_sim_update_time = 0;
+  simulate_dvl_loss = false;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -206,6 +207,12 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
         std::get<2>(sim_dvl_values) = Msg.GetDouble();        
         check_send_dvl();
     }
+    if(Msg.GetKey() == "SIMULATE_LOST_DVL_LOCK")  
+    {
+        simulate_dvl_loss_start_time = MOOSTime();
+        simulate_dvl_loss = true;
+        dvl_lost_interval = Msg.GetDouble();
+    }
     else if(Msg.GetKey() == "FRONTSEAT_RPM")  
     {
         std::stringstream bfrvl;
@@ -350,6 +357,7 @@ bool CiBackSeatServer::OnConnectToServer()
   m_Comms.Register("HYDROMAN_SIM_DVL_V", 0);
   m_Comms.Register("HYDROMAN_SIM_DVL_W", 0);
   m_Comms.Register("HYDROMAN_SIM_DVL_TIME", 0);
+  m_Comms.Register("SIMULATE_LOST_DVL_LOCK", 0);
   
   return true;
 }
@@ -744,7 +752,15 @@ void CiBackSeatServer::check_send_dvl()
         return;
 
     std::stringstream bfdvl;
-    bfdvl << "$BFDVL," << SecondsSinceMidnight(3) << "," <<  std::fixed << std::setprecision(3) << u << "," << v << "," << w << ",0,0,0,0,15.0,"  << SecondsSinceMidnight(3) << "*";
+    if (simulate_dvl_loss==true){
+        bfdvl << "$BFDVL," << SecondsSinceMidnight(3) << ",,,,,,,," << "15.0,"  << SecondsSinceMidnight(3) << "*";
+        if (MOOSTime()-simulate_dvl_loss_start_time > dvl_lost_interval){
+            simulate_dvl_loss=false;
+        }
+    }
+    else {
+        bfdvl << "$BFDVL," << SecondsSinceMidnight(3) << "," <<  std::fixed << std::setprecision(3) << u << "," << v << "," << w << ",0,0,0,0,15.0,"  << SecondsSinceMidnight(3) << "*";
+    }
 
     string checksum=gen_NMEAchecksum(bfdvl.str().c_str());
     bfdvl << checksum << "\r\n";

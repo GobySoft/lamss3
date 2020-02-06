@@ -87,6 +87,11 @@ private:
     	double ice_roughness_stdev;
     	std::default_random_engine generator;
     	std::normal_distribution<double> ice_roughness_dist;
+
+    	// Simulating a lost DVL lock
+    	bool simulate_dvl_loss;
+    	double dvl_lost_interval;
+    	double simulate_dvl_loss_start_time;
     
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
