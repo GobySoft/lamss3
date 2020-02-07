@@ -76,6 +76,17 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
             this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
         });
 
+        this->moos().add_trigger("HYDROMAN_HEALTH_IN", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::hydroman_health>(pb_msg);
+        });
+
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::acomms_raw_in, lamss::protobuf::NamedModemRaw>(
