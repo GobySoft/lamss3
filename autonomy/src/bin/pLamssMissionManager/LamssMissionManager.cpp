@@ -457,6 +457,10 @@ void LamssMissionManager::initial_deploy()
       if (remaining < init_deploy_cmd.deploy_duration())
 	init_deploy_cmd.set_deploy_duration(remaining);
 
+      std::stringstream ss;
+      ss << "depth=" << init_deploy_cmd.deploy_upper_depth() ;
+      publish("ACOMMS_DEPTH",ss.str());	  
+
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
@@ -1031,6 +1035,10 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  node_report.setHeading(tracking_result.hydrohole_drift().heading());
 	    //publish("NODE_REPORT", node_report.getSpec());
 
+	  // Save depth for comms when adapt fails
+	  std::stringstream ss ;
+	  ss << "depth=" << last_nav_.global_fix().depth() ;
+	  publish("ACOMMS_DEPTH",ss.str());	  
 
 	  // Modem buoys and stovepipes
 	  for (int i=0; i<tracking_result.modem_pos_size(); i++)
