@@ -821,7 +821,8 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 {
   double opreg_perimeter_distance = msg.GetDouble();
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
-  if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
+  //  if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
+  if (opreg_perimeter_distance <  cfg_.min_opbox_distance() )
     {
       send_deploy();
       publish("SURVEY_COMPLETED","TRUE");
