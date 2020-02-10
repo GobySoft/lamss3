@@ -457,10 +457,13 @@ void LamssMissionManager::initial_deploy()
       if (remaining < init_deploy_cmd.deploy_duration())
 	init_deploy_cmd.set_deploy_duration(remaining);
 
+    }
+  else
+    {
+      // Initialize default acomms depth
       std::stringstream ss;
       ss << "depth=" << init_deploy_cmd.deploy_upper_depth() ;
       publish("ACOMMS_DEPTH",ss.str());	  
-
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
