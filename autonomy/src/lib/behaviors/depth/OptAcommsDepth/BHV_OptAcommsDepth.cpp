@@ -612,7 +612,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      std::vector<double> dep_tl;
 	      std::vector<double> val_tl;
 	      std::vector<double> val_elev;
-
+	      int valid_depths = 0;
 	      for (int i=0; i<number_depths; i++)
 		{
 		  double range_ref;
@@ -670,35 +670,49 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      else
 			power *= pow(4,multipath_penalty);  //Award single ray locations with 6 dB
 		    }
-		    
-		  mean_power += power;
-
-		  double tl = - tl_factor * 10.0 * log10(power);
-		  if (debug) file_out_ << ",range=" << ranges[j]
-				       << ",depth=" << depth[i]
-				       << " tl=" << tl
-				       << " Multipath award="
-				       << -10*log10(max_rat)
-				       << std::endl;
-		  
-		  if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
-		    max_tl = tl;
-		  if (tl < min_tl)
+		  if (!isnan(power))
 		    {
-		      min_tl =tl;
-		      min_tl_dep = dep_tl[i];
+		      mean_power += power;
+		      
+		      double tl = - tl_factor * 10.0 * log10(power);
+		      if (debug) file_out_ << ",range=" << ranges[j]
+					   << ",depth=" << depth[i]
+					   << " tl=" << tl
+					   << " Multipath award="
+					   << -10*log10(max_rat)
+					   << std::endl;
+		      
+		      if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
+			max_tl = tl;
+		      if (tl < min_tl)
+			{
+			  min_tl =tl;
+			  min_tl_dep = dep_tl[i];
+			}
+		      if (fabs(current_depth-dep_tl[i]) < depth_diff)
+			{
+			  depth_diff = fabs(current_depth-dep_tl[i]);
+			  closest_tl = tl;
+			}
+		      val_tl.push_back(tl);
+		      val_elev.push_back(elev*180.0/M_PI);
+		      valid_depths++;
 		    }
-		  if (fabs(current_depth-dep_tl[i]) < depth_diff)
+		  else
 		    {
-		      depth_diff = fabs(current_depth-dep_tl[i]);
-		      closest_tl = tl;
+		      val_tl.push_back(0.0);
+		      val_elev.push_back(elev*180.0/M_PI);
 		    }
-		  val_tl.push_back(tl);
-		  val_elev.push_back(elev*180.0/M_PI);
+		}
+	      
+	      for (int i=0; i<number_depths; i++)
+		{
+		  if (val_tl[i] == 0.0)
+		    val_tl[i] = max_tl;
 		}
 	      
 	      double mean_tl = - tl_factor *
-		10*log10(mean_power/number_depths);
+		10*log10(mean_power/valid_depths);
 	      double pitch_required = 
 		fabs(atan2(-(min_tl_dep - current_depth),
 			   fabs(ranges[j]-current_range) )
