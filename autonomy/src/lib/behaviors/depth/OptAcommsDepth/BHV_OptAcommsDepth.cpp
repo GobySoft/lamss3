@@ -670,7 +670,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      else
 			power *= pow(4,multipath_penalty);  //Award single ray locations with 6 dB
 		    }
-		  if (!isnan(power))
+		  if (!isnan(power) || power <= 0.0)
 		    {
 		      mean_power += power;
 		      
