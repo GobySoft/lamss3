@@ -450,6 +450,7 @@ void LamssMissionManager::initial_deploy()
       if (depth_adapting)
 	init_deploy_cmd.set_depth_mode(
 	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+      init_deploy_cmd.set_deploy_upper_depth(cfg_.abort_depth());
       // If stale acomms, continue with current duration timer
       double stale_acomms = MOOSTime() - last_acomms_;
       double stale_gps = MOOSTime() - last_gps_;
