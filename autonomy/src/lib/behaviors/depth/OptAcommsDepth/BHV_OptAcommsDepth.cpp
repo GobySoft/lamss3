@@ -416,6 +416,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	    }
 
 	  file_out_ << goby_time() << " Preparing Bellhop request " << std::endl
+		    << "contact=" << collaborator_ << std::endl
 		    << "forecast_time=" << forecast_time << std::endl
 		    << "forecast_range=" << forecast_range << std::endl
 		    << "current_range=" << current_range << std::endl
