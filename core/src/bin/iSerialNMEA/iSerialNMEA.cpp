@@ -169,6 +169,16 @@ void CiSerialNMEA::read_configuration()
 void CiSerialNMEA::do_subscriptions()
 {
     if (m_read_db) subscribe(cfg_.raw_var_to_read());
+
+    if(cfg_.has_depth_updates_var())
+    {
+        goby::moos::GobyMOOSApp::subscribe(cfg_.depth_updates_var(), [](const CMOOSMsg& msg)
+                                           {
+                                               cfg_.set_fixed_depth(msg.GetDouble());
+                                               
+                                           });
+    }
+    
 }
 
 bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)

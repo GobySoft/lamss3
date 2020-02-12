@@ -6,6 +6,9 @@ message iSerialNMEAConfig
   optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
 
   optional int32 fixed_depth = 2 [(goby.field).description="Fix a depth for the vehicle", default=0];
+
+  optional string depth_updates_var  = 7 [(goby.field).description="Receive updates to this vehicle's depth on this MOOS variable"];
+    
   required string vehicle_name = 3 [(goby.field).description="Name of the vehicle whose information is begin read"];
   required string vehicle_type = 4 [(goby.field).description="Type of the vehicle being read"];
 
