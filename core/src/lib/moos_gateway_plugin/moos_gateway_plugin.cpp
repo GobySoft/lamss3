@@ -15,6 +15,9 @@
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 #include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
 
+#include "lamss/lib_lamss_protobuf/icex_groups.h"
+#include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
+
 using goby::glog;
 using namespace goby::util::logger;
 
@@ -244,6 +247,28 @@ class NetSimTranslation : public goby::moos::Translator
     }
 };
 
+class ICEXTranslation : public goby::moos::Translator
+{
+  public:
+    ICEXTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::icex_transmit_change_notification,
+                       lamss::icex::protobuf::TransmitChangeNotification>(
+                [this](const lamss::icex::protobuf::TransmitChangeNotification& notification) {
+                    // publish values for iSerialNMEA, skipping hydrohole (0)
+                    for (int i = 1, n = notification.receive_size(); i < n; ++i)
+                    {
+                        this->moos().comms().Notify(
+                            "ICEX_HYDROPHONE_RX_DEPTH_H" + std::to_string(i),
+                            notification.receive(i).depth_with_units() / boost::units::si::meters);
+                    }
+                });
+    }
+};
+
 extern "C"
 {
     void goby3_moos_gateway_load(
@@ -255,6 +280,7 @@ extern "C"
         handler->launch_thread<NodeReportTranslation>();
         handler->launch_thread<ViewGeometryTranslation>();
         handler->launch_thread<NetSimTranslation>();
+        handler->launch_thread<ICEXTranslation>();
     }
 
     void goby3_moos_gateway_unload(
@@ -266,5 +292,6 @@ extern "C"
         handler->join_thread<NodeReportTranslation>();
         handler->join_thread<ViewGeometryTranslation>();
         handler->join_thread<NetSimTranslation>();
+        handler->join_thread<ICEXTranslation>();
     }
 }
