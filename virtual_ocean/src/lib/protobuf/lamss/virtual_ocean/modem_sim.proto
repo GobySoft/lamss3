@@ -64,6 +64,7 @@ message TransmitRequest
   required string replica_path = 4; // Must have extension .dat
 }
 
+
 message ArrayGain
 {
   repeated BeamGain beam_gain = 1 ;
@@ -73,6 +74,29 @@ message ArrayGain
     required double gain_db = 2 [(goby.field).description="dB"];
   }
 }  
+
+message ObjFuncRequest
+{
+required string contact = 1;
+repeated Receiver receiver  = 2;
+message Receiver
+  {
+      required double range = 1;
+      required double depth = 2;
+  }
+}
+
+message ObjFuncResponse
+{
+required string contact = 1;
+repeated Receiver receiver = 2;
+message Receiver
+  {
+      required double range = 1;
+      required double depth = 2;
+      required double snr = 3;
+  }
+}
 
 message NavUpdate
 {
