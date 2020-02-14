@@ -44,6 +44,7 @@ message SimModemNetworkConfig
   optional int32 num_ff_tabs = 57 [default = 21];
   optional int32 num_fb_tabs = 58 [default = 20];
   optional int32 nbaud = 59 [default = 18];
+  optional double source_level = 60 [default = 183];
   optional bool isotropic_noise = 61 [default = false];
 
 }

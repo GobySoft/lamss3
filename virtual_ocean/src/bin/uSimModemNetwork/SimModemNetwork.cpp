@@ -473,7 +473,9 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  
 	  // Here goes the performance metric computation
 	  double tl = compute_tl(eig);
-	  receiver -> set_snr(tl);
+	  double nl = extract_nl(ownship_depth);
+	  double obj = tl+nl;
+	  receiver -> set_snr(cfg_.source_level()-obj);
 
 	}
     }	// end of reciver loop
@@ -606,7 +608,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
     }
-
+  test_performance_request();
   // Here we should add slow loop actions.
   last_slow_loop_t_ = curr_time;
 }
@@ -1686,6 +1688,22 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
   return(true);  
 }
 
+double SimModemNetwork::extract_nl(double depth)
+{
+  double noise_lev;
+  if (depth <= depth_nl[0])
+    return(noise_db[0]);
+  if (depth >= depth_nl[depth_nl.size()-1])
+    return(noise_db[depth_nl.size()-1]);
+  for (int i=0; i< depth_nl.size()-1; i++)
+    {
+      if (depth >= depth_nl[i] && depth < depth_nl[i+1])
+	return(noise_db[i] + (depth - depth_nl[i])*
+	       (noise_db[i+1]-noise_db[i])/
+	       (depth_nl[i+1]-depth_nl[i]));
+    }
+}
+
 double SimModemNetwork::compute_tl(CEigenRay eig)
 {	  
   if (eig.num_rays <= 0)
@@ -1738,3 +1756,32 @@ double SimModemNetwork::compute_tl(CEigenRay eig)
   return(tl_val);
 }
 
+void SimModemNetwork::test_performance_request()
+{
+  ObjFuncRequest message;
+
+  message.set_contact("macrura");
+  ObjFuncRequest::Receiver* receiver = 0;
+  std::vector<double> test_depth;
+  test_depth.clear();
+  test_depth.push_back(30);
+  test_depth.push_back(100);
+  std::vector<std::string> nodes;
+  nodes.push_back("h1");
+  nodes.push_back("h2");
+  nodes.push_back("h3");
+  nodes.push_back("h4");
+  
+  for (int i=0; i<test_depth.size(); i++)
+    for (int j=0; j<nodes.size(); j++)
+      {
+	receiver = message.add_receiver();
+	receiver -> set_depth(test_depth[i]);
+	receiver -> set_node(nodes[j]);
+      }
+  
+  std::string serialized_request;
+  serialize_for_moos(&serialized_request,message);
+  publish("PERFORMANCE_REQUEST", serialized_request);
+}
+  
