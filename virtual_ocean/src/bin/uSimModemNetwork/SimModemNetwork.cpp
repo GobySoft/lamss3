@@ -608,7 +608,8 @@ void SimModemNetwork::slow_loop(double curr_time)
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
     }
-  test_performance_request();
+  if (cfg_.depth_performance_prediction())
+    test_performance_request();
   // Here we should add slow loop actions.
   last_slow_loop_t_ = curr_time;
 }
