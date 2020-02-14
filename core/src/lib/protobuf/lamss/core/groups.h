@@ -26,6 +26,9 @@ constexpr goby::middleware::Group acomms_raw_out{"lamss::moos::acomms_raw_out"};
 
 constexpr goby::middleware::Group hydroman_health{"lamss::groups::hydroman_health"};
 
+constexpr goby::middleware::Group objfunc_request{"lamss::objfunc_request"};
+constexpr goby::middleware::Group objfunc_response{"lamss::objfunc_response"};
+
 } // namespace groups
 } // namespace lamss
 
