@@ -86,6 +86,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     void handle_node_report(const CMOOSMsg& msg);
     void handle_netsim_nav_update(const NavUpdate& nav);
     void handle_impulse_request(const CMOOSMsg& msg);
+    void handle_performance_request(const CMOOSMsg& msg);
     void handle_ambient_nl_depth(const CMOOSMsg& msg);
     void handle_noise_vert_dir(const CMOOSMsg& msg);
     void handle_svp_info(const CMOOSMsg& msg);
@@ -163,7 +164,8 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 				);
     bool write_covmat_file(std::string filename, double nl_now);
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
-		       double depth);
+			 double depth);
+    double compute_tl(CEigenRay  eig);
     // Noise covariance stuff added 190605
     double noise_level;
     bool noise_profile;
@@ -174,6 +176,10 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     std::vector<double> noise_dir_db;
     std::vector<double> noise_dir_theta;
     std::vector<double> noise_dir_power;
+    // modem performance stuff
+    std::vector<double> ranges;
+    std::vector<double> depths;
+    //
     double sampling_frequency;
     int nfft;
     double minimum_frequency;

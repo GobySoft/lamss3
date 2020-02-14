@@ -83,6 +83,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
   subscribe_pb("NETSIM_NAV_UPDATE", &SimModemNetwork::handle_netsim_nav_update, this);
   subscribe("IMPULSE_REQUEST", &SimModemNetwork::handle_impulse_request, this);
+  subscribe("PERFORMANCE_REQUEST", &SimModemNetwork::handle_performance_request, this);
   subscribe("TRANSMIT_TEST", &SimModemNetwork::handle_transmit_test, this);
   subscribe("AMBIENT_NL_DEPTH", &SimModemNetwork::handle_ambient_nl_depth, this);    
   subscribe("NOISE_VERT_DIR", &SimModemNetwork::handle_noise_vert_dir, this);    
@@ -423,6 +424,66 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 
 }
 
+void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
+{
+  ObjFuncRequest request;
+  std::string serialized = msg.GetString();
+  parse_for_moos(serialized, &request);
+  ObjFuncResponse message;
+  message.set_contact(request.contact());
+  if(request.has_request_id())
+    message.set_request_id(request.request_id());
+  if(request.has_request_time())
+    message.set_request_time(request.request_time());
+  ObjFuncResponse::Receiver* receiver = 0;
+  for (int rcv=0; rcv<request.receiver_size(); rcv++)
+    {
+      int con = findAcousticContact(request.receiver(rcv).node(),
+				    request.contact()); 
+      
+      bool got_info = con != -1 && 
+	getNodeInfo(acoustic_contacts[con].ownship,
+		    ownship_x,ownship_y,
+		    ownship_depth,
+		    ownship_heading,ownship_speed) &&
+	getNodeInfo(acoustic_contacts[con].contact,
+		    contact_x,contact_y,
+		    contact_depth,contact_heading,contact_speed) ;
+      bool got_ray_table = false;
+      if (got_info)
+	got_ray_table= generate_eigenray_table(acoustic_contacts[con]);
+      
+      if (got_info && got_ray_table)  
+	{
+	  receiver = message.add_receiver();
+
+	  // Set variables needed for noise covariances
+	  sampling_frequency = 4*cfg_.acomms_frequency();
+	  nfft = 4096;
+	  
+	  glog.is(DEBUG1) && glog << "Preparing PERFORMANCE_RESPONSE" << endl;
+
+	  receiver -> set_node(acoustic_contacts[con].ownship);
+	  double range = sqrt(pow(contact_x-ownship_x,2) +
+			      pow(contact_y-ownship_y,2) );
+	  receiver -> set_range(range);
+
+	  // set ownship_depth to node depth
+	  ownship_depth = request.receiver(rcv).depth();
+	  
+	  // Here goes the performance metric computation
+	  double tl = compute_tl(eig);
+	  receiver -> set_snr(tl);
+
+	}
+    }	// end of reciver loop
+
+  std::string serialized_performance_response;
+  serialize_for_moos(&serialized_performance_response,message);
+  m_Comms.Notify("PERFORMANCE_RESPONSE",
+		 serialized_performance_response);
+}
+
 void SimModemNetwork::handle_ambient_nl_depth(const CMOOSMsg& msg)
 {
   // noise depth profile
@@ -652,19 +713,13 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
  {
    r_min = 1e8;
    r_max = -1e8;
-   dep_min = 1e8;
-   dep_max = -1e8;
-   double depth_spacing=1e8;
    
    double range_x = (ownship_x - contact_x);
    double range_y = (ownship_y - contact_y);
    double range = sqrt(range_x*range_x + range_y*range_y) ;
-   double depth = ownship_depth; 
    double delta_t = MOOSTime() - acoustic_contact.last_rate_update; 
    r_min = std::min(range,r_min);
    r_max = std::max(range,r_max);
-   dep_min = std::min(depth,dep_min);
-   dep_max = std::max(depth,dep_max);
 
    double range_box;
    if (fabs(acoustic_contact.last_rate) < 10)
@@ -682,15 +737,26 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
    else
      num_r = 3;
       
-   dep_min -= 1;
-   dep_min = std::max(dep_min,0.0);
-   dep_max += 1;
-   num_dep = 3;
-   depth_spacing = (dep_max-dep_min)/(num_dep-1);
-   
+   if (cfg_.depth_performance_prediction())
+     {
+       dep_min = cfg_.min_depth();
+       dep_max = cfg_.max_depth();
+       num_dep = cfg_.num_depths();
+     }
+   else
+     {
+       double depth = ownship_depth; 
+       dep_min = 1e8;
+       dep_max = -1e8;
+       dep_min = std::min(depth,dep_min);
+       dep_max = std::max(depth,dep_max);
+       dep_min -= 1;
+       dep_min = std::max(dep_min,0.0);
+       dep_max += 1;
+       num_dep = 3;
+     }
    glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
 			   << " r_max: " << r_max
-			   << " depth_spacing: " << depth_spacing
 			   << " num ranges: " << num_r
 			   << ", num depths: " << num_dep << std::endl;
    if (acoustic_contact.last_range > 0)
@@ -1618,5 +1684,57 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
       glog << "Wrote covatiance file: "<< filename << endl;
     }
   return(true);  
+}
+
+double SimModemNetwork::compute_tl(CEigenRay eig)
+{	  
+  if (eig.num_rays <= 0)
+    {
+      glog << ">>> No eigenrays - returning " << std::endl;
+      return(sqrt(-1));
+    }
+  double elev = 0;
+  double pow_max = 1e-30;
+  double power = 1e-30;
+  
+  int iray_max = 0;
+  double pow_ratio = 1;
+  double max_tau;
+  for (int iray = 0; iray < eig.num_rays; iray++)
+    {
+      double pow_ray = pow(eig.bundle[iray].amp,2);
+      power += pow_ray;
+      if (pow_ray > pow_max)
+	{
+	  iray_max = iray;
+	  elev = eig.bundle[iray].dip_receiver;
+	  pow_max = pow_ray;
+	  max_tau = eig.bundle[iray].tau;
+	} 
+    }
+  
+  double max_rat = 0;
+  // multipath penalty if enabled
+  if (cfg_.multipath_penalty() > 0)
+    {
+      // Find how pow_max is above the next
+      for (int iray = 0; iray < eig.num_rays; iray++)
+	{
+	  double pow_ray = pow(eig.bundle[iray].amp,2);
+	  double rat = pow_ray/pow_max;
+	  if (iray != iray_max && rat > max_rat
+	      && fabs(max_tau-eig.bundle[iray].tau) < 0.02)
+	    max_rat = rat;
+	}
+      //the closer the two top rays are, the higher the penalty
+      if (max_rat > 0)
+	power *= pow(max_rat,-cfg_.multipath_penalty());
+      else
+	power *= pow(4,cfg_.multipath_penalty());  //Award single ray locations with 6 dB
+    }
+  
+  double tl_val = - 10.0 * log10(power);
+  
+  return(tl_val);
 }
 
