@@ -14,6 +14,7 @@
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 #include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
+#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_groups.h"
 #include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
@@ -243,6 +244,28 @@ class NetSimTranslation : public goby::moos::Translator
                 return;
             }
             this->goby().interprocess().publish<lamss::groups::transmission_grp_vel>(pb_msg);
+        });
+
+        this->goby().interprocess().subscribe<lamss::groups::objfunc_request, ObjFuncRequest>(
+            [this](const ObjFuncRequest& request) {
+                std::string serialized;
+                bool is_binary = serialize_for_moos(&serialized, request);
+                CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
+                    "SNR_REQUEST", serialized, is_binary, goby::moos::moos_technique,
+                    request.GetDescriptor()->full_name());
+                moos().comms().Post(moos_msg);
+            });
+
+        this->moos().add_trigger("SNR_RESPONSE", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::objfunc_response>(
+                pb_msg);
         });
     }
 };
