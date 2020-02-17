@@ -28,7 +28,7 @@ message SimModemNetworkConfig
       optional double y_offset = 2 [default = 0];
       optional double z_offset = 3 [default = 0];
     }
-  optional bool depth_performance_prediction = 50 [default = false];
+    
   optional double min_depth = 51 [default = 2];
   optional double max_depth = 52 [default = 200];
   optional int32 num_depths = 53 [default = 100];
@@ -40,7 +40,6 @@ message SimModemNetworkConfig
      TL  = 2;
      JPA = 3;
     }
-  optional bool normalize = 56 [default = false];
   optional int32 num_ff_tabs = 57 [default = 21];
   optional int32 num_fb_tabs = 58 [default = 20];
   optional int32 nbaud = 59 [default = 18];
