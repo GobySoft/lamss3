@@ -72,6 +72,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     replica_path(cfg_.test_replica()),
     noise_profile(false),
     noise_direct(false),
+    mae_sampling_frequency(4*cfg_.acomms_frequency()),
+    mae_nfft(4096),
     ISOTROPIC(false)
 {
 
@@ -104,12 +106,6 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   
   debug = false;
   debug2 = false;
-
-  // prepare Bessel functions for noise covariances
-
-   compCov.besgen.initBessel(2,40*M_PI);
-
-   compCov.spherical_besgen.initSphBes(2,40*M_PI);
 
   start_time = MOOSTime();
 
@@ -148,6 +144,20 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   slow_loop_period = std::min(mseas_update_interval/acoustic_contacts.size(),
 			      10.0); 
 
+  if (cfg_.array_element_size() > 0)
+    {
+      num_array_elements = cfg_.array_element_size();
+    }
+  else
+    num_array_elements = 1;
+  
+  if (num_array_elements > 1)
+    {
+      // prepare Bessel functions for noise covariances
+      
+      compCov.besgen.initBessel(2,40*M_PI);
+      compCov.spherical_besgen.initSphBes(2,40*M_PI);
+    }      
 }
 
 void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
@@ -330,10 +340,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       std::vector<double> elevation;
       std::vector<int> surface_bounces;
       std::vector<int> bottom_bounces;
-    // ael moved here from modem_ray_arrivals for use in noise cvar computation
-      std::vector<double> ael_x;
-      std::vector<double> ael_y;
-      std::vector<double> ael_z;
+
       modem_ray_arrivals(acoustic_contacts[con].ray_table,
 			 delay,amplitude,doppler,elevation,
 			 surface_bounces,bottom_bounces,
@@ -374,8 +381,8 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       if (cfg_.array_element_size() > 1)
 	{
 	  if (computeNoiseCovariance(acoustic_contacts[con].noise_level,
-				     get_ssp_value(water_column,ownship_depth),
-				     ael_x,ael_y,ael_z) )
+		   get_ssp_value(water_column,ownship_depth),
+			     ael_x,ael_y,ael_z ) )
 	    {
 	      std::string covmat_path =  cfg_.base_dir_name() +
 		acoustic_contacts[con].ownship + "_" + 
@@ -457,26 +464,43 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	{
 	  receiver = message.add_receiver();
 
-	  // Set variables needed for noise covariances
-	  sampling_frequency = 4*cfg_.acomms_frequency();
-	  nfft = 4096;
-	  
+	  sampling_frequency = mae_sampling_frequency;
+	  nfft = mae_nfft;
+
 	  glog.is(DEBUG1) && glog << "Preparing PERFORMANCE_RESPONSE" << endl;
 
 	  receiver -> set_node(acoustic_contacts[con].ownship);
 	  double range = sqrt(pow(contact_x-ownship_x,2) +
 			      pow(contact_y-ownship_y,2) );
 	  receiver -> set_range(range);
+	  receiver -> set_depth(ownship_depth);
 
 	  // set ownship_depth to node depth
 	  ownship_depth = request.receiver(rcv).depth();
-	  
-	  // Here goes the performance metric computation
-	  double tl = compute_tl(eig);
-	  double nl = acoustic_contacts[con].noise_level;
-	  double obj = tl+nl;
-	  receiver -> set_snr(cfg_.source_level()-obj);
 
+      // Here goes the performance metric computation
+	  if ( (cfg_.optimize() == SimModemNetworkConfig::TL) ||
+	       (cfg_.optimize() == SimModemNetworkConfig::SNR) )
+	    {
+	      CEigenRay eig;
+	      double range_ref,depth_ref;
+	      acoustic_contacts[con].ray_table.getEigenRays(range,
+							    ownship_depth, 
+							    range_ref,
+							    depth_ref, eig);
+
+	      double obj = compute_tl(eig);
+	      if (cfg_.optimize() == SimModemNetworkConfig::SNR)
+		{
+		  double nl = acoustic_contacts[con].noise_level;
+		  obj += nl;
+		}
+	      receiver -> set_snr(cfg_.source_level()-obj);
+	    }
+	  else if (cfg_.optimize() == SimModemNetworkConfig::JPA )
+	    {
+	      // Jim Preisigs permformance metric
+	    }
 	}
     }	// end of reciver loop
 
@@ -608,7 +632,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
     }
-  if (cfg_.depth_performance_prediction())
+  //  if (cfg_.depth_performance_prediction())
     test_performance_request();
   // Here we should add slow loop actions.
   last_slow_loop_t_ = curr_time;
@@ -1520,12 +1544,8 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
 					     double water_c,
 					     std::vector<double> array_x,
 					     std::vector<double> array_y,
-					     std::vector<double> array_z
-					     )
+					     std::vector<double> array_z)
 {
-
-  if (noise_direct || ISOTROPIC)
-    {
 
       double p_intens = pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
       double rho = 1000;
@@ -1589,7 +1609,8 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
       for (int i_frq = 0; i_frq< num_freqs; i_frq++)
 	{
 	  double freq = i_frq*delta_f; 
-          if (i_frq < indx_first || i_frq > indx_last)
+          if ((i_frq < indx_first || i_frq > indx_last) ||
+	      !(noise_direct || ISOTROPIC))
 	    {
 	      dummycov.putCovMat(num_elem,freq,wncov);
 	      // create diagonal cholesky
@@ -1636,12 +1657,8 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
 	      noise_covar[i_frq] = newcov;
 	    }
 	}
-      glog.is(DEBUG2) && glog <<"Built covariance matrices" << endl;
+      glog.is(DEBUG1) && glog <<"Built covariance matrices" << endl;
       return(true);
-    }
-  else
-    return(false);
-  
 }
 
 bool SimModemNetwork::write_covmat_file(std::string filename,
@@ -1708,6 +1725,197 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
       glog << "Wrote covatiance file: "<< filename << endl;
     }
   return(true);  
+}
+
+void SimModemNetwork::create_cross_spectral_density()
+{
+  int Narray = num_array_elements;
+  int Nfreq = indx_last - indx_first + 1;
+  // Frequency vector
+  double delta_f = sampling_frequency/nfft;
+  FreqVec.resize(Nfreq);
+  for (int ifr=indx_first; ifr<=indx_last; ifr++)
+    FreqVec[ifr-indx_first] = ifr*delta_f;
+  glog.is(DEBUG1) && glog << "create_cross_spectral_density" << std::endl;
+  glog.is(DEBUG1) && glog << "Nfreq=" << Nfreq << std::endl;
+  glog.is(DEBUG1) && glog << "Narray=" << Narray << std::endl;
+  int nbaud = cfg_.nbaud();
+  h_lpf.resize(nbaud);
+  for (int ibr=0; ibr<nbaud; ibr++)
+    {
+      double val = 1.0/nbaud; 
+      h_lpf[ibr] = complex<double>(val,0.0);
+    }
+  num_ff_tabs = cfg_.num_ff_tabs();
+  num_fb_tabs = cfg_.num_fb_tabs();
+  std::vector<int> ffsampleoffsets;
+  ffsampleoffsets.clear();
+  if (num_ff_tabs%2 != 0) // odd number
+    {
+      for (int i=-(num_ff_tabs-1)/2;i<=(num_ff_tabs-1)/2;i++)
+	ffsampleoffsets.push_back(i+std::min(2,(num_ff_tabs-1)/2));
+    }
+  else //even number
+    {
+     
+      for (int i=-num_ff_tabs/2+1;i<=num_ff_tabs/2;i++)
+	ffsampleoffsets.push_back(i+std::min(2,(num_ff_tabs-1)/2));
+    }
+  glog.is(DEBUG1) && glog << "ffsampleoffsets: " << ffsampleoffsets.size()
+			  << " : " << ffsampleoffsets[0]
+			  << " - " << ffsampleoffsets[ffsampleoffsets.size()-1]
+			  << std::endl;
+  fsr = 2;
+  dsfactor = cfg_.nbaud()/fsr;
+  // Extract NoiseCovariances Narray x Narray x Nfreq
+  vector<vector<vector<complex<double> > > > NoiseCovariances;
+  NoiseCovariances.resize(Narray);
+  for (int i=0; i<Narray; i++)
+    {
+      NoiseCovariances[i].resize(Narray);
+      for (int j=0; j<Narray; j++)
+	NoiseCovariances[i][j].resize(Nfreq);
+    }
+  glog.is(DEBUG1) && glog << "indx_first = " << indx_first
+			  << ", indx_last = " << indx_last
+			  << ", noise_covar size =" << noise_covar.size()
+			  << std::endl;
+  for (int ifr=indx_first; ifr <= indx_last; ifr++)
+    {
+      for (int i=0; i<Narray; i++)
+	for (int j=0; j<Narray; j++)
+	  NoiseCovariances[i][j][ifr-indx_first] =
+	    noise_covar[ifr].getCCovar(i,j);
+    }
+  glog.is(DEBUG1) && glog << "NoiseCovariances:" << NoiseCovariances.size()
+			  << " x " << NoiseCovariances[0].size()
+			  << " x " << NoiseCovariances[0][0].size()
+			  << std::endl;
+  // Equalizer config
+  numacausalfftabs = -ffsampleoffsets[0];
+  numcausalfftabs = ffsampleoffsets[ffsampleoffsets.size()-1]+1;
+  // Integration kernel
+  double delta_t = 1/sampling_frequency;
+  h_lpf_length = h_lpf.size();
+  glog.is(DEBUG1) && glog << "h_lpf_length= " << h_lpf_length << std::endl;
+  vector<complex<double> > integration_kernel;
+  integration_kernel.resize(2*h_lpf_length-1); //vector
+  for (int i=0; i< integration_kernel.size(); i++)
+    integration_kernel[i] = complex<double>(0,0);
+  
+  complex<double> ci= complex<double>(0,1);
+  for (int offset=0; offset< h_lpf_length; offset++)
+    {
+      complex<double> h_sum= complex<double>(0,0);
+      for (int i=0; i < h_lpf_length-offset; i++)
+	{
+	  if (i >= offset && i+offset < h_lpf_length)
+	    h_sum += h_lpf[i-offset]*conjg(h_lpf[offset+i]);
+	}
+      double arg = 2*M_PI*offset*delta_t*cfg_.acomms_frequency();
+      integration_kernel[h_lpf_length+offset-1] = pow(delta_t,2)*h_sum*
+	cexp(ci*arg);
+      if (offset != 0)
+	integration_kernel[h_lpf_length-offset-1]
+	  = conjg(integration_kernel[h_lpf_length+offset-1]);
+    }
+  glog.is(DEBUG1) && glog << "integration kernel done, size = "
+			  << integration_kernel.size() << std::endl;
+  // Cross-spectral density
+  int max_delay_samps_at_Fs = (num_ff_tabs-1)*dsfactor + h_lpf_length;
+  double arg = 2*M_PI;
+  vector<vector<complex<double> > > invFT; // (Nfreq x max_delay_samps)
+  vector<double> jvec;
+  jvec.resize(max_delay_samps_at_Fs);
+  for (int j=0; j < jvec.size(); j++)
+    jvec[j] = j;
+  invFT.resize(Nfreq);
+  for (int i=0; i<Nfreq; i++)
+    {
+      invFT[i].resize(max_delay_samps_at_Fs,complex<double>(0,0));
+      complex<double> arg = 2.0*M_PI*FreqVec[i]*ci;
+      for (int j=0; j < max_delay_samps_at_Fs; j++)
+	invFT[i][j] = delta_f * cexp(arg * jvec[j]);
+    }
+  glog.is(DEBUG1) && glog << "invFT:" << invFT.size()
+			  << " , " << invFT[0].size() <<std::endl;
+  vector<vector<vector<complex<double> > > > Rv_spatial_temporal;
+  Rv_spatial_temporal.resize(Narray);// (Narray x Narray * max_delay_samps)
+  for (int i=0; i<Narray; i++)
+    {
+      Rv_spatial_temporal[i].resize(Narray);
+      for (int j=0; j<Narray; j++)
+	{
+	  //Row vector of noise covariances
+	  vector<vector<complex<double> > > xspec;
+	  xspec.resize(1);
+	  xspec[0] = NoiseCovariances[i][j];
+	  false && glog.is(DEBUG2) && glog << "xspec: "
+				  << xspec.size()
+				  << " x " << xspec[0].size()
+				  << std::endl;
+	  vector<vector<complex<double> > > Rv_buf;
+	  Rv_buf.resize(xspec.size());
+	  Rv_buf[0].resize(invFT[0].size());
+	  Rv_buf = vecUtils.cmmul(xspec,invFT);
+	  false && glog.is(DEBUG2) && glog << "Rv_buf: "
+				  << Rv_buf.size()
+				  << " x " << Rv_buf[0].size()
+				  << std::endl;
+	  Rv_spatial_temporal[i][j] = Rv_buf[0];
+	}
+    }
+  glog.is(DEBUG1) && glog << "Rv_spatial_temporal: "
+			  << Rv_spatial_temporal.size()
+			  << " x " << Rv_spatial_temporal[0].size()
+			  << " x " << Rv_spatial_temporal[0][0].size()
+			  << std::endl;
+  //Correlation of baseband and downsampled noise covariance
+  Rv_bbds.resize(Narray*num_ff_tabs);
+  for (int kk1=0; kk1< Rv_bbds.size(); kk1++)
+      Rv_bbds[kk1].resize(Narray*num_ff_tabs);
+    
+  for (int kk1=0; kk1< Rv_bbds.size(); kk1++)
+    {
+      int ary_ind1 = kk1 % Narray;
+      int delay1 = (kk1-ary_ind1)/Narray; // int index?
+      false && glog.is(DEBUG2) && glog << "ary_ind1,delay1= "
+			      << ary_ind1 << " , " << delay1 << std::endl;
+      for (int kk2=kk1; kk2< Rv_bbds[kk1].size(); kk2++)
+	{
+	  int ary_ind2 = kk2 % Narray;
+	  int delay2 = (kk2-ary_ind2)/Narray; // = int index?
+	  int delayoffset_at_Fs = (delay2-delay1)*dsfactor;
+	  false && glog.is(DEBUG2) && glog << "ary_ind2,delay2= "
+				  << ary_ind2 << " , " << delay2
+				  << ", delayoffset=" << delayoffset_at_Fs
+				  << std::endl;
+	  complex<double> temp1 = complex<double>(0,0);
+	  for (int i=delayoffset_at_Fs;
+	       i < delayoffset_at_Fs + 2*h_lpf_length-1 &&
+		 i < Rv_spatial_temporal[ary_ind1][ary_ind2].size(); i++)
+	    {
+	      /*	      glog.is(DEBUG2) && glog << "i, i-delay_offset="
+				      << i << " , "
+				      << i-delayoffset_at_Fs
+				      << std::endl; */
+	      temp1 += Rv_spatial_temporal[ary_ind1][ary_ind2][i]*
+		integration_kernel[i-delayoffset_at_Fs];
+	    }
+	  double arg = 2*M_PI*cfg_.acomms_frequency()*
+		   delayoffset_at_Fs*delta_t;
+	  complex<double> Rval = cexp(-ci*arg)*temp1;
+	  Rv_bbds[kk1][kk2] = Rval;
+	  Rv_bbds[kk2][kk1] = conjg(Rval);
+	}
+    }
+  glog.is(DEBUG1) && glog << "Rv_bbds: "
+			  << Rv_bbds.size()
+			  << " x " << Rv_bbds[0].size()
+			  << std::endl;
+  
+  // This was the noise stuff  only done once when receiving noise
+  // covariance  
 }
 
 double SimModemNetwork::compute_tl(CEigenRay eig)
@@ -1791,3 +1999,437 @@ void SimModemNetwork::test_performance_request()
   publish("PERFORMANCE_REQUEST", serialized_request);
 }
   
+double SimModemNetwork::compute_MAE(int con)
+{
+  std::vector<std::vector<double> >delay;
+  std::vector<double> amplitude;
+  std::vector<double> doppler;
+  std::vector<double> elevation;
+  std::vector<int> surface_bounces;
+  std::vector<int> bottom_bounces;
+  std::vector<double> ael_x;
+  std::vector<double> ael_y;
+  std::vector<double> ael_z;
+
+  double range = sqrt(pow(contact_x-ownship_x,2) +
+		      pow(contact_y-ownship_y,2) );
+  double depth = ownship_depth;
+  modem_ray_arrivals(acoustic_contacts[con].ray_table,
+		     delay,amplitude,doppler,elevation,
+		     surface_bounces,bottom_bounces,
+		     ael_x,ael_y,ael_z);
+  num_array_elements = ael_x.size();
+  double nl = acoustic_contacts[con].noise_level;
+  // Recalcultae noise covariances for current SVP
+  bellhop::protobuf::Environment::WaterColumn* water_column =
+    acoustic_contacts[con].svp_response.mutable_water_column(
+	   acoustic_contacts[con].svp_response.water_column_size()-1);
+  
+  sound_speed = get_ssp_value(water_column,ownship_depth);
+  
+  // Update noise cross-spectral density
+  computeNoiseCovariance(nl,sound_speed,
+			 ael_x,ael_y,ael_z);
+  create_cross_spectral_density();
+
+  if (delay.size() < 1)
+    {
+      glog.is(DEBUG2) && glog << "No rays" << std::endl;
+      ts.resize(num_array_elements);
+      for (int i_elem=0; i_elem < ts.size(); i_elem++)
+	{
+	  ts[i_elem].resize(nfft);
+	  ts[i_elem].assign(nfft,0.0);
+	}
+    }
+  else
+    {
+      if (delay[0].size() != num_array_elements)
+	{
+	  glog << "Number of array element mismatch"
+	       << "delay[].size, num_array_elements: "
+	       << delay[0].size() << ", "
+	       << num_array_elements << std::endl;
+	  return(false);
+	}
+      
+      double min_delay = 1e8;
+      double max_delay = 0;
+      for (int i_ray=0; i_ray < delay.size(); i_ray++)
+	for (int i_elem=0; i_elem < delay[i_ray].size(); i_elem++)
+	  {
+	    max_delay = std::max(max_delay,delay[i_ray][i_elem]);
+	    min_delay = std::min(min_delay,delay[i_ray][i_elem]);
+	  }
+      
+      int number_samples = (max_delay-min_delay)*
+	sampling_frequency + nfft;
+      
+      double source_strength =
+	pow(10.0,cfg_.source_level()/20.0);
+      std::vector<double> imp_res;
+      
+      ts.resize(num_array_elements);
+      for (int i_elem=0; i_elem < num_array_elements; i_elem++)
+	{
+	  ts[i_elem].resize(number_samples);
+	  ts[i_elem].assign(number_samples,0.0);
+	}
+      for (int i_ray=0; i_ray < delay.size(); i_ray++)
+	{
+	  // doppler scaled waveform, sampled at sampling_frequency
+	  double center_frequency = cfg_.acomms_frequency()/
+	    doppler[i_ray];
+	  double bandwidth = cfg_.acomms_bandwidth()/doppler[i_ray];
+	  
+	  // generate doppler shifted passband impulse response
+	  banded_impulse_response
+	    (center_frequency,
+	     bandwidth,
+	     sampling_frequency,
+	     nfft,
+	     imp_res );
+	  
+	  for (int i_elem=0; i_elem < ts.size(); i_elem++)
+	    {
+	      double t1 = delay[i_ray][i_elem] - min_delay;
+	      int indx_1 = t1*sampling_frequency;
+	      int indx_2 = indx_1 + imp_res.size()-1;
+	      if (indx_1 < number_samples && indx_2 >=0)
+		{
+		  int indx_offset = -indx_1;
+		  indx_1 = std::max(indx_1,0);
+		  indx_2 = std::min(indx_2,number_samples-1);
+		  for (int i=indx_1; i<=indx_2 &&
+			 i+indx_offset < imp_res.size(); i++)
+		    ts[i_elem][i] += imp_res[i+indx_offset]*
+		      amplitude[i_ray];
+		}
+	    }
+	}
+    }
+  // Here we insert Jim's function for performance estimate
+  double perf_val =
+    predicted_MAE(acoustic_contacts[con].noise_level);
+
+  glog.is(DEBUG1) && glog << "Predicted MAE done,range,depth= "
+			  << range << " , " << depth
+			  << " - MAE = " << perf_val << " dB"
+			  << std::endl;  
+  // set domain and tl objective function
+  if (!isnan(perf_val))
+    return(perf_val);
+  else
+    return(0.0);
+}
+
+void SimModemNetwork::banded_impulse_response
+(double center_frequency, double bandwidth,
+ double sampling_frequency, int num_samples, std::vector<double>& sig )
+{
+  double max_frequency = center_frequency + 0.5*bandwidth;
+  double min_frequency = center_frequency - 0.5*bandwidth;
+  double a = 0.5*bandwidth;
+ 
+  sig.resize(num_samples);
+  double delta_t = 1/sampling_frequency;
+  for( int k=0;k<num_samples;k++)
+    { 
+      double t = k * delta_t; 
+      double w;
+      if (k==0)
+	w = 1;
+      else
+	w = sin(2*M_PI*a*t)/(2*a*M_PI*t);
+      sig[k] = w*cos(2*M_PI*(center_frequency*t));
+    }
+}
+
+double SimModemNetwork::predicted_MAE(double nl_here)
+{
+  glog.is(DEBUG1) && glog << "Entering predicted_MAE" << std::endl;
+							    
+  complex<double> ci = complex<double>(0,1);
+  int Narray = num_array_elements;
+  double Fc = cfg_.acomms_frequency();
+  double Fs = sampling_frequency;
+  vector<complex<double> > expvec;
+  int cirlen = ts[0].size();
+  // downsample passband impulse response
+  false && glog.is(DEBUG2) && glog << "cirlen = " << cirlen << std::endl;
+  expvec.resize(cirlen);
+  for (int i=0;i<cirlen;i++)
+    expvec[i]=cexp(-ci*2.0*M_PI*(Fc*i/Fs));
+  int startind = (h_lpf_length-1)/2;
+  int bbdslength = (cirlen-1)/dsfactor + 1;
+  false && glog.is(DEBUG2) && glog << "bbdslength = " << bbdslength << std::endl;
+  vector<vector<complex<double> > > bbds_cir ;
+  bbds_cir.resize(Narray);
+  
+  for (int i=0; i<Narray; i++)
+    {
+      bbds_cir[i].resize(bbdslength,complex<double>(0,0));
+      vector<complex<double> > temp1;
+      temp1.resize(cirlen);
+
+      for (int j=0; j<cirlen; j++)
+	{
+	  temp1[j] = expvec[j]*ts[i][j];
+	}
+      vector<complex<double> > temp2;
+      temp2 = vecUtils.conv(h_lpf,temp1);
+      // Downsample to get bbds_cir
+      for (int j = 0; j < bbdslength; j++)
+	bbds_cir[i][j] = temp2[startind+j*dsfactor];
+      
+      if (glog.is(DEBUG2))
+	{
+	  glog << "conv done "
+	       << ", bbds_cir[i].size: "
+	       << bbds_cir[i].size() 
+	       << std::endl;
+	}      
+    }
+  // Apply source level
+  // Find synchronization point and align lengths
+  vector<double> power_delay_profile;
+  power_delay_profile.resize(bbdslength,0.0);
+  double peak_response = 0;
+  glog.is(DEBUG2) && glog << "finding syncpoint" << std::endl;
+  int syncpoint = 0; // syncpoint index. Here c++, one less than in matlab vers
+  for (int j=0; j<bbdslength; j++)
+    {
+      power_delay_profile[j] = 0.0;
+      for (int i=0; i<Narray; i++)
+	{
+	  complex<double> cc = bbds_cir[i][j];
+	  power_delay_profile[j] += pow(cc.real(),2) + pow(cc.imag(),2);
+	}
+      power_delay_profile[j] /= Narray;
+      if (power_delay_profile[j] > peak_response)
+	{
+	  peak_response = power_delay_profile[j];
+	  syncpoint = j;
+	}
+    }
+  glog.is(DEBUG2) && glog << "syncpoint = " << syncpoint
+			  << ", numcausalfftabs = " << numcausalfftabs
+			  << ", numacausalfftabs = " << numacausalfftabs
+			  << ", peak_response = " << peak_response
+			  << ", bbdslength = " << bbdslength
+			  << std::endl;
+
+  if (syncpoint < numacausalfftabs)
+    {
+      int numpad = numacausalfftabs-syncpoint;
+      // add numpad zero padding
+      for (int i=0; i<Narray; i++)
+	{
+	  bbds_cir[i].resize(numpad+bbdslength);
+	  for (int j=bbdslength-1; j>=0; j--)
+	    bbds_cir[i][j+numpad] = bbds_cir[i][j];
+	  for (int j=0; j<numpad; j++)
+	    bbds_cir[i][j] = complex<double>(0,0);
+	}
+      syncpoint += numpad;
+      bbdslength += numpad;
+      glog.is(DEBUG2) && glog << "left zero padding done"
+			      << ", bbds_cir[].size: "
+			      << bbds_cir[0].size() 
+			      << std::endl;
+    }      
+  
+  if ( numcausalfftabs + syncpoint > bbdslength )
+    {
+      int numpad = (numcausalfftabs + syncpoint ) - bbdslength; // Note: here JP had acausal and no syncpoint !?
+      // add numpad zero padding
+      for (int i=0; i<Narray; i++)
+	{
+	  bbds_cir[i].resize(numpad+bbdslength,complex<double>(0,0));
+	}
+      bbdslength += numpad;
+      glog.is(DEBUG2) && glog << "right zero padding done"
+			      << ", bbds_cir[].size: "
+			      << bbds_cir[0].size()
+			      << " , bbdslength = " << bbdslength
+			      << std::endl;
+    }
+  glog.is(DEBUG2) && glog << "bbds zero padding done "
+			  << " bbds_cir.size= " << bbds_cir[0].size() << std::endl;
+  power_delay_profile.resize(bbdslength);
+  for (int j=0; j<bbdslength; j++)
+    {
+      power_delay_profile[j] = 0.0;
+      for (int i=0; i<Narray; i++)
+	{
+	  complex<double> cc = bbds_cir[i][j];
+	  power_delay_profile[j] += pow(cc.real(),2) + pow(cc.imag(),2);
+	}
+      power_delay_profile[j] /= Narray;
+
+      if (power_delay_profile[j] > peak_response)
+	{
+	  peak_response = power_delay_profile[j];
+	}
+    }
+  glog.is(DEBUG2) && glog << "After padding: " << "syncpoint = " << syncpoint
+			  << ", peak_response = " << peak_response
+			  << ", bbdslength = " << bbdslength
+			  << std::endl;
+
+
+
+
+  double source_amp = pow(10.0,cfg_.source_level()/20.0);
+  glog.is(DEBUG2) && glog << "scaling bbds with source amp "
+			  << source_amp <<  std::endl;
+  for (int i=0; i<Narray; i++)
+    for (int j=0; j<bbds_cir[i].size(); j++)
+      bbds_cir[i][j] *= source_amp;
+  
+  // Populate baseband, downsample Green's function
+  // Note that here (c++) syncpoint is 1 less than jim's (matlab)
+  int numsamprateGcolumns = bbdslength + num_ff_tabs -1;
+  int samprateGsynccolumn = bbdslength-syncpoint+numacausalfftabs;
+  int temp = samprateGsynccolumn/fsr;
+  vector<int> samprateGcolumnsforsymrateG;
+  samprateGcolumnsforsymrateG.clear();
+  
+  glog.is(DEBUG2) && glog << "downsampling Greens function " << std::endl;
+
+  int indx_0 = std::max(0,samprateGsynccolumn-fsr*temp);
+  for (int i=indx_0; i < numsamprateGcolumns; i+=fsr)
+      samprateGcolumnsforsymrateG.push_back(i);
+  int Gsynccolumn =temp;
+  int numGcolumns = samprateGcolumnsforsymrateG.size();
+  int numGrows = num_ff_tabs*Narray;
+  vector<vector<complex<double> > > G;
+  G.resize(numGrows);
+  for (int irow=0; irow<numGrows;irow++)
+    G[irow].resize(numGcolumns,complex<double>(0,0));
+  double maxG = 0;
+  double minG = 1e300;
+  for (int curfftab = 0; curfftab<num_ff_tabs; curfftab++)
+    {
+      for (int i=0; i<Narray; i++)
+	{
+	  int curGrow = curfftab*Narray+i;
+	  vector<complex<double> > samprateGrow ;
+	  samprateGrow.clear();
+	  for (int j = 0; j<curfftab; j++)
+	    samprateGrow.push_back(complex<double>(0,0));
+	  for (int j = bbds_cir[i].size()-1 ; j>=0; j--)
+	    samprateGrow.push_back(bbds_cir[i][j]);
+	  for (int j = 0; j<numsamprateGcolumns-bbdslength-curfftab; j++)
+	    samprateGrow.push_back(complex<double>(0,0));
+	  for (int j=0;j<samprateGcolumnsforsymrateG.size();j++)
+	    {
+	      G[curGrow][j] = samprateGrow[samprateGcolumnsforsymrateG[j]];
+	      maxG = std::max(maxG,fabs(G[curGrow][j]));
+	      minG = std::min(minG,fabs(G[curGrow][j]));
+	    }
+	}
+    }
+  glog.is(DEBUG2) && glog
+    << "Splitting downsampled baseband G "
+    << ", numGrows = " << numGrows
+    << ", G.size: Rows " << G.size()
+    << ", numGcolumns = " << numGcolumns
+    << ", Columns: " << G[0].size()
+    << ", Gsynccolumn = " << Gsynccolumn
+    << ", minG = " << minG
+    << ", maxG = " << maxG
+    << std::endl;
+
+  double maxgo =0;
+  vector<vector<complex<double> > > go; // column vector (numGrows x 1)
+  go.resize(numGrows);
+  for (int irow=0; irow<numGrows;irow++)
+    {
+      go[irow].resize(1);
+      go[irow][0] = G[irow][Gsynccolumn];
+      maxgo =  std::max(maxgo, fabs(go[irow][0]));
+    }
+  glog.is(DEBUG2) && glog << "maxgo = " << maxgo << std::endl;
+  
+  if (Gsynccolumn < cfg_.num_fb_tabs())
+    {
+      glog << "predicted_MAE: Gsynccolumn= " << Gsynccolumn
+	   << " < num_fb_tabs =" << num_fb_tabs << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  /*
+  vector<vector<complex<double> > > Gfb; // (numGrows x num_fb_tabs)
+  Gfb.resize(numGrows);
+  for (int irow=0; irow<numGrows; irow++)
+    {
+      Gfb[irow].clear();
+      for (int j=-cfg_.num_fb_tabs(); j <= -1; j++)
+	Gfb[irow].push_back(G[irow][Gsynccolumn+j]);
+    }
+  glog.is(DEBUG2) && glog << "Gfb size: " << Gfb.size()
+			  << ", " << Gfb[0].size() << std::endl;
+  */
+  vector<vector<complex<double> > > Go;
+  // (numGrows x (numGcolumns-num_fb_tabs-1)
+  Go.resize(numGrows);
+  for (int irow=0; irow<numGrows; irow++)
+    {
+      Go[irow].clear();
+      for (int j=0; j<Gsynccolumn-cfg_.num_fb_tabs()-1; j++)
+	Go[irow].push_back(G[irow][j]);
+      for (int j=Gsynccolumn+1; j<G[irow].size(); j++)
+	Go[irow].push_back(G[irow][j]);
+    }
+  glog.is(DEBUG2) && glog << "Go size: " << Go.size()
+			  << ", " << Go[0].size() << std::endl;
+  
+  double predictedMAE = 0;
+  double noise_scale = pow(10,2*(nl_here-noise_level)/10.0);
+  vector<vector<complex<double> > > Qnoise; // (numGrows x numGrows)
+  vector<vector<complex<double> > > buf, buf1, buf2;
+  buf = vecUtils.transp(Go);
+  Qnoise = vecUtils.cmmul(Go,buf);
+  double maxnoi = 0;
+  for (int i=0; i<numGrows; i++)
+    for (int j=0; j<numGrows; j++)
+      {
+	maxnoi = std::max(maxnoi,fabs(Qnoise[i][j]));
+	Qnoise[i][j] += Rv_bbds[i][j]*noise_scale;
+      }
+  glog.is(DEBUG2) && glog << "max (Go'xGo) = " << maxnoi << std::endl;
+
+  buf1 = vecUtils.cminv(Qnoise);
+  buf2 = vecUtils.cmmul(buf1,go);
+  buf1 = vecUtils.transp(go);
+  buf = vecUtils.cmmul(buf1,buf2);
+  glog.is(DEBUG2) && glog << "buf size: " << buf.size() << ", "
+			  << buf[0].size() << std::endl;
+  //buf1.clear();
+  //buf2.clear();
+  // minimum achievable error
+  predictedMAE = 1.0/(1+buf[0][0].real());
+  int totalnumtabs = num_ff_tabs*Narray +num_fb_tabs;
+  double avewinmultiplier = 5;
+  double rls_lambda = 1 - 1.0/(avewinmultiplier*totalnumtabs);
+  double effwindowlen = 1.0/(1-rls_lambda);
+  double finite_window_scaling_factor= (effwindowlen-1)/
+    (effwindowlen-1-totalnumtabs);
+  double predictedSDE = finite_window_scaling_factor * predictedMAE;
+  predictedMAE = 10*log10(predictedMAE);
+  predictedSDE = 10*log10(predictedSDE);
+
+  return(predictedSDE);
+}
+
+complex<double> SimModemNetwork::cexp(complex<double> a)
+{
+  return(complex<double>(cos(a.real()),sin(a.imag())));
+}
+
+complex<double> SimModemNetwork::conjg(complex<double> a)
+{
+  return(complex<double>(a.real(),-a.imag()));
+}
+
+

@@ -160,13 +160,24 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 				double water_c,
 				std::vector<double> array_x,
 				std::vector<double> array_y,
-				std::vector<double> array_z
-				);
+				std::vector<double> array_z);
     bool write_covmat_file(std::string filename, double nl_now);
+    void create_cross_spectral_density();
+    double predicted_MAE(double nl_here);
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
 			 double depth);
     double compute_tl(CEigenRay  eig);
+    double compute_MAE(int con);
     void test_performance_request();
+    void banded_impulse_response
+      (double center_frequency,
+       double bandwidth,
+       double sampling_frequency,
+       int num_samples,
+       std::vector<double>& sig );
+    std::complex<double> conjg(std::complex<double> a);
+    std::complex<double> cexp(std::complex<double> a);
+
     // Noise covariance stuff added 190605
     double noise_level;
     bool noise_profile;
@@ -180,6 +191,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     // modem performance stuff
     std::vector<double> ranges;
     std::vector<double> depths;
+    std::vector<double> ael_x, ael_y, ael_z;
     //
     double sampling_frequency;
     int nfft;
@@ -276,6 +288,24 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 			 std::vector<double>& ael_z
 			 );
       
+    // JPA stuff
+    double mae_sampling_frequency;
+    int mae_nfft;
+    int num_array_elements;
+    int h_lpf_length;
+    int dsfactor;
+    int fsr;
+    int num_ff_tabs;
+    int num_fb_tabs;
+    int numacausalfftabs;
+    int numcausalfftabs;
+    std::vector<double> FreqVec ;
+    std::vector<std::complex<double> > h_lpf;
+    std::vector<std::vector<std::complex<double> > > Rv_bbds;
+    // array impulse response (Narray x num_samples)
+    std::vector<std::vector<double> > ts;
+    //
+
 };
 
 #endif 
