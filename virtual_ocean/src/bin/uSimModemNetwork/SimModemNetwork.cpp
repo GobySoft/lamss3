@@ -473,7 +473,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  
 	  // Here goes the performance metric computation
 	  double tl = compute_tl(eig);
-	  double nl = extract_nl(ownship_depth);
+	  double nl = acoustic_contacts[con].noise_level;
 	  double obj = tl+nl;
 	  receiver -> set_snr(cfg_.source_level()-obj);
 
@@ -1574,48 +1574,69 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
 				       + pow(array_y[i]-array_y[j],2))); 
 	      }
 	  }
-      // Clear noise covariances
-      noise_covar.clear();
+      // Initialize covariances with white noise    
       
-      for (int k = indx_first; k<= indx_last; k++)
+      noise_covar.resize(num_freqs);
+      vector<complex<double> > wncov;
+      CovMat dummycov;
+
+      // first fill in white noise at all frequencies
+      wncov.clear();
+      wncov = vecUtils.zzeros(num_elem,num_elem);
+      for (int i=0; i< num_elem; i++)
+	wncov[i*(1+num_elem)] = p_intens;
+      
+      for (int i_frq = 0; i_frq< num_freqs; i_frq++)
 	{
-	  double freq = k*delta_f;
-	  
-	  std::vector<std::complex<double> > cov;
-	  CovMat newcov;
-	  
-	  cov.clear();
-	  cov = vecUtils.zzeros(num_elem,num_elem);
-	  if (k > 0)
+	  double freq = i_frq*delta_f; 
+          if (i_frq < indx_first || i_frq > indx_last)
 	    {
-	      compCov.initialize(freq,water_c,noise_dir_theta,noise_dir_power);
-	      double norm = 0;
-	      for (int i = 0; i < num_elem; i++)
-		{
-		  for (int j = 0; j <= i; j++)
-		    {
-		      int indx = i + num_elem * j;
-		      std::complex<double> hyd_cov;
-		      if (ISOTROPIC)
-			compCov.hydIsotropicCovariance(delta_R[indx], hyd_cov);
-		      else
-			compCov.hydCovariance(delta_r[indx], delta_z[indx],hyd_cov);
-		      cov[indx] = hyd_cov;
-		    }
-		  norm += cov[i*(1+num_elem)].real();
-		}
-	      norm /= num_elem;
-	      // now scale covariances
-	      double scale = p_intens/norm;
-	      
-	      for (int i=0; i<num_elem*num_elem; i++)
-		cov[i] *= scale;
-	      
+	      dummycov.putCovMat(num_elem,freq,wncov);
+	      // create diagonal cholesky
+	      dummycov.wnChol();
+	      noise_covar[i_frq] = dummycov;
 	    }
-	  newcov.putCovMat(num_elem, freq, cov);
-	  noise_covar.push_back(newcov);
-	}	  
-      glog <<"Built covariance matrices" << endl;
+	  else
+	    {	    
+	      // Fill in noise covariances for modem frequency band
+	      
+	      std::vector<std::complex<double> > cov;
+	      CovMat newcov;
+	      
+	      cov.clear();
+	      cov = vecUtils.zzeros(num_elem,num_elem);
+	      if (i_frq > 0)
+		{
+		  compCov.initialize(freq,water_c,noise_dir_theta,
+				     noise_dir_power);
+		  double norm = 0;
+		  for (int i = 0; i < num_elem; i++)
+		    {
+		      for (int j = 0; j <= i; j++)
+			{
+			  int indx = i + num_elem * j;
+			  std::complex<double> hyd_cov;
+			  if (ISOTROPIC)
+			    compCov.hydIsotropicCovariance(delta_R[indx], hyd_cov);
+			  else
+			    compCov.hydCovariance(delta_r[indx], delta_z[indx],hyd_cov);
+			  cov[indx] = hyd_cov;
+			}
+		      norm += cov[i*(1+num_elem)].real();
+		    }
+		  norm /= num_elem;
+		  // now scale covariances
+		  double scale = p_intens/norm;
+		  
+		  for (int i=0; i<num_elem*num_elem; i++)
+		    cov[i] *= scale;
+		  
+		}
+	      newcov.putCovMat(num_elem, freq, cov);
+	      noise_covar[i_frq] = newcov;
+	    }
+	}
+      glog.is(DEBUG2) && glog <<"Built covariance matrices" << endl;
       return(true);
     }
   else
@@ -1662,8 +1683,8 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
 	  vector<complex<double> > chollow;
 	  double f;
 
-	  noise_covar[f_iter-indx_first].getCovLow(num_sensors, f, covmat);
-	  noise_covar[f_iter-indx_first].getCholLow(num_sensors, f, chollow);
+	  noise_covar[f_iter].getCovLow(num_sensors, f, covmat);
+	  noise_covar[f_iter].getCholLow(num_sensors, f, chollow);
 	  fwrite(&f, sizeof(double), 1 , cov_data_file);
 
 	  int num = num_sensors*(num_sensors+1)/2;
@@ -1687,22 +1708,6 @@ bool SimModemNetwork::write_covmat_file(std::string filename,
       glog << "Wrote covatiance file: "<< filename << endl;
     }
   return(true);  
-}
-
-double SimModemNetwork::extract_nl(double depth)
-{
-  double noise_lev;
-  if (depth <= depth_nl[0])
-    return(noise_db[0]);
-  if (depth >= depth_nl[depth_nl.size()-1])
-    return(noise_db[depth_nl.size()-1]);
-  for (int i=0; i< depth_nl.size()-1; i++)
-    {
-      if (depth >= depth_nl[i] && depth < depth_nl[i+1])
-	return(noise_db[i] + (depth - depth_nl[i])*
-	       (noise_db[i+1]-noise_db[i])/
-	       (depth_nl[i+1]-depth_nl[i]));
-    }
 }
 
 double SimModemNetwork::compute_tl(CEigenRay eig)

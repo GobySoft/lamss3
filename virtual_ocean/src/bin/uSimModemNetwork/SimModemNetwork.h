@@ -166,7 +166,6 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
 			 double depth);
     double compute_tl(CEigenRay  eig);
-    double extract_nl(double depth);
     void test_performance_request();
     // Noise covariance stuff added 190605
     double noise_level;
