@@ -29,6 +29,7 @@ message SimModemNetworkConfig
       optional double z_offset = 3 [default = 0];
     }
     
+  optional bool depth_performance_prediction = 50 [default = false];
   optional double min_depth = 51 [default = 2];
   optional double max_depth = 52 [default = 200];
   optional int32 num_depths = 53 [default = 100];
