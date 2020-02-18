@@ -1962,10 +1962,10 @@ double SimModemNetwork::compute_tl(CEigenRay eig)
 	    max_rat = rat;
 	}
       //the closer the two top rays are, the higher the penalty
-      if (max_rat > 0)
-	power *= pow(max_rat,-cfg_.multipath_penalty());
-      else
-	power *= pow(4,cfg_.multipath_penalty());  //Award single ray locations with 6 dB
+      //      if (max_rat > 0)
+	power *= pow((1-max_rat),cfg_.multipath_penalty());
+	//      else
+	//	power *= pow(4,cfg_.multipath_penalty());  //Award single ray locations with 6 dB
     }
   
   double tl_val = - 10.0 * log10(power);
