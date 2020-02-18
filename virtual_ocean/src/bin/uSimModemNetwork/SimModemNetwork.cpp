@@ -442,6 +442,9 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
     message.set_request_id(request.request_id());
   if(request.has_request_time())
     message.set_request_time(request.request_time());
+  if (request.has_requestor())
+    message.set_requestor(request.requestor());
+    
   ObjFuncResponse::Receiver* receiver = 0;
   for (int rcv=0; rcv<request.receiver_size(); rcv++)
     {
@@ -497,7 +500,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 		}
 	      receiver -> set_snr(cfg_.source_level()-obj);
 	    }
-	  else if (cfg_.optimize() == SimModemNetworkConfig::JPA )
+	  else if (cfg_.optimize() == SimModemNetworkConfig::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	    }

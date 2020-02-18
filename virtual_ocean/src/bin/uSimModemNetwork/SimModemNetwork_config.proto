@@ -39,7 +39,7 @@ message SimModemNetworkConfig
     {
      SNR = 1;
      TL  = 2;
-     JPA = 3;
+     MAE = 3;
     }
   optional int32 num_ff_tabs = 57 [default = 21];
   optional int32 num_fb_tabs = 58 [default = 20];
