@@ -476,10 +476,10 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  double range = sqrt(pow(contact_x-ownship_x,2) +
 			      pow(contact_y-ownship_y,2) );
 	  receiver -> set_range(range);
-	  receiver -> set_depth(ownship_depth);
 
 	  // set ownship_depth to node depth
 	  ownship_depth = request.receiver(rcv).depth();
+	  receiver -> set_depth(ownship_depth);
 
       // Here goes the performance metric computation
 	  if ( (cfg_.optimize() == SimModemNetworkConfig::TL) ||
