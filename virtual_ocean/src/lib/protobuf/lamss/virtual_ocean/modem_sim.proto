@@ -83,25 +83,31 @@ message ArrayGain
 message ObjFuncRequest
 {
     required string contact = 1;
-    repeated Receiver receiver = 2;
-    required string requestor = 3;
+    optional int32 request_id = 2;
+    optional double request_time = 3;
+    repeated Receiver receiver = 4;
+    required string requestor = 5;
     message Receiver
     {
-        required double range = 1;
-        required double depth = 2;
+        optional string node = 1;
+        optional double range = 2;
+        required double depth = 3;
     }
 }
 
 message ObjFuncResponse
 {
     required string contact = 1;
-    repeated Receiver receiver = 2;
-    required string requestor = 3;
+    optional int32 request_id = 2;
+    optional double request_time = 3;
+    repeated Receiver receiver = 4;
+    required string requestor = 5;
     message Receiver
     {
-        required double range = 1;
-        required double depth = 2;
-        required double snr = 3;
+        optional string node = 1;
+        required double range = 2;
+        required double depth = 3;
+        required double snr = 4;
     }
 }
 
