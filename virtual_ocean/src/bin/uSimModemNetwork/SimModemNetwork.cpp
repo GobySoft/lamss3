@@ -505,7 +505,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
-	      receiver -> set_snr(obj);
+	      receiver -> set_snr(-obj);
 	    }
 	}
     }	// end of reciver loop
@@ -1063,6 +1063,7 @@ bool SimModemNetwork::getNodeInfo(std::string node_name,
 	double utc = MOOSTime();
 	node_x = node_x+node_speed*sin(node_heading*M_PI/80.0)*(utc-Nodes[i].utc);
 	node_y = node_y+node_speed*cos(node_heading*M_PI/80.0)*(utc-Nodes[i].utc);
+	node_depth = node_depth - node_speed*sin(Nodes[i].pitch)*(utc-Nodes[i].utc);
 	return true;
       }
   return false;
@@ -1621,7 +1622,7 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
       for (int i_frq = 0; i_frq< num_freqs; i_frq++)
 	{
 	  double freq = i_frq*delta_f; 
-          if ((i_frq < indx_first || i_frq > indx_last) ||
+          if (num_elem == 1 || (i_frq < indx_first || i_frq > indx_last) ||
 	      !(noise_direct || ISOTROPIC))
 	    {
 	      dummycov.putCovMat(num_elem,freq,wncov);
