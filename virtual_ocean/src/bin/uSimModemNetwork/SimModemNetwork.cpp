@@ -158,6 +158,7 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
       compCov.besgen.initBessel(2,40*M_PI);
       compCov.spherical_besgen.initSphBes(2,40*M_PI);
     }      
+  test_count = 0;
 }
 
 void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
@@ -590,6 +591,15 @@ void SimModemNetwork::loop()
       bellhop_requests.pop_back();
     }  
 
+ //  if (cfg_.depth_performance_prediction())
+  if (test_count >= 30)
+    {
+      test_performance_request();
+      test_count = 0;
+    }
+  else
+    test_count++;
+
   // process some events at a slower rate
   //const int slow_loop_period = 10;
 
@@ -638,8 +648,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 				   << "->" << acoustic_contacts[i].ownship << endl;
 	}
     }
-  //  if (cfg_.depth_performance_prediction())
-    test_performance_request();
+
   // Here we should add slow loop actions.
   last_slow_loop_t_ = curr_time;
 }

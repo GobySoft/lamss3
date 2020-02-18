@@ -305,7 +305,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     // array impulse response (Narray x num_samples)
     std::vector<std::vector<double> > ts;
     //
-
+    int test_count;
 };
 
 #endif 
