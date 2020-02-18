@@ -865,8 +865,14 @@ bool SimModemNetwork::defineRayTracingBox(CAcousticContact& acoustic_contact,
   else
     {
       nelm = 1;
+      ael_x.resize(nelm);
+      ael_y.resize(nelm);
+      ael_z.resize(nelm);
       ael_range.resize(nelm);
       ael_depth.resize(nelm);
+      ael_x[0] = ownship_x;
+      ael_y[0] = ownship_y;
+      ael_z[0] = -ownship_depth;
       ael_range[0] = range;
       ael_depth[0] = ownship_depth;
     }     
@@ -1570,9 +1576,9 @@ bool SimModemNetwork::computeNoiseCovariance(double nl,
 
       glog << "Building correlated noise covariances, indx_first, indx_last= "
 	   << indx_first << "," << indx_last << endl;
-      
+      glog << "Number of frequencies " << num_freqs << std::endl;
       int num_elem = array_x.size();
-      
+      glog << "Number of array elements " << num_elem << std::endl;
       std::vector<double> delta_r;
       std::vector<double> delta_z;
       
