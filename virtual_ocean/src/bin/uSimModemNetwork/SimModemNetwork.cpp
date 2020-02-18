@@ -1978,6 +1978,7 @@ void SimModemNetwork::test_performance_request()
   ObjFuncRequest message;
 
   message.set_contact("macrura");
+  message.set_requestor("uSimModemNetwork");
   ObjFuncRequest::Receiver* receiver = 0;
   std::vector<double> test_depth;
   test_depth.clear();
