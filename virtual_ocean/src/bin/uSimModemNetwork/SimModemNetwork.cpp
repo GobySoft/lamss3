@@ -503,6 +503,8 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  else if (cfg_.optimize() == SimModemNetworkConfig::MAE )
 	    {
 	      // Jim Preisigs permformance metric
+	      double obj = compute_MAE();
+	      receiver -> set_snr(obj);
 	    }
 	}
     }	// end of reciver loop
