@@ -154,19 +154,30 @@ bool SimPhinsINS::Iterate()
  
   // Integrating to get the unaided INS based position - not using this for anything -----------------------
   // Calculating the velocity
+  std::normal_distribution<double> dist_ins_stdev_u(auv_u, c_ins_stdev*10); // stdev
+  std::normal_distribution<double> dist_ins_stdev_v(auv_v, c_ins_stdev); // stdev
+  std::normal_distribution<double> dist_ins_stdev_w(auv_w, c_ins_stdev); // stdev
+  m_ins_calc_u = dist_ins_stdev_u(gen) + 10*c_ins_scale_err*m_auv_udot + 10*c_ins_bias_err_udot ; //white error, scale error and bias error
+  m_ins_calc_v = dist_ins_stdev_v(gen) + 10*c_ins_scale_err*m_auv_vdot + 10*c_ins_bias_err_vdot ; //white error, scale error and bias error
+  m_ins_calc_w = dist_ins_stdev_w(gen) + 10*c_ins_scale_err*m_auv_wdot + 10*c_ins_bias_err_wdot ; //white error, scale error and bias error
+  // Converting body-frame to earth-frame
   double ins_calc_ydot;
   double ins_calc_xdot;
   double ins_calc_zdot;
-  if (isnan(m_ins_udot)==0 && isnan(m_ins_vdot)==0 && isnan(m_ins_wdot)==0 && (m_current_u_time-m_prev_u_time)<2)
-  {
-    m_ins_calc_u = m_ins_calc_u + m_ins_udot * (m_current_u_time-m_prev_u_time);
-    m_ins_calc_v = m_ins_calc_v + m_ins_vdot * (m_current_u_time-m_prev_u_time);
-    m_ins_calc_w = m_ins_calc_w + m_ins_wdot * (m_current_u_time-m_prev_u_time);
-    // Converting body-frame to earth-frame
-    ins_calc_ydot = m_ins_calc_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
-    ins_calc_xdot = m_ins_calc_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
-    ins_calc_zdot = m_ins_calc_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_ins_calc_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_ins_calc_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
-  }
+  ins_calc_ydot = m_ins_calc_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
+  ins_calc_xdot = m_ins_calc_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
+  ins_calc_zdot = m_ins_calc_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_ins_calc_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_ins_calc_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
+  
+  // if (isnan(m_ins_udot)==0 && isnan(m_ins_vdot)==0 && isnan(m_ins_wdot)==0 && (m_current_u_time-m_prev_u_time)<2)
+  // {
+  //   m_ins_calc_u = m_ins_calc_u + m_ins_udot * (m_current_u_time-m_prev_u_time);
+  //   m_ins_calc_v = m_ins_calc_v + m_ins_vdot * (m_current_u_time-m_prev_u_time);
+  //   m_ins_calc_w = m_ins_calc_w + m_ins_wdot * (m_current_u_time-m_prev_u_time);
+  //   // Converting body-frame to earth-frame
+  //   ins_calc_ydot = m_ins_calc_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
+  //   ins_calc_xdot = m_ins_calc_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_ins_calc_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_ins_calc_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
+  //   ins_calc_zdot = m_ins_calc_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_ins_calc_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_ins_calc_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
+  // }
   // calculating the position
   if (isnan(ins_calc_ydot)==0 && isnan(ins_calc_xdot)==0)
   {
