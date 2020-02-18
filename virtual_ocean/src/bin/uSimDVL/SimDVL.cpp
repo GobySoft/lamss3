@@ -53,12 +53,25 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         if (key == "FRONTSEAT_BODY_VEL_Y") {
             m_current_u = dval;             // MOOS convension Y is surge
             m_current_u_time = MOOSTime();
+            if (c_inverted_dvl==1){
+                m_current_u = m_current_u;
+            }
         }
         else if (key == "FRONTSEAT_BODY_VEL_X") {
             m_current_v = -dval;             // MOOS convension X is sway. (Weird. But X seems positive port)
+            MOOSTrace("AUV body vel: v=%.2f \n",m_current_v);
+            if (c_inverted_dvl==1){
+                m_current_v = -m_current_v;
+                MOOSTrace("AUV body vel converted: v=%.2f \n",m_current_v);
+            }
         }
         else if (key == "FRONTSEAT_BODY_VEL_Z") {
-            m_current_w = -dval;             // MOOS convension Z is up
+            m_current_w = -dval;             // MOOS convension Z is up.
+            MOOSTrace("AUV body vel: w=%.2f \n",m_current_w);
+            if (c_inverted_dvl==1){
+                m_current_w = -m_current_w;
+                MOOSTrace("AUV body vel converted: w=%.2f \n",m_current_w);
+            }
         }
         else if (key == "CURRENT_X") {
             m_current_water_vel_x = dval;             // east
@@ -117,18 +130,11 @@ bool SimDVL::OnConnectToServer()
 
 bool SimDVL::Iterate()
 {
-    // DVL inversion when the vehicle is tracking ice
-    if (c_inverted_dvl==1){
-        m_current_u = m_current_u;
-        m_current_v = -m_current_v;
-        m_current_w = -m_current_w;
-    }
-
     // Converting ground relative AUV velocity from body frame to earth frame
     double m_current_ydot = m_current_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_current_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
     double m_current_xdot = m_current_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_current_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
     double m_current_zdot = m_current_u*-1*sin(m_current_nav_pitch*M_PI/180) + m_current_v*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) + m_current_w*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_roll*M_PI/180);
-    MOOSTrace("AUV vel relative to water: xdot=%.2f, ydot=%.2f, zdot=%.2f \n",m_current_xdot,m_current_ydot,m_current_zdot);
+    
     // Converting the ice-camp drift velocity to earth frame
     m_icecamp_ydot = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180);
     m_icecamp_xdot = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180);
