@@ -465,6 +465,8 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
       
       if (got_info && got_ray_table)  
 	{
+	  if (rcv == 0)
+	    message.set_contact_depth(contact_depth);
 	  receiver = message.add_receiver();
 
 	  sampling_frequency = mae_sampling_frequency;
@@ -480,10 +482,9 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  // set ownship_depth to node depth
 	  ownship_depth = request.receiver(rcv).depth();
 	  receiver -> set_depth(ownship_depth);
-
       // Here goes the performance metric computation
 	  if ( (cfg_.optimize() == SimModemNetworkConfig::TL) ||
-	       (cfg_.optimize() == SimModemNetworkConfig::SNR) )
+	       (cfg_.optimize() == SimModemNetworkConfig::SNR))
 	    {
 	      CEigenRay eig;
 	      double range_ref,depth_ref;
@@ -491,7 +492,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 							    ownship_depth, 
 							    range_ref,
 							    depth_ref, eig);
-
+	      
 	      double obj = compute_tl(eig);
 	      if (cfg_.optimize() == SimModemNetworkConfig::SNR)
 		{
@@ -508,7 +509,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	    }
 	}
     }	// end of reciver loop
-
+  
   std::string serialized_performance_response;
   serialize_for_moos(&serialized_performance_response,message);
   m_Comms.Notify("PERFORMANCE_RESPONSE",
