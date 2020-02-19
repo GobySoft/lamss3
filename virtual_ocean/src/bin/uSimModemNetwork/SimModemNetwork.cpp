@@ -594,13 +594,14 @@ void SimModemNetwork::loop()
     }  
 
  //  if (cfg_.depth_performance_prediction())
-  if (test_count >= 30)
-    {
-      test_performance_request();
-      test_count = 0;
-    }
-  else
-    test_count++;
+  //  if (false)
+    if (test_count >= 30)
+      {
+	test_performance_request();
+	test_count = 0;
+      }
+    else
+      test_count++;
 
   // process some events at a slower rate
   //const int slow_loop_period = 10;
