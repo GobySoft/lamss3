@@ -108,8 +108,10 @@ message ObjFuncResponse
         optional string node = 1;
         required double range = 2;
         required double depth = 3;
-        optional double snr = 4;
-    }
+        required double metric_db = 4;
+	optional double snr = 5;
+	optional double mpp = 6;
+}
 }
 
 message NavUpdate
