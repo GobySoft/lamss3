@@ -500,13 +500,13 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 		  double nl = acoustic_contacts[con].noise_level;
 		  obj += nl;
 		}
-	      receiver -> set_snr(cfg_.source_level()-obj);
+	      receiver -> set_metric_db(cfg_.source_level()-obj);
 	    }
 	  else if (cfg_.optimize() == SimModemNetworkConfig::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
-	      receiver -> set_snr(-obj);
+	      receiver -> set_metric_db(-obj);
 	    }
 	}
     }	// end of reciver loop
