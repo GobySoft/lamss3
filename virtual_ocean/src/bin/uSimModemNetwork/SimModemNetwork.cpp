@@ -484,30 +484,32 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  ownship_depth = request.receiver(rcv).depth();
 	  receiver -> set_depth(ownship_depth);
       // Here goes the performance metric computation
-	  if ( (cfg_.optimize() == SimModemNetworkConfig::TL) ||
-	       (cfg_.optimize() == SimModemNetworkConfig::SNR))
-	    {
-	      CEigenRay eig;
-	      double range_ref,depth_ref;
-	      acoustic_contacts[con].ray_table.getEigenRays(range,
-							    ownship_depth, 
-							    range_ref,
-							    depth_ref, eig);
-	      
-	      double obj = compute_tl(eig);
-	      if (cfg_.optimize() == SimModemNetworkConfig::SNR)
-		{
-		  double nl = acoustic_contacts[con].noise_level;
-		  obj += nl;
-		}
-	      receiver -> set_metric_db(cfg_.source_level()-obj);
-	    }
-	  else if (cfg_.optimize() == SimModemNetworkConfig::MAE )
+	  CEigenRay eig;
+	  double range_ref,depth_ref;
+	  acoustic_contacts[con].ray_table.getEigenRays(range,
+							ownship_depth, 
+							range_ref,
+							depth_ref, eig);
+	  double tl, mpp;
+	  compute_tl(eig,tl,mpp);
+	  double nl = acoustic_contacts[con].noise_level;
+	  double snr = cfg_.source_level()-tl-nl;
+	  mpp = cfg_.source_level()-mpp-nl;
+	 
+	  receiver -> set_snr(snr);
+	  receiver -> set_mpp(mpp);
+
+      
+	  if (cfg_.optimize() == SimModemNetworkConfig::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
 	      receiver -> set_metric_db(-obj);
 	    }
+	  else if (cfg_.optimize() == SimModemNetworkConfig::SNR )
+	    receiver -> set_metric_db(snr);
+	  else
+	    receiver -> set_metric_db(mpp);
 	}
     }	// end of reciver loop
   
@@ -1940,12 +1942,13 @@ void SimModemNetwork::create_cross_spectral_density()
   // covariance  
 }
 
-double SimModemNetwork::compute_tl(CEigenRay eig)
+void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
 {	  
   if (eig.num_rays <= 0)
     {
       glog << ">>> No eigenrays - returning " << std::endl;
-      return(sqrt(-1));
+      tl = sqrt(-1);
+      mpp = tl;
     }
   double elev = 0;
   double pow_max = 1e-30;
@@ -1966,6 +1969,8 @@ double SimModemNetwork::compute_tl(CEigenRay eig)
 	  max_tau = eig.bundle[iray].tau;
 	} 
     }
+
+  tl = - 10.0 * log10(power);
   
   double max_rat = 0;
   // multipath penalty if enabled
@@ -1987,9 +1992,9 @@ double SimModemNetwork::compute_tl(CEigenRay eig)
 	//	power *= pow(4,cfg_.multipath_penalty());  //Award single ray locations with 6 dB
     }
   
-  double tl_val = - 10.0 * log10(power);
+  mpp = - 10.0 * log10(power);
   
-  return(tl_val);
+
 }
 
 void SimModemNetwork::test_performance_request()

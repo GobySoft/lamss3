@@ -38,7 +38,7 @@ message SimModemNetworkConfig
   enum OptimizeMetric
     {
      SNR = 1;
-     TL  = 2;
+     MPP = 2;
      MAE = 3;
     }
   optional int32 num_ff_tabs = 57 [default = 21];

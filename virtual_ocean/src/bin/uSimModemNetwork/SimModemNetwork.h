@@ -166,7 +166,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     double predicted_MAE(double nl_here);
     double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
 			 double depth);
-    double compute_tl(CEigenRay  eig);
+    void compute_tl(CEigenRay  eig, double& snr, double& mpp);
     double compute_MAE(int con);
     void test_performance_request();
     void banded_impulse_response
