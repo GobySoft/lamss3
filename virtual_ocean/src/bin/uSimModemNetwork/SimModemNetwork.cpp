@@ -594,7 +594,7 @@ void SimModemNetwork::loop()
     }  
 
  //  if (cfg_.depth_performance_prediction())
-  //  if (false)
+  if (false)
     if (test_count >= 30)
       {
 	test_performance_request();
