@@ -2055,6 +2055,7 @@ double SimModemNetwork::compute_MAE(int con)
 	   acoustic_contacts[con].svp_response.water_column_size()-1);
   
   sound_speed = get_ssp_value(water_column,ownship_depth);
+  double surface_sound_speed = get_ssp_value(water_column,0.0);
   
   // Update noise cross-spectral density
   computeNoiseCovariance(nl,sound_speed,
@@ -2110,8 +2111,26 @@ double SimModemNetwork::compute_MAE(int con)
 	  double center_frequency = cfg_.acomms_frequency()/
 	    doppler[i_ray];
 	  double bandwidth = cfg_.acomms_bandwidth()/doppler[i_ray];
-	  
-	  // generate doppler shifted passband impulse response
+
+  // Rough surface jitter and loss
+	  std::vector<double> surface_jitter;
+	  if (surface_bounces[i_ray] > 0)
+	    {
+	      double surface_angle = 
+		acos(std::min(1.0,fabs(cos(elevation[i_ray]*M_PI/180.0))*
+			      sound_speed/surface_sound_speed));
+	      double ang_fac = pow(sin(surface_angle),2);
+	      double loss = cfg_.surface_roughness_loss()*
+		surface_bounces[i_ray]*ang_fac;
+	      double loss_fac = pow(10.0,-loss/20); 
+	      amplitude[i_ray] *= loss_fac;
+	      // std of jitter in seconds for normal incidence
+	      surface_jitter[i_ray] = sqrt((double) surface_bounces[i_ray]) * 
+		ang_fac * cfg_.surface_rms_roughness()/surface_sound_speed ;  
+	}
+      int jit = surface_jitter[i_ray]*sampling_frequency * rand_gen.gauss_real(0.0,0.5);
+
+      // generate doppler shifted passband impulse response
 	  banded_impulse_response
 	    (center_frequency,
 	     bandwidth,
@@ -2122,7 +2141,7 @@ double SimModemNetwork::compute_MAE(int con)
 	  for (int i_elem=0; i_elem < ts.size(); i_elem++)
 	    {
 	      double t1 = delay[i_ray][i_elem] - min_delay;
-	      int indx_1 = t1*sampling_frequency;
+	      int indx_1 = t1*sampling_frequency + jit;
 	      int indx_2 = indx_1 + imp_res.size()-1;
 	      if (indx_1 < number_samples && indx_2 >=0)
 		{

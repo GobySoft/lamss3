@@ -114,7 +114,8 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     double acomms_frequency;
     std::string replica_path;
     CmyVectorUtils vecUtils;
- 
+    CRandom rand_gen;
+
     //---Declare variables that get their valies directly from the .moos file---
     // Time stam for each recorded file
     double timestamp;

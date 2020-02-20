@@ -46,7 +46,8 @@ message SimModemNetworkConfig
   optional int32 nbaud = 59 [default = 18];
   optional double source_level = 60 [default = 183];
   optional bool isotropic_noise = 61 [default = false];
-
+  optional double surface_rms_roughness = 62 [default = 0.0];
+  optional double surface_roughness_loss = 63 [default = 0.0];
 }
 
 
