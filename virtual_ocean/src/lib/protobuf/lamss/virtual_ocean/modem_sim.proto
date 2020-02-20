@@ -1,3 +1,5 @@
+import "dccl/option_extensions.proto";
+
 import "goby/protobuf/option_extensions.proto";
 import "goby/acomms/protobuf/mm_driver.proto";
 
@@ -82,9 +84,13 @@ message ArrayGain
 
 message ObjFuncRequest
 {
+    option (dccl.msg).unit_system = "si";
+
     required string contact = 1;
     optional int32 request_id = 2;
-    optional double request_time = 3;
+    optional double request_time = 3
+        [(dccl.field).units = {base_dimensions: "T"}];
+
     repeated Receiver receiver = 4;
     required string requestor = 5;
     message Receiver
@@ -97,10 +103,13 @@ message ObjFuncRequest
 
 message ObjFuncResponse
 {
+    option (dccl.msg).unit_system = "si";
+
     required string contact = 1;
     optional double contact_depth = 6;
     optional int32 request_id = 2;
-    optional double request_time = 3;
+    optional double request_time = 3
+        [(dccl.field).units = {base_dimensions: "T"}];
     repeated Receiver receiver = 4;
     required string requestor = 5;
     message Receiver
@@ -109,9 +118,9 @@ message ObjFuncResponse
         required double range = 2;
         required double depth = 3;
         required double metric_db = 4;
-	optional double snr = 5;
-	optional double mpp = 6;
-}
+        optional double snr = 5;
+        optional double mpp = 6;
+    }
 }
 
 message NavUpdate
