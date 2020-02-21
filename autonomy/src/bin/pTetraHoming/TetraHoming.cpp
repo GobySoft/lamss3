@@ -175,8 +175,9 @@ bool TetraHoming::Iterate()
 	Notify(m_abort_update_var, ss.str());
 	// Good homing estimate
 	Notify("HOMING_LOCK","TRUE");
+	m_lock_time = MOOSTime();
       }
-    else
+    else if (MOOSTime()-m_lock_time > m_stale_lock)
       {
 	Notify("HOMING_LOCK","FALSE");
       }
