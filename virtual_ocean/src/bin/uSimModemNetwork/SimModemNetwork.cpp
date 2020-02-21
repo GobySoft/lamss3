@@ -2113,7 +2113,8 @@ double SimModemNetwork::compute_MAE(int con)
 	  double bandwidth = cfg_.acomms_bandwidth()/doppler[i_ray];
 
   // Rough surface jitter and loss
-	  std::vector<double> surface_jitter;
+	  /*
+   std::vector<double> surface_jitter;
 	  if (surface_bounces[i_ray] > 0)
 	    {
 	      double surface_angle = 
@@ -2129,7 +2130,8 @@ double SimModemNetwork::compute_MAE(int con)
 		ang_fac * cfg_.surface_rms_roughness()/surface_sound_speed ;  
 	}
       int jit = surface_jitter[i_ray]*sampling_frequency * rand_gen.gauss_real(0.0,0.5);
-
+	  */
+	  int jit = 0;
       // generate doppler shifted passband impulse response
 	  banded_impulse_response
 	    (center_frequency,
