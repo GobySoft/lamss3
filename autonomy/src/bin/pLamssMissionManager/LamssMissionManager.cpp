@@ -256,9 +256,12 @@ void LamssMissionManager::slow_loop(double curr_time)
 		   && !depth_adapting)
 	    {
 	      goby::glog << group("helm")
-			 << "25% of deploy duration exceeded w/o acomms - going to acomms depth"
+			 << "25% of deploy duration exceeded w/o acomms"
+			 << " going to acomms depth with collaborator"
+			 << last_deploy_cmd_.collaborator()
 			 << std::endl;
 		publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+
 		depth_adapting = true;
 	    }
 	  else

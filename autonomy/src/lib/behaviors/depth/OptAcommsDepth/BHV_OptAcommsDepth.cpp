@@ -666,10 +666,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 			    max_rat = rat;
 			}
 		      //the closer the two top rays are, the higher the penalty
-		      if (max_rat > 0)
-			power *= pow(max_rat,-multipath_penalty);
-		      else
-			power *= pow(4,multipath_penalty);  //Award single ray locations with 6 dB
+			power *= pow((1-max_rat),multipath_penalty);
 		    }
 		  if (!isnan(power) || power <= 0.0)
 		    {
