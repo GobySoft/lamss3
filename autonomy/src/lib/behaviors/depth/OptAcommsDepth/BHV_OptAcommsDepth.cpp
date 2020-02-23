@@ -668,7 +668,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      //the closer the two top rays are, the higher the penalty
 			power *= pow((1-max_rat),multipath_penalty);
 		    }
-		  if (!isnan(power) || power <= 0.0)
+		  if (!isnan(power) && power > 0.0)
 		    {
 		      mean_power += power;
 		      
@@ -703,6 +703,9 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		    }
 		}
 	      
+	      if (valid_depths == 0)
+		return(0);
+
 	      for (int i=0; i<number_depths; i++)
 		{
 		  if (val_tl[i] == 0.0)
@@ -724,6 +727,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 			<< ", mean_tl-min_tl=" << closest_tl-min_tl
 			<< ", adapt_tl_threshold=" << tl_threshold
 			<< std::endl;
+	      
 	      // If benefit of new depth is large ignore pitch required.
 	      if ( (( mean_tl - min_tl >=2*tl_threshold) ||
 		    (pitch_required < min_pitch_required && mean_tl - min_tl >= tl_threshold))
@@ -756,11 +760,11 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		    << ", mean_tl=" << mean_tl_opt
 		    << ", pitch required=" << min_pitch_required
 		    << std::endl;
-
+	  
 	  //file_out_ << goby_time() << "domain: " << dom << std::endl;
 	  //file_out_ << goby_time() << "tl_range: " << range << std::endl;
 	  //file_out_ << goby_time() << "elev_angle: " << elev_angle << std::endl;
-
+	  
 	  if (valid_tl)
 	    {
 	      dom_tl_save = dom;
