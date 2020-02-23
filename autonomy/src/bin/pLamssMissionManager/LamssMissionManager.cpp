@@ -121,10 +121,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      glog << "Error: OpRegion non-convex" << std::endl;
 	    }
 	opregion.set_label("OpRegion");
-	std::string str = opregion.get_spec();
+	std::string str = "polygon="+opregion.get_spec();
 	publish("OPREGION_UPDATE",str);
 	opregion_init = opregion;
-	opregion.set_label("OpRegionInit");
+	opregion_init.set_label("OpRegionInit");
 	
       }
 

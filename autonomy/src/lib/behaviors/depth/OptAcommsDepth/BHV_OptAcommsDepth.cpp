@@ -704,8 +704,13 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		}
 	      
 	      if (valid_depths == 0)
-		return(0);
-
+		{
+		  file_out_ << goby_time() << "no valid depths" << std::endl;
+		  return(0);
+		}
+	      else
+		valid_tl = true;
+	      
 	      for (int i=0; i<number_depths; i++)
 		{
 		  if (val_tl[i] == 0.0)
@@ -742,7 +747,6 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		  depth_opt =min_tl_dep;
 		  min_tl_opt = min_tl;
 		  mean_tl_opt = mean_tl;
-		  valid_tl=true;
 		  // TL threshold hysteresis	 
 		  tl_threshold = adapt_tl_threshold - 0.5;
 		}
@@ -775,6 +779,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	    }
 	  else
 	    {
+	      file_out_ << goby_time() << " No valid TL" << std::endl; 
 	      new_tl =false;
 	      return(0);
 	    }
