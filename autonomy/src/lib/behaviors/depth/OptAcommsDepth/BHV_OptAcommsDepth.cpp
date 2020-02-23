@@ -94,6 +94,7 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
     geo_init(false),
     valid_tl(false),
     new_ivp(false),
+    valid_ivp(false),
     water_depth(6000.0),
     surface_sound_speed(1480.0),
     sound_speed_gradient(0.016),
@@ -284,14 +285,16 @@ bool BHV_OptCohAcoustDepth::setParam(std::string param, std::string val)
 IvPFunction *BHV_OptCohAcoustDepth::onRunState() 
 {
   if(!m_domain.hasDomain("depth")) {
-    postEMessage("No 'depth' variable in the helm domain");
-    return(0);
+    postEMessage("No IvP function: No 'depth' variable in the helm domain");
+    IvPFunction* ipf = 0;
+    return(ipf);
   }
   
   if (!(optimize_tl || optimize_snr || optimize_nl || optimize_se))
     {
       postEMessage("No valid optimization variable chosen (tl, snr, se, nl)");
-      return(0);
+      IvPFunction* ipf = 0;
+      return(ipf);
     }
  
   // Inititialize Geodesy
@@ -461,7 +464,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  // Generate random request id
 	  request_id = int(1e9 * rand()/RAND_MAX);
 	  request.set_request_number(request_id);
-          file_out_ << goby_time() << "Bellhoprequest " << request_id << std::endl;
+          if (debug) file_out_ << goby_time() << "Bellhoprequest " << request_id << std::endl;
 
 	  // mseas svp updates
 	  if (svp_ready)
@@ -500,12 +503,12 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      if (response.has_output_file())
 		{
 		  std::string bellhop_in = response.output_file();
-		  file_out_ << goby_time() << "Bellhop response " << request_id << " --- " << bellhop_in << std::endl;
+		  if (debug) file_out_ << goby_time() << "Bellhop response " << request_id << " --- " << bellhop_in << std::endl;
 		
 		  new_tl=eigenray_table.readEigenRayTable(bellhop_in, max_number_bounces);
 		  if (new_tl)
 		    {
-		      file_out_ << goby_time() << "Got ray_table, ranges: " 
+		      if (debug) file_out_ << goby_time() << "Got ray_table, ranges: " 
 				<< eigenray_table.num_ranges 
 				<< " depths: " << eigenray_table.num_depths
 				<< std::endl; 
@@ -518,9 +521,9 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		}
 	      else
 		{
-		  file_out_ << goby_time() << "Bellhop response " << request_id 
+		  if (debug) file_out_ << goby_time() << "Bellhop response " << request_id 
 			    << std::endl;
-		  file_out_ << goby_time() << "No eigenray table produced " 
+		  if (debug) file_out_ << goby_time() << "No eigenray table produced " 
 			    << std::endl;
 		  request_id = 0;
 		  new_tl = 0;
@@ -533,7 +536,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      active_region =  ( ok_range && ok_rate &&
 				 ( ((current_range > departure_range_) && (current_rate > 0.0)) ||
 				   ((current_range < approach_range_) && (current_rate < 0.0))) );
-	      file_out_ << goby_time() 
+	      if (debug) file_out_ << goby_time() 
 			<< " current range=" << current_range 
 			<< " current range rate=" << current_rate 
 			<< " current depth=" << current_depth 
@@ -627,8 +630,9 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		  if (eig.num_rays <= 0)
 		    {
 		      file_out_ << goby_time()
-				<< ">>> No eigenrays - returning " << std::endl;
-		      return(0);
+				<< ">>> No IvP function: No eigenrays " << std::endl;
+		      IvPFunction* ipf = 0;
+		      return(ipf);
 		    }
 		  double elev=0;
 		  double pow_max = 1e-30;
@@ -676,8 +680,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		      if (debug) file_out_ << ",range=" << ranges[j]
 					   << ",depth=" << depth[i]
 					   << " tl=" << tl
-					   << " Multipath award="
-					   << -10*log10(max_rat)
+					   << " Multipath penalty="
+					   << 10*log10(1-max_rat)
 					   << std::endl;
 		      
 		      if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
@@ -705,8 +709,10 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      
 	      if (valid_depths == 0)
 		{
-		  file_out_ << goby_time() << "no valid depths" << std::endl;
-		  return(0);
+		  file_out_ << goby_time() << "No IvP function: no valid depths" << std::endl;
+		  IvPFunction* ipf = 0;
+		  return(ipf);
+		
 		}
 	      else
 		valid_tl = true;
@@ -723,7 +729,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 		fabs(atan2(-(min_tl_dep - current_depth),
 			   fabs(ranges[j]-current_range) )
 		     *180./M_PI );
-	      file_out_ << goby_time() << " current range=" << current_range 
+	      if (debug)
+		if (debug) file_out_ << goby_time() << " current range=" << current_range 
 			<< ", pitch required=" << pitch_required
 			<< ", min_pitch required=" << min_pitch_required
 			<< ", min_tl_dep=" << min_tl_dep
@@ -758,7 +765,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 				   << ", pitch required=" << pitch_required
 				   << std::endl;
 	    }
-	  file_out_ << goby_time() << " range_opt=" << range_opt 
+	  if (debug)
+	    file_out_ << goby_time() << " range_opt=" << range_opt 
 		    << ", depth_opt=" << depth_opt
 		    << ", min_tl=" << min_tl_opt
 		    << ", mean_tl=" << mean_tl_opt
@@ -776,19 +784,22 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	      elev_angle_save = elev_angle;
 	      new_tl =false;
 	      new_ivp = true;
+	      valid_ivp = true;
 	    }
 	  else
 	    {
-	      file_out_ << goby_time() << " No valid TL" << std::endl; 
+	      file_out_ << goby_time() << "No IvP function:  No valid TL" << std::endl; 
 	      new_tl =false;
-	      return(0);
+	      IvPFunction* ipf = 0;
+	      return(ipf);
 	    }
 	}
-      else if (valid_tl)
+      else if (valid_ivp)
 	{
 	  dom = dom_tl_save;
 	  range = range_tl_save;
 	  elev_angle = elev_angle_save;
+	  valid_tl =true;
 	}
 
     }
@@ -806,8 +817,9 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       std::string noise_in = getBufferStringVal("AMBIENT_NL_DEPTH", ok_nl);
       if (!ok_nl)
 	{
-	  file_out_ << "No AMBIENT_NL_DEPTH" << std::endl;
-	  return(0);
+	  file_out_ << "No IvP function: No AMBIENT_NL_DEPTH" << std::endl;
+	  IvPFunction* ipf = 0;
+	  return(ipf);
 	}
 
       std::string depths_nl, nls;    
@@ -909,8 +921,10 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       std::string ag_in = getBufferStringVal("VLA_ARRAY_GAIN", ok_ag);
       if (!ok_ag)
 	{
-	  file_out_ << "No VLA_ARRAY_GAIN" << std::endl;
-	  return(0);
+	  file_out_ << "No IvP function: No VLA_ARRAY_GAIN" << std::endl;
+	  IvPFunction* ipf = 0;
+	  return(ipf);
+	  
 	}
 
       std::string elev_ag, ags;    
@@ -1055,7 +1069,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  
 	  std::stringstream ss;
 	  ss << "domain={" << dom << "}," << "range={" << range << "}";
-	  postMessage("BHV_ACOUST_DEPTH_UNFILT", ss.str());
+	  if (debug)
+	    postMessage("BHV_ACOUST_DEPTH_UNFILT", ss.str());
 	  
 	  // Use simple RC filter for filtering caustics
 	  double int_forw = 0.0;
@@ -1130,7 +1145,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       std::stringstream ss;
       ss << "domain={" << dom << "}," << "range={" << range << "}";
       if (new_ivp)
-	{     
+	{
+	  if (debug)
 	  file_out_ << goby_time() << std::endl << " Resultng IvPFunction: " << std::endl 
 		    << "domain={" << dom << "}," << std::endl 
 		    << "range={" << range << "}" << std::endl;
@@ -1139,16 +1155,21 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  s2 << "depth=" << maxval_depth ;
 	  //	  postMessage("ACOMMS_DEPTH", s2.str());
 	}
-
-      if ( optimize_snr )
-	postMessage("BHV_SNR_DEPTH_FUNC", ss.str());
-      else if ( optimize_nl )
-	postMessage("BHV_NL_DEPTH_FUNC", ss.str());
-      else if ( optimize_se )
-	postMessage("BHV_SE_DEPTH_FUNC", ss.str());
-      else
-	postMessage("BHV_TL_DEPTH_FUNC", ss.str());
-      
+      else if (debug)
+	  file_out_ << goby_time() << std::endl << " Reusing IvPFunction: " << std::endl 
+		    << "domain={" << dom << "}," << std::endl 
+		    << "range={" << range << "}" << std::endl;
+      if (debug)
+	{
+	  if ( optimize_snr )
+	    postMessage("BHV_SNR_DEPTH_FUNC", ss.str());
+	  else if ( optimize_nl )
+	    postMessage("BHV_NL_DEPTH_FUNC", ss.str());
+	  else if ( optimize_se )
+	    postMessage("BHV_SE_DEPTH_FUNC", ss.str());
+	  else
+	    postMessage("BHV_TL_DEPTH_FUNC", ss.str());
+	}
       ZAIC_Vector zaic(m_domain, "depth");
       
       zaic.setDomainVals(dom);
@@ -1178,10 +1199,11 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
     }
   else
     {
-      file_out_ << " valid_tl = " << valid_tl 
+      file_out_ << "No IvP function:  valid_tl = " << valid_tl 
 		<< " valid_nl = " << valid_nl 
 		<< " valid_ag = " << valid_ag << std::endl; 
-      return(0);
+      IvPFunction* ipf = 0;
+      return(ipf);
     }
 }
 

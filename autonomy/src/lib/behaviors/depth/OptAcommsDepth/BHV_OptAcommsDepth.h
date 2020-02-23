@@ -77,6 +77,7 @@ public:
   bool get_tl;
   bool get_ag;
 
+  bool valid_ivp;
   bool valid_tl;
   bool valid_nl;
   bool valid_ag;
