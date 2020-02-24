@@ -1141,13 +1141,34 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  dom[0] = 0.0;
 	  range[0] = 0.0;
 	}
-      
+
+      // Check for nan
+      bool found_nan = false;
+      for (int i=0; i< dom.size(); i++)
+	if (isnan(dom[i]) || isnan(range[i]))
+	  {
+	    found_nan = true;
+	    file_out_ << goby_time() << "Found nan: dom=" << dom[i]
+		      << std::endl;
+	  }
+      // Filter out nan's
+      for (int i = 0; i<dom.size(); i++)
+	{
+	  if (isnan(range[i]))
+	    if (i == 0)
+	      range[i] = range[i+1];
+	    else if (i==dom.size()-1)
+	      range[i] = range[i+1];
+	    else
+	      range[i] = 0.5*(range[i-1]+range[i+1]);
+	}
+
+	    
       std::stringstream ss;
       ss << "domain={" << dom << "}," << "range={" << range << "}";
       if (new_ivp)
 	{
-	  if (debug)
-	  file_out_ << goby_time() << std::endl << " Resultng IvPFunction: " << std::endl 
+	  file_out_ << goby_time() << std::endl << " New IvPFunction: " << std::endl 
 		    << "domain={" << dom << "}," << std::endl 
 		    << "range={" << range << "}" << std::endl;
 	  new_ivp=false;
@@ -1155,7 +1176,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	  s2 << "depth=" << maxval_depth ;
 	  //	  postMessage("ACOMMS_DEPTH", s2.str());
 	}
-      else if (debug)
+      else if (debug )
 	  file_out_ << goby_time() << std::endl << " Reusing IvPFunction: " << std::endl 
 		    << "domain={" << dom << "}," << std::endl 
 		    << "range={" << range << "}" << std::endl;
