@@ -1064,7 +1064,28 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      node_report.setY(h_y);
 	      node_report.setLat(h_lat);
 	      node_report.setLon(h_lon);
-	      node_report.setDepth(-h_z);
+              if(cfg_.beacon_depth_size() > i)
+              {
+                  switch(tracking_result.rx_layer())
+                  {
+                      case lamss::icex::protobuf::RECEIVE_SHALLOW:
+                          node_report.setDepth(cfg_.beacon_depth(i).receive_shallow());
+                          break;
+                          
+                      case lamss::icex::protobuf::RECEIVE_DEEP:
+                      case lamss::icex::protobuf::RECEIVE_ALL_ARRAY:
+                          node_report.setDepth(cfg_.beacon_depth(i).receive_deep());
+                          break;
+
+                      case lamss::icex::protobuf::RECEIVE_MAIN_CHANNEL:
+                          node_report.setDepth(cfg_.beacon_depth(i).transmit());
+                          break;
+                  }
+              }
+              else
+              {
+                  node_report.setDepth(-h_z);
+              }
 	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
 	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
 	      publish("NODE_REPORT", node_report.getSpec());
