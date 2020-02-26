@@ -8,12 +8,10 @@ message LAMSS_ENVIRONMENT_UPDATE {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_ENVIRONMENT_UPDATE", (dccl.field).static_value="LAMSS_ENVIRONMENT_UPDATE", (dccl.field).codec="_static"];
-        optional double water_depth = 5 [(dccl.field).min=0, (dccl.field).max=60000, (dccl.field).precision=0];
-        repeated EOFCoef eof_coef = 6 [(dccl.field).max_repeat=10];
+        repeated EOFCoef eof_coef = 5 [(dccl.field).max_repeat=8];
         message EOFCoef
           {
-            optional int32 num = 1 [(dccl.field).min=1, (dccl.field).max=64]; 
-            optional double coef = 2 [(dccl.field).min=-3, (dccl.field).max=2, (dccl.field).precision=3];
+            optional int32 num = 1 [(dccl.field).min=1, (dccl.field).max=10]; 
+            optional double coef = 2 [(dccl.field).min=-10, (dccl.field).max=10, (dccl.field).precision=3];
           }
-        optional int32  sea_state = 9 [(dccl.field).min=0, (dccl.field).max=7, default=0]; 
 } 
