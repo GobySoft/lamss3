@@ -251,12 +251,12 @@ class NetSimTranslation : public goby::moos::Translator
                 std::string serialized;
                 bool is_binary = serialize_for_moos(&serialized, request);
                 CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
-                    "SNR_REQUEST", serialized, is_binary, goby::moos::moos_technique,
+                    "PERFORMANCE_REQUEST", serialized, is_binary, goby::moos::moos_technique,
                     request.GetDescriptor()->full_name());
                 moos().comms().Post(moos_msg);
             });
 
-        this->moos().add_trigger("SNR_RESPONSE", [&](const CMOOSMsg& msg) {
+        this->moos().add_trigger("PERFORMANCE_RESPONSE", [&](const CMOOSMsg& msg) {
             auto pb_msg = dynamic_parse_for_moos(msg.GetString());
             if (!pb_msg)
             {
