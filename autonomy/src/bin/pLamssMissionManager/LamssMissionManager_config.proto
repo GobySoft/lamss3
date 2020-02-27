@@ -3,6 +3,7 @@ import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
 import "lamss_deploy.proto";
 import "lamss_transit.proto";
+import "icex_tracking_20.proto";
 
 import "goby/acomms/protobuf/amac.proto";
 
@@ -58,6 +59,9 @@ message LamssMissionManagerConfig
   optional .goby.acomms.protobuf.MACUpdate legacy_mac = 51;
 
   repeated uint32 additional_modem_id = 60;
+    
+  repeated lamss.icex.protobuf.BeaconDepth beacon_depth = 70;
+
 }
 
 
