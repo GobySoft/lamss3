@@ -1245,20 +1245,26 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
 
 void LamssMissionManager::update_deploy_parameters()
 {
+  double now = MOOSTime();
   double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
-    (MOOSTime()-last_tracking_msg);
+    (now-last_tracking_msg);
   double camp_y = camp_y_last + camp_y_spd_filt.getAvg()*
-    (MOOSTime()-last_tracking_msg);
+    (now-last_tracking_msg);
   {
-    // Update OpRegion to follow ice camp
-    opregion = opregion_init;
-    opregion.shift_horz(camp_x - camp_x_init);
-    opregion.shift_vert(camp_y - camp_y_init);
-    opregion.set_label("OpRegion");
-    std::string poly = opregion.get_spec();
-    std::stringstream cc;
-    cc << "polygon=" << poly;
-    publish("OPREGION_UPDATE",cc.str());
+      if(now > last_opregion_update_time_ + cfg_.opregion_update_period_sec())
+      {
+          // Update OpRegion to follow ice camp
+          opregion = opregion_init;
+          opregion.shift_horz(camp_x - camp_x_init);
+          opregion.shift_vert(camp_y - camp_y_init);
+          opregion.set_label("OpRegion");
+          std::string poly = opregion.get_spec();
+          std::stringstream cc;
+          cc << "polygon=" << poly;
+          publish("OPREGION_UPDATE",cc.str());
+          last_opregion_update_time_ = now;
+      }
+      
     //publish("HOMING_CONFIG",cent.str());
     // Consistent station keeping point
     std::stringstream statn;
@@ -1353,7 +1359,8 @@ void LamssMissionManager::update_deploy_parameters()
       publish("HOMING_X",abort_x);
       publish("HOMING_Y",abort_x);
 
-    }}
+    }
+}
 
 void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 {

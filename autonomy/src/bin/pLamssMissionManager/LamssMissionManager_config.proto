@@ -16,6 +16,8 @@ message LamssMissionManagerConfig
   optional double operation_radius_percent   = 4 [default = 95];
   
   optional bool dynamic_opregion = 5 [default = false];
+  optional int32 opregion_update_period_sec = 7 [default = 600];
+    
   repeated OpBoxVertex opbox_vertex = 6;
   message OpBoxVertex
         {

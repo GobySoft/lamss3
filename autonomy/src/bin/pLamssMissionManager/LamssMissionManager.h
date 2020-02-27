@@ -173,6 +173,9 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
 
     // all modem ids for this vehicle (vehicle_id_ plus additional configured)
     std::set<int> ownship_modem_ids_;
+
+    // last update time for dynamic OpRegion
+    double last_opregion_update_time_{0};
 };
 
 #endif
