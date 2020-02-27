@@ -43,6 +43,14 @@ message ViewSegList
   repeated Point point = 3;
   optional bool active = 4 [default = false];
   required int32 destination = 5;
+
+  enum PolyType
+  {
+      NORMAL = 0;
+      OPBOX = 1;
+      OBSTACLE = 2;
+  }
+  required PolyType polytype = 11;
 }
 
 message ViewMessageConfig

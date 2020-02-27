@@ -139,13 +139,29 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
     glog << "XYSegList:" <<  seglist.get_spec() << std::endl;
     lamss::protobuf::ViewSegList proto_seglist ;
     if (seglist.size() >= 10)
-      {
+    {
 	// if more than 9 points plot surrounding polygon
 	proto_seglist = convex_polygon(seglist);
 	is_polygon = true;
-      }
+    }
     else
-      proto_seglist= to_protobuf(seglist);
+    {
+        proto_seglist= to_protobuf(seglist);
+    }
+    
+    if(seglist.get_label() == "OpRegion")
+    {
+        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::OPBOX);
+    }
+    else if(seglist.get_label().find("stvp") != std::string::npos)
+    {
+        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::OBSTACLE);
+    }
+    else
+    {
+        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::NORMAL);
+    }
+    
     glog << "lamss.protobuf.ViewSegList: " << proto_seglist.ShortDebugString() << std::endl;
 
     std::string goby1_moos_str;
