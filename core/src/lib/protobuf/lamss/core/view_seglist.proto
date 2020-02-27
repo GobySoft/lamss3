@@ -1,22 +1,51 @@
 import "dccl/protobuf/option_extensions.proto";
 import "goby/protobuf/option_extensions.proto";
-message VIEW_SEGLIST { 
-	option (dccl.msg).id = 57;
-	option (dccl.msg).max_bytes = 32;
-	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
-	optional int32 vehicle_name = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
-	optional int32 destination = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
-	optional bool active = 4;
-	optional MissionEnum mission = 5;
-	enum MissionEnum{ 
-		 MISSION_UNKNOWN = 0; 
-		 MISSION_DEPLOY = 1; 
-		 MISSION_PROSECUTE = 2; 
-		 MISSION_RETURN = 3; 
-		 MISSION_TRANSIT = 4; 
-	} 
-	repeated double point_x = 6 [(dccl.field).max=10230.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, (dccl.field).max_repeat=9];
-	repeated double point_y = 7 [(dccl.field).max=10230.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, (dccl.field).max_repeat=9];
+message VIEW_SEGLIST
+{
+    option (dccl.msg).id = 57;
+    option (dccl.msg).max_bytes = 32;
+    optional double _time = 1
+        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+    optional int32 vehicle_name = 2 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional int32 destination = 3 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional bool active = 4;
+    optional MissionEnum mission = 5;
+    enum MissionEnum
+    {
+        MISSION_UNKNOWN = 0;
+        MISSION_DEPLOY = 1;
+        MISSION_PROSECUTE = 2;
+        MISSION_RETURN = 3;
+        MISSION_TRANSIT = 4;
+    }
+    repeated double point_x = 6 [
+        (dccl.field).max = 10230.000000,
+        (dccl.field).min = 0.000000,
+        (dccl.field).precision = -1,
+        (dccl.field).max_repeat = 9
+    ];
+    repeated double point_y = 7 [
+        (dccl.field).max = 10230.000000,
+        (dccl.field).min = 0.000000,
+        (dccl.field).precision = -1,
+        (dccl.field).max_repeat = 9
+    ];
 
-        optional string label = 10 [(dccl.field).omit = true];
-} 
+    optional string label = 10 [(dccl.field).omit = true];
+
+    enum PolyType
+    {
+        POLYTYPE_NORMAL = 0;
+        POLYTYPE_OPBOX = 1;
+        POLYTYPE_OBSTACLE = 2;
+    }
+    optional PolyType polytype = 11;
+}
