@@ -53,25 +53,14 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         if (key == "FRONTSEAT_BODY_VEL_Y") {
             m_current_u = dval;             // MOOS convension Y is surge
             m_current_u_time = MOOSTime();
-            if (c_inverted_dvl==1){
-                m_current_u = m_current_u;
-            }
         }
         else if (key == "FRONTSEAT_BODY_VEL_X") {
             m_current_v = -dval;             // MOOS convension X is sway. (Weird. But X seems positive port)
             MOOSTrace("AUV body vel: v=%.2f \n",m_current_v);
-            if (c_inverted_dvl==1){
-                m_current_v = -m_current_v;
-                MOOSTrace("AUV body vel converted: v=%.2f \n",m_current_v);
-            }
         }
         else if (key == "FRONTSEAT_BODY_VEL_Z") {
             m_current_w = -dval;             // MOOS convension Z is up.
             MOOSTrace("AUV body vel: w=%.2f \n",m_current_w);
-            if (c_inverted_dvl==1){
-                m_current_w = -m_current_w;
-                MOOSTrace("AUV body vel converted: w=%.2f \n",m_current_w);
-            }
         }
         else if (key == "CURRENT_X") {
             m_current_water_vel_x = dval;             // east
@@ -172,10 +161,17 @@ bool SimDVL::Iterate()
     // Posting the DVL measurements acording to the configured DVL update frequency
     if (m_current_u_time>m_dvl_data_post_time)
     {
+        double inverted_dvl_v;
+        double inverted_dvl_w;
+        if (c_inverted_dvl==1){
+            inverted_dvl_v = -m_dvl_v;
+            inverted_dvl_w = -m_dvl_w;
+        }
         Notify("HYDROMAN_SIM_DVL_U", m_dvl_u);
-        Notify("HYDROMAN_SIM_DVL_V", m_dvl_v);
-        Notify("HYDROMAN_SIM_DVL_W", m_dvl_w);
-        // MOOSTrace("DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,m_dvl_v,m_dvl_w);
+        Notify("HYDROMAN_SIM_DVL_V", inverted_dvl_v);
+        Notify("HYDROMAN_SIM_DVL_W", inverted_dvl_w);
+        MOOSTrace("Inverted DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,inverted_dvl_v,inverted_dvl_w);
+        MOOSTrace("DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,m_dvl_v,m_dvl_w);
         m_dvl_data_post_time = m_current_u_time + c_dvl_update_frequency;
     }
     
