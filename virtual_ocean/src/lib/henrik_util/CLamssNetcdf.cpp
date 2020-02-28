@@ -2169,6 +2169,10 @@ void LamssNetCdf::get_eofs()
 
 std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_, std::vector<double> dep_request)
 {
+  
+  // need to reinitialize this
+  get_eof_basevals();
+
   //resize baseval_weighted_eofs to match eof_eofs_values
   baseval_weighted_eofs.resize(eof_num_eofs_value);
   for(size_t j=0; j< eof_num_eofs_value;j++){
