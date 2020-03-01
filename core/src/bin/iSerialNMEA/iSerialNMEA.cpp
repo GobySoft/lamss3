@@ -250,26 +250,32 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
         double dy = m_last_y - m_nav_y;
         double dt = m_best_time - m_last_time;
 
-
-        //       cout << "m_best_time: " << doubleToString(m_best_time) << endl;
-        //  cout << "m_last_time: " << doubleToString(m_last_time) << endl;
-
-        m_speed[m_i] = sqrt(dx*dx + dy*dy) / dt;
-
-    
-        m_last_x = m_nav_x;
-        m_last_y = m_nav_y;
-        m_last_time = m_best_time;
-
+        if(dt < 0.5)
+        {
+            goby::glog.is_warn() && goby::glog << "Received message less than 0.5s after the last, not updating speed." << std::endl;
+        }
+        else
+        {
         
-        m_i ++;
-        if (m_i >= SPEED_POINTS)
-            m_i = 0;
+            //       cout << "m_best_time: " << doubleToString(m_best_time) << endl;
+            //  cout << "m_last_time: " << doubleToString(m_last_time) << endl;
+            
+            m_speed[m_i] = sqrt(dx*dx + dy*dy) / dt;
+        
+    
+            m_last_x = m_nav_x;
+            m_last_y = m_nav_y;
+            m_last_time = m_best_time;        
+            m_i ++;
+
+            if (m_i >= SPEED_POINTS)
+                m_i = 0;
+        }
 
         m_nav_speed = 0;
         int i;
         for(i = 0; i < SPEED_POINTS; i++)
-            m_nav_speed += m_speed[i] / SPEED_POINTS;    
+            m_nav_speed += m_speed[i] / SPEED_POINTS;
     }
     
 
