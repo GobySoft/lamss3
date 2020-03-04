@@ -1,20 +1,22 @@
 #include <ivp/XYCircle.h>
 #include <ivp/XYSegList.h>
 
+#include "goby/middleware/marshalling/cstr.h"
 #include "goby/middleware/marshalling/protobuf.h"
 
 #include "goby/moos/middleware/moos_plugin_translator.h"
 #include "goby/moos/moos_translator.h"
+#include "goby/moos/protobuf/pAcommsHandler_config.pb.h"
 
 #include "lamss/lib_goby3_lamss_gateway/groups.h"
 
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
+#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 #include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
-#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_groups.h"
 #include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
@@ -264,8 +266,7 @@ class NetSimTranslation : public goby::moos::Translator
                                                    << std::endl;
                 return;
             }
-            this->goby().interprocess().publish<lamss::groups::objfunc_response>(
-                pb_msg);
+            this->goby().interprocess().publish<lamss::groups::objfunc_response>(pb_msg);
         });
     }
 };
@@ -289,6 +290,59 @@ class ICEXTranslation : public goby::moos::Translator
                             notification.receive(i).depth_with_units() / boost::units::si::meters);
                     }
                 });
+
+        this->goby().interprocess().subscribe<lamss::groups::acomms_config_request, std::string>(
+            [this](const std::string& request) {
+                this->moos().comms().Notify("ACOMMS_CONFIG_REQUEST", request);
+            });
+
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::acomms_queue_flush, goby::acomms::protobuf::QueueFlush>(
+                [this](const goby::acomms::protobuf::QueueFlush& flush) {
+                    std::string serialized;
+                    bool is_binary = serialize_for_moos(&serialized, flush);
+                    CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
+                        "ACOMMS_FLUSH_QUEUE", serialized, is_binary, goby::moos::moos_technique,
+                        flush.GetDescriptor()->full_name());
+                    moos().comms().Post(moos_msg);
+                });
+
+        this->moos().add_trigger("ACOMMS_CONFIG", [&](const CMOOSMsg& msg) {
+            goby::apps::moos::protobuf::pAcommsHandlerConfig acomms_config;
+            acomms_config.ParseFromString(dccl::b64_decode(msg.GetString()));
+            this->goby().interprocess().publish<lamss::groups::acomms_config_response>(
+                acomms_config);
+        });
+
+        this->moos().add_trigger("ACOMMS_QSIZE", [&](const CMOOSMsg& msg) {
+            goby::acomms::protobuf::QueueSize qsize;
+            parse_for_moos(msg.GetString(), &qsize);
+            this->goby().interprocess().publish<lamss::groups::acomms_queue_size>(qsize);
+        });
+
+        this->moos().add_trigger("ACOMMS_QUEUE_RECEIVE", [&](const CMOOSMsg& msg) {
+            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+            if (!pb_msg)
+            {
+                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
+                                                   << std::endl;
+                return;
+            }
+            this->goby().interprocess().publish<lamss::groups::acomms_queue_receive>(pb_msg);
+        });
+
+        this->moos().add_trigger("ACOMMS_MODEM_TRANSMIT", [&](const CMOOSMsg& msg) {
+            goby::acomms::protobuf::ModemTransmission tx_msg;
+            parse_for_moos(msg.GetString(), &tx_msg);
+            this->goby().interprocess().publish<lamss::groups::acomms_modem_transmit>(tx_msg);
+        });
+
+        this->moos().add_trigger("ACOMMS_MODEM_RECEIVE", [&](const CMOOSMsg& msg) {
+            goby::acomms::protobuf::ModemTransmission rx_msg;
+            parse_for_moos(msg.GetString(), &rx_msg);
+            this->goby().interprocess().publish<lamss::groups::acomms_modem_receive>(rx_msg);
+        });
     }
 };
 
