@@ -1002,8 +1002,8 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	    {
 	      camp_x_init = camp_x;
 	      camp_y_init = camp_y;
-	      got_first_tracking_msg = true;
-	      last_tracking_msg = tracking_result.vehicle_tx_time();
+	      //	      got_first_tracking_msg = true;
+	      //              last_tracking_msg = tracking_result.vehicle_tx_time();
 	      camp_x_spd_filt.configAvg(filter_length);
 	      camp_y_spd_filt.configAvg(filter_length);
 	    }
@@ -1018,6 +1018,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  // save camp location for possible deploy zambony being relative to deploy location
 	  camp_x_last = camp_x;
 	  camp_y_last = camp_y;
+	  
 	  // Use current vehicle time stamp
 	  last_tracking_msg = tracking_result.vehicle_tx_time();
 	  
@@ -1048,6 +1049,20 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  publish("ACOMMS_DEPTH",ss.str());	  
 
 	  // Modem buoys and stovepipes
+
+	  if (!got_first_tracking_msg)
+	    {
+	      h_x_spd_filt.resize(tracking_result.modem_pos_size());
+	      h_y_spd_filt.resize(tracking_result.modem_pos_size());
+	      h_x_last.resize(tracking_result.modem_pos_size());
+	      h_y_last.resize(tracking_result.modem_pos_size());
+	      for (int i=0; i<tracking_result.modem_pos_size(); i++)
+		{
+		  h_x_spd_filt[i].configAvg(filter_length);  
+		  h_y_spd_filt[i].configAvg(filter_length);  
+		}
+	    }
+
 	  for (int i=0; i<tracking_result.modem_pos_size(); i++)
 	    {
               double h_x = tracking_result.hydrohole_pos().x() + tracking_result.modem_pos(i).dx();
@@ -1065,41 +1080,49 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      node_report.setLat(h_lat);
 	      node_report.setLon(h_lon);
               if(cfg_.beacon_depth_size() > i)
-              {
+		{
                   switch(tracking_result.rx_layer())
-                  {
-                      case lamss::icex::protobuf::RECEIVE_SHALLOW:
-                          node_report.setDepth(cfg_.beacon_depth(i).receive_shallow());
-                          break;
-                          
-                      case lamss::icex::protobuf::RECEIVE_DEEP:
-                      case lamss::icex::protobuf::RECEIVE_ALL_ARRAY:
-                          node_report.setDepth(cfg_.beacon_depth(i).receive_deep());
-                          break;
-
-                      case lamss::icex::protobuf::RECEIVE_MAIN_CHANNEL:
-                          node_report.setDepth(cfg_.beacon_depth(i).transmit());
-                          break;
-                  }
-              }
+		    {
+		    case lamss::icex::protobuf::RECEIVE_SHALLOW:
+		      node_report.setDepth(cfg_.beacon_depth(i).receive_shallow());
+		      break;
+                      
+		    case lamss::icex::protobuf::RECEIVE_DEEP:
+		    case lamss::icex::protobuf::RECEIVE_ALL_ARRAY:
+		      node_report.setDepth(cfg_.beacon_depth(i).receive_deep());
+		      break;
+		      
+		    case lamss::icex::protobuf::RECEIVE_MAIN_CHANNEL:
+		      node_report.setDepth(cfg_.beacon_depth(i).transmit());
+		      break;
+		    }
+		}
               else
-              {
+		{
                   node_report.setDepth(-h_z);
-              }
+		}
+	      if (got_first_tracking_msg)
+		{
+		  // Update modem mooring speeds
+		  h_x_spd_filt[i].setVal((h_x-h_x_last[i])/
+				      (tracking_result.vehicle_tx_time()-
+				       last_tracking_msg));
+		  h_y_spd_filt[i].setVal((h_y-h_y_last[i])/
+				      (tracking_result.vehicle_tx_time()-
+				       last_tracking_msg));
+		}
+	      h_x_last[i] = h_x;
+	      h_y_last[i] = h_y;
+	      double spd = sqrt(pow(h_x_spd_filt[i].getAvg(),2) + pow(h_y_spd_filt[i].getAvg(),2) );
+	      double hdg = 180/M_PI * atan2(h_x_spd_filt[i].getAvg(),h_y_spd_filt[i].getAvg());
+	      //node_report.setSpeed(spd);
+	      //node_report.setHeading(hdg);
 	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
 	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
 	      publish("NODE_REPORT", node_report.getSpec());
-	      /*
-	      std::string ndrep =
-		NodeReport(mm.str(),"buoy",
-			   tracking_result.vehicle_tx_time(),
-			   h_x,h_y,
-			   tracking_result.hydrohole_drift().speed(),
-			   tracking_result.hydrohole_drift().heading(),
-			   h_z);
-	      publish("NODE_REPORT", ndrep);
-	      */
 	    }
+	  got_first_tracking_msg = true;
+	  last_tracking_msg = tracking_result.vehicle_tx_time();
 	}
       else
 	{

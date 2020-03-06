@@ -149,6 +149,11 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     
     CMeasAvg camp_x_spd_filt;
     CMeasAvg camp_y_spd_filt;
+    // Mooring speed filters
+    std::vector<CMeasAvg> h_x_spd_filt;
+    std::vector<CMeasAvg> h_y_spd_filt;
+    std::vector<double> h_x_last;
+    std::vector<double> h_y_last;
     int filter_length;    
     //
     // Abort location
