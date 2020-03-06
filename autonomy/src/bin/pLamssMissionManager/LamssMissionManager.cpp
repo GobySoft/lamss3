@@ -1020,7 +1020,7 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  camp_y_last = camp_y;
 	  
 	  // Use current vehicle time stamp
-	  last_tracking_msg = tracking_result.vehicle_tx_time();
+	  //	  last_tracking_msg = tracking_result.vehicle_tx_time();
 	  
 	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
@@ -1115,10 +1115,12 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	      h_y_last[i] = h_y;
 	      double spd = sqrt(pow(h_x_spd_filt[i].getAvg(),2) + pow(h_y_spd_filt[i].getAvg(),2) );
 	      double hdg = 180/M_PI * atan2(h_x_spd_filt[i].getAvg(),h_y_spd_filt[i].getAvg());
-	      //node_report.setSpeed(spd);
-	      //node_report.setHeading(hdg);
-	      node_report.setSpeed(tracking_result.hydrohole_drift().speed());
-	      node_report.setHeading(tracking_result.hydrohole_drift().heading());
+	      if (hdg < 0)
+		hdg += 360;
+	      node_report.setSpeed(spd);
+	      node_report.setHeading(hdg);
+	      //node_report.setSpeed(tracking_result.hydrohole_drift().speed());
+	      //node_report.setHeading(tracking_result.hydrohole_drift().heading());
 	      publish("NODE_REPORT", node_report.getSpec());
 	    }
 	  got_first_tracking_msg = true;
