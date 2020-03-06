@@ -40,6 +40,7 @@
 #include "goby/util/linebasedcomms.h"
 
 #include "iSerialNMEA_config.pb.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 
 #include "goby/moos/moos_geodesy.h"
 
@@ -106,7 +107,7 @@ class CiSerialNMEA :
     
     bool m_read_db;
     bool m_read_port;
-
+    bool m_first_nav;
     
     // newest timestamp available from the serial stream
     double m_best_time;
@@ -127,6 +128,10 @@ class CiSerialNMEA :
     
     static iSerialNMEAConfig cfg_;
     static CiSerialNMEA* inst_;    
+
+    // Mooring speed filters
+    CMeasAvg m_x_spd_filt;
+    CMeasAvg m_y_spd_filt;
 
 };
 

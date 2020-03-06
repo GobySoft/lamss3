@@ -48,24 +48,28 @@ CiSerialNMEA* CiSerialNMEA::get_instance()
 
 CiSerialNMEA::CiSerialNMEA()
     : goby::moos::GobyMOOSApp(&cfg_),
-      m_nav_x(0),
-      m_nav_y(0),
-      m_lat(0),
-      m_long(0),
-      m_depth(0),
-      m_nav_speed(0),
-      m_nav_heading(0),
-      m_last_post_time(-1),
-      m_read_db(false),
-      m_read_port(false),
-      m_last_x(0),
-      m_last_y(0),
-      m_last_time(0),
-      m_i(0)
+  m_nav_x(0),
+  m_nav_y(0),
+  m_lat(0),
+  m_long(0),
+  m_depth(0),
+  m_nav_speed(0),
+  m_nav_heading(0),
+  m_last_post_time(-1),
+  m_read_db(false),
+  m_read_port(false),
+  m_last_x(0),
+  m_last_y(0),
+  m_last_time(0),
+  m_i(0)
+
 {
     for (int i=0; i<SPEED_POINTS; i++)
         m_speed[i] = 0;
-
+    // Initialize speed filters
+    m_x_spd_filt.configAvg(SPEED_POINTS);
+    m_y_spd_filt.configAvg(SPEED_POINTS);
+    
     goby::glog.is(VERBOSE) && goby::glog  << "reading our configuration..." << std::endl;
     read_configuration();
     goby::glog.is(VERBOSE) && goby::glog  << "\t...success." << std::endl;
@@ -246,8 +250,8 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
 //        cout << "m_i: " << m_i << "\n" << "m_speed: " << m_speed[0] << "\n";
   
         // estimate speed from a few last positions
-        double dx = m_last_x - m_nav_x;
-        double dy = m_last_y - m_nav_y;
+        double dx = m_nav_x - m_last_x;
+        double dy = m_nav_y - m_last_y;
         double dt = m_best_time - m_last_time;
 
         if(dt < 0.5)
@@ -260,22 +264,33 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
             //       cout << "m_best_time: " << doubleToString(m_best_time) << endl;
             //  cout << "m_last_time: " << doubleToString(m_last_time) << endl;
             
-            m_speed[m_i] = sqrt(dx*dx + dy*dy) / dt;
-        
+	  //            m_speed[m_i] = sqrt(dx*dx + dy*dy) / dt;
+	    m_x_spd_filt.setVal(dx/dt);
+	    m_y_spd_filt.setVal(dy/dt);
     
             m_last_x = m_nav_x;
             m_last_y = m_nav_y;
             m_last_time = m_best_time;        
+	    /*
             m_i ++;
 
             if (m_i >= SPEED_POINTS)
                 m_i = 0;
+	    */
         }
 
-        m_nav_speed = 0;
+	m_nav_speed= sqrt(pow(m_x_spd_filt.getAvg(),2) +
+			  pow(m_y_spd_filt.getAvg(),2) );
+	m_nav_heading = 180/M_PI *
+	  atan2(m_x_spd_filt.getAvg(),m_y_spd_filt.getAvg());
+	if (m_nav_heading < 0)
+	  m_nav_heading += 360;
+	/*
+	m_nav_speed = 0;
         int i;
         for(i = 0; i < SPEED_POINTS; i++)
             m_nav_speed += m_speed[i] / SPEED_POINTS;
+	*/
     }
     
 
