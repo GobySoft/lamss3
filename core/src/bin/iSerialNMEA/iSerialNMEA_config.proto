@@ -46,6 +46,8 @@ message iSerialNMEAConfig
   optional uint32 tcp_port = 24 [(goby.field).description="Port to serve on (for CONNECTION_TCP_AS_SERVER) or to connect to (for CONNECTION_TCP_AS_CLIENT)", (goby.field).example="50010"];
 
   optional bool require_checksum = 30 [default = true];
-  
+
+optional int32 gps_filter_length = 40 [default = 20];
+optional int32 speed_filter_length = 41 [default = 10];
 }
 

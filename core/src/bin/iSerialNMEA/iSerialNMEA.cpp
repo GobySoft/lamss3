@@ -64,11 +64,14 @@ CiSerialNMEA::CiSerialNMEA()
   m_i(0)
 
 {
-    for (int i=0; i<SPEED_POINTS; i++)
+    for (int i=0; i<cfg_.speed_filter_length(); i++)
         m_speed[i] = 0;
+    // Initialize GPS filters
+    m_gps_x_filt.configAvg(cfg_.gps_filter_length());
+    m_gps_y_filt.configAvg(cfg_.gps_filter_length());
     // Initialize speed filters
-    m_x_spd_filt.configAvg(SPEED_POINTS);
-    m_y_spd_filt.configAvg(SPEED_POINTS);
+    m_x_spd_filt.configAvg(cfg_.speed_filter_length());
+    m_y_spd_filt.configAvg(cfg_.speed_filter_length());
     
     goby::glog.is(VERBOSE) && goby::glog  << "reading our configuration..." << std::endl;
     read_configuration();
@@ -247,6 +250,12 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
     // if you get a new x,y then try to guess
     if(got_position)
     {
+      // Filter gps positions
+      m_gps_x_filt.setVal(m_nav_x);
+      m_gps_y_filt.setVal(m_nav_y);
+      m_nav_x = m_gps_x_filt.getAvg();
+      m_nav_y = m_gps_y_filt.getAvg();
+      
 //        cout << "m_i: " << m_i << "\n" << "m_speed: " << m_speed[0] << "\n";
   
         // estimate speed from a few last positions
@@ -274,7 +283,7 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
 	    /*
             m_i ++;
 
-            if (m_i >= SPEED_POINTS)
+            if (m_i >= cfg_.speed_filter_length())
                 m_i = 0;
 	    */
         }
@@ -288,8 +297,8 @@ bool CiSerialNMEA::parseNMEA(const goby::util::NMEASentence& nmea)
 	/*
 	m_nav_speed = 0;
         int i;
-        for(i = 0; i < SPEED_POINTS; i++)
-            m_nav_speed += m_speed[i] / SPEED_POINTS;
+        for(i = 0; i < cfg_.speed_filter_length(); i++)
+            m_nav_speed += m_speed[i] / cfg_.speed_filter_length();
 	*/
     }
     

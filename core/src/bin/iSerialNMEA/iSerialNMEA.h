@@ -129,6 +129,9 @@ class CiSerialNMEA :
     static iSerialNMEAConfig cfg_;
     static CiSerialNMEA* inst_;    
 
+    // GPS filters
+    CMeasAvg m_gps_x_filt;
+    CMeasAvg m_gps_y_filt;
     // Mooring speed filters
     CMeasAvg m_x_spd_filt;
     CMeasAvg m_y_spd_filt;
