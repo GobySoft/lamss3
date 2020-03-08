@@ -47,7 +47,7 @@ message iSerialNMEAConfig
 
   optional bool require_checksum = 30 [default = true];
 
-optional int32 gps_filter_length = 40 [default = 20];
+optional int32 gps_filter_length = 40 [default = 1];
 optional int32 speed_filter_length = 41 [default = 10];
 }
 
