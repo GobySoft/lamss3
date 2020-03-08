@@ -238,8 +238,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
-	  double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
-	  if (stale_acomms >= last_deploy_cmd_.deploy_duration())
+
+	  if (stale_acomms >= last_deploy_cmd_.deploy_duration() ||
+	      stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
 			 << "Deploy duration exceeded w/o acomms - initiating Abort"
@@ -266,6 +267,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  else
 	    {
+	      double remaining = last_deploy_cmd_.deploy_duration() -
+		std::max(stale_acomms,stale_gps);
 	      goby::glog << group("helm")
 			 << "Deploy time remaining: " << remaining
 			 << std::endl;
@@ -995,6 +998,8 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
       double camp_y = tracking_result.hydrohole_pos().y();
       double camp_lat;
       double camp_lon;
+      bool valid_track = !isnan(delta_x) && !isnan(delta_y);
+      
       if (m_Geodesy.UTM2LatLong(camp_x,camp_y,camp_lat,camp_lon))
 	{
 	  // save initial camp location
@@ -1022,16 +1027,24 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  // Use current vehicle time stamp
 	  //	  last_tracking_msg = tracking_result.vehicle_tx_time();
 	  
-	  // reset deploy duration counter
 	  last_acomms_ = MOOSTime();
-	  last_gps_ = MOOSTime();
-	  glog.is(VERBOSE) && glog << "Received Tracking Update:"
-				   << " delta_x=" <<  delta_x 
-				   << " delta_y=" << delta_y 
-				   << " camp_x=" << camp_x
-				   << " camp_y=" << camp_y
-				   << std::endl;
-	  
+	  if (valid_track)
+	    {
+	      // reset deploy duration counter if we got a valid track
+	      last_gps_ = MOOSTime();
+	      glog.is(VERBOSE) && glog << "Received Tracking Update:"
+				       << " delta_x=" <<  delta_x 
+				       << " delta_y=" << delta_y 
+				       << " camp_x=" << camp_x
+				       << " camp_y=" << camp_y
+				       << std::endl;
+	    }
+	  else
+	      glog.is(VERBOSE) && glog << "Invalid track, Camp Update:"
+				       << " camp_x=" << camp_x
+				       << " camp_y=" << camp_y
+				       << std::endl;
+	    
 	  NodeRecord node_report(cfg_.topside_name(), "hydrohole");
 	  node_report.setTimeStamp(tracking_result.vehicle_tx_time());
 	  node_report.setX(camp_x);
