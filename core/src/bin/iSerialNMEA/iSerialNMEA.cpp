@@ -64,8 +64,8 @@ CiSerialNMEA::CiSerialNMEA()
   m_i(0)
 
 {
-    for (int i=0; i<cfg_.speed_filter_length(); i++)
-        m_speed[i] = 0;
+  //    for (int i=0; i<cfg_.speed_filter_length(); i++)
+  //      m_speed[i] = 0;
     // Initialize GPS filters
     m_gps_x_filt.configAvg(cfg_.gps_filter_length());
     m_gps_y_filt.configAvg(cfg_.gps_filter_length());

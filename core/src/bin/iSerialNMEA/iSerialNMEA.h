@@ -45,7 +45,7 @@
 #include "goby/moos/moos_geodesy.h"
 
 // number of last speeds to average (where a speed is the time between two GPS points)
-#define SPEED_POINTS 5
+// #define SPEED_POINTS 5
 
 class CiSerialNMEA :
 #if GOBY_VERSION_MAJOR < 2
@@ -120,7 +120,7 @@ class CiSerialNMEA :
     
     int m_i;
 
-    double m_speed[SPEED_POINTS];
+    //    double m_speed[SPEED_POINTS];
 
     goby::moos::CMOOSGeodesy m_geodesy;
 
