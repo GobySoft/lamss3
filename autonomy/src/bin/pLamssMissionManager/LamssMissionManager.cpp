@@ -540,10 +540,6 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	    camp_y_init = last_nav_.local_fix().y();
 	    camp_x_deploy = last_nav_.local_fix().x();
 	    camp_y_deploy = last_nav_.local_fix().y();
-	    camp_x_spd_filt.configAvg(filter_length);
-	    camp_y_spd_filt.configAvg(filter_length);
-	    got_first_tracking_msg = true;
-	    last_tracking_msg = MOOSTime();
 	    got_gps_nav = true;
 	  }
 
@@ -854,6 +850,7 @@ void LamssMissionManager::handle_homing_lock(const CMOOSMsg& msg)
 void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 {
   double opreg_perimeter_distance = msg.GetDouble();
+  if (!initial_deploy_done_) return;
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
   //  if (prosecute_mode_active_ && opreg_perimeter_distance <  cfg_.min_opbox_distance() )
   if (opreg_perimeter_distance <  cfg_.min_opbox_distance() )
