@@ -1255,27 +1255,27 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
             cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.mode,4");
             break;
 
-        case lamss::icex::protobuf::TrackingSignalUpdate::TOPSIDE_HOMING:
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.carrier_Hz,8250");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.period,1");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.duration_msx10,200");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.bandwidth_Hz,1500");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.mode,3");
-            break;
+        // case lamss::icex::protobuf::TrackingSignalUpdate::TOPSIDE_HOMING:
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.carrier_Hz,8250");
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.period,1");
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.duration_msx10,200");
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.bandwidth_Hz,1500");
+        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.mode,3");
+        //     break;
     }
 
-    if(msg.has_tx_power_level())
-    {
-        int tx_level = msg.tx_power_level();
-        cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("pwramp.txlevel," + goby::util::as<std::string>(tx_level));
-    }
+    // if(msg.has_tx_power_level())
+    // {
+    //     int tx_level = msg.tx_power_level();
+    //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("pwramp.txlevel," + goby::util::as<std::string>(tx_level));
+    // }
 
-    if(msg.has_mod_header_version())
-    {
-        int hdr_version = msg.mod_header_version();
-        cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
-    }
+    // if(msg.has_mod_header_version())
+    // {
+    //     int hdr_version = msg.mod_header_version();
+    //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
+    // }
 
     publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
 
