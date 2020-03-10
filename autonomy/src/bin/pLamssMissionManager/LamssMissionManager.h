@@ -146,7 +146,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     double camp_y_deploy;
     
     double last_tracking_msg;
-    
+    bool got_gps_nav;    
     CMeasAvg camp_x_spd_filt;
     CMeasAvg camp_y_spd_filt;
     // Mooring speed filters

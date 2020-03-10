@@ -70,7 +70,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       in_track(false),
       depth_adapting(false),
       last_slow_loop_t_(0),
-      filter_length(10)
+  filter_length(10),
+  got_gps_nav(false)
 {
 
     goby::glog.set_lock_action(lock);
@@ -169,7 +170,9 @@ void LamssMissionManager::loop()
     try_publish(); // publish messages queued from state machine
 
     // wait 30 seconds sending the initial deploy commands
-    if (!initial_deploy_done_ && curr_time >= mission_start_time_ + 30.0)
+    if (got_gps_nav &&
+	!initial_deploy_done_ &&
+	curr_time >= mission_start_time_ + 30.0)
       {
 	initial_transit();
 	initial_deploy();
@@ -527,6 +530,23 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
     if(data.has_node_status())
     {
         last_nav_ = data.node_status();
+
+	if (cfg_.dynamic_opregion() && !got_gps_nav &&
+	    last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+	  {
+	    camp_x_last = last_nav_.local_fix().x();
+	    camp_y_last = last_nav_.local_fix().y();
+	    camp_x_init = last_nav_.local_fix().x();
+	    camp_y_init = last_nav_.local_fix().y();
+	    camp_x_deploy = last_nav_.local_fix().x();
+	    camp_y_deploy = last_nav_.local_fix().y();
+	    camp_x_spd_filt.configAvg(filter_length);
+	    camp_y_spd_filt.configAvg(filter_length);
+	    got_first_tracking_msg = true;
+	    last_tracking_msg = MOOSTime();
+	    got_gps_nav = true;
+	  }
+
         if (cfg_.navigating_with_hydroman() == false)
         {
         	// post NAV_DATA
@@ -1283,6 +1303,7 @@ void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::
 
 void LamssMissionManager::update_deploy_parameters()
 {
+
   double now = MOOSTime();
   double camp_x = camp_x_last + camp_x_spd_filt.getAvg()*
     (now-last_tracking_msg);
