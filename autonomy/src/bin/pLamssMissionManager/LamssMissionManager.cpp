@@ -531,20 +531,27 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
     {
         last_nav_ = data.node_status();
 
-	if (cfg_.dynamic_opregion() && !got_gps_nav &&
-	    last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+	if (cfg_.dynamic_opregion())
 	  {
-	    camp_x_last = last_nav_.local_fix().x();
-	    camp_y_last = last_nav_.local_fix().y();
-	    camp_x_init = last_nav_.local_fix().x();
-	    camp_y_init = last_nav_.local_fix().y();
-	    camp_x_deploy = last_nav_.local_fix().x();
-	    camp_y_deploy = last_nav_.local_fix().y();
-	    got_gps_nav = true;
+	    if (!got_gps_nav &&
+		last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+	      {
+		camp_x_last = last_nav_.local_fix().x();
+		camp_y_last = last_nav_.local_fix().y();
+		camp_x_init = last_nav_.local_fix().x();
+		camp_y_init = last_nav_.local_fix().y();
+		camp_x_deploy = last_nav_.local_fix().x();
+		camp_y_deploy = last_nav_.local_fix().y();
+		got_gps_nav = true;
+	      }
 	  }
+	else if (!got_gps_nav &&
+		last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+	  got_gps_nav = true;
 
+	
         if (cfg_.navigating_with_hydroman() == false)
-        {
+	  {
         	// post NAV_DATA
         	std::string serialized;
   		serialize_for_moos(&serialized,last_nav_);
@@ -793,7 +800,8 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 			   << std::endl;
   // reset deploy duration when getting GPS update
   //	last_acomms_ = MOOSTime();
-	last_gps_ = MOOSTime();
+  if (!(MOOSStrCmp(msg.GetString(),"Null")))
+    last_gps_ = MOOSTime();
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
