@@ -158,7 +158,7 @@ namespace lamss
 	    
             // Idle
             struct Idle: boost::statechart::state<Idle, LamssMissionManagerFSM>,
-	      StateNotify<MISSION_STATE_IDLE>
+	      StateNotify<MISSION_STATE_ALLSTOP>
 		{
 		  Idle(my_context ctx) : my_base(ctx)
 		  {		   
