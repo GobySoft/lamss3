@@ -20,6 +20,12 @@ CGeoTracker::CGeoTracker()
   prosecute = false;
   tracking_mode = SINGLE_VEHICLE_TRACKING;
   target_id = "";
+  filter_length = 10;
+  last_heading = 0;
+  last_heading_time = MOOSTime();
+  heading_filter.configAvg(filter_length);
+  heading_rate_filter.configAvg(filter_length);
+  max_heading_rate = 2.0;
 }
 
 CGeoTracker::~CGeoTracker()
@@ -282,6 +288,19 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	// Set cued target info for tracker
 	CList.setTargetCue(cue_x, cue_y, cue_spd, cue_hdg, cue_utc);
       }
+    else if (Msg.m_sKey == "NAV_HEADING")
+      {
+	double heading = Msg.m_dfVal;
+	double heading_delta = heading-last_heading;
+	if (heading_delta >= 180)
+	  heading_delta -=360;
+	else if (heading_delta <= -180)
+	  heading_delta += 360;
+	double heading_rate = heading_delta/(MOOSTime()-last_heading_time);
+	heading_filter.setVal(heading);
+	heading_rate_filter.setVal(heading_rate);
+	last_heading = heading;
+      }
     else if(Msg.m_sKey == "BEARING_STAT")
       {
 
@@ -313,9 +332,12 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	   double curr_time = MOOSTime();
 	   bool rate_ok = checkBearingRate(New_Measurement->Meas_Time, 
 					   New_Measurement->bearing);
-
+	   // Let's ignore measurements during rapid turns
+	   double heading_rate = heading_rate_filter.getAvg();
+	   bool heading_rate_ok = (fabs(heading_rate) <= max_heading_rate);
+	   
 	   //we don't use every bearing measurement because they are redundant
-	   if(((curr_time - last_btime) > sint) && rate_ok)
+	   if(((curr_time - last_btime) > sint) && rate_ok && heading_rate_ok)
 	     {
 	       if (close_range == true)
 		 {
@@ -337,6 +359,9 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	     }
 	   else if (!rate_ok)
 	     cout << "Measurement ignored due to low bearing rate " << endl;
+	   else if (!heading_rate_ok)
+	     cout << "Measurement ignored due to high_heading rate " << heading_rate
+		  << endl;
 
 	 }
        else
@@ -510,6 +535,7 @@ bool CGeoTracker::OnConnectToServer()
 {
     
   m_Comms.Register("MISSION_STATE",0);
+  m_Comms.Register("NAV_HEADING",0);
   
   m_Comms.Register("BEARING_STAT",0);
   m_Comms.Register("CLOSE_RANGE",0);
