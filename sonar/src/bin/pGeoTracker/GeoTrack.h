@@ -17,7 +17,10 @@ class CGeoTrack
   //store a measurement(vehicle x,y and bearing to target)
   void set_measurement(double,double,double,double);
   void set_range(double range_guess, double dt);
-  void set_reset_init(int),set_range_max(double),set_speed_max(double);
+  void set_reset_init(int);
+  void set_range_max(double);
+  void set_range_min(double);
+  void set_speed_max(double);
   void set_Z_length(int);
   void reset();
   void reset_solution();
@@ -25,7 +28,10 @@ class CGeoTrack
 
   //results from the optimization
   double xzero,yzero,xdot,ydot,xguess,yguess,xdotguess,ydotguess,dtguess,dtinit;
-  double fopt,range_guess,range_max,speed_max;
+  double fopt,range_guess;
+  double range_max;
+  double range_min;
+  double speed_max;
   int reset_init;
   protected:
 

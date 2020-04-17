@@ -25,7 +25,7 @@ CGeoTracker::CGeoTracker()
   last_heading_time = MOOSTime();
   heading_filter.configAvg(filter_length);
   heading_rate_filter.configAvg(filter_length);
-  max_heading_rate = 2.0;
+  max_heading_rate = 10.0; // degrees per minute
 }
 
 CGeoTracker::~CGeoTracker()
@@ -170,6 +170,19 @@ bool CGeoTracker::OnStartUp()
       //        return false;
     }
 
+    double rmin;
+    if(m_MissionReader.GetConfigurationParam("range_min",rmin))
+    {
+      CList.range_min = rmin;
+      MOOSTrace("GeoTracker:: range_min = %f \n",rmin);
+    }
+    else
+    {
+      CList.range_min = 1000.0;
+      MOOSTrace("GeoTracker:: range_min not set - using default %f \n",CList.range_min);
+      //        return false;
+    }
+
     double vmax;
     if(m_MissionReader.GetConfigurationParam("speed_max",vmax))
     {
@@ -296,7 +309,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 	  heading_delta -=360;
 	else if (heading_delta <= -180)
 	  heading_delta += 360;
-	double heading_rate = heading_delta/(MOOSTime()-last_heading_time);
+	double heading_rate = 60*heading_delta/(MOOSTime()-last_heading_time);
 	heading_filter.setVal(heading);
 	heading_rate_filter.setVal(heading_rate);
 	last_heading = heading;
@@ -893,13 +906,14 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
       double tgt_range_guess = sqrt(pow(tgt_xnow-xnow,2)+pow(tgt_ynow-ynow,2));
 
       //      if(tgt_range_guess > range_max && tgt_spd > speed_max )
-      if(tgt_range_guess > range_max)
+      if(tgt_range_guess > range_max || tgt_range_guess < range_min)
 	tgt_range_guess = range_guess;
       MOOSTrace("Range_guess = %f \n", tgt_range_guess);
 
       Contacts[track_id].Topt.set_range(tgt_range_guess,curr_dt);  
       // set max range and speed
       Contacts[track_id].Topt.set_range_max(range_max);  
+      Contacts[track_id].Topt.set_range_min(range_min);  
       Contacts[track_id].Topt.set_speed_max(speed_max);  
       //try to get a solution
       stat = Contacts[track_id].Topt.get_track();
@@ -927,7 +941,7 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	  //is the solution within the detection range and realistic speed?
 	  //make this a parameter
 	  MOOSTrace("solver_range = %f, solver_speed = %f \n", solver_range, solver_speed );
-	  if(solver_range < range_max && solver_range > 0.05 * range_max && 
+	  if(solver_range < range_max && solver_range > range_min && 
 	     solver_speed < speed_max )
 	    {
 	      //position
