@@ -1958,6 +1958,7 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
   int iray_max = 0;
   double pow_ratio = 1;
   double max_tau;
+  double max_power_bounces;
   for (int iray = 0; iray < eig.num_rays; iray++)
     {
       double pow_ray = pow(eig.bundle[iray].amp,2);
@@ -1968,6 +1969,8 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
 	  elev = eig.bundle[iray].dip_receiver;
 	  pow_max = pow_ray;
 	  max_tau = eig.bundle[iray].tau;
+	  max_power_bounces = eig.bundle[iray].surface_bounces +
+	    eig.bundle[iray].bottom_bounces ;
 	} 
     }
 
@@ -1994,7 +1997,9 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
     }
   
   mpp = - 10.0 * log10(power);
-  
+
+  // bounce penalty in dB
+  mpp += cfg_.bounce_penalty()*max_power_bounces;
 
 }
 
