@@ -94,6 +94,7 @@ public:
   double adapt_tl_threshold;
   double tl_threshold;
   int multipath_penalty;
+  int bounce_penalty;
   
   std::vector<double> dom, range;
   std::vector<double> dom_tl_save, range_tl_save;
