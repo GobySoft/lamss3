@@ -40,10 +40,10 @@ std::ostream& operator<< (std::ostream& out, const std::vector<double> & t)
 }
 
 
-class BHV_OptCohAcoustDepth : public IvPBehavior {
+class BHV_OptAcommsDepth : public IvPBehavior {
 public:
-  BHV_OptCohAcoustDepth(IvPDomain);
-  ~BHV_OptCohAcoustDepth() {};
+  BHV_OptAcommsDepth(IvPDomain);
+  ~BHV_OptAcommsDepth() {};
   
   IvPFunction* onRunState();
   bool         setParam(std::string, std::string);
@@ -142,7 +142,7 @@ public:
 
 extern "C" {
   IvPBehavior * createBehavior(std::string name, IvPDomain domain)
-  {return new BHV_OptCohAcoustDepth(domain);}
+  {return new BHV_OptAcommsDepth(domain);}
 }
 
 #endif
