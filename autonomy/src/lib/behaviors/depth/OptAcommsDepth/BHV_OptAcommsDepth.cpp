@@ -47,11 +47,11 @@ using goby::util::goby_time;
 #include "BuildUtils.h"
 #include "ZAIC_Vector.h"
 
-#include "BHV_OptCohAcoustDepth.h"
+#include "BHV_OptAcommsDepth.h"
 
 using goby::util::as;
 
-BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
+BHV_OptAcommsDepth::BHV_OptAcommsDepth(IvPDomain gdomain)
   : IvPBehavior(gdomain),
     last_calc_time_(goby_time()),
     calculate_interval_(boost::posix_time::seconds(10)),
@@ -125,7 +125,7 @@ BHV_OptCohAcoustDepth::BHV_OptCohAcoustDepth(IvPDomain gdomain)
 }
 
 
-bool BHV_OptCohAcoustDepth::setParam(std::string param, std::string val) 
+bool BHV_OptAcommsDepth::setParam(std::string param, std::string val) 
 {
     if(IvPBehavior::setParam(param, val))
         return(true);
@@ -282,7 +282,7 @@ bool BHV_OptCohAcoustDepth::setParam(std::string param, std::string val)
     return true;
 }
 
-IvPFunction *BHV_OptCohAcoustDepth::onRunState() 
+IvPFunction *BHV_OptAcommsDepth::onRunState() 
 {
   if(!m_domain.hasDomain("depth")) {
     postEMessage("No IvP function: No 'depth' variable in the helm domain");
@@ -328,7 +328,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
       std::string log_dir = getBufferStringVal("LOGGER_DIRECTORY", ok_log);
       std::string log_name;
       std::stringstream ss;
-      ss << "BHV_OptCohAcoustDepth_" << goby::common::goby_file_timestamp() << ".txt";
+      ss << "BHV_OptAcommsDepth_" << goby::common::goby_file_timestamp() << ".txt";
       if (ok_log)
 	log_name = log_dir + "/../" + ss.str();
       else
@@ -1202,8 +1202,8 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 	ipf->setPWT(m_priority_wt);
       else 
 	{
-	  postEMessage("Unable to generate OptCohAcoustDepth IvP function");
-	  file_out_ << "Unable to generate OptCohAcoustDepth IvP function" 
+	  postEMessage("Unable to generate OptAcommsDepth IvP function");
+	  file_out_ << "Unable to generate OptAcommsDepth IvP function" 
 		    << std::endl;     
 	} 
       
@@ -1229,7 +1229,7 @@ IvPFunction *BHV_OptCohAcoustDepth::onRunState()
 }
 
 
-void BHV_OptCohAcoustDepth::requestSVPUpdate()
+void BHV_OptAcommsDepth::requestSVPUpdate()
 
 {
   
@@ -1275,7 +1275,7 @@ void BHV_OptCohAcoustDepth::requestSVPUpdate()
     }
 }
 
-bool BHV_OptCohAcoustDepth::handleSVPResponse(std::string serialized_svp_response)
+bool BHV_OptAcommsDepth::handleSVPResponse(std::string serialized_svp_response)
 {
   parse_for_moos(serialized_svp_response, &svp_response);
   file_out_ << goby_time() << "Got SVP update for source id " << svp_response.request_id() 
