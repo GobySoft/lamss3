@@ -33,8 +33,9 @@ message SimModemNetworkConfig
   optional double min_depth = 51 [default = 2];
   optional double max_depth = 52 [default = 200];
   optional int32 num_depths = 53 [default = 100];
-  optional int32 multipath_penalty = 54 [default = 0]; 
-  optional OptimizeMetric optimize = 55 [default = SNR];
+  optional int32 bounce_penalty = 54 [default = 0];
+  optional int32 multipath_penalty = 55 [default = 0]; 
+  optional OptimizeMetric optimize = 56 [default = SNR];
   enum OptimizeMetric
     {
      SNR = 1;
