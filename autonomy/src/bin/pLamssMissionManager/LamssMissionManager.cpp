@@ -70,6 +70,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       in_track(false),
       depth_adapting(false),
       last_slow_loop_t_(0),
+      collaborator_id_(-1),
+      collaborator_name(""),
   filter_length(10),
   got_gps_nav(false)
 {
@@ -91,6 +93,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
     subscribe("COLLABORATOR_ID",
 	      &LamssMissionManager::handle_collaborator_id, this);
+    subscribe("COLLABORATOR_NAME", 
+	      &LamssMissionManager::handle_collaborator_name, this);  
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
     subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
     subscribe("HYDROMAN_NAV_DATA", &LamssMissionManager::handle_hydroman_data, this);
@@ -689,6 +693,16 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	depth_adapting = false;
       publish("SURVEY_COMPLETED","FALSE");
       
+      if (!deploy_cmd.has_collaborator() ||
+	  deploy_cmd.collaborator() == LAMSS_DEPLOY::DEFAULT)
+	publish("ADAPTIVE_DEPTH", "contact=" + collaborator_name);
+      else
+	{
+	  LAMSS_DEPLOY::ContactEnum collab = deploy_cmd.collaborator();
+	  std::string collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
+	  publish("ADAPTIVE_DEPTH", collab_str);
+	}
+	
       // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
       if (last_deploy_cmd_.homing_enabled() &&
          last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
@@ -821,6 +835,11 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
 {
     collaborator_id_ = msg.GetDouble();
+}
+
+void LamssMissionManager::handle_collaborator_name(const CMOOSMsg& msg)
+{
+    collaborator_name = msg.GetString();
 }
 
 void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
