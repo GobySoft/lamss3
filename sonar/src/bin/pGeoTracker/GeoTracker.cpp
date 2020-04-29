@@ -1045,9 +1045,9 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
 	    }
 	  else
 	    {
-	      //	      Contacts[track_id].Topt.reset();
+	      Contacts[track_id].Topt.reset();
 	      Contacts[track_id].Topt.set_reset_init(1);
-	      MOOSTrace("Reset initial guess \n");
+	      MOOSTrace("Reset tracker and initial guess \n");
               tgt_track = false;
 	    }
 	  // initialize to smoothed track
