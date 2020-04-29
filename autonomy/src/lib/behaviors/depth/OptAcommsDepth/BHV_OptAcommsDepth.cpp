@@ -82,6 +82,7 @@ BHV_OptAcommsDepth::BHV_OptAcommsDepth(IvPDomain gdomain)
     optimize_se(false),
     optimize_nl(false),
     multipath_penalty(0),
+    bounce_penalty(0),
     log_open(false),
     svp_depth_resolution(5.0),
     svp_range_resolution(200.0),
@@ -199,6 +200,11 @@ bool BHV_OptAcommsDepth::setParam(std::string param, std::string val)
     else if(param == "multipath_penalty")
     {
       multipath_penalty = as<double>(val);
+      return true;
+    }    
+    else if(param == "bounce_penalty")
+    {
+      bounce_penalty = as<double>(val);
       return true;
     }    
     else if(param == "max_number_bounces")
@@ -354,7 +360,8 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
       file_out_ << goby_time() << " peak_filter=" << peak_filter_ << std::endl; 
       file_out_ << goby_time() << " optimize=" << optimize << std::endl; 
       file_out_ << goby_time() << " sonar=" << tolower(sonar) << std::endl; 
-      file_out_ << goby_time() << " multipath penalty=" << multipath_penalty
+      file_out_ << goby_time() << " multipath penalty=" << multipath_penalty;
+      file_out_ << goby_time() << " per bounce penalty=" << bounce_penalty
 		<< std::endl; 
     }
   bool ok_dep;
@@ -641,6 +648,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		  int iray_max = 0;
 		  double pow_ratio = 1;
 		  double max_tau;
+		  double max_power_bounces = 0;
 		  for (int iray = 0; iray < eig.num_rays; iray++)
 		    {
 		      //if (eig.bundle[iray].dip_receiver >= dip_min &&
@@ -654,6 +662,8 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 			  elev = eig.bundle[iray].dip_receiver;
 			  pow_max = pow_ray;
 			  max_tau = eig.bundle[iray].tau;
+			  max_power_bounces = eig.bundle[iray].surface_bounces +
+			    eig.bundle[iray].bottom_bounces;
 			} 
 		    }
 		  double max_rat = 0;
@@ -677,11 +687,15 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		      mean_power += power;
 		      
 		      double tl = - tl_factor * 10.0 * log10(power);
+                      tl += max_power_bounces*bounce_penalty;
+		      
 		      if (debug) file_out_ << ",range=" << ranges[j]
 					   << ",depth=" << depth[i]
 					   << " tl=" << tl
 					   << " Multipath penalty="
 					   << 10*log10(1-max_rat)
+					   << " Bounce penalty="
+					   << max_power_bounces*bounce_penalty
 					   << std::endl;
 		      
 		      if(tl > max_tl && tl != std::numeric_limits<double>::infinity())
