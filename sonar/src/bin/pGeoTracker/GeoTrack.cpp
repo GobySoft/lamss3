@@ -76,6 +76,11 @@ void CGeoTrack::set_range_max(double rmax)
   range_max = rmax;
 }
 
+void CGeoTrack::set_range_min(double rmin)
+{
+  range_min = rmin;
+}
+
 void CGeoTrack::set_speed_max(double vmax)
 {
   speed_max = vmax;
@@ -178,7 +183,7 @@ status CGeoTrack::get_track()
       double prev_speed = sqrt(pow(xdot,2)+pow(ydot,2));
       double prev_range = sqrt(pow(xzero-vposx[ii],2)+pow(yzero-vposy[ii],2));
       if ( (prev_speed < speed_max) && (prev_range < range_max ) && 
-	   (prev_range > 0.05*range_max))
+	   (prev_range > range_min))
 	{ 
 	  cout << "Solution - Case 1" << endl;
 	  //	  x_r = xzero-vposx[ii];

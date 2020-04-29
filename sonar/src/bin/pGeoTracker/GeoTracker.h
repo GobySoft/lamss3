@@ -13,6 +13,7 @@
 #include "lamss/lib_henrik_util/parse_stat.h"
 #include "lamss/lib_henrik_util/Measurement.h"
 #include "lamss/lib_henrik_util/CVectorUtils.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 
 #define NO_TRACK 0
 #define LR_TRACK 1
@@ -138,6 +139,7 @@ class Contact_List
 
   double auv_x;
   double auv_y;
+  
   double tgt_bearing;
   double bearing_time;
   double tgt_x_est;
@@ -212,7 +214,14 @@ protected:
 	std::vector<double> times;
 	std::vector<double> bearings;
 
-
+	// Ownship Heading variables
+	double last_heading;
+	double last_heading_time;
+	double max_heading_rate;
+	CAngleAvg heading_filter;
+	CAngleAvg heading_rate_filter;
+	int filter_length;
+	
 	Contact_List CList;
 
 	// Local methods
