@@ -213,9 +213,12 @@ namespace lamss
 		    
 		    typedef boost::mpl::list<
 		      boost::statechart::transition< EvDcltOff, Idle  >,
+		      boost::statechart::transition< EvDcltReset, Detection >
+		      > reactions;
+		    /*
 		      boost::statechart::transition< EvDcltReset, Dclt >
 		      > reactions;
-       
+		    */
 		  };
 
             // /Dclt/Detection
