@@ -64,7 +64,7 @@ message LAMSS_DEPLOY {
 	enum ContactEnum{
 		 macrura = 0;
 		 unicorn = 1;
-		 resolution = 2;
+		 DEFAULT = 2;
 		 hydrohole = 3;
 		 h1 = 4;
 		 h2 = 5;
