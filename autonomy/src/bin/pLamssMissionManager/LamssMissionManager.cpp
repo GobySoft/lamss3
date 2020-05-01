@@ -269,6 +269,10 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << last_deploy_cmd_.collaborator()
 			 << std::endl;
 		publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+		// Set acomms depth to current depth
+		std::stringstream ss ;
+		ss << "depth=" << last_nav_.global_fix().depth() ;
+		publish("ACOMMS_DEPTH",ss.str());	  
 
 		depth_adapting = true;
 	    }
@@ -688,7 +692,13 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	  last_acomms_ = MOOSTime();
       if (last_deploy_cmd_.depth_mode() == LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
-	depth_adapting = true;
+	{
+	  // Set acomms depth to current depth
+	  std::stringstream ss ;
+	  ss << "depth=" << last_nav_.global_fix().depth() ;
+	  publish("ACOMMS_DEPTH",ss.str());	  
+	  depth_adapting = true;
+	}
       else
 	depth_adapting = false;
       publish("SURVEY_COMPLETED","FALSE");

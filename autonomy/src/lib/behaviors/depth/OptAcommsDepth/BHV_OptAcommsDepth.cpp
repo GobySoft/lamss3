@@ -94,6 +94,7 @@ BHV_OptAcommsDepth::BHV_OptAcommsDepth(IvPDomain gdomain)
     got_long_origin(false),
     geo_init(false),
     valid_tl(false),
+    new_tl(false),
     new_ivp(false),
     valid_ivp(false),
     water_depth(6000.0),
@@ -102,7 +103,8 @@ BHV_OptAcommsDepth::BHV_OptAcommsDepth(IvPDomain gdomain)
     beam_width(6.0),
     dip_min(-10.0),
     dip_max(10.0),
-    debug(false)
+    debug(true),
+    debug2(false)
 {
     this->setParam("descriptor", "bhv_optcohacoustdepth");
 
@@ -511,7 +513,8 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		{
 		  std::string bellhop_in = response.output_file();
 		  if (debug) file_out_ << goby_time() << "Bellhop response " << request_id << " --- " << bellhop_in << std::endl;
-		
+		  if (debug) file_out_ << goby_time() << "readEigenRayTable"
+				       << std::endl;
 		  new_tl=eigenray_table.readEigenRayTable(bellhop_in, max_number_bounces);
 		  if (new_tl)
 		    {
@@ -520,11 +523,11 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 				<< " depths: " << eigenray_table.num_depths
 				<< std::endl; 
 		      //		  number_depths = eigenray_table.getDepths(depth);
-		      // Clear request id so we don't reprocess later
-		      request_id =0;
 		    }
 		  else
 		    file_out_ << goby_time() << "error reading eigenray table " << std::endl;
+		  // Clear request id so we don't reprocess later
+		  request_id =0;
 		}
 	      else
 		{
@@ -533,7 +536,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		  if (debug) file_out_ << goby_time() << "No eigenray table produced " 
 			    << std::endl;
 		  request_id = 0;
-		  new_tl = 0;
+		  new_tl = false;
 		}
 	      // check that target is outside activation ranges 
 	      bool ok_range;
@@ -551,8 +554,12 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 			<< " , approach_range=" << approach_range_ 
 			<< " , active_region=" << active_region 
 			<< std::endl ; 
-	      if (!active_region ) 
-		return 0;
+	      if (!active_region )
+		{
+		  file_out_ << goby_time() << "Outside active region" << std::endl;
+		  IvPFunction* ipf = 0;
+		  return(ipf);
+		}
 	    
 	      // eigenray_table.clear();
 	      if (current_rate >= 0)
@@ -590,7 +597,12 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
       
       // check if we are in active region before continuing      
       if (!active_region ) 
-	return 0;
+	{
+	  file_out_ << goby_time() << "Outside active region" << std::endl;
+	  IvPFunction* ipf = 0;
+	  return(ipf);
+	}
+
       
       if (new_tl)
 	{
@@ -689,7 +701,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		      double tl = - tl_factor * 10.0 * log10(power);
                       tl += max_power_bounces*bounce_penalty;
 		      
-		      if (debug) file_out_ << ",range=" << ranges[j]
+		      if (debug2) file_out_ << ",range=" << ranges[j]
 					   << ",depth=" << depth[i]
 					   << " tl=" << tl
 					   << " Multipath penalty="
@@ -728,8 +740,8 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		  return(ipf);
 		
 		}
-	      else
-		valid_tl = true;
+	      //	      else
+	      //		valid_tl = true;
 	      
 	      for (int i=0; i<number_depths; i++)
 		{
@@ -743,21 +755,23 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		fabs(atan2(-(min_tl_dep - current_depth),
 			   fabs(ranges[j]-current_range) )
 		     *180./M_PI );
-	      if (debug)
-		if (debug) file_out_ << goby_time() << " current range=" << current_range 
-			<< ", pitch required=" << pitch_required
-			<< ", min_pitch required=" << min_pitch_required
-			<< ", min_tl_dep=" << min_tl_dep
-			<< ", min_tl=" << min_tl
-			<< ", mean_tl=" << closest_tl
-			<< ", mean_tl-min_tl=" << closest_tl-min_tl
-			<< ", adapt_tl_threshold=" << tl_threshold
-			<< std::endl;
+	      if (debug) file_out_ << goby_time() << " current range=" << current_range 
+				   << ", pitch required=" << pitch_required
+				   << ", min_pitch required=" << min_pitch_required
+				   << ", min_tl_dep=" << min_tl_dep
+				   << ", min_tl=" << min_tl
+				   << ", mean_tl=" << closest_tl
+				   << ", mean_tl-min_tl=" << closest_tl-min_tl
+				   << ", adapt_tl_threshold=" << tl_threshold
+				   << std::endl;
 	      
 	      // If benefit of new depth is large ignore pitch required.
-	      if ( (( mean_tl - min_tl >=2*tl_threshold) ||
-		    (pitch_required < min_pitch_required && mean_tl - min_tl >= tl_threshold))
-		   && ranges[j] <= range_max )
+	      //	      if ( j == num_ranges-1 ||
+	      if ( 
+		   ((( mean_tl - min_tl >=2*tl_threshold) ||
+		     (pitch_required < min_pitch_required &&
+		      mean_tl - min_tl >= tl_threshold)) &&
+		    ranges[j] <= range_max ))
 		{
 		  dom = dep_tl;
 		  range = val_tl; 
@@ -770,6 +784,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 		  mean_tl_opt = mean_tl;
 		  // TL threshold hysteresis	 
 		  tl_threshold = adapt_tl_threshold - 0.5;
+		  valid_tl = true;
 		}
 	      else
 		tl_threshold = adapt_tl_threshold;
@@ -793,12 +808,22 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	  
 	  if (valid_tl)
 	    {
-	      dom_tl_save = dom;
-	      range_tl_save = range;
-	      elev_angle_save = elev_angle;
 	      new_tl =false;
-	      new_ivp = true;
-	      valid_ivp = true;
+	      if (dom.size() > 0)
+		{
+		  dom_tl_save = dom;
+		  range_tl_save = range;
+		  elev_angle_save = elev_angle;
+		  new_ivp = true;
+		  valid_ivp = true;
+		}
+	      else
+		{
+		  file_out_ << goby_time() << "No domain:  No valid TL" << std::endl; 
+		  new_tl =false;
+		  IvPFunction* ipf = 0;
+		  return(ipf);
+		}
 	    }
 	  else
 	    {
@@ -888,7 +913,10 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	    }
 	}
       catch (boost::bad_lexical_cast&)
-	{ return 0; } 
+	{
+	  IvPFunction* ipf = 0;
+	  return(ipf);
+	} 
 
       if ( optimize_nl )
 	{
@@ -987,7 +1015,10 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	    }
 	}
       catch (boost::bad_lexical_cast&)
-	{ return 0; } 
+	{
+	  IvPFunction* ipf = 0;
+	  return(ipf);
+	} 
 
 
       int num_depths =  dom.size();
@@ -1190,7 +1221,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	  s2 << "depth=" << maxval_depth ;
 	  //	  postMessage("ACOMMS_DEPTH", s2.str());
 	}
-      else if (debug )
+      else if (debug2 )
 	  file_out_ << goby_time() << std::endl << " Reusing IvPFunction: " << std::endl 
 		    << "domain={" << dom << "}," << std::endl 
 		    << "range={" << range << "}" << std::endl;
@@ -1218,14 +1249,15 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	{
 	  postEMessage("Unable to generate OptAcommsDepth IvP function");
 	  file_out_ << "Unable to generate OptAcommsDepth IvP function" 
-		    << std::endl;     
+		    << std::endl;
+	  ipf = 0;
 	} 
       
       std::string zaic_warnings = zaic.getWarnings();
       if(zaic_warnings != "")
 	{
 	  postEMessage(zaic_warnings);
-	  file_out_ << "ZAIC Warning: " << zaic_warnings << std::endl;      
+	  file_out_ << "ZAIC Warning: " << zaic_warnings << std::endl;      	
 	}
       //      else
       //	file_out_ << "generated ZAIC " << std::endl;      

@@ -83,6 +83,7 @@ public:
   bool valid_ag;
 
   bool debug;
+  bool debug2;
   bool new_tl;
   bool new_ivp;
 
