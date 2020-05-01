@@ -55,9 +55,10 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 
       arr_file >> source_depth;
 
-      arr_file >> num_depths;      
+      arr_file >> num_depths;
+      if (num_depths <= 0) return(false);
       depth.clear();
-      for (unsigned int i=0; i<num_depths; i++)
+      for (int i=0; i<num_depths; i++)
 	{
 	  double buf;
 	  arr_file >> buf;
@@ -65,8 +66,9 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	}
 
       arr_file >> num_ranges;
+      if (num_ranges <= 0) return(false);
       range.clear();
-      for (unsigned int j=0; j<num_ranges; j++)
+      for (int j=0; j<num_ranges; j++)
 	{
 	  double buf;
 	  arr_file >> buf;
@@ -77,9 +79,9 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
       double unused;
       arr_file >> unused;
 
-      for (unsigned int i=0; i<num_depths; i++)
+      for (int i=0; i<num_depths; i++)
 	{
-	  for (unsigned int j=0; j<num_ranges; j++)
+	  for (int j=0; j<num_ranges; j++)
 	    {
 	      int num_rays_total;
 	      CEigenRay eigbuf;
@@ -90,7 +92,7 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	      eigbuf.range = range[j];
 
 	      arr_file >> num_rays_total;
-	      for(unsigned k = 0; k < num_rays_total; k++)
+	      for (int k = 0; k < num_rays_total; k++)
 		{
 		  CRay ray;
 		  double val;
@@ -135,9 +137,9 @@ bool CEigenRayTable::getEigenRays(double req_range, double req_depth,
   int j_close=0;
   eig.clear();
 
-  for (unsigned int i=0; i<num_depths; i++)
+  for (int i=0; i<num_depths; i++)
     {
-      for (unsigned int j=0; j<num_ranges; j++)
+      for (int j=0; j<num_ranges; j++)
 	{
 	  double d = sqrt(pow(req_range - range[j],2) + pow(req_depth - depth[i],2));
 	  if ( d < dist )
@@ -245,7 +247,7 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
 
       arr_file >> num_depths;
       depth.clear();
-      for (unsigned int i=0; i<num_depths; i++)
+      for (int i=0; i<num_depths; i++)
 	{
 	  double buf;
 	  arr_file >> buf;
@@ -254,7 +256,7 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
 
       arr_file >> num_ranges;
       range.clear();
-      for (unsigned int j=0; j<num_ranges; j++)
+      for (int j=0; j<num_ranges; j++)
 	{
 	  double buf;
 	  arr_file >> buf;
@@ -265,9 +267,9 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
       double unused;
       arr_file >> unused;
 
-      for (unsigned int i=0; i<num_depths; i++)
+      for (int i=0; i<num_depths; i++)
 	{
-	  for (unsigned int j=0; j<num_ranges; j++)
+	  for (int j=0; j<num_ranges; j++)
 	    {
 	      int num_rays_total;
 	      CEigenRay eigbuf;
@@ -278,7 +280,7 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
 	      eigbuf.range = range[j];
 
 	      arr_file >> num_rays_total;
-	      for(unsigned k = 0; k < num_rays_total; k++)
+	      for (int k = 0; k < num_rays_total; k++)
 		{
 		  CRay ray;
 		  double val;
