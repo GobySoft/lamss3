@@ -201,51 +201,51 @@ void LamssMissionManager::slow_loop(double curr_time)
 
   if (prosecute_mode_active_)
     {
-    double station_range =
-      sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
-	   pow(last_nav_.local_fix().y()-last_deploy_cmd_.deploy_y(),2));
-    if (cfg_.operation_radius() > 0 &&
-	station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
-	  {
-	    send_deploy();
-	    publish("SURVEY_COMPLETED","TRUE");
-	    goby::glog << group("helm")
-		       << "DEPLOY Executed: Approaching op_radius during prosecute"
-		       <<"station_range = " << station_range
-		       <<", operation_radius = "<< cfg_.operation_radius()
-		       << std::endl;
-	  }
-
-    double remaining = last_prosecute_cmd_._time() +
-      last_prosecute_cmd_.prosecute_duration() -
-      curr_time;
-    if (remaining <= 0.0)
-      {
-	//	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
-	send_deploy();
-	publish("SURVEY_COMPLETED","TRUE");
-	goby::glog << group("helm")
-		   << "Prosecute duration exceeded - commanding Deploy"
-		   << std::endl;
-      }
-    else
-      {
-	goby::glog << group("helm")
-		   << "Prosecute time remaining: " << remaining
-		   << std::endl;
-	publish("PROSECUTE_REMAINING",remaining);
-      }
+      double station_range =
+	sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
+	     pow(last_nav_.local_fix().y()-last_deploy_cmd_.deploy_y(),2));
+      if (cfg_.operation_radius() > 0 &&
+	  station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
+	{
+	  send_deploy();
+	  publish("SURVEY_COMPLETED","TRUE");
+	  goby::glog << group("helm")
+		     << "DEPLOY Executed: Approaching op_radius during prosecute"
+		     <<"station_range = " << station_range
+		     <<", operation_radius = "<< cfg_.operation_radius()
+		     << std::endl;
+	}
+      
+      double remaining = last_prosecute_cmd_._time() +
+	last_prosecute_cmd_.prosecute_duration() -
+	curr_time;
+      if (remaining <= 0.0)
+	{
+	  //	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
+	  send_deploy();
+	  publish("SURVEY_COMPLETED","TRUE");
+	  goby::glog << group("helm")
+		     << "Prosecute duration exceeded - commanding Deploy"
+		     << std::endl;
+	}
+      else
+	{
+	  goby::glog << group("helm")
+		     << "Prosecute time remaining: " << remaining
+		     << std::endl;
+	  publish("PROSECUTE_REMAINING",remaining);
+	}
     }
-
+  
   // Check if Deploy Duration exceeded or if tracking updates stale
-
+  
   if ( mission_active_ && !homing_mode_active_)
     {
       if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
-
+	  
 	  if (stale_acomms >= last_deploy_cmd_.deploy_duration() ||
 	      stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
@@ -259,22 +259,23 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
-	  else if (stale_gps > 2.0 * last_deploy_cmd_.gps_interval() &&
-		   stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration()
-		   && !depth_adapting)
+	  else if (!prosecute_mode_active_ &&
+		   stale_gps > 2.0 * last_deploy_cmd_.gps_interval() &&
+		   stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration() &&
+		   !depth_adapting )
 	    {
 	      goby::glog << group("helm")
 			 << "25% of deploy duration exceeded w/o acomms"
 			 << " going to acomms depth with collaborator"
 			 << last_deploy_cmd_.collaborator()
 			 << std::endl;
-		publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
-		// Set acomms depth to current depth
-		std::stringstream ss ;
-		ss << "depth=" << last_nav_.global_fix().depth() ;
-		publish("ACOMMS_DEPTH",ss.str());	  
-
-		depth_adapting = true;
+	      publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+	      // Set acomms depth to current depth
+	      std::stringstream ss ;
+	      ss << "depth=" << last_nav_.global_fix().depth() ;
+	      publish("ACOMMS_DEPTH",ss.str());	  
+	      
+	      depth_adapting = true;
 	    }
 	  else
 	    {
