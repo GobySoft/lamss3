@@ -250,8 +250,11 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
-			 << "Deploy duration exceeded w/o acomms - initiating Abort"
-			 << std::endl;
+			 << "Deploy duration exceeded w/o acomms or gps - initiating Abort"
+			 << std::endl
+			 << "Stale: acomms: " << stale_acomms 
+			 << ", nav: " << stale_gps 
+			 << std::endl ;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
@@ -265,10 +268,13 @@ void LamssMissionManager::slow_loop(double curr_time)
 		   !depth_adapting )
 	    {
 	      goby::glog << group("helm")
-			 << "25% of deploy duration exceeded w/o acomms"
+			 << "25% of deploy duration exceeded w/o acomms "
 			 << " going to acomms depth with collaborator"
 			 << last_deploy_cmd_.collaborator()
-			 << std::endl;
+			 << std::endl
+			 << "Stale: acomms: " << stale_acomms 
+			 << ", nav: " << stale_gps 
+			 << std::endl ;
 	      publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
 	      // Set acomms depth to current depth
 	      std::stringstream ss ;
@@ -283,6 +289,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 		std::max(stale_acomms,stale_gps);
 	      goby::glog << group("helm")
 			 << "Deploy time remaining: " << remaining
+			 << std::endl 
+			 << "Stale: acomms: " << stale_acomms 
+			 << ", nav: " << stale_gps 
 			 << std::endl;
 	      publish("DEPLOY_REMAINING",remaining);
 	    }
@@ -598,6 +607,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
             		std::stringstream ss;
             		ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
             		publish("GPS_UPDATE_RECEIVED", ss.str());
+			last_gps_ = last_nav_.time();
 		}	
 			
         }
