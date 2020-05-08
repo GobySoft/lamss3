@@ -87,7 +87,8 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     surface_rms_roughness(cfg_.surface_rms_roughness()),
     surface_roughness_loss(cfg_.surface_roughness_loss()),
     bottom_rms_roughness(cfg_.bottom_rms_roughness()),
-    bottom_roughness_loss(cfg_.bottom_roughness_loss())
+  bottom_roughness_loss(cfg_.bottom_roughness_loss()),
+  sonar_on_(false)
     //, 
     //  sync_password(cfg_.sync_password())
 {
@@ -95,6 +96,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   set_ignore_stale(false);
   
   // set up subscriptions before starting separate thread
+  subscribe("SONAR_CONTROL", &SimPassiveSonar::handle_sonar_control, this);    
   subscribe("AEL_HEADING", &SimPassiveSonar::handle_ael_heading, this);    
   subscribe("AEL_PITCH", &SimPassiveSonar::handle_ael_pitch, this);    
   subscribe("NAV_SPEED", &SimPassiveSonar::handle_nav_speed, this);    
@@ -263,6 +265,11 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   svp_requests.clear();
   slow_loop_period = svp_update_interval/2; 
 
+}
+
+void SimPassiveSonar::handle_sonar_control(const CMOOSMsg& msg)
+{
+  sonar_on_ = MOOSStrCmp(toupper( msg.m_sVal),"ON");
 }
 
 void SimPassiveSonar::handle_sound_speed(const CMOOSMsg& msg)
@@ -603,176 +610,184 @@ void SimPassiveSonar::loop()
 
   double curr_time = MOOSTime();
   
-  got_array_info = (ok_hydx && ok_hydy 
-		    && ok_hydz);
-  
-  got_array_dir_info = (ok_dir_x && ok_dir_y && ok_dir_z);
-  
-  if (got_array_dir_info)
+  if (sonar_on_)
     {
-      array_dir.resize(num_array_elements);
-      // set directionality logic
-      for (unsigned int i = 0; i < num_array_elements; i++)
-	array_dir[i] = (pow(array_dir_x[i],2)
-			+pow(array_dir_y[i],2)
-			+pow(array_dir_z[i],2) > 1e-6);
-    }  
-  else
-    {
-      array_dir.resize(num_array_elements);
-      for (unsigned int i = 0; i < num_array_elements; i++)
-	array_dir[i] = false;
-    }
+      got_array_info = (ok_hydx && ok_hydy 
+			&& ok_hydz);
   
-  double t_now = MOOSTime();
-  // Note that this timing scheme isn't perfect, but the processing chain
-  // should be robust enough to handle it.
-  if ( (t_now - time_last) > file_interval_time)
-    {
-      if (time_last < 1)
-	timestamp = floor(t_now);
-      else
-	timestamp = timestamp + file_interval_time;
-
-      time_last = timestamp;
-
-      if (pinger_enabled)
-	getPingerInfo();
-      else if (multi_target && number_of_targets >0)
-	getTargetInfo(0);
+      got_array_dir_info = (ok_dir_x && ok_dir_y && ok_dir_z);
+  
+      if (got_array_dir_info)
+	{
+	  array_dir.resize(num_array_elements);
+	  // set directionality logic
+	  for (unsigned int i = 0; i < num_array_elements; i++)
+	    array_dir[i] = (pow(array_dir_x[i],2)
+			    +pow(array_dir_y[i],2)
+			    +pow(array_dir_z[i],2) > 1e-6);
+	}  
       else
 	{
-	  got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
-				ok_source_bb_bw);
-	  //	  got_source_loc = (ok_pinger_x && ok_pinger_y);
-	  got_source_loc = pinger_enabled;
+	  array_dir.resize(num_array_elements);
+	  for (unsigned int i = 0; i < num_array_elements; i++)
+	    array_dir[i] = false;
 	}
+  
+      double t_now = MOOSTime();
+      // Note that this timing scheme isn't perfect, but the processing chain
+      // should be robust enough to handle it.
+      if ( (t_now - time_last) > file_interval_time)
+	{
+	  if (time_last < 1)
+	    timestamp = floor(t_now);
+	  else
+	    timestamp = timestamp + file_interval_time;
+
+	  time_last = timestamp;
+
+	  if (pinger_enabled)
+	    getPingerInfo();
+	  else if (multi_target && number_of_targets >0)
+	    getTargetInfo(0);
+	  else
+	    {
+	      got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
+				    ok_source_bb_bw);
+	      //	  got_source_loc = (ok_pinger_x && ok_pinger_y);
+	      got_source_loc = pinger_enabled;
+	    }
       
-      // Output error messages 
-      if(!got_array_info)
-	{
-	  glog.is(VERBOSE) && glog << "ARRAY_[X, Y or Z] *not* in the MOOSDB. - Waiting" << endl;
-	  return;
-	}
-      else
-	{
-	  // If we have the array's information, generate timeseries and write files 
-	  //Set all timeseries matricies to zero.
-	  gsl_matrix_set_zero(sum_of_timeseries); 
-	  
-	  if (vsa)
+	  // Output error messages 
+	  if(!got_array_info)
 	    {
-	      gsl_matrix_set_zero(sum_of_timeseries_x);
-	      gsl_matrix_set_zero(sum_of_timeseries_y); 
-	      gsl_matrix_set_zero(sum_of_timeseries_z); 
-	    }
-	  // calculate the hydrophone positions every iteration in case tow position
-	  // and relative hydrophone locations are published asychronously.
-	  for (int i=0; i < num_array_elements; i++)
-	    {
-	      array_x.at(i) = array_x_rel.at(i);
-	      array_y.at(i) = array_y_rel.at(i);
-	      array_z.at(i) = array_z_rel.at(i);
-	    }
-	  
-	  // get the noise level and covariances if available
-	  
-	  double nl = getAmbientNoise(-ael_z, 
-				      depth_nl,noise_db); 
-	  glog.is(VERBOSE) && glog << "Depth: " << -ael_z 
-				   << " NL: " << nl << endl;
-	  //noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0);
-	  //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
-	  noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5); 	  
-	  
-	  // initialize spectra
-	  initialize_spectrum();
-	  
-	  // generate corrrelated  noise spectrum
-	  generate_corr_noise_spectrum();
-	  glog.is(DEBUG1) && glog << "Noise realizations done" << endl;
-
-	  
-	  // Passive targets are added in the spectral domain
-	  if (cfg_.coherent_sources() && number_of_targets>0)
-	    {
-	      freq_phase.resize(num_freqs);
-	      for(int f_iter=0; f_iter < num_freqs; f_iter++)
-		{
-		  freq_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[0]);
-		}
-	    }
-	      
-	  for (int i=0; i<number_of_targets; i++)
-	    {
-	      glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
-	      
-	      bool ok_tgt_info = getTargetInfo(i);
-	      if (!ok_tgt_info)
-		{
-		  glog.is(VERBOSE) && glog << "Waiting for info for TGT_"
-					   << m_target_number[i] << endl;
-		  return;
-		}
-	      
-	      glog.is(VERBOSE) && glog << "Got info for TGT_" << m_target_number[i]
-				       << endl;;
-	      int cn_num = findAcousticContact(Targets[i].target_id());
-	      if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
-		{
-		  generate_signal_spectrum(i);  
-		  glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
-					   << Targets[i].target_id() << endl;
-		  icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
-		  //		  if(got_source_loc && i == icnt_rot)
-		  if(got_source_loc && i == Targets.size()-1)
-		    {
-		      // Publish simulated target position rotating through targets
-		      m_Comms.Notify("TARGET_XPOS",source_pos_x);
-		      m_Comms.Notify("TARGET_YPOS",source_pos_y);
-		    }
-		}
-
-	    }
-	  
-	  // here we add the PINGER timeseries in time domain
-	  if (pinger_enabled && pinger_active)
-	    {
-       	      glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
-	  
-	      bool ok_pinger_info = getPingerInfo();
-	      
-	      if (!ok_pinger_info)
-		{
-		  glog.is(VERBOSE) && glog << "Waiting for info for PINGER"
-					   << endl;
-		  return;
-		}
-	      glog.is(VERBOSE) && glog << "Got info for PINGER" 
-				       << endl;;
-	      if (add_pinger_timeseries())
-		{
-		  glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
-				       << endl;;
-		}
+	      glog.is(VERBOSE) && glog << "ARRAY_[X, Y or Z] *not* in the MOOSDB. - Waiting" << endl;
+	      return;
 	    }
 	  else
 	    {
-	      save_spectral_timeseries();
-	    }
-
-	  glog.is(VERBOSE) && glog << "Writing data files " << endl;
-	  write_nas_file(timestamp);
-	  write_nas_file_verbose(timestamp);
-	  write_hyd_file();
-	  write_eigenray_file();
-	  m_Comms.Notify("SONAR_DIR", base_dir_name);
-	  m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
+	      // If we have the array's information, generate timeseries and write files 
+	      //Set all timeseries matricies to zero.
+	      gsl_matrix_set_zero(sum_of_timeseries); 
 	  
-	  frame_number++;
+	      if (vsa)
+		{
+		  gsl_matrix_set_zero(sum_of_timeseries_x);
+		  gsl_matrix_set_zero(sum_of_timeseries_y); 
+		  gsl_matrix_set_zero(sum_of_timeseries_z); 
+		}
+	      // calculate the hydrophone positions every iteration in case tow position
+	      // and relative hydrophone locations are published asychronously.
+	      for (int i=0; i < num_array_elements; i++)
+		{
+		  array_x.at(i) = array_x_rel.at(i);
+		  array_y.at(i) = array_y_rel.at(i);
+		  array_z.at(i) = array_z_rel.at(i);
+		}
+	  
+	      // get the noise level and covariances if available
+	  
+	      double nl = getAmbientNoise(-ael_z, 
+					  depth_nl,noise_db); 
+	      glog.is(VERBOSE) && glog << "Depth: " << -ael_z 
+				       << " NL: " << nl << endl;
+	      //noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0);
+	      //Correction AJP 3 NOV 2010 (Generate background noise with the correct spectral level.)
+	      noise_std = pow(10.0, nl/20.0)*pow(10.0, -6.0)*sqrt(sampling_frequency*0.5); 	  
+	  
+	      // initialize spectra
+	      initialize_spectrum();
+	  
+	      // generate corrrelated  noise spectrum
+	      generate_corr_noise_spectrum();
+	      glog.is(DEBUG1) && glog << "Noise realizations done" << endl;
+
+	  
+	      // Passive targets are added in the spectral domain
+	      if (cfg_.coherent_sources() && number_of_targets>0)
+		{
+		  freq_phase.resize(num_freqs);
+		  for(int f_iter=0; f_iter < num_freqs; f_iter++)
+		    {
+		      freq_phase.at(f_iter) = 2*M_PI*gsl_rng_uniform(gsl_rng_tgt[0]);
+		    }
+		}
+	      
+	      for (int i=0; i<number_of_targets; i++)
+		{
+		  glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
+	      
+		  bool ok_tgt_info = getTargetInfo(i);
+		  if (!ok_tgt_info)
+		    {
+		      glog.is(VERBOSE) && glog << "Waiting for info for TGT_"
+					       << m_target_number[i] << endl;
+		      return;
+		    }
+	      
+		  glog.is(VERBOSE) && glog << "Got info for TGT_" << m_target_number[i]
+					   << endl;;
+		  int cn_num = findAcousticContact(Targets[i].target_id());
+		  if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
+		    {
+		      generate_signal_spectrum(i);  
+		      glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
+					       << Targets[i].target_id() << endl;
+		      icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
+		      //		  if(got_source_loc && i == icnt_rot)
+		      if(got_source_loc && i == Targets.size()-1)
+			{
+			  // Publish simulated target position rotating through targets
+			  m_Comms.Notify("TARGET_XPOS",source_pos_x);
+			  m_Comms.Notify("TARGET_YPOS",source_pos_y);
+			}
+		    }
+
+		}
+	  
+	      // here we add the PINGER timeseries in time domain
+	      if (pinger_enabled && pinger_active)
+		{
+		  glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
+	  
+		  bool ok_pinger_info = getPingerInfo();
+	      
+		  if (!ok_pinger_info)
+		    {
+		      glog.is(VERBOSE) && glog << "Waiting for info for PINGER"
+					       << endl;
+		      return;
+		    }
+		  glog.is(VERBOSE) && glog << "Got info for PINGER" 
+					   << endl;;
+		  if (add_pinger_timeseries())
+		    {
+		      glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
+					       << endl;;
+		    }
+		}
+	      else
+		{
+		  save_spectral_timeseries();
+		}
+
+	      glog.is(VERBOSE) && glog << "Writing data files " << endl;
+	      write_nas_file(timestamp);
+	      write_nas_file_verbose(timestamp);
+	      write_hyd_file();
+	      write_eigenray_file();
+	      m_Comms.Notify("SONAR_DIR", base_dir_name);
+	      m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
+	  
+	      frame_number++;
+	    }
 	}
     }
-  
+  else
+    {
+      glog.is(DEBUG1) && glog << "Sonar is OFF" << std::endl;
+      time_last = 0;				     
+    }
+	
   // process some events at a slower rate
   //const int slow_loop_period = 10;
   if(curr_time > last_slow_loop_t_ + slow_loop_period)

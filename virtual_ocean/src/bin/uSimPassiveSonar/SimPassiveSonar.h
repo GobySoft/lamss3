@@ -84,6 +84,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_sonar_control(const CMOOSMsg& msg);
     void handle_ael_heading(const CMOOSMsg& msg);
     void handle_ael_pitch(const CMOOSMsg& msg);
     void handle_nav_speed(const CMOOSMsg& msg);
@@ -117,6 +118,8 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     bool debug;
     bool debug2;
 
+    bool sonar_on_;
+    
     // Sensor arrays
     std::vector<CSensor> hydrophones;
     std::vector<CSensor> x_accelerometers;

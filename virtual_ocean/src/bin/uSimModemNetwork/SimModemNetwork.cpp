@@ -481,7 +481,8 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_range(range);
 
 	  // set ownship_depth to node depth
-	  ownship_depth = request.receiver(rcv).depth();
+	  if (request.receiver(rcv).has_depth())
+	    ownship_depth = request.receiver(rcv).depth();
 	  receiver -> set_depth(ownship_depth);
       // Here goes the performance metric computation
 	  CEigenRay eig;
