@@ -97,7 +97,7 @@ message ObjFuncRequest
     {
         optional string node = 1;
         optional double range = 2;
-        required double depth = 3;
+        optional double depth = 3;
     }
 }
 
