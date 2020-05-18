@@ -2285,10 +2285,15 @@ std::vector<double> LamssNetCdf::internal_wave_eof_weight(int index,
 							  double heading,
 							  double amplitude_factor)
 {
-  double k = 2*M_PI/wavelength;
-  double k_x = k * sin(heading*M_PI/180);
-  double k_y = k * cos(heading*M_PI/180);
-  double omega = 2*M_PI/period;
-  double amp = 1.0 + amplitude_factor * sin(omega*t - k_x*x -k_y*y);
-    weights_vec_[index] = baseline_weights_vec_[index] * amp;
+  if (index < weights_vec_.size())
+    {
+      double k = 2*M_PI/wavelength;
+      double k_x = k * sin(heading*M_PI/180);
+      double k_y = k * cos(heading*M_PI/180);
+      double omega = 2*M_PI/period;
+      double amp = 1.0 + amplitude_factor * sin(omega*t - k_x*x -k_y*y);
+      weights_vec_[index] = baseline_weights_vec_[index] * amp;
+    }
+  else
+    std::cout << "Internal wave error: Non-existant EOF " << index+1 << std::endl;	
 }
