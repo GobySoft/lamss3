@@ -2050,6 +2050,8 @@ void LamssNetCdf::get_eof_weights()
     std::cout << weights_vec_[ij] << ", ";
   }
   std::cout << std::endl;
+  // Save as baseline weights for internal wave simulations
+  baseline_weights_vec_ = weights_vec_;
 }
 
 void LamssNetCdf::get_eof_basevals()
@@ -2268,4 +2270,25 @@ bool LamssNetCdf::handle_eof_weight_update_message(int index,double weight_updat
     }
 
   return true;
+}
+
+std::vector<double> LamssNetCdf::current_eof_weights()
+{
+  return(weights_vec_);
+}
+
+std::vector<double> LamssNetCdf::internal_wave_eof_weight(int index,
+							  double x, double y,
+							  double t,
+							  double period,
+							  double wavelength,
+							  double heading,
+							  double amplitude_factor)
+{
+  double k = 2*M_PI/wavelength;
+  double k_x = k * sin(heading*M_PI/180);
+  double k_y = k * cos(heading*M_PI/180);
+  double omega = 2*M_PI/period;
+  double amp = 1.0 + amplitude_factor * sin(omega*t - k_x*x -k_y*y);
+    weights_vec_[index] = baseline_weights_vec_[index] * amp;
 }

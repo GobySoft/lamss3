@@ -68,6 +68,7 @@ class LamssNetCdf
   std::vector<float> time_vec_;
   std::vector<float> utc_vec_;
   std::vector<double> weights_vec_;
+  std::vector<double> baseline_weights_vec_;
 
   
   int ncid_;
@@ -187,6 +188,14 @@ class LamssNetCdf
   std::vector<double> get_eof_profile(double lat_, double lon_,
                                        std::vector<double> dep);
   bool handle_eof_weight_update_message(int index, double weight_update);
+  std::vector<double> current_eof_weights();
+  std::vector<double> internal_wave_eof_weight(int index,
+						double x, double y,
+						double t,
+						double period,
+						double wavelength,
+						double heading,
+						double amplitude_factor);
 
   std::string eof_num_depth;
   std::string eof_num_eofs;
@@ -209,4 +218,5 @@ class LamssNetCdf
   std::vector<std::vector<double> > baseval_weighted_eofs;
 };
 
-#endif 
+#endif
+
