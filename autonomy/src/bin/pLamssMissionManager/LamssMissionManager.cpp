@@ -243,10 +243,11 @@ void LamssMissionManager::slow_loop(double curr_time)
     {
       if ( !abort_mode_active_ && !drifting_mode_active_)
 	{
+	  double deploy_time = curr_time - last_deploy_cmd_._time();
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
 	  
-	  if (stale_acomms >= last_deploy_cmd_.deploy_duration() ||
+	  if (deploy_time >= last_deploy_cmd_.deploy_duration() ||
 	      stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
 	      goby::glog << group("helm")
@@ -821,10 +822,10 @@ void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
   LAMSS_STATUS status_msg;
   parse_for_moos(msg.GetString(), &status_msg);
-  // If coming from topside count as being connected
-  // Disabled after ICEXTracker implemented. Only nav updates and commands count
-#if 0
-  if (status_msg.node() == cfg_.topside_id())
+  // If coming from topside count as being connected, 
+  // except for ICEXTracker, where only nav updates and commands count
+#if 1
+  if (!got_first_tracking_msg && status_msg.node() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
 #endif
 }
