@@ -265,11 +265,11 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  else if (!prosecute_mode_active_ &&
 		   stale_gps > 2.0 * last_deploy_cmd_.gps_interval() &&
-		   stale_acomms >= 0.25 * last_deploy_cmd_.deploy_duration() &&
+		   stale_acomms >= 0.5 * last_deploy_cmd_.deploy_duration() &&
 		   !depth_adapting )
 	    {
 	      goby::glog << group("helm")
-			 << "25% of deploy duration exceeded w/o acomms "
+			 << "50% of deploy duration exceeded w/o acomms "
 			 << " going to acomms depth with collaborator"
 			 << last_deploy_cmd_.collaborator()
 			 << std::endl
