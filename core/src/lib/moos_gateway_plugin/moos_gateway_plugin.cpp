@@ -33,6 +33,21 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
     pAcommsHandlerMultiplexTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
+
+        for (int i = 0, n = cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library_size(); i < n; ++i)
+        {
+            auto lib = cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library(i);
+            void* handle =
+                dccl::DynamicProtobufManager::load_from_shared_lib(lib);
+
+            if (!handle)
+            {
+                glog.is(DIE) && glog << "Failed to load library " << lib << ", check path provided or add to /etc/ld.so.conf "
+                                     << "or LD_LIBRARY_PATH" << std::endl;
+            }
+        }
+
+        
         this->goby()
             .interprocess()
             .subscribe_type_regex<lamss::groups::pAcommsHandler_multiplex,
