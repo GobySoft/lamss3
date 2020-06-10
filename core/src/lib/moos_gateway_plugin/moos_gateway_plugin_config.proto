@@ -5,6 +5,7 @@ package lamss.protobuf;
 message GobyGatewayConfig
 {
     optional string multiplex_moos_var = 1 [default = "LIAISON_COMMANDER_OUT"];
+    repeated string load_shared_library = 2;
 }
 
 extend goby.apps.moos.protobuf.GobyMOOSGatewayConfig
