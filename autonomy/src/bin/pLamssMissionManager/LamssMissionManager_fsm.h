@@ -3,8 +3,8 @@
 // Toby Schneider 
 // Massachusetts Institute of Technology 
 
-#ifndef LAMSSTrackManagerFSM20150929H
-#define LAMSSTrackManagerFSM20150929H
+#ifndef LAMSSMissionManagerFSM20150929H
+#define LAMSSMissionManagerFSM20150929H
 
 #include <boost/statechart/event.hpp>
 #include <boost/statechart/state_machine.hpp>
