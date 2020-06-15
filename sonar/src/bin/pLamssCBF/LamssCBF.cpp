@@ -368,15 +368,14 @@ void LamssCBF::handle_processing(const CMOOSMsg& msg)
   curr_cfg_ = cfg_;
   if (processing_cmd._rcv_id() == vehicle_id_)
     {
-      if (processing_cmd.processing_type() == LAMSS_PROCESSING::TONES)
+      if (processing_cmd.processing_type() == LAMSS_PROCESSING::TONES &&
+	  processing_cmd.tones_size() > 0 )
 	{
 	  curr_cfg_.set_processing_type(LamssCBFConfig::TONES);
 	  stringstream cc;
-	  cc << doubleToString(processing_cmd.tone_1(),1) ;
-	  if (processing_cmd.tone_2() > 0)
-	    cc << "," << doubleToString(processing_cmd.tone_2(),1) ;
-	  if (processing_cmd.tone_3() > 0)
-	    cc << "," << doubleToString(processing_cmd.tone_3(),1) ;
+	  cc << doubleToString(processing_cmd.tones(0),1) ;
+	  for (int i = 1; i < processing_cmd.tones_size(); i++)
+	    cc << "," << doubleToString(processing_cmd.tones(i),1) ;
 	  curr_cfg_.set_frequency_bins(cc.str());
 	}
       else
