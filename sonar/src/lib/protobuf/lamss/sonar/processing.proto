@@ -17,8 +17,6 @@ message LAMSS_PROCESSING {
         }
         optional double center_frequency  = 12 [default = 900, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
         optional double bandwidth  = 13 [default = 200, (dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-        optional double tone_1 = 14 [default = 900, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-        optional double tone_2 = 15 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
-        optional double tone_3 = 16 [default = 0, (dccl.field).max=12000.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+        repeated double tones = 40 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0, (dccl.field).max_repeat=4];
         optional bool reset_tracker = 17 [default = false];
 } 

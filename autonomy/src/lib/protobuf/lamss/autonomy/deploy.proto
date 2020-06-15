@@ -78,7 +78,7 @@ message LAMSS_DEPLOY {
 		 TRAIL_ANGLE_TYPE_relative = 0;
 		 TRAIL_ANGLE_TYPE_absolute = 1;
 	}
-	optional double GPS_Interval = 27 [(dccl.field).max=2550.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, default = 0];
+	optional double GPS_Interval = 27 [(dccl.field).max=5110.000000, (dccl.field).min=0.000000, (dccl.field).precision=-1, default = 0];
 	optional double Deploy_Duration = 28 [(dccl.field).max=204700.000000, (dccl.field).min=0.000000, (dccl.field).precision=-2, default=1800];
 	optional bool Homing_Enabled = 29 [default = false];
 	optional bool Auto_Prosecute = 30 [default = false];
