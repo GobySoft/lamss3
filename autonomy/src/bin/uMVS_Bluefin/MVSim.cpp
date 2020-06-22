@@ -115,7 +115,7 @@ bool CMVSim::DoRegistrations()
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_X",0.0);
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Y",0.0);
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Z",0.0);
-// 		  m_Comms.Register(pAUV->m_sInputPrefix+"TRIM_KG",1.0);
+ 		  m_Comms.Register(pAUV->m_sInputPrefix+"TRIM_KG",1.0);
  		  m_Comms.Register("TRIM_CONTROL",1.0);
  		  m_Comms.Register("BUOYANCY_CONTROL",1.0);
 		}
@@ -186,11 +186,11 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			        pAUV->StoreArrayZ(rMsg.m_sVal);
 				continue;
 			}
-// 			else if(rMsg.m_sKey.find("TRIM_KG")!=string::npos)
-// 			{
-// 				pAUV->m_dfTrim = rMsg.m_dfVal;
-// 				continue;
-// 			}
+ 			else if(rMsg.m_sKey.find("TRIM_KG")!=string::npos)
+ 			{
+ 				pAUV->m_dfTrim = rMsg.m_dfVal;
+ 				continue;
+ 			}
 		}
 	
 		if(MOOSStrCmp(rMsg.m_sKey,"BUOYANCY_CONTROL"))
