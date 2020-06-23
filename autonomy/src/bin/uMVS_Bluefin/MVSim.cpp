@@ -118,6 +118,7 @@ bool CMVSim::DoRegistrations()
  		  m_Comms.Register(pAUV->m_sInputPrefix+"TRIM_KG",1.0);
  		  m_Comms.Register("TRIM_CONTROL",1.0);
  		  m_Comms.Register("BUOYANCY_CONTROL",1.0);
+ 		  m_Comms.Register("BATHY_Z",1.0);
 		}
 	}
 
@@ -190,6 +191,20 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
  			{
  				pAUV->m_dfTrim = rMsg.m_dfVal;
  				continue;
+ 			}
+ 			else if(rMsg.m_sKey.find("BATHY_Z")!=string::npos)
+ 			{
+			  // BATHY_Z is negative of water depth
+			  double bathy =  -rMsg.m_dfVal;
+			  double altitude = bathy + pAUV->GetZ();
+			  if (altitude <= 0)
+			    {
+			      pAUV->SetZ(-bathy);
+			      pAUV->SetAltitude(0);
+			    }
+			  else
+			    pAUV->SetAltitude(altitude);
+			  continue;
  			}
 		}
 	
