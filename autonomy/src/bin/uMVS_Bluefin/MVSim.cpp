@@ -197,10 +197,15 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			  // BATHY_Z is negative of water depth
 			  double bathy =  -rMsg.m_dfVal;
 			  double altitude = bathy + pAUV->GetZ();
-			  if (altitude <= 0)
+			  if (altitude <= 1.0)
 			    {
-			      pAUV->SetZ(-bathy);
-			      pAUV->SetAltitude(0);
+			      pAUV->SetZ(altitude-bathy);
+			      pAUV->SetDepth(bathy-altitude);
+			      pAUV->SetBodyVelY(0);
+			      pAUV->SetBodyVelX(0);
+			      pAUV->SetBodyVelZ(0);
+			      pAUV->SetPitch(0);
+			      pAUV->SetAltitude(altitude);
 			    }
 			  else
 			    pAUV->SetAltitude(altitude);

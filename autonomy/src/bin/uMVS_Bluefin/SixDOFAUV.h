@@ -103,7 +103,11 @@ public:
 	void   SetX(double dfVal)       {m_State(1)   = dfVal;};
 	void   SetY(double dfVal)       {m_State(2)   = dfVal;};
 	void   SetZ(double dfVal)       {m_State(3)   = dfVal;};
+	void   SetPitch(double dfVal)     {m_State(4)   = dfVal;};
 	void   SetYaw(double dfVal)     {m_State(5)   = dfVal;};
+	void   SetBodyVelY(double dfVal)     {m_State(6)   = dfVal;};
+	void   SetBodyVelX(double dfVal)     {m_State(7)   = dfVal;};
+	void   SetBodyVelZ(double dfVal)     {m_State(8)   = dfVal;};
 	void   SetDepth(double dfVal)   {m_dfDepth    = dfVal;};
 	void   SetAltitude(double dfVal){m_dfAltitude = dfVal;};
 	void   SetInputPrefix(const std::string & sStr){m_sInputPrefix = sStr;};
