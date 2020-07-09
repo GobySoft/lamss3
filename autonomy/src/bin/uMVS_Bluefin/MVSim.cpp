@@ -199,6 +199,7 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 			  double altitude = bathy + pAUV->GetZ();
 			  if (altitude <= 1.0)
 			    {
+			      altitude = std::max(altitude,0.5);
 			      pAUV->SetZ(altitude-bathy);
 			      pAUV->SetDepth(bathy-altitude);
 			      pAUV->SetBodyVelY(0);
