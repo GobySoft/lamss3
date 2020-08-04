@@ -1575,13 +1575,16 @@ bool LamssCBF::Process_Data()
 	  else
 	      btr_msg.set_ambiguous(curr_cfg_.max_elevation() == 180);
           btr_msg.set_wavenumber(curr_cfg_.sampling() == LamssCBFConfig::EQUALLY_SPACED_WAVENUMBER);
-
+	  std::vector<double> beam_power_db;
+	  beam_power_db.clear();
 	  for (int elev=1; elev<=vbeams; elev++)
 	    {
 	      for (int azim=1; azim<=hbeams; azim++)
 		{  
-		  double tk=P(elev,azim)*spectral_normalization_;       
-		  btr_msg.add_beam_power_db(10.0*log10(tk));
+		  double tk=P(elev,azim)*spectral_normalization_;
+		  if (beam_power_db.size() < 60)
+		    beam_power_db.push_back(10.0*log10(tk));
+		  //		  btr_msg.add_beam_power_db(10.0*log10(tk));
 		  if (tk > max_power)
 		    {
 		      max_power = tk;
@@ -1595,6 +1598,8 @@ bool LamssCBF::Process_Data()
 		    P_string_linear+=",";
 		}
 	    }
+	  for (int i=0; i<beam_power_db.size(); i++)
+	    btr_msg.add_beam_power_db(beam_power_db[i]);
 	  serialize_for_moos(&serialized,btr_msg);    
 	  publish("BTR_DATA_DB", serialized);
 	  
