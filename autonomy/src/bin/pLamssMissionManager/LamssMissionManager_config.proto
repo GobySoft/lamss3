@@ -14,7 +14,7 @@ message LamssMissionManagerConfig
   optional double min_opbox_distance = 2 [default = 500];
   optional double operation_radius   = 3 [default = 10000];
   optional double operation_radius_percent   = 4 [default = 95];
-  
+
   optional bool dynamic_opregion = 5 [default = false];
   optional int32 opregion_update_period_sec = 7 [default = 600];
     
