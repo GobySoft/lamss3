@@ -1563,7 +1563,8 @@ bool LamssCBF::Process_Data()
 	  double best_ang = 0;
 	  string P_string_dB="";
 	  string P_string_linear="";
-	  
+	  BTRPower btr_power;
+	  BTRPower::ArrayBeam* array_beam = 0;
 	  lamss::protobuf::BTR btr_msg;
 	  std::string serialized;
 	  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
@@ -1580,7 +1581,7 @@ bool LamssCBF::Process_Data()
 	  for (int elev=1; elev<=vbeams; elev++)
 	    {
 	      for (int azim=1; azim<=hbeams; azim++)
-		{  
+		{
 		  double tk=P(elev,azim)*spectral_normalization_;
 		  if (beam_power_db.size() < 60)
 		    beam_power_db.push_back(10.0*log10(tk));
@@ -1596,12 +1597,26 @@ bool LamssCBF::Process_Data()
 		  P_string_linear+=doubleToString(tk);
 		  if (elev < vbeams || azim < hbeams)
 		    P_string_linear+=",";
+		  // New BTR Power proto messaage with time stamp
+		  array_beam = btr_power.add_beam();
+		  if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
+		    
+		    array_beam -> set_angle(beam_angles[azim-1]*180/M_PI);
+		  else
+		    {
+		      array_beam -> set_azimuth(azimuthal_beams(azim)*180/M_PI);
+		      array_beam -> set_elevation(elevation_beams(elev)*180/M_PI);
+		    }
+		  array_beam -> set_power(tk);
 		}
 	    }
 	  for (int i=0; i<beam_power_db.size(); i++)
 	    btr_msg.add_beam_power_db(beam_power_db[i]);
 	  serialize_for_moos(&serialized,btr_msg);    
 	  publish("BTR_DATA_DB", serialized);
+	  btr_power.set_utc_time(MOOSTime()); // can be changed to center of integration box
+	  serialize_for_moos(&serialized,btr_power);    
+	  publish("BTR_POWER", serialized);
 	  
 	  publish("MAX_BEAM_POWER",max_power);
 	  publish("BEAM_DATA",P_string_linear); 
