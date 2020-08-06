@@ -1615,6 +1615,7 @@ bool LamssCBF::Process_Data()
 	  serialize_for_moos(&serialized,btr_msg);    
 	  publish("BTR_DATA_DB", serialized);
 	  btr_power.set_utc_time(MOOSTime() - 0.5*actual_integration_); // center of integration box
+	  btr_power.set_integration_time(actual_integration_);
 	  serialize_for_moos(&serialized,btr_power);    
 	  publish("BTR_POWER", serialized);
 	  
