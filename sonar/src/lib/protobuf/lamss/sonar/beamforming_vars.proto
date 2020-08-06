@@ -13,4 +13,19 @@ message BeamformingVars {
     optional double mean_frequency = 11;
     optional double mean_element_spacing = 12;
 
-} 
+}
+
+message BTRPower
+{
+     optional double utc_time = 1;
+     message ArrayBeam
+     {
+         optional double angle = 1;
+	 optional double elevation = 2;
+	 optional double azimuth = 3;
+	 required double power = 4;
+     }
+     repeated ArrayBeam beam = 2;
+}
+     
+
