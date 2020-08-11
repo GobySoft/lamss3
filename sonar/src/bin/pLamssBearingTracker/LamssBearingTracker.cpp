@@ -1255,6 +1255,10 @@ void LamssBearingTracker::reset_tracking()
     lrcount = 0;
     overiter = 0;
     bbb = 0;
+    thethat1 = 0;
+    thethat1n = 0;
+    dcount = 0;
+    lrcount = 0;
     class_features.clear();
     Track.setTrack(1, 0, 0, NO_TRACK, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, class_features);
     postTrack();
@@ -1274,6 +1278,8 @@ void LamssBearingTracker::reset_lr()
     idx_set = false;
     endfire = 0;
     u_estn = 0.0;
+    thethat1 = 0;
+    thethat1n = 0;
     lrcount = 0;
 
     class_features.clear();
