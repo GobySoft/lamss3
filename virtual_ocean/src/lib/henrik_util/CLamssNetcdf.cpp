@@ -155,7 +155,7 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
     }
 }
 
-void LamssNetCdf::get_lat_lon_dimensions()
+bool LamssNetCdf::get_lat_lon_dimensions()
 {
   // >>>>>>>>>>>>>>>>>
   //get id's and lengths of lat/lon/depth/time dimensions
@@ -167,7 +167,7 @@ void LamssNetCdf::get_lat_lon_dimensions()
     {
       std::cout<<"ERROR - failed to get dimension id for lon."<<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
+      return(false);
     }
   std::cout << "lonid_=" << lonid_ << std::endl;
 
@@ -176,7 +176,7 @@ void LamssNetCdf::get_lat_lon_dimensions()
     {
       std::cout<<"ERROR - failed to get lon_length."<<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
+      return(false);
     }
   std::cout << "lon_len=" << lon_len << std::endl;
 
@@ -187,7 +187,7 @@ void LamssNetCdf::get_lat_lon_dimensions()
     {
       std::cout<<"ERROR - failed to get dimension id for lat."<<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
+      return(false);
     }
   std::cout << "latid_=" << latid_ << std::endl;
 
@@ -196,9 +196,10 @@ void LamssNetCdf::get_lat_lon_dimensions()
     {
       std::cout<<"ERROR - failed to get lat_length."<<std::endl;
       std::cout<<nc_strerror(status)<<std::endl;
-      exit(EXIT_FAILURE);
+      return(false);
     }
   std::cout << "lat_len=" << lat_len << std::endl;
+  return(true);
 }
 
 void LamssNetCdf::get_depth_dimension()
@@ -491,7 +492,8 @@ bool LamssNetCdf::open_gdem_nc(std::string nc_file_)
   get_gdem_varnames();
   
   // Get dimensions of lat, lon, depth and time
-  get_lat_lon_dimensions();
+  if (!get_lat_lon_dimensions())
+    exit(EXIT_FAILURE);
   get_depth_dimension();
   get_time_dimension();
   
@@ -518,7 +520,10 @@ bool LamssNetCdf::open_mseas_nc(std::string nc_file_)
 
   get_mseas_varnames_ids();
   
-  get_lat_lon_dimensions();
+  //  get_lat_lon_dimensions();
+  if (!get_lat_lon_dimensions())
+    exit(EXIT_FAILURE);
+ 
   get_depth_dimension();
   get_time_dimension();
 
@@ -612,8 +617,14 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
   lon_ncname = "lon";
   lat_ncname = "lat";
 
-  get_lat_lon_dimensions();
-
+  //  get_lat_lon_dimensions();
+  if (!get_lat_lon_dimensions())
+    {
+      lon_ncname = "x";
+      lat_ncname = "y";
+      if (!get_lat_lon_dimensions())
+	exit(EXIT_FAILURE);
+    }
   get_lat_lon();
   
   status = nc_inq_varid (ncid_, "Band1", &bathy_varid_);
@@ -644,7 +655,9 @@ bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
   time_ncname = "time";
 
   // Get dimensions
-  get_lat_lon_dimensions();
+  //  get_lat_lon_dimensions();
+  if (!get_lat_lon_dimensions())
+    exit(EXIT_FAILURE);
   get_depth_dimension();
   get_time_dimension();
   // Get variable IDs and attributes

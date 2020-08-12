@@ -32,7 +32,7 @@ class LamssNetCdf
 
   // Generic arrays and variables
   bool open_nc_file(std::string);
-  void get_lat_lon_dimensions();
+  bool get_lat_lon_dimensions();
   void get_depth_dimension();
   void get_time_dimension();
   void get_lat_lon();
