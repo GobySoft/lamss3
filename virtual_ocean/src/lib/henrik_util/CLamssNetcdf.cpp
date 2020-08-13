@@ -629,8 +629,10 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
   
   status = nc_inq_varid (ncid_, "Band1", &bathy_varid_);
   if (status != NC_NOERR)
+    status = nc_inq_varid (ncid_, "z", &bathy_varid_);
+  if (status != NC_NOERR)
     {
-      std::cout<<"ERROR - failed to get variable id for tbath."<< std::endl;
+      std::cout<<"ERROR - failed to get variable id for Band1."<< std::endl;
       std::cout<<nc_strerror(status)<< std::endl;
       exit(EXIT_FAILURE);
     }
