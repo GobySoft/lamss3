@@ -106,7 +106,8 @@ class LamssNetCdf
   std::string temp_ncname;
   std::string salt_ncname;
 
-
+  std::string nc_vars;
+  
   // Dimension lengths  
   size_t lat_len;
   size_t lon_len;
@@ -155,6 +156,7 @@ class LamssNetCdf
   
   // HYCOM specific functions and variables
   void initialize_hycom_nc(std::string nc_file,
+			   std::string nc_type,
 			   double lat_origin, double lon_origin,
 			   double moos_start, bool fixed_start);
   bool open_hycom_nc(std::string);

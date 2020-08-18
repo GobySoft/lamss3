@@ -118,12 +118,14 @@ void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
 }
 
 void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
+				      std::string nc_type,
 				      double lat_origin,
 				      double lon_origin,
 				      double moos_start,
 				      bool fixed_start)
 {
   nc_is_open_  = false;
+  nc_vars = nc_type; // 'ts' or 'uv'
   
   if (open_hycom_nc(nc_file))
     {
@@ -338,19 +340,39 @@ void LamssNetCdf::get_hycom_varnames()
 
   // >>>>>>>>>> Varid 5 is temperature or u-vel	 - NOT ALWAYS
   //    status = nc_inq_varname(ncid_, 5 , ch);
+  if (nc_vars == "ts")
+    {
+      temp_ncname = "water_temp";
+      salt_ncname = "salinity";
+    }
+  else  if (nc_vars == "uv")
+    {
+      temp_ncname = "water_u";
+      salt_ncname = "water_v";
+    }
+  else
+    {
+      std::cout<<"ERROR - Unknown hycom nc_type "
+	       << nc_vars <<std::endl;
+      exit(EXIT_FAILURE);
+    }
 
-  temp_ncname = "water_temp";
   status = nc_inq_varid(ncid_, temp_ncname.c_str(), &temp_varid_);
   if (status != NC_NOERR)
     {
-      temp_ncname = "water_u";
+      std::cout<<"ERROR - failed to get variable id for "
+			      << temp_ncname <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
     }
 
-  salt_ncname = "salinity";
   status = nc_inq_varid(ncid_, salt_ncname.c_str(), &salt_varid_);
   if (status != NC_NOERR)
     {
-      salt_ncname = "water_v";
+      std::cout<<"ERROR - failed to get variable id for "
+			      << salt_ncname <<std::endl;
+      std::cout<<nc_strerror(status)<<std::endl;
+      exit(EXIT_FAILURE);
     }
 }
 
