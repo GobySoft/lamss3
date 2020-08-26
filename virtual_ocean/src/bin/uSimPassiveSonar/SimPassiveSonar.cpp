@@ -784,7 +784,7 @@ void SimPassiveSonar::loop()
     }
   else
     {
-      glog.is(DEBUG1) && glog << "Sonar is OFF" << std::endl;
+      //      glog.is(DEBUG2) && glog << "Sonar is OFF" << std::endl;
       time_last = 0;				     
     }
 	
