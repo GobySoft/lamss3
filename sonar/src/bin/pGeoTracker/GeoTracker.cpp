@@ -327,7 +327,8 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST &NewMail)
 
 
        //     if (bearing_state != 0 )
-       if ((bearing_state == 2) && prosecute &&(tracking == true) && (decode_stat == true))
+       //       if ((bearing_state == 2) && prosecute &&(tracking == true) && (decode_stat == true))
+       if ((bearing_state == 2) && (tracking == true) && (decode_stat == true))
 	 {
 	   if(meas_count > 0)
 	     {
