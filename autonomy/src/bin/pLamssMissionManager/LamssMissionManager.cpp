@@ -1573,6 +1573,7 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 			     << " camp_x = " << camp_x
 			     << " camp_y = " << camp_y
 			     << std::endl;
+    publish_stovepipe(i);
     return;
 }
 
