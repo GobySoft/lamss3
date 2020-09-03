@@ -1518,7 +1518,7 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 	// if negative ID kill it
 	if (Stovepipes[i].ID == -stovepipe_msg.stovepipe_id())
 	  {
-	    for (int j=i; i<Stovepipes.size()-1; j++)
+	    for (int j=i; j<Stovepipes.size()-1; j++)
 	      Stovepipes[j] = Stovepipes[j+1];
 	    Stovepipes.pop_back();
 	    return;
