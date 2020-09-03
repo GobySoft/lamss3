@@ -1277,6 +1277,8 @@ void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
   glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
 			  << stovepipe_msg.stovepipe_id() << std::endl;
   update_stovepipes(stovepipe_msg);
+  // needs to be done twice to get right name
+  update_stovepipes(stovepipe_msg);
 }
 
 void LamssMissionManager::handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg)
