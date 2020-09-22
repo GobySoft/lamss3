@@ -263,7 +263,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	      queue_event<EvNewMission>();
 	      queue_event<EvStartAbort>();
 	    }
-	  else if (!prosecute_mode_active_ &&
+	  else if (cfg_.auto_depth_adaptation() && !prosecute_mode_active_ &&
 		   stale_acomms >= 0.5 * last_deploy_cmd_.deploy_duration() &&
 		    !depth_adapting )
 	    {
