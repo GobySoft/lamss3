@@ -1583,7 +1583,7 @@ bool LamssCBF::Process_Data()
 	      for (int azim=1; azim<=hbeams; azim++)
 		{
 		  double tk=P(elev,azim)*spectral_normalization_;
-		  if (beam_power_db.size() < 60)
+		  //if (beam_power_db.size() < 60)
 		    beam_power_db.push_back(10.0*log10(tk));
 		  //		  btr_msg.add_beam_power_db(10.0*log10(tk));
 		  if (tk > max_power)
@@ -1610,8 +1610,26 @@ bool LamssCBF::Process_Data()
 		  array_beam -> set_power(tk);
 		}
 	    }
-	  for (int i=0; i<beam_power_db.size(); i++)
-	    btr_msg.add_beam_power_db(beam_power_db[i]);
+	  // Maximum 60 beams for BTR message for topside, interpolating
+	  int nbeam = beam_power_db.size();
+	  std::vector<double> db_msg;
+	  int max_btr = 60;
+	  if (nbeam > max_btr)
+	    {
+	      double fac = double(nbeam)/double(max_btr);  
+	      std::vector<double> ang,ang_int;
+	      for (int i=0; i<nbeam; i++)
+		ang.push_back(double(i));
+	      for (int i=0; i<max_btr; i++)
+		ang_int.push_back(i*fac);
+	      vec.interp(ang,beam_power_db,
+			 ang_int,db_msg);
+	    }
+	  else
+	    db_msg = beam_power_db;
+	  
+	  for (int i=0; i<db_msg.size(); i++)
+	    btr_msg.add_beam_power_db(db_msg[i]);
 	  serialize_for_moos(&serialized,btr_msg);    
 	  publish("BTR_DATA_DB", serialized);
 	  btr_power.set_utc_time(MOOSTime() - 0.5*actual_integration_); // center of integration box
