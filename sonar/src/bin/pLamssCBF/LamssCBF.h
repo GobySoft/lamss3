@@ -15,6 +15,7 @@
 
 #include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
+#include "lamss/lib_henrik_util/CVectorUtils.h"
 
 #include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
 #include "lamss/lib_lamss_protobuf/ActiveSonarParameters.pb.h"
@@ -221,6 +222,8 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     int homing_frequency_bin_;
     bool homing_mode_active_;
     std::string tone_freq_list_;
+
+    CmyVectorUtils vec;
 };
 
 #endif
