@@ -124,7 +124,7 @@ bool SimAcoBeaconRngBrg::OnConnectToServer()
 // Handle IFS Data
 void SimAcoBeaconRngBrg::handle_ifs_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::FrontSeatInterfaceData data;
+    goby::middleware::frontseat::protobuf::InterfaceData data;
     parse_for_moos(msg.GetString(), &data);
 
     if(data.has_node_status())

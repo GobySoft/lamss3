@@ -14,7 +14,7 @@
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "goby/moos/goby_moos_app.h"
-#include "goby/moos/protobuf/frontseat.pb.h"
+#include "goby/middleware/protobuf/frontseat.pb.h"
 #include "goby/acomms/protobuf/modem_message.pb.h"
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/moos/moos_string.h"
@@ -43,7 +43,7 @@ class InterfaceNetSimManager : public goby::moos::GobyMOOSApp
     
     void loop();
     void check_connected();
-    void handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data);
+    void handle_frontseat_data(const goby::middleware::frontseat::protobuf::InterfaceData& data);
     void handle_node_report(const CMOOSMsg& msg);
     void handle_modem_receive(const goby::acomms::protobuf::ModemTransmission& rx_data);
     
@@ -217,7 +217,7 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
 
 
 
-void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::FrontSeatInterfaceData& data)
+void InterfaceNetSimManager::handle_frontseat_data(const goby::middleware::frontseat::protobuf::InterfaceData& data)
 {
     if(data.has_node_status())
     {
@@ -229,7 +229,7 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::moos::protobuf::F
         nav.set_lat(data.node_status().global_fix().lat());
         nav.set_lon(data.node_status().global_fix().lon());
         nav.set_depth(data.node_status().global_fix().depth());
-        nav.set_speed(data.node_status().speed());
+        nav.set_speed(data.node_status().speed().over_ground());
         nav.set_heading(data.node_status().pose().heading());
         
         if(client_->connected())

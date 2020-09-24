@@ -11,8 +11,8 @@
 #include "goby/moos/moos_geodesy.h"
 
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "goby/moos/protobuf/frontseat.pb.h"
-#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+#include "goby/middleware/protobuf/frontseat.pb.h"
+#include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 
 #include "SimTargets_config.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_targetsim.pb.h" // DCCL message for self noise

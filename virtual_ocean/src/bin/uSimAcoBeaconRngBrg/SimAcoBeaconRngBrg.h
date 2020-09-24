@@ -13,8 +13,8 @@
 #include "XYFormatUtilsPoly.h"
 #include <cmath>
 
-#include "goby/moos/protobuf/frontseat.pb.h"
-#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+#include "goby/middleware/protobuf/frontseat.pb.h"
+#include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 #include "goby/util/linebasedcomms/nmea_sentence.h"
 
 class SimAcoBeaconRngBrg : public CMOOSApp
@@ -50,7 +50,7 @@ class SimAcoBeaconRngBrg : public CMOOSApp
    std::string  m_update_var;
 
  private: // State variables
-   goby::moos::protobuf::NodeStatus last_nav_;
+   goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
    double       m_prev_time;
    double       m_dt_accum;
    double       m_nav_x;
