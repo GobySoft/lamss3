@@ -123,7 +123,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     double slow_loop_period_;
     double last_slow_loop_t_;
     
-    goby::moos::protobuf::NodeStatus last_nav_;
+    goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
 
     static LamssMissionManager* inst_;    
     std::vector<double> transit_x;

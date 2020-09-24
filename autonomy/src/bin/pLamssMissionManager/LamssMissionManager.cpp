@@ -19,7 +19,7 @@
 
 #include "goby/acomms/protobuf/driver_base.pb.h"
 #include "goby/acomms/protobuf/mm_driver.pb.h"
-#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+#include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 
 #include "ivp/NodeRecord.h"
 
@@ -27,7 +27,7 @@
 using namespace lamss::shared::fsm;
 using namespace goby::util::logger;
 using namespace goby::util::logger_lock;
-namespace gpb = goby::moos::protobuf;
+namespace gpb = goby::middleware::frontseat::protobuf;
 using goby::common::goby_time;
 using goby::glog;
 
@@ -542,7 +542,7 @@ void LamssMissionManager::initial_transit()
 
 void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::FrontSeatInterfaceData data;
+    goby::middleware::frontseat::protobuf::InterfaceData data;
     parse_for_moos(msg.GetString(), &data);
 
     if(data.has_node_status())
@@ -552,7 +552,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	if (cfg_.dynamic_opregion())
 	  {
 	    if (!got_gps_nav &&
-		last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+		last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
 	      {
 		camp_x_last = last_nav_.local_fix().x();
 		camp_y_last = last_nav_.local_fix().y();
@@ -564,7 +564,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	      }
 	  }
 	else if (!got_gps_nav &&
-		last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS)
+                last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
 	  got_gps_nav = true;
 
 	
@@ -593,7 +593,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
             		publish("NAV_YAW", yaw);
             		publish("NAV_HEADING", last_nav_.pose().heading());
 		}	
-		publish("NAV_SPEED", last_nav_.speed());	
+		publish("NAV_SPEED", last_nav_.speed().over_ground());	
 		if (last_nav_.pose().has_pitch())
             		publish("NAV_PITCH", last_nav_.pose().pitch() * pi / 180.0);
         	if (last_nav_.pose().has_roll())
@@ -601,8 +601,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
         	if (last_nav_.global_fix().has_altitude())
 			publish("NAV_ALTITUDE", last_nav_.global_fix().altitude());	
 		// surface for GPS variable
-        	if (last_nav_.global_fix().lat_source() == goby::moos::protobuf::GPS &&
-            		last_nav_.global_fix().lon_source() == goby::moos::protobuf::GPS)
+        	if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
         	{
             		std::stringstream ss;
             		ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
@@ -616,7 +615,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::NodeStatus data;
+    goby::middleware::frontseat::protobuf::NodeStatus data;
     parse_for_moos(msg.GetString(), &data);
 
     if (cfg_.navigating_with_hydroman() == true)
@@ -652,7 +651,7 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
             	publish("NAV_YAW", yaw);
             	publish("NAV_HEADING", data.pose().heading());
 	}	
-	publish("NAV_SPEED", data.speed());	
+	publish("NAV_SPEED", data.speed().over_ground());	
 	if (data.pose().has_pitch())
             	publish("NAV_PITCH", data.pose().pitch() * pi / 180.0);
         if (data.pose().has_roll())
@@ -660,8 +659,8 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
         if (data.global_fix().has_altitude())
 		publish("NAV_ALTITUDE", data.global_fix().altitude());	
 	// surface for GPS variable
-        if (data.global_fix().lat_source() == goby::moos::protobuf::GPS &&
-            	data.global_fix().lon_source() == goby::moos::protobuf::GPS)
+        
+        if (data.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
         {
             	// std::stringstream ss;
             	// ss << "Timestamp=" << std::setprecision(15) << data.time();
