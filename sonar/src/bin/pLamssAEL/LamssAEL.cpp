@@ -118,7 +118,7 @@ void LamssAEL::slow_loop(double curr_time)
 
 void LamssAEL::handle_nav_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::NodeStatus data;
+    goby::middleware::frontseat::protobuf::NodeStatus data;
     parse_for_moos(msg.GetString(), &data);
     
     last_nav_ = data;
@@ -144,7 +144,7 @@ ArrayNavigation LamssAEL::computeAEL()
   double nav_hdg = angle360(heading_filter.getAvg());
   double nav_pitch = pitch_filter.getAvg();
   double nav_roll = roll_filter.getAvg();
-  double nav_spd = last_nav_.speed();
+  double nav_spd = last_nav_.speed().over_ground();
   if (cfg_.array_type() == LamssAELConfig::ARRAY_TYPE_FIXED || nav_spd <= 0)
     {
       double theta = (90-nav_hdg)*M_PI/180.;

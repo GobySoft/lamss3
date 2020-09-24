@@ -12,8 +12,8 @@
 
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "goby/moos/protobuf/frontseat.pb.h"
-#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+#include "goby/middleware/protobuf/frontseat.pb.h"
+#include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 
 #include "LamssAEL_config.pb.h"
 #include "lamss/lib_lamss_protobuf/ArrayNavigation.pb.h"
@@ -70,7 +70,7 @@ class LamssAEL : public goby::moos::GobyMOOSApp
     CRadianAvg roll_filter;
     CAngleAvg heading_filter;
 
-    goby::moos::protobuf::NodeStatus last_nav_;
+    goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
     int nav_count_;
     std::vector<Nav> nav_hist;
 

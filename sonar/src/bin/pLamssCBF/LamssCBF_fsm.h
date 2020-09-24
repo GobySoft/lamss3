@@ -21,8 +21,8 @@
 
 #include "goby/util/debug_logger.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-//#include "goby/moos/protobuf/frontseat.pb.h"
-//#include "goby/moos/frontseat/bluefin/bluefin.pb.h"
+//#include "goby/middleware/protobuf/frontseat.pb.h"
+//#include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 #include "goby/acomms/protobuf/amac.pb.h"
 
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
