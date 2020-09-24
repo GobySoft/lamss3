@@ -148,7 +148,7 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     bool active_track_trail;
 
     
-    goby::moos::protobuf::NodeStatus last_nav_;
+    goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
 
     static LamssTrackManager* inst_;    
 

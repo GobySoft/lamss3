@@ -308,7 +308,7 @@ void LamssTrackManager::try_publish()
 
 void LamssTrackManager::handle_nav_data(const CMOOSMsg& msg)
 {
-    goby::moos::protobuf::NodeStatus data;
+    goby::middleware::frontseat::protobuf::NodeStatus data;
     parse_for_moos(msg.GetString(), &data);
     
     last_nav_ = data;
@@ -824,7 +824,7 @@ bool LamssTrackManager::checkOpportunity()
   
   double auv_x =last_nav_.local_fix().x();
   double auv_y =last_nav_.local_fix().y();
-  double auv_speed =last_nav_.speed();
+  double auv_speed =last_nav_.speed().over_ground();
 
   double b_ang =atan2(cue_y_- auv_y,
 		      cue_x_- auv_x);
@@ -1142,7 +1142,7 @@ bool LamssTrackManager::postStateVars()
 	  if (trk_state == ABSOLUTE)
 	    {
 	      if (track_count == 0)
-		BearingTrack.initReport(node, trk_x,trk_y, last_nav_.speed(), 
+                  BearingTrack.initReport(node, trk_x,trk_y, last_nav_.speed().over_ground(), 
 					heading, trk_utc);
 	      track_count = BearingTrack.reportTrack(trk_num,trk_prio,trk_template,
 						     trk_bearing, trk_sigma, 
