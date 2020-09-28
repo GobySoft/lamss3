@@ -131,7 +131,8 @@ void LamssAEL::handle_nav_data(const CMOOSMsg& msg)
     }
 
     nav_count_++;
-    got_nav_ = true;
+    if (nav_count_ >= cfg_.filter_length())
+      got_nav_ = true;
 }
 
 ArrayNavigation LamssAEL::computeAEL()
