@@ -501,13 +501,13 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_mpp(mpp);
 
       
-	  if (cfg_.optimize() == SimModemNetworkConfig::MAE )
+	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
 	      receiver -> set_metric_db(-obj);
 	    }
-	  else if (cfg_.optimize() == SimModemNetworkConfig::SNR )
+	  else if (cfg_.optimize() == ModemPerformanceMetric::SNR )
 	    receiver -> set_metric_db(snr);
 	  else
 	    receiver -> set_metric_db(mpp);

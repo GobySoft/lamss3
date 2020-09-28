@@ -2,6 +2,8 @@
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
 
+import "modem_sim.proto" ;
+
 message SimModemNetworkConfig
 {
   optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
@@ -35,13 +37,7 @@ message SimModemNetworkConfig
   optional int32 num_depths = 53 [default = 100];
   optional int32 bounce_penalty = 54 [default = 0];
   optional int32 multipath_penalty = 55 [default = 0]; 
-  optional OptimizeMetric optimize = 56 [default = SNR];
-  enum OptimizeMetric
-    {
-     SNR = 1;
-     MPP = 2;
-     MAE = 3;
-    }
+  optional ModemPerformanceMetric optimize = 56 [default = SNR];
   optional int32 num_ff_tabs = 57 [default = 21];
   optional int32 num_fb_tabs = 58 [default = 20];
   optional int32 nbaud = 59 [default = 18];
