@@ -638,7 +638,7 @@ void SimPassiveSonar::loop()
       // should be robust enough to handle it.
       if ( (t_now - time_last) > file_interval_time)
 	{
-	  if (time_last < 1)
+	  if (time_last < 1 || t_now > time_last + file_interval_time)
 	    timestamp = floor(t_now);
 	  else
 	    timestamp = timestamp + file_interval_time;
