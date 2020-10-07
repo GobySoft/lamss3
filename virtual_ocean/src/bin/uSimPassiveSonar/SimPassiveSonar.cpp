@@ -638,7 +638,7 @@ void SimPassiveSonar::loop()
       // should be robust enough to handle it.
       if ( (t_now - time_last) > file_interval_time)
 	{
-	  if (time_last < 1 || t_now > time_last + file_interval_time)
+	  if (time_last < 1 || t_now > time_last + file_interval_time*1.1)
 	    timestamp = floor(t_now);
 	  else
 	    timestamp = timestamp + file_interval_time;
@@ -1607,7 +1607,15 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
     sensors_per_element = 1;
   num_sensors = sensors_per_element*num_array_elements;
   
-  // set dc covarince to 0.0
+  double delta_f = sampling_frequency/nfft;
+  int i_first = 0;
+  if (minimum_frequency >= 0)
+    i_first = int(minimum_frequency/delta_f);
+  int i_last = num_freqs;
+  if (maximum_frequency < 0.5*sampling_frequency)
+    i_last = int(maximum_frequency/delta_f);
+  
+      // set dc covarince to 0.0
 
   vector<complex<double> > noise_realization = vecUtils.zzeros(num_sensors,1);
   
@@ -1617,8 +1625,11 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
     {
              
       vector<complex<double> > realization;
-      noise_covar[f_iter].realization(realization);
-      
+      if (f_iter < i_first || f_iter > i_last)
+	noise_covar[f_iter].wn_realization(realization);
+      else
+	noise_covar[f_iter].realization(realization);
+
       for (int sensor_iter=0; sensor_iter< num_sensors; sensor_iter++)
 	{
 	    noise_realization.push_back(realization[sensor_iter]);
