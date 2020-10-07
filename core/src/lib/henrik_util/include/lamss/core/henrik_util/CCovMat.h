@@ -54,6 +54,7 @@ class CovMat
   std::complex<double> getCCovar(int i, int j);
   std::vector<std::vector<std::complex<double> > > getCCovMat();
   void realization(std::vector<std::complex<double> >& out);
+  void wn_realization(std::vector<std::complex<double> >& out);
   bool scaleCovMat(double fac);
   bool wnChol();
   double normCholTrace();

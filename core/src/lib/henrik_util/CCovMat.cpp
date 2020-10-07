@@ -322,4 +322,39 @@ void CovMat::realization(  vector<complex<double> >& out)
   return;
 }
 
+void CovMat::wn_realization(  vector<complex<double> >& out)
+{
+  // Faster version of realization for white noise
+  double wn =1e-6;
+  double scale_gaussian=sqrt(0.5); //Added AJP 4/12/11
+  if (!c_done)
+    while (!cholesky())
+      {
+	addWhiteNoise(wn);
+	wn *= 10.0;
+      }
+  c_done =true;
+  
+  //     'b' IS THE LOWER TRIANGULAR MATRIX THAT IS USED SUBSEQUENTLY.
+  //--------------------random noise in frequency domain-------	
+  //     
+  //--------------------random phase vector--------------------
+  vector<complex<double> > rp;
+  for (unsigned int j = 1; j <= num_rcv; j++)
+    {
+      iset = 0;
+      double rr=scale_gaussian*gasdev();
+      double ri=scale_gaussian*gasdev();
+      rp.push_back(complex<double>(rr,ri));
+    }  
+  //-------------------random phase vector done-------
+  out.clear();
+  for (unsigned int i= 1; i <= num_rcv; i++)
+    {
+      complex<double> sum = c[indx_tri(i,i)] * rp[i-1];
+      out.push_back(sum);
+    }
+  return;
+}
+
 
