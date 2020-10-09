@@ -49,14 +49,14 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 
       if (num_sources != 1)
 	{
-	  MOOSTrace("readEigenRayTable: Error - Only one source  allowed \n");
+	  cout << "readEigenRayTable: Error - Only one source  allowed " << std::endl;
 	  return(false);
 	}
 
       arr_file >> source_depth;
 
       arr_file >> num_depths;
-      if (num_depths <= 0) return(false);
+      if (isnan(num_depths) || num_depths <= 0) return(false);
       depth.clear();
       for (int i=0; i<num_depths; i++)
 	{
@@ -66,7 +66,7 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	}
 
       arr_file >> num_ranges;
-      if (num_ranges <= 0) return(false);
+      if (isnan(num_ranges)  || num_ranges <= 0) return(false);
       range.clear();
       for (int j=0; j<num_ranges; j++)
 	{
@@ -83,15 +83,15 @@ bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces
 	{
 	  for (int j=0; j<num_ranges; j++)
 	    {
-	      int num_rays_total;
+	      int num_rays_total = 0;
 	      CEigenRay eigbuf;
 	      eigbuf.clear();
 	      eigbuf.source_depth = source_depth;
 	      eigbuf.receiver_depth = depth[i];
 	      eigbuf.freq = freq;
 	      eigbuf.range = range[j];
-
 	      arr_file >> num_rays_total;
+	      if (isnan(num_rays_total)) return(false);
 	      for (int k = 0; k < num_rays_total; k++)
 		{
 		  CRay ray;
