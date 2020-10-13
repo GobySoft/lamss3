@@ -197,3 +197,9 @@ enum ModemPerformanceMetric
      MPP = 2;
      MAE = 3;
     }
+
+message TimeSeries
+{
+    optional double time = 1 ;
+    required bytes values = 2;
+}
