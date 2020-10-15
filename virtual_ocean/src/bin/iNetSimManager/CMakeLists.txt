@@ -16,7 +16,6 @@ TARGET_LINK_LIBRARIES(iNetSimManager
   ${PROTOBUF_LIBRARIES}
   ${LAMSS_PROTOBUF_LIBRARY}
   ${CMAKE_DL_LIBS} 
-  ${LAMSS_NETSIM_LIBRARY}
   netsim_tcp
   netsim_messages
   )
