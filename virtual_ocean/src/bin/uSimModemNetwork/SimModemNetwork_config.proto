@@ -1,7 +1,6 @@
 
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
-
 import "netsim/messages/netsim.proto";
 
 message SimModemNetworkConfig
@@ -37,7 +36,7 @@ message SimModemNetworkConfig
   optional int32 num_depths = 53 [default = 100];
   optional int32 bounce_penalty = 54 [default = 0];
   optional int32 multipath_penalty = 55 [default = 0]; 
-  optional ModemPerformanceMetric optimize = 56 [default = SNR];
+  optional netsim.protobuf.ModemPerformanceMetric optimize = 56 [default = SNR];
   optional int32 num_ff_tabs = 57 [default = 21];
   optional int32 num_fb_tabs = 58 [default = 20];
   optional int32 nbaud = 59 [default = 18];

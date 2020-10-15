@@ -166,7 +166,7 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
   int cn = msg.GetDouble();
   if (cn < acoustic_contacts.size())
     {
-      TransmitRequest transmit_request;
+      netsim::protobuf::TransmitRequest transmit_request;
       transmit_request.set_source(acoustic_contacts[cn].ownship);
       transmit_request.set_receiver(acoustic_contacts[cn].contact);
       transmit_request.set_pingtime(MOOSTime());
@@ -268,7 +268,7 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
     }
 }
 
-void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
+void SimModemNetwork::handle_netsim_nav_update(const netsim::protobuf::NavUpdate& nav)
 {
     std::string node_name = goby::util::as<std::string>(nav.modem_tcp_port());
 
@@ -305,7 +305,7 @@ void SimModemNetwork::handle_svp_info(const CMOOSMsg& msg)
 
 void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 {
-  ImpulseRequest request;
+  netsim::protobuf::ImpulseRequest request;
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
   int con = findAcousticContact(request.receiver(),request.source()); 
@@ -327,7 +327,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       nfft = request.nfft();
       
       glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
-      ImpulseResponse message;
+      netsim::protobuf::ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
       if(request.has_request_id()) message.set_request_id(request.request_id());
@@ -349,12 +349,12 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       // delay[num_rays][num_elem]
       if (delay.size() > 0)
 	{
-	  ImpulseResponse::RayTrace* raytrace = 0;
+	  netsim::protobuf::ImpulseResponse::RayTrace* raytrace = 0;
 	  for (int j = 0; j < delay.size(); j++)
 	    {
 	      raytrace = message.add_raytrace();
 	      //raytrace -> set_delay(delay[0][j]);
-	      ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
+	      netsim::protobuf::ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
 	      for (int i=0; i<delay[j].size(); i++)
 		{
 		  element_delay = raytrace -> add_element();
@@ -416,7 +416,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 				 << request.source() 
 				 << "->" 
 				 << request.receiver() << endl;
-      ImpulseResponse message;
+      netsim::protobuf::ImpulseResponse message;
       message.set_source(request.source());
       message.set_receiver(request.receiver());
       if(request.has_request_id()) message.set_request_id(request.request_id());
@@ -434,10 +434,10 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 
 void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 {
-  ObjFuncRequest request;
+  netsim::protobuf::ObjFuncRequest request;
   std::string serialized = msg.GetString();
   parse_for_moos(serialized, &request);
-  ObjFuncResponse message;
+  netsim::protobuf::ObjFuncResponse message;
   message.set_contact(request.contact());
   if(request.has_request_id())
     message.set_request_id(request.request_id());
@@ -446,7 +446,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
   if (request.has_requestor())
     message.set_requestor(request.requestor());
     
-  ObjFuncResponse::Receiver* receiver = 0;
+  netsim::protobuf::ObjFuncResponse::Receiver* receiver = 0;
   for (int rcv=0; rcv<request.receiver_size(); rcv++)
     {
       int con = findAcousticContact(request.receiver(rcv).node(),
@@ -501,13 +501,13 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_mpp(mpp);
 
       
-	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
+	  if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
 	      receiver -> set_metric_db(-obj);
 	    }
-	  else if (cfg_.optimize() == ModemPerformanceMetric::SNR )
+	  else if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::SNR )
 	    receiver -> set_metric_db(snr);
 	  else
 	    receiver -> set_metric_db(mpp);
@@ -2006,11 +2006,11 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
 
 void SimModemNetwork::test_performance_request()
 {
-  ObjFuncRequest message;
+  netsim::protobuf::ObjFuncRequest message;
 
   message.set_contact("macrura");
   message.set_requestor("uSimModemNetwork");
-  ObjFuncRequest::Receiver* receiver = 0;
+  netsim::protobuf::ObjFuncRequest::Receiver* receiver = 0;
   std::vector<double> test_depth;
   test_depth.clear();
   test_depth.push_back(30);
