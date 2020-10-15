@@ -12,7 +12,7 @@
 
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
-#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
+#include "netsim/messages/netsim.pb.h"
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
