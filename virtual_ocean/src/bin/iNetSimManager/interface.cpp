@@ -19,8 +19,8 @@
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/moos/moos_string.h"
 
-#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
-#include "lamss/lib_netsim/tcp_client.h"
+#include "netsim/messages/netsim.pb.h"
+#include "netsim/tcp/tcp_client.h"
 
 #include "config.pb.h"
 

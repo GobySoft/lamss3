@@ -11,10 +11,10 @@
 #include "goby/moos/moos_geodesy.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CEigenRays.h>
-#include "lamss/lib_bellhop/environment.h"
-#include "lamss/lib_bellhop/svp_request_response.pb.h"
-#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
-#include "lamss/lib_lamss_protobuf/modem_sim.pb.h" 
+#include "netsim/acousticstoolbox/environment.h"
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h" 
+#include "netsim/messages/netsim.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "SimModemNetwork_config.pb.h"
 

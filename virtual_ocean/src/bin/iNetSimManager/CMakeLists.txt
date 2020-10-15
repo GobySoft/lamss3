@@ -17,6 +17,8 @@ TARGET_LINK_LIBRARIES(iNetSimManager
   ${LAMSS_PROTOBUF_LIBRARY}
   ${CMAKE_DL_LIBS} 
   ${LAMSS_NETSIM_LIBRARY}
+  netsim_tcp
+  netsim_messages
   )
 
 if(CMAKE_VERSION VERSION_LESS 3.1)

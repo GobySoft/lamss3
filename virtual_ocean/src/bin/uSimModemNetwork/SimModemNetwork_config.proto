@@ -2,7 +2,7 @@
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
 
-import "modem_sim.proto" ;
+import "netsim/messages/netsim.proto";
 
 message SimModemNetworkConfig
 {

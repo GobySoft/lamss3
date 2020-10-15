@@ -17,8 +17,8 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
-#include "lamss/lib_bellhop/svp_request_response.pb.h"
-#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "SimPassiveSonar_config.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"

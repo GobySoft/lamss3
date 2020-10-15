@@ -24,5 +24,6 @@ ADD_EXECUTABLE(uSimModemNetwork ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
   ${Boost_LIBRARIES}
     gsl
     gslcblas
+    netsim_messages
     )
 
