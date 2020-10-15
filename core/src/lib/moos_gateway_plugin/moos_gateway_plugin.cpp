@@ -263,8 +263,8 @@ class NetSimTranslation : public goby::moos::Translator
             this->goby().interprocess().publish<lamss::groups::transmission_grp_vel>(pb_msg);
         });
 
-        this->goby().interprocess().subscribe<lamss::groups::objfunc_request, ObjFuncRequest>(
-            [this](const ObjFuncRequest& request) {
+        this->goby().interprocess().subscribe<lamss::groups::objfunc_request, netsim::protobuf::ObjFuncRequest>(
+            [this](const netsim::protobuf::ObjFuncRequest& request) {
                 std::string serialized;
                 bool is_binary = serialize_for_moos(&serialized, request);
                 CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
