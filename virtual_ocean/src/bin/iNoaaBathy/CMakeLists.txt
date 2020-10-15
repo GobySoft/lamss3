@@ -15,6 +15,6 @@ TARGET_LINK_LIBRARIES(iNoaaBathy
   ${GOBY_LIBRARIES}
   ${Boost_LIBRARIES}
   henrik_util
-  bellhop_tools
+  netsim_acousticstoolbox
   netcdf
 )
