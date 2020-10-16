@@ -198,7 +198,7 @@ void CiNoaaBathy::handle_outside_bathy_request(const CMOOSMsg& msg)
 {
   // BATHY_REQUEST = "request_id=,lat=,lon="
   
-  SVP::BathyRequest bathy_request;
+  netsim::SVP::protobuf::BathyRequest bathy_request;
   parse_for_moos(msg.GetString(), &bathy_request);
 
   if(!bathy_request.IsInitialized())
@@ -221,7 +221,7 @@ void CiNoaaBathy::handle_outside_bathy_request(const CMOOSMsg& msg)
 
 void CiNoaaBathy::send_bathy_response()
 {
-  SVP::BathyResponse bathy_response;
+  netsim::SVP::protobuf::BathyResponse bathy_response;
 
   // Publish Bathy_Response message for all range profiles
   // BATHY_RESPONSE = "request_id=,bathy="
