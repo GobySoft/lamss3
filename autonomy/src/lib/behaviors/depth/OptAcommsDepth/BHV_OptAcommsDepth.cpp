@@ -438,8 +438,8 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
  
 
 
-	  iBellhopRequest request;
-	  bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info =
+	  netsim::protobuf::iBellhopRequest request;
+	  netsim::bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info =
 	    request.mutable_env()->mutable_adaptive_info();
 	  
 	  adaptive_info->set_contact(collaborator_);
@@ -450,19 +450,19 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 
 	  adaptive_info->set_auto_receiver_ranges_delta(fabs(delta_range));	  
 	  //request.mutable_env()->mutable_output()->set_type(
-	  //   bellhop::protobuf::Environment::Output::INCOHERENT_PRESSURE);
+	  //   netsim::bellhop::protobuf::Environment::Output::INCOHERENT_PRESSURE);
 	  request.mutable_env()->mutable_output()->set_type(
-							    bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+							    netsim::bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
 
 	  //set receiver depths
-	  bellhop::protobuf::Environment::Receivers* receivers =
+	  netsim::bellhop::protobuf::Environment::Receivers* receivers =
 	    request.mutable_env()->mutable_receivers();
 	  receivers->set_number_in_depth(number_depths);
 	  receivers->mutable_first()->set_depth(depth_min);
 	  receivers->mutable_last()->set_depth(depth_max);
 	  
 	  // set beam angles (dip angle positive)
-	  bellhop::protobuf::Environment::Beams* beams =
+	  netsim::bellhop::protobuf::Environment::Beams* beams =
 	    request.mutable_env()->mutable_beams();
 
 	  beams->set_theta_min(int(theta_min));
@@ -480,7 +480,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
 	    {
 	      request.mutable_env()->mutable_water_column()->
 		CopyFrom(svp_response.water_column());
-	      request.set_water_column_action(iBellhopRequest::OVERWRITE);
+	      request.set_water_column_action(netsim::protobuf::iBellhopRequest::OVERWRITE);
 	    }
 
 	  std::string serialized;
@@ -496,7 +496,7 @@ IvPFunction *BHV_OptAcommsDepth::onRunState()
       
       bool ok_resp;
       
-      iBellhopResponse response;
+      netsim::protobuf::iBellhopResponse response;
       
       std::string bellhop_in = getBufferStringVal("BELLHOP_RESPONSE", ok_resp);
 
@@ -1279,7 +1279,7 @@ void BHV_OptAcommsDepth::requestSVPUpdate()
 
 {
   
-  SVP::Request svp_request;
+  netsim::SVP::protobuf::Request svp_request;
   std::string serialized_svp_request;
 
   bool ok_osx,ok_osy,ok_cnx,ok_cny;

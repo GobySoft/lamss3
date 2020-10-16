@@ -124,7 +124,7 @@ public:
   goby::moos::CMOOSGeodesy m_Geodesy;
   void requestSVPUpdate();
   bool handleSVPResponse(std::string cn);
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
   bool svp_ready;
   bool svp_requested;
   int svp_request_id;
