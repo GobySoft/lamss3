@@ -59,7 +59,7 @@ class CAcousticContact
   int svp_request_id;
   double last_svp_request;
   CEigenRayTable  ray_table;
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
   double noise_level;
 };
 
@@ -131,9 +131,9 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 			 double freq);
     bool requestSVPUpdate(std:: string os, std::string cn);
     bool readyAcousticContactSVP(std:: string os, std::string cn);
-    bool putAcousticContactSVP(SVP::Response svp_response);
+    bool putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response);
     bool getAcousticContactSVP(std:: string os, std::string cn, 
-			       SVP::Response& svp_response );
+			       netsim::SVP::protobuf::Response& svp_response );
     bool handleSVPResponse(const CMOOSMsg& msg);
     bool defineRayTracingBox(CAcousticContact& contact,
 			     double& r_min,
@@ -165,7 +165,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     bool write_covmat_file(std::string filename, double nl_now);
     void create_cross_spectral_density();
     double predicted_MAE(double nl_here);
-    double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, 
+    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, 
 			 double depth);
     void compute_tl(CEigenRay  eig, double& snr, double& mpp);
     double compute_MAE(int con);
