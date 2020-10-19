@@ -32,7 +32,7 @@
 #include <cmath>
 #include <cfloat>
 
-#include "lamss/lib_bellhop/svp_request_response.pb.h"
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
 
 
 class CiNoaaBathy : public CMOOSApp  
