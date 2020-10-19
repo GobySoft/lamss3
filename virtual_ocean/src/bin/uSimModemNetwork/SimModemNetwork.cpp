@@ -166,7 +166,7 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
   int cn = msg.GetDouble();
   if (cn < acoustic_contacts.size())
     {
-      TransmitRequest transmit_request;
+      netsim::protobuf::TransmitRequest transmit_request;
       transmit_request.set_source(acoustic_contacts[cn].ownship);
       transmit_request.set_receiver(acoustic_contacts[cn].contact);
       transmit_request.set_pingtime(MOOSTime());
@@ -180,7 +180,7 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
 
 void SimModemNetwork::handle_bellhop_response(const CMOOSMsg& msg)
 {
-  iBellhopResponse bellhop_response;
+  netsim::protobuf::iBellhopResponse bellhop_response;
   std::string serialized_bellhop_response = msg.GetString();
   parse_for_moos(serialized_bellhop_response, &bellhop_response);
   for (int i = 0; i < acoustic_contacts.size(); i++)
@@ -268,7 +268,7 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
     }
 }
 
-void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
+void SimModemNetwork::handle_netsim_nav_update(const netsim::protobuf::NavUpdate& nav)
 {
     std::string node_name = goby::util::as<std::string>(nav.modem_tcp_port());
 
@@ -298,14 +298,14 @@ void SimModemNetwork::handle_netsim_nav_update(const NavUpdate& nav)
 
 void SimModemNetwork::handle_svp_info(const CMOOSMsg& msg)
 {
-  SVPInfoResponse svp_info;
+  netsim::protobuf::SVPInfoResponse svp_info;
   std::string serialized = msg.GetString();
   parse_for_moos(serialized, &svp_info);
 }
 
 void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 {
-  ImpulseRequest request;
+  netsim::protobuf::ImpulseRequest request;
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
   int con = findAcousticContact(request.receiver(),request.source()); 
@@ -327,7 +327,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       nfft = request.nfft();
       
       glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
-      ImpulseResponse message;
+      netsim::protobuf::ImpulseResponse message;
       message.set_source(acoustic_contacts[con].contact);
       message.set_receiver(acoustic_contacts[con].ownship);
       if(request.has_request_id()) message.set_request_id(request.request_id());
@@ -349,12 +349,12 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       // delay[num_rays][num_elem]
       if (delay.size() > 0)
 	{
-	  ImpulseResponse::RayTrace* raytrace = 0;
+	  netsim::protobuf::ImpulseResponse::RayTrace* raytrace = 0;
 	  for (int j = 0; j < delay.size(); j++)
 	    {
 	      raytrace = message.add_raytrace();
 	      //raytrace -> set_delay(delay[0][j]);
-	      ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
+	      netsim::protobuf::ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
 	      for (int i=0; i<delay[j].size(); i++)
 		{
 		  element_delay = raytrace -> add_element();
@@ -374,7 +374,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 	}
 
       // The receiver is in the last range sector
-      bellhop::protobuf::Environment::WaterColumn* water_column =
+      netsim::bellhop::protobuf::Environment::WaterColumn* water_column =
 	acoustic_contacts[con].svp_response.mutable_water_column(acoustic_contacts[con].svp_response.water_column_size()-1);
 
       // Compute Noise covariance matrix if noise is correlated
@@ -416,7 +416,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 				 << request.source() 
 				 << "->" 
 				 << request.receiver() << endl;
-      ImpulseResponse message;
+      netsim::protobuf::ImpulseResponse message;
       message.set_source(request.source());
       message.set_receiver(request.receiver());
       if(request.has_request_id()) message.set_request_id(request.request_id());
@@ -434,10 +434,10 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
 
 void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 {
-  ObjFuncRequest request;
+  netsim::protobuf::ObjFuncRequest request;
   std::string serialized = msg.GetString();
   parse_for_moos(serialized, &request);
-  ObjFuncResponse message;
+  netsim::protobuf::ObjFuncResponse message;
   message.set_contact(request.contact());
   if(request.has_request_id())
     message.set_request_id(request.request_id());
@@ -446,7 +446,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
   if (request.has_requestor())
     message.set_requestor(request.requestor());
     
-  ObjFuncResponse::Receiver* receiver = 0;
+  netsim::protobuf::ObjFuncResponse::Receiver* receiver = 0;
   for (int rcv=0; rcv<request.receiver_size(); rcv++)
     {
       int con = findAcousticContact(request.receiver(rcv).node(),
@@ -501,13 +501,13 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_mpp(mpp);
 
       
-	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
+	  if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
 	      receiver -> set_metric_db(-obj);
 	    }
-	  else if (cfg_.optimize() == ModemPerformanceMetric::SNR )
+	  else if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::SNR )
 	    receiver -> set_metric_db(snr);
 	  else
 	    receiver -> set_metric_db(mpp);
@@ -1097,7 +1097,7 @@ int SimModemNetwork::findAcousticContact(std::string os,
   return(-1);
 }
 
-bool SimModemNetwork::putAcousticContactSVP(SVP::Response svp_response)
+bool SimModemNetwork::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response)
 {
   if (svp_response.request_id() == 0)
     {
@@ -1152,7 +1152,7 @@ bool SimModemNetwork::getAcousticContact(std::string os,
 
 bool SimModemNetwork::getAcousticContactSVP(std::string os, 
 					    std::string cn, 
-					    SVP::Response& svp_response )
+					    netsim::SVP::protobuf::Response& svp_response )
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -1219,9 +1219,9 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 	      //	      if (direct_theta > 0.5*theta_max)
 	      //		theta_max = 0.5*(direct_theta+90.0);
 
-	      iBellhopRequest request;
+	      netsim::protobuf::iBellhopRequest request;
 
-	      bellhop::protobuf::Environment::AdaptiveInfo* 
+	      netsim::bellhop::protobuf::Environment::AdaptiveInfo* 
 		adaptive_info = request.mutable_env()->mutable_adaptive_info();
 	      adaptive_info->set_contact(cn);
 	      //  adaptive_info->set_ownship(receiver);
@@ -1230,22 +1230,22 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 	      adaptive_info->set_read_shd(false);
 	      adaptive_info->set_auto_receiver_ranges(false);
 	      adaptive_info->set_auto_source_depth(true);
-	      bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
-	      output->set_type(bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
-	      bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
+	      netsim::bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
+	      output->set_type(netsim::bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+	      netsim::bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
 	      receivers->set_number_in_depth(num_dep);
 	      receivers->set_number_in_range(num_r);
-	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
+	      netsim::bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
 	      first->set_range(r_min);
 	      first->set_depth(dep_min);
-	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
+	      netsim::bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
 	      last->set_range(r_max);
 	      last->set_depth(dep_max);
-	      bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
+	      netsim::bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
 	      beams->set_theta_min(int(-theta_max));
 	      beams->set_theta_max(int(theta_max));
 	      beams->set_number(3500);
-	      bellhop::protobuf::Environment* env = request.mutable_env();
+	      netsim::bellhop::protobuf::Environment* env = request.mutable_env();
 	      env->set_freq(acomms_frequency);
 	      // Generate random request id
 	      int request_id =   int(1e9 * rand()/RAND_MAX);
@@ -1257,7 +1257,7 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn,
 		{
 		  request.mutable_env()->mutable_water_column()->
 		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
-		  request.set_water_column_action(iBellhopRequest::OVERWRITE);
+		  request.set_water_column_action(netsim::protobuf::iBellhopRequest::OVERWRITE);
 		}
 	      std::string serialized_bellhop_request;
 	      serialize_for_moos(&serialized_bellhop_request,request);
@@ -1288,7 +1288,7 @@ bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 	      // if an update has been requested, don't request a new one
 	      if (!acoustic_contacts[i].new_svp_requested)
 		{
-		  SVP::Request svp_request;
+		  netsim::SVP::protobuf::Request svp_request;
 		  std::string serialized_svp_request;
 		  double ownship_lat, ownship_lon, contact_lat, contact_lon;
 		  int request_number = int(1e9 * rand()/RAND_MAX);
@@ -1327,7 +1327,7 @@ bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 bool SimModemNetwork::handleSVPResponse(const CMOOSMsg& msg)
 {
   std::string serialized_svp_response = msg.GetString();
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
   parse_for_moos(serialized_svp_response, &svp_response);
   if (putAcousticContactSVP(svp_response))
     {
@@ -1494,7 +1494,7 @@ bool SimModemNetwork::parseNoiseDirectionality( string noise_in,
   return(true);
 }    
 
-double SimModemNetwork::get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
+double SimModemNetwork::get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
 {
 
   int m_coef = water_column->eof_coef_size();
@@ -2006,11 +2006,11 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
 
 void SimModemNetwork::test_performance_request()
 {
-  ObjFuncRequest message;
+  netsim::protobuf::ObjFuncRequest message;
 
   message.set_contact("macrura");
   message.set_requestor("uSimModemNetwork");
-  ObjFuncRequest::Receiver* receiver = 0;
+  netsim::protobuf::ObjFuncRequest::Receiver* receiver = 0;
   std::vector<double> test_depth;
   test_depth.clear();
   test_depth.push_back(30);
@@ -2056,7 +2056,7 @@ double SimModemNetwork::compute_MAE(int con)
   num_array_elements = ael_x.size();
   double nl = acoustic_contacts[con].noise_level;
   // Recalcultae noise covariances for current SVP
-  bellhop::protobuf::Environment::WaterColumn* water_column =
+  netsim::bellhop::protobuf::Environment::WaterColumn* water_column =
     acoustic_contacts[con].svp_response.mutable_water_column(
 	   acoustic_contacts[con].svp_response.water_column_size()-1);
   

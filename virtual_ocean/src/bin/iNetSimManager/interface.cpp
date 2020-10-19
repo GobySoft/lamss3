@@ -19,8 +19,8 @@
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/moos/moos_string.h"
 
-#include "lamss/lib_lamss_protobuf/modem_sim.pb.h"
-#include "lamss/lib_netsim/tcp_client.h"
+#include "netsim/messages/netsim.pb.h"
+#include "netsim/tcp/tcp_client.h"
 
 #include "config.pb.h"
 
@@ -101,8 +101,8 @@ InterfaceNetSimManager::InterfaceNetSimManager(InterfaceNetSimManagerConfig& cfg
     client_(netsim::tcp_client::create(io_))
 {
     client_->connect(cfg_.netsim_manager_ip_addr(), cfg_.netsim_manager_tcp_port());
-    client_->read_callback<NetSimManagerResponse>(
-        [](const NetSimManagerResponse& t, const boost::asio::ip::tcp::endpoint& ep)
+    client_->read_callback<netsim::protobuf::NetSimManagerResponse>(
+        [](const netsim::protobuf::NetSimManagerResponse& t, const boost::asio::ip::tcp::endpoint& ep)
         {
             glog.is(DEBUG1) && glog << "Received response from [" << ep << "]: " << t.ShortDebugString() << std::endl;
         });
@@ -194,7 +194,7 @@ void InterfaceNetSimManager::handle_node_report(const CMOOSMsg& msg)
             return;    
         }
 
-        NetSimManagerRequest req;
+        netsim::protobuf::NetSimManagerRequest req;
         req.set_id(request_id_++);
         auto& nav = *req.add_nav();
         nav.set_modem_tcp_port(cfg_.modem_tcp_port());
@@ -221,7 +221,7 @@ void InterfaceNetSimManager::handle_frontseat_data(const goby::middleware::front
 {
     if(data.has_node_status())
     {
-        NetSimManagerRequest req;
+        netsim::protobuf::NetSimManagerRequest req;
         req.set_id(request_id_++);
         auto& nav = *req.add_nav();
         nav.set_modem_tcp_port(cfg_.modem_tcp_port());
@@ -253,9 +253,9 @@ void InterfaceNetSimManager::handle_modem_receive(const goby::acomms::protobuf::
         return;
     }
     
-    NetSimManagerRequest req;
+    netsim::protobuf::NetSimManagerRequest req;
     req.set_id(request_id_++);
-    ReceiveStats& netsim_stats = *req.add_stats();
+    netsim::protobuf::ReceiveStats& netsim_stats = *req.add_stats();
     netsim_stats.set_modem_tcp_port(cfg_.modem_tcp_port());
     netsim_stats.set_tx_modem_tcp_port(modem_tcp_port_[stats.source()]);
     netsim_stats.set_packet_success(stats.mode() == goby::acomms::micromodem::protobuf::RECEIVE_GOOD);

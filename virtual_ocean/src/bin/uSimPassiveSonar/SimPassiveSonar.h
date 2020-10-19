@@ -17,8 +17,8 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_fft_halfcomplex.h>
-#include "lamss/lib_bellhop/svp_request_response.pb.h"
-#include "lamss/lib_bellhop/iBellhop_messages.pb.h" 
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
 #include "SimPassiveSonar_config.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
@@ -64,7 +64,7 @@ class CAcousticContact
   int svp_request_id;
   double last_svp_request;
   CEigenRayTable  ray_table;
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
 };
 
 class SimPassiveSonar : public goby::moos::GobyMOOSApp
@@ -192,9 +192,9 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     bool requestSVPUpdate(std::string cn, 
 			  int target_number);
     bool readyAcousticContactSVP(std::string cn);
-    bool putAcousticContactSVP(SVP::Response svp_response);
+    bool putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response);
     bool getAcousticContactSVP(std::string cn, 
-			       SVP::Response& svp_response );
+			       netsim::SVP::protobuf::Response& svp_response );
     bool handleSVPResponse(const CMOOSMsg& msg);
     bool defineRayTracingBox(CAcousticContact& target,
 			     double& r_min,
@@ -203,7 +203,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 			     double& dep_max,
 			     int& num_r,
 			     int& num_dep);
-    double get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth);
+    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, double depth);
 
     bool noise_profile;
     std::vector<double> depth_nl;

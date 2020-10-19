@@ -2473,7 +2473,7 @@ int SimPassiveSonar::findAcousticContact(std::string cn)
   return(-1);
 }
 
-bool SimPassiveSonar::putAcousticContactSVP(SVP::Response svp_response)
+bool SimPassiveSonar::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response)
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -2504,7 +2504,7 @@ bool SimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_tab
 }
 
 bool SimPassiveSonar::getAcousticContactSVP(std::string cn, 
-					     SVP::Response& svp_response )
+					     netsim::SVP::protobuf::Response& svp_response )
 {
   for (int i = 0; i < acoustic_contacts.size(); i++)
     {
@@ -2568,9 +2568,9 @@ bool SimPassiveSonar::requestRayTrace(std::string cn,
 	      //	      if (direct_theta > 0.5*theta_max)
 	      //		theta_max = 0.5*(direct_theta+90.0);
 
-	      iBellhopRequest request;
+	      netsim::protobuf::iBellhopRequest request;
 
-	      bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info = request.mutable_env()->mutable_adaptive_info();
+	      netsim::bellhop::protobuf::Environment::AdaptiveInfo* adaptive_info = request.mutable_env()->mutable_adaptive_info();
 	      adaptive_info->set_contact(acoustic_contact);
 	      //  adaptive_info->set_ownship(receiver);
 	      //adaptive_info->set_ownship(ownship);
@@ -2578,22 +2578,22 @@ bool SimPassiveSonar::requestRayTrace(std::string cn,
 	      adaptive_info->set_read_shd(false);
 	      adaptive_info->set_auto_receiver_ranges(false);
 	      adaptive_info->set_auto_source_depth(true);
-	      bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
-	      output->set_type(bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
-	      bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
+	      netsim::bellhop::protobuf::Environment::Output* output = request.mutable_env()->mutable_output();
+	      output->set_type(netsim::bellhop::protobuf::Environment::Output::ARRIVAL_TIMES);
+	      netsim::bellhop::protobuf::Environment::Receivers* receivers = request.mutable_env()->mutable_receivers();
 	      receivers->set_number_in_depth(num_dep);
 	      receivers->set_number_in_range(num_r);
-	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
+	      netsim::bellhop::protobuf::Environment::Receivers::ReceiverPosition* first = request.mutable_env()->mutable_receivers()->mutable_first();
 	      first->set_range(r_min);
 	      first->set_depth(dep_min);
-	      bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
+	      netsim::bellhop::protobuf::Environment::Receivers::ReceiverPosition* last = request.mutable_env()->mutable_receivers()->mutable_last();
 	      last->set_range(r_max);
 	      last->set_depth(dep_max);
-	      bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
+	      netsim::bellhop::protobuf::Environment::Beams* beams = request.mutable_env()->mutable_beams();
 	      beams->set_theta_min(int(-theta_max));
 	      beams->set_theta_max(int(theta_max));
 	      beams->set_number(3500);
-	      bellhop::protobuf::Environment* env = request.mutable_env();
+	      netsim::bellhop::protobuf::Environment* env = request.mutable_env();
 	      env->set_freq(freq);
 	      request.set_request_number(target_number);
 	      // svp updates
@@ -2601,7 +2601,7 @@ bool SimPassiveSonar::requestRayTrace(std::string cn,
 		{
 		  request.mutable_env()->mutable_water_column()->
 		    CopyFrom(acoustic_contacts[i].svp_response.water_column());
-		  request.set_water_column_action(iBellhopRequest::OVERWRITE);
+		  request.set_water_column_action(netsim::protobuf::iBellhopRequest::OVERWRITE);
 		}
 	      std::string noutput;
 	      serialize_for_moos(&noutput,request);
@@ -2628,7 +2628,7 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 	  if (readyAcousticContactSVP(cn) || acoustic_contacts[i].last_svp_request <= 0 )
 	    {
 
-	      SVP::Request svp_request;
+	      netsim::SVP::protobuf::Request svp_request;
 	      std::string serialized_svp_request;
 	      double ael_lat, ael_lon, source_pos_lat, source_pos_lon;
 	      acoustic_contacts[i].svp_request_id = contact_number+1;
@@ -2666,7 +2666,7 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn,
 bool SimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
 {
   std::string serialized_svp_response = msg.GetString();
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
   parse_for_moos(serialized_svp_response, &svp_response);
   if (putAcousticContactSVP(svp_response))
     {
@@ -3202,7 +3202,7 @@ std::vector<double> SimPassiveSonar::read_replica(std::string replica_path)
     }
 }
 
-double SimPassiveSonar::get_ssp_value(bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
+double SimPassiveSonar::get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, double depth)
 {
 
   int m_coef = water_column->eof_coef_size();

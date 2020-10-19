@@ -18,11 +18,11 @@ ADD_EXECUTABLE(uSimPassiveSonar ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
   ${LAMSS_HENRIK_UTIL_LIBRARY}
   ${IVP_MBUTIL_LIBRARY}
   ${IVP_GEOMETRY_LIBRARY} 
-  ${LAMSS_BELLHOP_TOOLS_LIBRARY}
   ${LAMSS_PROTOBUF_LIBRARY}
   ${PROTOBUF_LIBRARIES}
   ${Boost_LIBRARIES}
     gsl
     gslcblas
+    netsim_acousticstoolbox
     )
 
