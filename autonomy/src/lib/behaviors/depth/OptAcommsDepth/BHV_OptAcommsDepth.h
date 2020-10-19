@@ -19,8 +19,8 @@
 #ifndef BHV_OPTCOHACOUSTDEPTH_HEADER
 #define BHV_OPTCOHACOUSTDEPTH_HEADER
 
-#include "lamss/lib_bellhop/iBellhop_messages.pb.h"
-#include "lamss/lib_bellhop/svp_request_response.pb.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
 #include "goby/moos/moos_geodesy.h"
 
 #include "IvPBehavior.h"
@@ -124,7 +124,7 @@ public:
   goby::moos::CMOOSGeodesy m_Geodesy;
   void requestSVPUpdate();
   bool handleSVPResponse(std::string cn);
-  SVP::Response svp_response;
+  netsim::SVP::protobuf::Response svp_response;
   bool svp_ready;
   bool svp_requested;
   int svp_request_id;
