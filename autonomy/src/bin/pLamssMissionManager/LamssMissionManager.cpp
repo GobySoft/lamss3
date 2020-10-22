@@ -104,7 +104,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
-    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
+    //    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
