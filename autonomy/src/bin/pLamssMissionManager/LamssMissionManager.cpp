@@ -104,7 +104,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("TRACKING", &LamssMissionManager::handle_tracking, this);
     subscribe("TARGET_BEARING", &LamssMissionManager::handle_target_bearing, this);
     subscribe("SURVEY_COMPLETED", &LamssMissionManager::handle_survey_flag, this);
-    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
+    //    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
@@ -561,12 +561,15 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 		camp_x_deploy = last_nav_.local_fix().x();
 		camp_y_deploy = last_nav_.local_fix().y();
 		got_gps_nav = true;
+		last_gps_ = last_nav_.time();
 	      }
 	  }
 	else if (!got_gps_nav &&
                 last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	  got_gps_nav = true;
-
+	  {
+	    got_gps_nav = true;
+	    last_gps_ = last_nav_.time();
+	  }
 	
         if (cfg_.navigating_with_hydroman() == false)
 	  {
@@ -662,9 +665,9 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
         
         if (data.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
         {
-            	// std::stringstream ss;
-            	// ss << "Timestamp=" << std::setprecision(15) << data.time();
-            	// publish("GPS_UPDATE_RECEIVED", ss.str());
+            	std::stringstream ss;
+            	ss << "Timestamp=" << std::setprecision(15) << data.time();
+            	publish("GPS_UPDATE_RECEIVED", ss.str());
 	}
 	
 	// post NAV_DATA
