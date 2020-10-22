@@ -561,12 +561,15 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 		camp_x_deploy = last_nav_.local_fix().x();
 		camp_y_deploy = last_nav_.local_fix().y();
 		got_gps_nav = true;
+		last_gps_ = last_nav_.time();
 	      }
 	  }
 	else if (!got_gps_nav &&
                 last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	  got_gps_nav = true;
-
+	  {
+	    got_gps_nav = true;
+	    last_gps_ = last_nav_.time();
+	  }
 	
         if (cfg_.navigating_with_hydroman() == false)
 	  {
@@ -662,9 +665,9 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
         
         if (data.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
         {
-            	// std::stringstream ss;
-            	// ss << "Timestamp=" << std::setprecision(15) << data.time();
-            	// publish("GPS_UPDATE_RECEIVED", ss.str());
+            	std::stringstream ss;
+            	ss << "Timestamp=" << std::setprecision(15) << data.time();
+            	publish("GPS_UPDATE_RECEIVED", ss.str());
 	}
 	
 	// post NAV_DATA
