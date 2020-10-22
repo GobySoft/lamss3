@@ -161,16 +161,20 @@ bool SimDVL::Iterate()
     // Posting the DVL measurements acording to the configured DVL update frequency
     if (m_current_u_time>m_dvl_data_post_time)
     {
-        double inverted_dvl_v;
-        double inverted_dvl_w;
+        double dvl_measurement_v;
+        double dvl_measurement_w;
         if (c_inverted_dvl==1){
-            inverted_dvl_v = -m_dvl_v;
-            inverted_dvl_w = -m_dvl_w;
+            dvl_measurement_v = -m_dvl_v;
+            dvl_measurement_w = -m_dvl_w;
+        }
+        else{
+            dvl_measurement_v = m_dvl_v;
+            dvl_measurement_w = m_dvl_w;
         }
         Notify("HYDROMAN_SIM_DVL_U", m_dvl_u);
-        Notify("HYDROMAN_SIM_DVL_V", inverted_dvl_v);
-        Notify("HYDROMAN_SIM_DVL_W", inverted_dvl_w);
-        MOOSTrace("Inverted DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,inverted_dvl_v,inverted_dvl_w);
+        Notify("HYDROMAN_SIM_DVL_V", dvl_measurement_v);
+        Notify("HYDROMAN_SIM_DVL_W", dvl_measurement_w);
+        MOOSTrace("Inverted DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,dvl_measurement_v,dvl_measurement_w);
         MOOSTrace("DVL measurement: u=%.2f, v=%.2f, w=%.2f \n",m_dvl_u,m_dvl_v,m_dvl_w);
         m_dvl_data_post_time = m_current_u_time + c_dvl_update_frequency;
     }
