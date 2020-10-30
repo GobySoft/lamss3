@@ -542,75 +542,75 @@ void LamssMissionManager::initial_transit()
 
 void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 {
-    goby::middleware::frontseat::protobuf::InterfaceData data;
-    parse_for_moos(msg.GetString(), &data);
+  goby::middleware::frontseat::protobuf::InterfaceData data;
+  parse_for_moos(msg.GetString(), &data);
 
-    if(data.has_node_status())
+  if(data.has_node_status())
     {
-        last_nav_ = data.node_status();
+      last_nav_ = data.node_status();
 
-	if (cfg_.dynamic_opregion())
-	  {
-	    if (!got_gps_nav &&
-		last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	      {
-		camp_x_last = last_nav_.local_fix().x();
-		camp_y_last = last_nav_.local_fix().y();
-		camp_x_init = last_nav_.local_fix().x();
-		camp_y_init = last_nav_.local_fix().y();
-		camp_x_deploy = last_nav_.local_fix().x();
-		camp_y_deploy = last_nav_.local_fix().y();
-		got_gps_nav = true;
-		last_gps_ = last_nav_.time();
-	      }
-	  }
-	else if (!got_gps_nav &&
-                last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	  {
-	    got_gps_nav = true;
-	    last_gps_ = last_nav_.time();
-	  }
+      if (cfg_.dynamic_opregion())
+	{
+	  if (!got_gps_nav &&
+	      last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+	    {
+	      camp_x_last = last_nav_.local_fix().x();
+	      camp_y_last = last_nav_.local_fix().y();
+	      camp_x_init = last_nav_.local_fix().x();
+	      camp_y_init = last_nav_.local_fix().y();
+	      camp_x_deploy = last_nav_.local_fix().x();
+	      camp_y_deploy = last_nav_.local_fix().y();
+	      got_gps_nav = true;
+	      last_gps_ = last_nav_.time();
+	    }
+	}
+      else if (!got_gps_nav &&
+	       last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+	{
+	  got_gps_nav = true;
+	  last_gps_ = last_nav_.time();
+	}
 	
-        if (cfg_.navigating_with_hydroman() == false)
-	  {
-        	// post NAV_DATA
-        	std::string serialized;
-  		serialize_for_moos(&serialized,last_nav_);
-  		publish("NAV_DATA", serialized);
+      if (!cfg_.navigating_with_hydroman())
+	{
+	  // post NAV_DATA
+	  std::string serialized;
+	  serialize_for_moos(&serialized,last_nav_);
+	  publish("NAV_DATA", serialized);
   		
-  		// post NAV_*
-  		publish("NAV_X", last_nav_.local_fix().x());
-        	publish("NAV_Y", last_nav_.local_fix().y());
-        	publish("NAV_LAT", last_nav_.global_fix().lat());
-		publish("NAV_LONG", last_nav_.global_fix().lon());
-		if (last_nav_.local_fix().has_z())
-            		publish("NAV_Z", last_nav_.local_fix().z());
-        	if (last_nav_.global_fix().has_depth())
-			publish("NAV_DEPTH", last_nav_.global_fix().depth());
-		const double pi = 3.14159;
-        	if (last_nav_.pose().has_heading())
-        	{
-            		double yaw = -last_nav_.pose().heading() * pi / 180.0;
-            		while (yaw < -pi) yaw += 2 * pi;
-            		while (yaw >= pi) yaw -= 2 * pi;
-            		publish("NAV_YAW", yaw);
-            		publish("NAV_HEADING", last_nav_.pose().heading());
-		}	
-		publish("NAV_SPEED", last_nav_.speed().over_ground());	
-		if (last_nav_.pose().has_pitch())
-            		publish("NAV_PITCH", last_nav_.pose().pitch() * pi / 180.0);
-        	if (last_nav_.pose().has_roll())
-            		publish("NAV_ROLL", last_nav_.pose().roll() * pi / 180.0);
-        	if (last_nav_.global_fix().has_altitude())
-			publish("NAV_ALTITUDE", last_nav_.global_fix().altitude());	
-		// surface for GPS variable
-        	if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-        	{
-            		std::stringstream ss;
-            		ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
-            		publish("GPS_UPDATE_RECEIVED", ss.str());
-			last_gps_ = last_nav_.time();
-		}	
+	  // post NAV_*
+	  publish("NAV_X", last_nav_.local_fix().x());
+	  publish("NAV_Y", last_nav_.local_fix().y());
+	  publish("NAV_LAT", last_nav_.global_fix().lat());
+	  publish("NAV_LONG", last_nav_.global_fix().lon());
+	  if (last_nav_.local_fix().has_z())
+	    publish("NAV_Z", last_nav_.local_fix().z());
+	  if (last_nav_.global_fix().has_depth())
+	    publish("NAV_DEPTH", last_nav_.global_fix().depth());
+	  const double pi = 3.14159;
+	  if (last_nav_.pose().has_heading())
+	    {
+	      double yaw = -last_nav_.pose().heading() * pi / 180.0;
+	      while (yaw < -pi) yaw += 2 * pi;
+	      while (yaw >= pi) yaw -= 2 * pi;
+	      publish("NAV_YAW", yaw);
+	      publish("NAV_HEADING", last_nav_.pose().heading());
+	    }	
+	  publish("NAV_SPEED", last_nav_.speed().over_ground());	
+	  if (last_nav_.pose().has_pitch())
+	    publish("NAV_PITCH", last_nav_.pose().pitch() * pi / 180.0);
+	  if (last_nav_.pose().has_roll())
+	    publish("NAV_ROLL", last_nav_.pose().roll() * pi / 180.0);
+	  if (last_nav_.global_fix().has_altitude())
+	    publish("NAV_ALTITUDE", last_nav_.global_fix().altitude());	
+	  // surface for GPS variable
+	  if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+	    {
+	      std::stringstream ss;
+	      ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
+	      publish("GPS_UPDATE_RECEIVED", ss.str());
+	      last_gps_ = last_nav_.time();
+	    }	
 			
         }
     }
