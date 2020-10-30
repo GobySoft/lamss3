@@ -549,28 +549,6 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
     {
       last_nav_ = data.node_status();
 
-      if (cfg_.dynamic_opregion())
-	{
-	  if (!got_gps_nav &&
-	      last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	    {
-	      camp_x_last = last_nav_.local_fix().x();
-	      camp_y_last = last_nav_.local_fix().y();
-	      camp_x_init = last_nav_.local_fix().x();
-	      camp_y_init = last_nav_.local_fix().y();
-	      camp_x_deploy = last_nav_.local_fix().x();
-	      camp_y_deploy = last_nav_.local_fix().y();
-	      got_gps_nav = true;
-	      last_gps_ = last_nav_.time();
-	    }
-	}
-      else if (!got_gps_nav &&
-	       last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	{
-	  got_gps_nav = true;
-	  last_gps_ = last_nav_.time();
-	}
-	
       if (!cfg_.navigating_with_hydroman())
 	{
 	  // post NAV_DATA
@@ -603,16 +581,31 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	    publish("NAV_ROLL", last_nav_.pose().roll() * pi / 180.0);
 	  if (last_nav_.global_fix().has_altitude())
 	    publish("NAV_ALTITUDE", last_nav_.global_fix().altitude());	
-	  // surface for GPS variable
-	  if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
-	    {
-	      std::stringstream ss;
-	      ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
-	      publish("GPS_UPDATE_RECEIVED", ss.str());
-	      last_gps_ = last_nav_.time();
-	    }	
 			
         }
+      // surface for GPS variable
+      if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+	{
+	  
+	  if (!got_gps_nav)
+	    {
+	      if (cfg_.dynamic_opregion())
+		{
+		  // Set initial camp/launch position from GPS
+		  camp_x_last = last_nav_.local_fix().x();
+		  camp_y_last = last_nav_.local_fix().y();
+		  camp_x_init = last_nav_.local_fix().x();
+		  camp_y_init = last_nav_.local_fix().y();
+		  camp_x_deploy = last_nav_.local_fix().x();
+		  camp_y_deploy = last_nav_.local_fix().y();
+		}
+	    }
+	  std::stringstream ss;
+	  ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
+	  publish("GPS_UPDATE_RECEIVED", ss.str());
+	  got_gps_nav = true;
+	  last_gps_ = last_nav_.time();
+	}	
     }
 }
 
