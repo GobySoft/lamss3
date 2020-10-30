@@ -584,7 +584,8 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 			
         }
       // surface for GPS variable
-      if (last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+      if (last_nav_.has_source() &&
+	  last_nav_.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
 	{
 	  
 	  if (!got_gps_nav)
@@ -656,7 +657,8 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 		publish("NAV_ALTITUDE", data.global_fix().altitude());	
 	// surface for GPS variable
         
-        if (data.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
+        if (data.has_source() &&
+	    data.source().position() == goby::middleware::frontseat::protobuf::Source::GPS)
         {
             	std::stringstream ss;
             	ss << "Timestamp=" << std::setprecision(15) << data.time();
