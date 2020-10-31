@@ -96,19 +96,10 @@ double CRandom::gauss_real(double mu, double sigma)
   //mu = mean of distribution
   //sigma= variance
 
-  double X;
+  std::default_random_engine generator;
+  std::normal_distribution<double> distribution(0.0,1.0);
 
-do
-  {
-    double U = ran2(iseed);
-    double V = 2*U-1;
-    S = V*V;
-    if (V > 0)
-      X = mu + sqrt(sigma)*sqrt(-2*log(S));
-    else
-      X = mu - sqrt(sigma)*sqrt(-2*log(S));
-  } while (S == 0);
-
+  double X = mu + sqrt(sigma)*distribution(generator);
   return X;
   
 }

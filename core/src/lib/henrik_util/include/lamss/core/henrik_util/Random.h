@@ -4,7 +4,7 @@
 #include <math.h>
 #include <vector>
 #include <complex>
-
+#include <random>
 #define IM1 2147483563
 #define IM2 2147483399
 #define IA1 40014
