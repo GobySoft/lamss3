@@ -555,7 +555,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	  std::string serialized;
 	  serialize_for_moos(&serialized,last_nav_);
 	  publish("NAV_DATA", serialized);
-  		
+
 	  // post NAV_*
 	  publish("NAV_X", last_nav_.local_fix().x());
 	  publish("NAV_Y", last_nav_.local_fix().y());
@@ -607,6 +607,7 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 	  got_gps_nav = true;
 	  last_gps_ = last_nav_.time();
 	}	
+
     }
 }
 
