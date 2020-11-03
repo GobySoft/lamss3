@@ -166,7 +166,7 @@ void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
   int cn = msg.GetDouble();
   if (cn < acoustic_contacts.size())
     {
-      netsim::protobuf::TransmitRequest transmit_request;
+      TransmitRequest transmit_request;
       transmit_request.set_source(acoustic_contacts[cn].ownship);
       transmit_request.set_receiver(acoustic_contacts[cn].contact);
       transmit_request.set_pingtime(MOOSTime());
@@ -501,13 +501,13 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_mpp(mpp);
 
       
-	  if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::MAE )
+	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
 	    {
 	      // Jim Preisigs permformance metric
 	      double obj = compute_MAE(con);
 	      receiver -> set_metric_db(-obj);
 	    }
-	  else if (cfg_.optimize() == netsim::protobuf::ModemPerformanceMetric::SNR )
+	  else if (cfg_.optimize() == ModemPerformanceMetric::SNR )
 	    receiver -> set_metric_db(snr);
 	  else
 	    receiver -> set_metric_db(mpp);
