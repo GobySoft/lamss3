@@ -203,7 +203,12 @@ void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
   target_depth = tgt_msg.tgt_dep();
   target_heading = tgt_msg.tgt_hdg();
   target_speed = tgt_msg.tgt_spd();
-  target_utc = tgt_msg.tgt_utc();
+  // Use MOOStime if target has no timestamp.
+  // Used e.g. for auto target generation in real-time sims
+  if (tgt_msg.has_tgt_utc())
+    target_utc = tgt_msg.tgt_utc();
+  else
+    target_utc = MOOSTime();
   target_freq = tgt_msg.tgt_freq();
   target_bw = tgt_msg.tgt_bw();
   target_spl = tgt_msg.tgt_spl();
