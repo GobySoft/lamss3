@@ -30,9 +30,11 @@ class SimDVL : public CMOOSApp
     double c_dvl_velocity_std;
     double c_dvl_velocity_bias;
     int c_ice_tracking_mode;
-    int c_dvl_bottom_lock;
     std::string c_ice_sheet_name;
     double c_inverted_dvl;
+    double c_dvl_max_range;
+    double c_dvl_min_range;
+    double c_simulate_dvl_range;
 
  private: // State variables
     double m_dvl_data_post_time;
@@ -40,6 +42,7 @@ class SimDVL : public CMOOSApp
     double m_current_nav_depth_time;
     double m_previous_nav_depth;
     double m_previous_nav_depth_time;
+    double m_actual_altitude;
     
     double m_current_u;
     double m_current_v;

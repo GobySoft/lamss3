@@ -21,6 +21,10 @@ SimDVL::SimDVL()
     m_current_u_time=MOOSTime();
     m_previous_u_time=MOOSTime();
     m_icecamp_speed=0;
+    m_icecamp_heading = 0;
+    m_actual_altitude = 10;
+    c_dvl_max_range = 200;
+    c_dvl_min_range = 5;
 }
 
 //---------------------------------------------------------
@@ -81,6 +85,9 @@ bool SimDVL::OnNewMail(MOOSMSG_LIST &NewMail)
         else if(key == "FRONTSEAT_HEADING") {
             m_current_nav_heading = dval;
         }
+        else if(key == "ACTUAL_ALTITUDE") {
+            m_actual_altitude = dval;
+        }
         else if(key == "NODE_REPORT") {        
             if(c_ice_tracking_mode==1)
             {
@@ -128,22 +135,33 @@ bool SimDVL::Iterate()
     m_icecamp_ydot = m_icecamp_speed*cos(m_icecamp_heading*M_PI/180);
     m_icecamp_xdot = m_icecamp_speed*sin(m_icecamp_heading*M_PI/180);
     double m_icecamp_zdot = 0.0;
-    // If DVL has bottom-lock, then include water current velocity as well
-    if (c_dvl_bottom_lock==1)
-    {
-        // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+
+    if (c_simulate_dvl_range==1){
+        if(m_actual_altitude<c_dvl_max_range && m_actual_altitude>c_dvl_min_range){
+            // DVL has bottom/ice lock
+            // Adding water velocity since DVL has bottom lock
+            // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+            auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
+            auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
+            auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+        }
+        else {
+            // DVL in water-track mode
+            // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
+            auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+            auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+            auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            MOOSTrace("No DVL lock. Water current: xdot=%.2f, ydot=%.2f \n",m_current_water_vel_x,m_current_water_vel_y);
+        }
+    }
+    else {
         // Adding water velocity since DVL has bottom lock
+        // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
         auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
         auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
         auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
     }
-    if (c_dvl_bottom_lock==0)
-    {
-        // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-        auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
-        auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
-        auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
-    }
+
     // Converting ice relative AUV velocity from earth-frame to body frame
     double auvVelRelIce_u = auvVelRelIce_ydot*cos(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) + auvVelRelIce_xdot*cos(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180) - auvVelRelIce_zdot*sin(m_current_nav_pitch*M_PI/180);
     double auvVelRelIce_v = auvVelRelIce_ydot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*cos(m_current_nav_heading*M_PI/180) - cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_heading*M_PI/180)) + auvVelRelIce_xdot*(sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)+cos(m_current_nav_roll*M_PI/180)*cos(m_current_nav_heading*M_PI/180)) + auvVelRelIce_zdot*sin(m_current_nav_roll*M_PI/180)*cos(m_current_nav_pitch*M_PI/180);
@@ -236,15 +254,25 @@ bool SimDVL::OnStartUp()
         c_ice_sheet_name = sVal;
         MOOSTrace("Ice sheet name: %s \n",c_ice_sheet_name.c_str());
     }
-    if(m_MissionReader.GetConfigurationParam("dvl_bottom_lock",sVal))
-    {
-        c_dvl_bottom_lock = atof(sVal.c_str());
-        MOOSTrace("DVL bottom lock: %i \n",c_dvl_bottom_lock);
-    }
     if(m_MissionReader.GetConfigurationParam("inverted_dvl",sVal))
     {
         c_inverted_dvl = atof(sVal.c_str());
         MOOSTrace("Inverted DVL: %i \n",c_inverted_dvl);
+    }
+    if(m_MissionReader.GetConfigurationParam("dvl_max_range",sVal))
+    {
+        c_dvl_max_range = atof(sVal.c_str());
+        MOOSTrace("DVL max range: %i \n",c_dvl_max_range);
+    }
+    if(m_MissionReader.GetConfigurationParam("dvl_min_range",sVal))
+    {
+        c_dvl_min_range = atof(sVal.c_str());
+        MOOSTrace("DVL min range: %i \n",c_dvl_min_range);
+    }
+    if(m_MissionReader.GetConfigurationParam("simulate_dvl_range",sVal))
+    {
+        c_simulate_dvl_range = atof(sVal.c_str());
+        MOOSTrace("Simulate DVL range: %i \n",c_simulate_dvl_range);
     }
     m_dvl_data_post_time = m_current_u_time;
     RegisterVariables();
@@ -267,5 +295,6 @@ void SimDVL::RegisterVariables()
     Register("FRONTSEAT_BODY_VEL_Z", 0);
     Register("CURRENT_X", 0);
     Register("CURRENT_Y", 0); 
+    Register("ACTUAL_ALTITUDE", 0); 
 }
 
