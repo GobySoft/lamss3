@@ -228,6 +228,9 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   if(dvl_ice_track == 0)
   {
       altitude = nav_z - last_bathy_z;
+      if (altitude>200) {
+        altitude = 0.0;
+      }
       std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
       m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
       altitude_str = doubleToString(altitude,1);
