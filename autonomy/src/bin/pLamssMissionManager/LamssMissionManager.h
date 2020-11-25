@@ -14,6 +14,7 @@
 
 #include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
 #include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
+#include "lamss/lib_lamss_protobuf/platform_info.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
@@ -125,6 +126,8 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     
     goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
 
+    PlatformInfo platform_info;
+    
     static LamssMissionManager* inst_;    
     std::vector<double> transit_x;
     std::vector<double> transit_y;

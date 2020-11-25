@@ -841,6 +841,7 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
+    platform_info.set_modem_id(vehicle_id_);
     ownship_modem_ids_.clear();
     ownship_modem_ids_.insert(vehicle_id_);
     for(auto id : cfg_.additional_modem_id())
@@ -849,6 +850,11 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
       {
 	glog << "Ownship modem ID: " << id << std::endl;
       }
+    // get name from modemidtable
+    goby::moos::ModemIdConvert converter;
+    converter.read_lookup_file("../../cruise/current/data/modemidlookup.txt");
+    platform_info.set_name(converter.get_name_from_id(vehicle_id_));
+    publish_pb("PLATFORM_INFO",platform_info);
 }
 
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
@@ -865,6 +871,7 @@ void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_name_ = msg.GetString();
+    platform_info.set_name(vehicle_name_);
 }
 
 void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
