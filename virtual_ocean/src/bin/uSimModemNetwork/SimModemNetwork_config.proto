@@ -44,6 +44,7 @@ message SimModemNetworkConfig
   optional bool isotropic_noise = 61 [default = false];
   optional double surface_rms_roughness = 62 [default = 0.0];
   optional double surface_roughness_loss = 63 [default = 0.0];
+  optional string modem_id_lookup_path = 70 [default = "modemidlookup.txt"];
 }
 
 

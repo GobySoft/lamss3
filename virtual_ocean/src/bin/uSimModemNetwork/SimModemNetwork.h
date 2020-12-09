@@ -101,6 +101,9 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     bool debug;
     bool debug2;
 
+    // Goby converter for modem name/id
+    goby::moos::ModemIdConvert converter;
+
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
     double mseas_update_interval;
