@@ -545,7 +545,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  else
 	    receiver -> set_metric_db(mpp);
 	}
-    }	// end of reciver loop
+    }	// end of receiver loop
   
   std::string serialized_performance_response;
   serialize_for_moos(&serialized_performance_response,message);
