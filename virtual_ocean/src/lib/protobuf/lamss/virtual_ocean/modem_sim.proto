@@ -44,6 +44,50 @@ message TransmitGroupVelocity
     required double group_velocity_std = 7;
 }
 
+message ModemPerformanceRequest
+{
+   oneof src
+    {
+    string source = 1;
+    int32  source_id = 21;
+    }
+   oneof rcv
+    {
+    string receiver = 2;
+    int32  receiver_id =22;
+    }
+
+   optional double source_level = 3 [default = 0];
+
+    optional int32 request_id = 10;
+    optional double request_time = 11;
+}
+
+message ModemPerformanceResponse
+{
+   oneof src
+    {
+    string source = 1;
+    int32  source_id = 21;
+    }
+   oneof rcv
+    {
+    string receiver = 2;
+    int32  receiver_id =22;
+    }
+
+   required double range = 3;
+   required double tl = 4;
+   required double nl = 5;
+   required double snr  = 6;
+   optional double mpp = 7;
+   optional double mae = 8;
+
+   optional int32 request_id = 10;
+   optional double request_time = 11;
+}
+
+
 enum ModemPerformanceMetric
     {
      SNR = 1;
