@@ -532,6 +532,8 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	 
 	  receiver -> set_snr(snr);
 	  receiver -> set_mpp(mpp);
+	  receiver -> set_tl(tl);
+	  receiver -> set_nl(nl);
 
       
 	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
