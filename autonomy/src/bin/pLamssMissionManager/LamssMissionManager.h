@@ -126,7 +126,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     
     goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
 
-    PlatformInfo platform_info;
+    lamss::protobuf::PlatformInfo platform_info;
     
     static LamssMissionManager* inst_;    
     std::vector<double> transit_x;
