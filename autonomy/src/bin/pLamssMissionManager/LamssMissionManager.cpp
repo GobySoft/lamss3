@@ -854,7 +854,7 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
     goby::moos::ModemIdConvert converter;
     converter.read_lookup_file("../../cruise/current/data/modemidlookup.txt");
     platform_info.set_name(converter.get_name_from_id(vehicle_id_));
-    publish_pb("PLATFORM_INFO",platform_info);
+    //   publish_pb("PLATFORM_INFO",platform_info);
 }
 
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
