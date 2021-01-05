@@ -2305,6 +2305,8 @@ bool LamssNetCdf::handle_eof_weight_update_message(int index,double weight_updat
     {
       weights_vec_[index] = weight_update;
     }
+  // Save as baseline weights for internal wave simulations
+  baseline_weights_vec_ = weights_vec_;
 
   return true;
 }
@@ -2322,7 +2324,7 @@ std::vector<double> LamssNetCdf::internal_wave_eof_weight(int index,
 							  double heading,
 							  double amplitude_factor)
 {
-  if (index < weights_vec_.size())
+  if (index < weights_vec_.size() && index < baseline_weights_vec_.size())
     {
       double k = 2*M_PI/wavelength;
       double k_x = k * sin(heading*M_PI/180);
