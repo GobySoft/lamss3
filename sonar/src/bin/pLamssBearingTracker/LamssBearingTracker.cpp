@@ -83,25 +83,26 @@ LamssBearingTracker* LamssBearingTracker::get_instance()
 
 LamssBearingTracker::LamssBearingTracker(LamssBearingTrackerConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
-      cfg_(cfg),
-      new_btr(false),
-      new_cosines(false),
-      new_sampling(false),     
-      ael_pitch_(0.0),
-      det_count(0),
-      lrcount(0),
-      sonar_on(false),
-      processing_on(false),
-      tracking(true),
-      noise_var_set(false),
-      dcount(0),
-      detect_mode(false),
-      prosecute_mode(1),
-      bbb(0),
-      thethat1(0),
-      thethat1n(0),
-      overiter(0),
-      got_heading(false),
+  cfg_(cfg),
+  new_btr(false),
+  new_cosines(false),
+  new_sampling(false),     
+  ael_pitch_(0.0),
+  det_count(0),
+  lrcount(0),
+  sonar_on(false),
+  processing_on(false),
+  tracking(true),
+  noise_var_set(false),
+  dcount(0),
+  detect_mode(false),
+  prosecute_mode(1),
+  bbb(0),
+  thethat1(0),
+  thethat1n(0),
+  IPS(-100),
+  overiter(0),
+  got_heading(false),
   got_pitch(false),
   got_beamforming_vars(false),
   ambiguous(false),
@@ -157,6 +158,10 @@ LamssBearingTracker::LamssBearingTracker(LamssBearingTrackerConfig& cfg)
   subscribe("SONAR_PROCESS", &LamssBearingTracker::handle_sonar_process, this);    
 
   //
+
+  initialized = initialize();
+  reset_tracking();
+  
   glog.is(DEBUG1) && glog << cfg_.DebugString() << std::endl;
 }
 
