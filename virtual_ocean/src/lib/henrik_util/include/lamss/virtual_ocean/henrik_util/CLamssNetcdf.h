@@ -191,14 +191,14 @@ class LamssNetCdf
                                        std::vector<double> dep);
   bool handle_eof_weight_update_message(int index, double weight_update);
   std::vector<double> current_eof_weights();
-  std::vector<double> internal_wave_eof_weight(int index,
-						double x, double y,
-						double t,
-						double period,
-						double wavelength,
-						double heading,
-						double amplitude_factor);
-
+  void internal_wave_eof_weight(int index,
+				double x, double y,
+				double t,
+				double period,
+				double wavelength,
+				double heading,
+				double amplitude_factor);
+  
   std::string eof_num_depth;
   std::string eof_num_eofs;
   std::string eof_baseval;

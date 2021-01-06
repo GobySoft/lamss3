@@ -2316,15 +2316,16 @@ std::vector<double> LamssNetCdf::current_eof_weights()
   return(weights_vec_);
 }
 
-std::vector<double> LamssNetCdf::internal_wave_eof_weight(int index,
-							  double x, double y,
-							  double t,
-							  double period,
-							  double wavelength,
-							  double heading,
-							  double amplitude_factor)
+void LamssNetCdf::internal_wave_eof_weight(int index,
+					   double x, double y,
+					   double t,
+					   double period,
+					   double wavelength,
+					   double heading,
+					   double amplitude_factor)
 {
-  if (index < weights_vec_.size() && index < baseline_weights_vec_.size())
+  if (index >=0 && index < weights_vec_.size() &&
+      index < baseline_weights_vec_.size())
     {
       double k = 2*M_PI/wavelength;
       double k_x = k * sin(heading*M_PI/180);
