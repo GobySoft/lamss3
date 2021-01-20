@@ -8,6 +8,8 @@
 #include "goby/moos/moos_translator.h"
 #include "goby/moos/protobuf/pAcommsHandler_config.pb.h"
 
+#include "goby/zeromq/application/multi_thread.h"
+
 #include "lamss/lib_goby3_lamss_gateway/groups.h"
 
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
