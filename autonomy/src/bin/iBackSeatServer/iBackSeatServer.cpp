@@ -61,6 +61,9 @@ CiBackSeatServer::CiBackSeatServer()
   msgack = false;
   last_gps_sim_update_time = 0;
   simulate_dvl_loss = false;
+  dvl_min_range = 3;
+  dvl_max_range = 200;
+  simulate_dvl_range = 0;
 }
 
 CiBackSeatServer::~CiBackSeatServer()
@@ -228,21 +231,22 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   if(dvl_ice_track == 0)
   {
       altitude = nav_z - last_bathy_z;
-      std::cout <<"Bathy_z = "<<last_bathy_z<<", Nav_z = "<<nav_z<<", nav_z - last_bathy_z = "<<altitude<<std::endl;
-      m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
-      altitude_str = doubleToString(altitude,1);
   }
   else if (dvl_ice_track == 1)
   {
       altitude = dep - (ice_roughness + ice_thickness);
-      if (altitude<3 || altitude>200) {
+      std::cout <<"Ice thickness = "<<ice_thickness<<", Ice roughness = "<<ice_roughness<<", altitude = "<<altitude<<std::endl;
+  }
+  m_Comms.Notify("ACTUAL_ALTITUDE",altitude);
+
+  if(simulate_dvl_range == 1)
+  {
+      if (altitude<dvl_min_range || altitude>dvl_max_range) {
         altitude = 0.0;
       }
-      std::cout <<"Ice thickness = "<<ice_thickness<<", Ice roughness = "<<ice_roughness<<", altitude = "<<altitude<<std::endl;
-      m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
-      altitude_str = doubleToString(altitude,1);
   }
-  
+  m_Comms.Notify("FRONTSEAT_ALTITUDE",altitude);
+  altitude_str = doubleToString(altitude,1);  
 
   UpdateMOOSVariables(NewMail);
   
@@ -322,6 +326,21 @@ bool CiBackSeatServer::OnConnectToServer()
     {
         ice_roughness_stdev = atof(sVal.c_str());
         MOOSTrace("Ice roughness stdev: %.1f \n",ice_roughness_stdev);
+    }
+    if(m_MissionReader.GetConfigurationParam("simulate_dvl_range",sVal))
+    {
+        simulate_dvl_range = atof(sVal.c_str());
+        MOOSTrace("Simulate DVL range: %.1f \n",simulate_dvl_range);
+    }
+    if(m_MissionReader.GetConfigurationParam("dvl_max_range",sVal))
+    {
+        dvl_max_range = atof(sVal.c_str());
+        MOOSTrace("Max DVL range: %.1f \n",dvl_max_range);
+    }
+    if(m_MissionReader.GetConfigurationParam("dvl_min_range",sVal))
+    {
+        dvl_min_range = atof(sVal.c_str());
+        MOOSTrace("Min DVL range: %.1f \n",dvl_min_range);
     }
     std::normal_distribution<double> ice_roughness_dist(ice_roughness_mean,ice_roughness_stdev);
 

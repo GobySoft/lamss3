@@ -92,6 +92,11 @@ private:
     	bool simulate_dvl_loss;
     	double dvl_lost_interval;
     	double simulate_dvl_loss_start_time;
+
+    	// Simulating DVL min/max range
+    	double simulate_dvl_range;
+    	double dvl_min_range;
+    	double dvl_max_range;
     
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
 
