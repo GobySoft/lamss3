@@ -109,6 +109,11 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 
   start_time = MOOSTime();
 
+  // Read modem lookup table
+  // Requires local link to cruise/current/data/modemidlookup.txt
+  
+  converter.read_lookup_file(cfg_.modem_id_lookup_path());
+
   // Initilize nodes and acoustic contacts connections)
   // fixed to 2 nodes, generalize for dynamic allocation
   Nodes.resize(cfg_.node_size());
@@ -308,7 +313,21 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
   netsim::protobuf::ImpulseRequest request;
   std::string serialized_impulse_request = msg.GetString();
   parse_for_moos(serialized_impulse_request, &request);
-  int con = findAcousticContact(request.receiver(),request.source()); 
+
+  // If source specified as modem_id, convert to name
+  string source_name;
+  if (request.has_source_id())
+    source_name = converter.get_name_from_id(request.source_id());
+  else
+    source_name = request.source();
+  
+  string receiver_name;
+  if (request.has_receiver_id())
+    receiver_name = converter.get_name_from_id(request.receiver_id());
+  else
+    receiver_name = request.receiver();
+  
+  int con = findAcousticContact(receiver_name,source_name); 
 
   bool got_info = con != -1 && 
     getNodeInfo(acoustic_contacts[con].ownship,
@@ -328,8 +347,15 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
       
       glog.is(DEBUG1) && glog << "Preparing IMPULSE_RESPONSE" << endl;
       netsim::protobuf::ImpulseResponse message;
-      message.set_source(acoustic_contacts[con].contact);
-      message.set_receiver(acoustic_contacts[con].ownship);
+      if (request.has_source_id())
+	message.set_source_id(request.source_id());
+      else
+	message.set_source(request.source());
+      if (request.has_receiver_id())
+	message.set_receiver_id(request.receiver_id());
+      else
+	message.set_receiver(request.receiver());
+      
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
       double range = sqrt(pow(contact_x-ownship_x,2) +
@@ -408,17 +434,24 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
     {
       if (!got_info)
 	glog.is(VERBOSE) && glog << "Insufficient info for impulse response "
-				 << request.source()
+				 << source_name
 				 << "->" 
-				 << request.receiver() << endl;
+				 << receiver_name << endl;
       else 
 	glog.is(VERBOSE) && glog << "No ray table generated "
-				 << request.source() 
+				 << source_name 
 				 << "->" 
-				 << request.receiver() << endl;
+				 << receiver_name << endl;
       netsim::protobuf::ImpulseResponse message;
-      message.set_source(request.source());
-      message.set_receiver(request.receiver());
+      if (request.has_source_id())
+	message.set_source_id(request.source_id());
+      else
+	message.set_source(request.source());
+      if (request.has_receiver_id())
+	message.set_receiver_id(request.receiver_id());
+      else
+	message.set_receiver(request.receiver());
+      
       if(request.has_request_id()) message.set_request_id(request.request_id());
       if(request.has_request_time()) message.set_request_time(request.request_time());
 	  if (cfg_.array_element_size() > 0)
@@ -438,7 +471,17 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
   std::string serialized = msg.GetString();
   parse_for_moos(serialized, &request);
   netsim::protobuf::ObjFuncResponse message;
-  message.set_contact(request.contact());
+  std::string contact_name;
+  if (request.has_contact_id())
+    contact_name = converter.get_name_from_id(request.contact_id());
+  else
+    contact_name = request.contact();
+
+  if (request.has_contact_id())
+    message.set_contact_id(request.contact_id());
+  else
+    message.set_contact(request.contact());
+  
   if(request.has_request_id())
     message.set_request_id(request.request_id());
   if(request.has_request_time())
@@ -449,8 +492,16 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
   netsim::protobuf::ObjFuncResponse::Receiver* receiver = 0;
   for (int rcv=0; rcv<request.receiver_size(); rcv++)
     {
-      int con = findAcousticContact(request.receiver(rcv).node(),
-				    request.contact()); 
+      std::string ownship_name;
+      if (request.receiver(rcv).has_node_id())
+	ownship_name =
+	  converter.get_name_from_id(request.receiver(rcv).node_id());
+      else
+	ownship_name = request.receiver(rcv).node();
+      
+      //      int con = findAcousticContact(request.receiver(rcv).node(),
+      //				    request.contact()); 
+      int con = findAcousticContact(ownship_name,contact_name);
       
       bool got_info = con != -1 && 
 	getNodeInfo(acoustic_contacts[con].ownship,
@@ -475,7 +526,10 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 
 	  glog.is(DEBUG1) && glog << "Preparing PERFORMANCE_RESPONSE" << endl;
 
-	  receiver -> set_node(acoustic_contacts[con].ownship);
+	  if (request.has_contact_id())
+	    receiver -> set_node_id(request.receiver(rcv).node_id());
+	  else
+	    receiver -> set_node(acoustic_contacts[con].ownship);
 	  double range = sqrt(pow(contact_x-ownship_x,2) +
 			      pow(contact_y-ownship_y,2) );
 	  receiver -> set_range(range);
@@ -499,6 +553,8 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	 
 	  receiver -> set_snr(snr);
 	  receiver -> set_mpp(mpp);
+	  receiver -> set_tl(tl);
+	  receiver -> set_nl(nl);
 
       
 	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
@@ -512,7 +568,7 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  else
 	    receiver -> set_metric_db(mpp);
 	}
-    }	// end of reciver loop
+    }	// end of receiver loop
   
   std::string serialized_performance_response;
   serialize_for_moos(&serialized_performance_response,message);
