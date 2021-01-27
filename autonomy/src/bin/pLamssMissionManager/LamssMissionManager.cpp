@@ -123,7 +123,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	  if (!opregion.add_vertex(cfg_.opbox_vertex(i).x(),
 				   cfg_.opbox_vertex(i).y(),true))
 	    {
-	      glog << "Error: OpRegion non-convex" << std::endl;
+                glog.is(WARN) && glog << "Error: OpRegion non-convex" << std::endl;
 	    }
 	opregion.set_label("OpRegion");
 	std::string str = "polygon="+opregion.get_spec();
@@ -209,7 +209,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	{
 	  send_deploy();
 	  publish("SURVEY_COMPLETED","TRUE");
-	  goby::glog << group("helm")
+	  goby::glog.is(VERBOSE) && glog << group("helm")
 		     << "DEPLOY Executed: Approaching op_radius during prosecute"
 		     <<"station_range = " << station_range
 		     <<", operation_radius = "<< cfg_.operation_radius()
@@ -224,13 +224,13 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  //	  LAMSS_DEPLOY new_deploy = last_deploy_cmd_;
 	  send_deploy();
 	  publish("SURVEY_COMPLETED","TRUE");
-	  goby::glog << group("helm")
+	  goby::glog.is(VERBOSE) && glog << group("helm")
 		     << "Prosecute duration exceeded - commanding Deploy"
 		     << std::endl;
 	}
       else
 	{
-	  goby::glog << group("helm")
+	  goby::glog.is(VERBOSE) && glog << group("helm")
 		     << "Prosecute time remaining: " << remaining
 		     << std::endl;
 	  publish("PROSECUTE_REMAINING",remaining);
@@ -250,9 +250,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  if (deploy_time >= last_deploy_cmd_.deploy_duration() ||
 	      stale_gps >= last_deploy_cmd_.deploy_duration())
 	    {
-	      goby::glog << group("helm")
+	      goby::glog.is(VERBOSE) && glog << group("helm")
 			 << "Deploy duration exceeded w/o acomms or gps - initiating Abort"
-			 << std::endl
+			 << "\n"
 			 << "Stale: acomms: " << stale_acomms 
 			 << ", nav: " << stale_gps 
 			 << std::endl ;
@@ -267,11 +267,11 @@ void LamssMissionManager::slow_loop(double curr_time)
 		   stale_acomms >= 0.5 * last_deploy_cmd_.deploy_duration() &&
 		    !depth_adapting )
 	    {
-	      goby::glog << group("helm")
+	      goby::glog.is(VERBOSE) && glog << group("helm")
 			 << "50% of deploy duration exceeded w/o acomms "
 			 << " going to acomms depth with collaborator"
 			 << last_deploy_cmd_.collaborator()
-			 << std::endl
+			 << "\n"
 			 << "Stale: acomms: " << stale_acomms 
 			 << ", nav: " << stale_gps 
 			 << std::endl ;
@@ -287,9 +287,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    {
 	      double remaining = last_deploy_cmd_.deploy_duration() -
 		std::max(stale_acomms,stale_gps);
-	      goby::glog << group("helm")
+	      goby::glog.is(VERBOSE) && glog << group("helm")
 			 << "Deploy time remaining: " << remaining
-			 << std::endl 
+			 << "\n"
 			 << "Stale: acomms: " << stale_acomms 
 			 << ", nav: " << stale_gps 
 			 << std::endl;
@@ -306,7 +306,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  if (remaining < 10*slow_loop_period_)
 	    {
 	      // Enter return mode 
-	      goby::glog << group("helm")
+	      goby::glog.is(VERBOSE) && glog << group("helm")
 			 << "Entering homing_return" << std::endl;
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
 		{
@@ -317,7 +317,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 	    }
 	  else
 	    {
-	      goby::glog << group("helm")
+	      goby::glog.is(VERBOSE) && glog << group("helm")
 		<< "Abort time remaining: " << remaining
 		<< std::endl;
 	      publish("ABORT_REMAINING",remaining);
@@ -808,7 +808,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 	}
       else
 	{
-	  goby::glog << group("fsm")
+	  goby::glog.is(VERBOSE) && glog << group("fsm")
 		     << "Not in active mission -  Prosecute ignored"
 		     << std::endl;
 	}
@@ -848,7 +848,7 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
         ownship_modem_ids_.insert(id);
     for (auto id : ownship_modem_ids_)
       {
-	glog << "Ownship modem ID: " << id << std::endl;
+	glog.is(VERBOSE) && glog << "Ownship modem ID: " << id << std::endl;
       }
     // get name from modemidtable
     goby::moos::ModemIdConvert converter;
@@ -910,7 +910,7 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
     {
       send_deploy();
       publish("SURVEY_COMPLETED","TRUE");
-      goby::glog << group("helm")
+      goby::glog.is(VERBOSE) && glog << group("helm")
 	<< "DEPLOY Executed: Too close to Opregion Perimeter"
 	<< std::endl;
     }
