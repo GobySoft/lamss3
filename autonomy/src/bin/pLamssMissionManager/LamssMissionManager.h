@@ -18,6 +18,8 @@
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 
 //#include "MBUtils.h"
+#include "goby/moos/modem_id_convert.h"
+
 #include "goby/moos/moos_geodesy.h"
 #include "XYPolygon.h"
 
