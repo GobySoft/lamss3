@@ -9,6 +9,7 @@
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
+#include "goby/moos/modem_id_convert.h"
 #include "lamss/lib_newmat10D/newmatap.h"
 #include <lamss/lib_henrik_util/CEigenRays.h>
 #include "netsim/acousticstoolbox/environment.h"
