@@ -2217,122 +2217,139 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
 }
 
 
-bool SimPassiveSonar::write_nas_file_verbose(double timestamp) {
-	double deg2rad = M_PI / 180;
-	char nonacoustic_filename_buff[1000];
-	// Sure hope nobody wants a filename longer than 1000 chars
-	sprintf(nonacoustic_filename_buff, "%s/%s_%s_%09d%s", base_dir_name.c_str(), nonacoustic_filename_prefix.c_str(),"verbose", frame_number, nonacoustic_filename_suffix.c_str());
+bool SimPassiveSonar::write_nas_file_verbose(double timestamp)
+{
+  double deg2rad = M_PI / 180;
+  char nonacoustic_filename_buff[1000];
+  // Sure hope nobody wants a filename longer than 1000 chars
+  sprintf(nonacoustic_filename_buff, "%s/%s_%s_%09d%s", base_dir_name.c_str(), nonacoustic_filename_prefix.c_str(),"verbose", frame_number, nonacoustic_filename_suffix.c_str());
 
-	FILE *nas_data_file;
-	if ((nas_data_file = fopen(nonacoustic_filename_buff, "wt")) == NULL) {
-	  glog << "Unable to open a file: " <<  nonacoustic_filename_buff << endl;
-	  glog << "Does the directory exist?" << endl;
-	  glog << "Does base_dir_name begin and end with a forward slash?" << endl;
-	  glog << "Do you have permission to write to that directory?" << endl;
-	  exit(EXIT_FAILURE);
-	} else {
-		fprintf(nas_data_file, "Verbose uSimPassiveSonar non-acoustic data file\n");
-		fprintf(nas_data_file, "\n--Data--\n");
-		fprintf(nas_data_file, "%d \t\t! file number\n", frame_number); 
-		fprintf(nas_data_file, "%8.4f ! current time\n", timestamp); 
-		fprintf(nas_data_file, "%8.4f \t! array uptime\n", (timestamp - start_time));
-		fprintf(nas_data_file, "%d \t\t! samples per file\n", num_samples);
-		fprintf(nas_data_file, "%8.4f \t! sampling rate\n", sampling_frequency);		
-		fprintf(nas_data_file, "%8.4f \t! file time interval (sec)\n", file_interval_time);
-		fprintf(nas_data_file, "%8.8f %8.8f \t! Lat, Lon position of sim. origin\n", m_Geodesy.GetOriginLatitude(), m_Geodesy.GetOriginLongitude()); 
+  FILE *nas_data_file;
+  if ((nas_data_file = fopen(nonacoustic_filename_buff, "wt")) == NULL)
+    {
+      glog << "Unable to open a file: " <<  nonacoustic_filename_buff << endl;
+      glog << "Does the directory exist?" << endl;
+      glog << "Does base_dir_name begin and end with a forward slash?" << endl;
+      glog << "Do you have permission to write to that directory?" << endl;
+      exit(EXIT_FAILURE);
+    }
+  else
+    {
+      fprintf(nas_data_file, "Verbose uSimPassiveSonar non-acoustic data file\n");
+      fprintf(nas_data_file, "\n--Data--\n");
+      fprintf(nas_data_file, "%d \t\t! file number\n", frame_number); 
+      fprintf(nas_data_file, "%8.4f ! current time\n", timestamp); 
+      fprintf(nas_data_file, "%8.4f \t! array uptime\n", (timestamp - start_time));
+      fprintf(nas_data_file, "%d \t\t! samples per file\n", num_samples);
+      fprintf(nas_data_file, "%8.4f \t! sampling rate\n", sampling_frequency);		
+      fprintf(nas_data_file, "%8.4f \t! file time interval (sec)\n", file_interval_time);
+      fprintf(nas_data_file, "%8.8f %8.8f \t! Lat, Lon position of sim. origin\n", m_Geodesy.GetOriginLatitude(), m_Geodesy.GetOriginLongitude()); 
 		
-		fprintf(nas_data_file, "\n--Array--\n");
-		if (array_type == "DURIP") {
-			fprintf(nas_data_file, "2 \t! number of sensors\n");
-		} else {
-			fprintf(nas_data_file, "%d \t! number of array elements\n", num_array_elements);			
-		}
-
-		// VSA Heading and Pitch
-		if (array_type == "VSA") {
-			vector<double> hdz(num_array_elements, 0);
-			vector<double> hdy(num_array_elements, 0);
-			vector<double> hdx(num_array_elements, 0);
-			vector<double> prz(num_array_elements, 0);
-			vector<double> pry(num_array_elements, 0);
-			vector<double> prx(num_array_elements, 0);
-
-			for (int jj = 0; jj < num_array_elements; jj++) {
-				hdz.at(jj) = cos(array_pitch.at(jj)) * cos(array_heading.at(jj) * deg2rad) - sin(array_pitch.at(jj));
-				hdy.at(jj) = sin(array_heading.at(jj) * deg2rad);
-				hdx.at(jj) = sin(array_pitch.at(jj)) * cos(array_heading.at(jj) * deg2rad) + cos(array_pitch.at(jj));
-				prz.at(jj) = -sin(array_pitch.at(jj));
-				pry.at(jj) = 0;
-				prx.at(jj) = -cos(array_pitch.at(jj));
-
-				fprintf(nas_data_file, "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f 0.0 0.0 %8.4f ! VSA element %03d: heading (x,y,z), pitch (x,y,z), depth\n", hdx.at(jj), hdy.at(jj), hdz.at(jj), prx.at(jj), pry.at(jj), prz.at(jj), fabs(array_z.at(jj)), jj);
-			}
-		}
-
-		if (array_type == "DURIP") {
-			// For DURIP, print out first and last sensors' info only.
-			fprintf(nas_data_file, "%8.4f %8.4f 0.0 %8.4f \t! X,Y,Z position (m) of element %d\n", 
-				array_heading.at(0), array_pitch.at(0), fabs(array_z.at(0)),num_array_elements-1);
-			fprintf(nas_data_file, "%8.4f %8.4f 0.0 %8.4f \t! X,Y,Z position (m) of element %d\n", 
-				array_heading.at(num_array_elements - 1), array_pitch.at(num_array_elements - 1), fabs(array_z.at(num_array_elements - 1)),num_array_elements-1);
-		} else {
-			for (int jj = 0; jj < num_array_elements; jj++) {
-				double element_pos_lat, element_pos_lon;
-				m_Geodesy.UTM2LatLong(array_x.at(jj), array_y.at(jj), element_pos_lat, element_pos_lon);
-				fprintf(nas_data_file, "%8.8f %8.8f \t! Lat, Lon position of element %d\n", element_pos_lat, element_pos_lon, jj);				
-				fprintf(nas_data_file, "%8.4f %8.4f %8.4f \t! X,Y,Z position (m) of element %d\n", 
-					array_x.at(jj), array_y.at(jj), fabs(array_z.at(jj)), jj);
-			}
-		}
-		
-		// Targets
-		fprintf(nas_data_file,"\n--Targets--\n");
-		fprintf(nas_data_file,"%d \t!  Number of targets\n",number_of_targets);
-		for (int i = 0; i < number_of_targets; i++) {
-			if(getTargetInfo(i)) { // variables used here are set in that function call
-				double source_pos_lat, source_pos_lon;
-				m_Geodesy.UTM2LatLong(source_pos_x, source_pos_y, source_pos_lat, source_pos_lon);
-				
-				fprintf(nas_data_file,"%d \t!  on(1)/off(0) status of target %d\n", source_status, i);
-				fprintf(nas_data_file,"%8.8f %8.8f \t! Lat, Long of target %d\n",source_pos_lat, source_pos_lon, i);					
-				fprintf(nas_data_file,"%8.4f %8.4f %8.4f \t! X,Y,Z position (m) of target %d\n",source_pos_x, source_pos_y, source_dep,i);
-				fprintf(nas_data_file,"%8.8f  \t! Broadband source amp. (Pa) of target %d\n",source_bb_amp,i);
-				fprintf(nas_data_file,"%8.4f %8.4f \t! Broadband center freq and bandwidth of target %d\n",source_bb_freq, source_bb_bw,i);
-				
-				int num_tones = Targets[i].tone_freq.size();
-				fprintf(nas_data_file,"%d \t! Number of tones of target %d\n",num_tones,i);
-				for (int j = 0; j < num_tones; j++) {
-					fprintf(nas_data_file,"%8.3f %8.3f %8.8f %8.8f \t! Tone %d of target %d: Freq, dB Amp., Wavenumber, Amp. (Pa)\n",
-						tone_freqs[j],tone_amps[j],tone_ks[j],tone_amps_Pa[j],j,i);
-				}	
-			}
-		}
-		
-		fclose(nas_data_file);
-		glog.is(DEBUG1) && glog << "Wrote file: " << nonacoustic_filename_buff
-					<< endl;
-		
-		if (sync) {
-
-		  std::string nonacoustic_filename(nonacoustic_filename_buff);
-
-		  std::string sync_cmd;
-		  if (cfg_.has_sync_password())
-		    sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + 
-		      cfg_.sync_password() + "; rsync " + 
-		      nonacoustic_filename + " " + sync_path + "/'";
-		  else
-		    sync_cmd = "rsync "
-		      + nonacoustic_filename + " " + sync_path + "/";
-		  
-		  
-		  glog.is(DEBUG1) && glog << "Synching with: " << 
-		    sync_cmd.c_str() << endl;
-		  system(sync_cmd.c_str());
-		}
+      fprintf(nas_data_file, "\n--Array--\n");
+      if (array_type == "DURIP")
+	{
+	  fprintf(nas_data_file, "2 \t! number of sensors\n");
+	}
+      else
+	{
+	  fprintf(nas_data_file, "%d \t! number of array elements\n", num_array_elements);			
 	}
 
-   return true;
+      // VSA Heading and Pitch
+      if (array_type == "VSA")
+	{
+	  vector<double> hdz(num_array_elements, 0);
+	  vector<double> hdy(num_array_elements, 0);
+	  vector<double> hdx(num_array_elements, 0);
+	  vector<double> prz(num_array_elements, 0);
+	  vector<double> pry(num_array_elements, 0);
+	  vector<double> prx(num_array_elements, 0);
+
+	  for (int jj = 0; jj < num_array_elements; jj++)
+	    {
+	      hdz.at(jj) = cos(array_pitch.at(jj)) * cos(array_heading.at(jj) * deg2rad) - sin(array_pitch.at(jj));
+	      hdy.at(jj) = sin(array_heading.at(jj) * deg2rad);
+	      hdx.at(jj) = sin(array_pitch.at(jj)) * cos(array_heading.at(jj) * deg2rad) + cos(array_pitch.at(jj));
+	      prz.at(jj) = -sin(array_pitch.at(jj));
+	      pry.at(jj) = 0;
+	      prx.at(jj) = -cos(array_pitch.at(jj));
+
+	      fprintf(nas_data_file, "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f 0.0 0.0 %8.4f ! VSA element %03d: heading (x,y,z), pitch (x,y,z), depth\n", hdx.at(jj), hdy.at(jj), hdz.at(jj), prx.at(jj), pry.at(jj), prz.at(jj), fabs(array_z.at(jj)), jj);
+	    }
+	}
+
+      if (array_type == "DURIP")
+	{
+	  // For DURIP, print out first and last sensors' info only.
+	  fprintf(nas_data_file, "%8.4f %8.4f 0.0 %8.4f \t! hdg,pitch,Z position (m) of element %d\n", 
+		  array_heading.at(0), array_pitch.at(0), fabs(array_z.at(0)), 0);
+	  fprintf(nas_data_file, "%8.4f %8.4f 0.0 %8.4f \t! hdg,pitch,Z position (m) of element %d\n", 
+		  array_heading.at(num_array_elements - 1), array_pitch.at(num_array_elements - 1), fabs(array_z.at(num_array_elements - 1)),num_array_elements-1);
+	}
+      else
+	{
+	  for (int jj = 0; jj < num_array_elements; jj++)
+	    {
+	      double element_pos_lat, element_pos_lon;
+	      m_Geodesy.UTM2LatLong(array_x.at(jj), array_y.at(jj), element_pos_lat, element_pos_lon);
+	      fprintf(nas_data_file, "%8.8f %8.8f \t! Lat, Lon position of element %d\n", element_pos_lat, element_pos_lon, jj);				
+	      fprintf(nas_data_file, "%8.4f %8.4f %8.4f \t! X,Y,Z position (m) of element %d\n", 
+		      array_x.at(jj), array_y.at(jj), fabs(array_z.at(jj)), jj);
+	    }
+	}
+		
+      // Targets
+      fprintf(nas_data_file,"\n--Targets--\n");
+      fprintf(nas_data_file,"%d \t!  Number of targets\n",number_of_targets);
+      for (int i = 0; i < number_of_targets; i++)
+	{
+	  if(getTargetInfo(i))
+	    { // variables used here are set in that function call
+	      double source_pos_lat, source_pos_lon;
+	      m_Geodesy.UTM2LatLong(source_pos_x, source_pos_y, source_pos_lat, source_pos_lon);
+				
+	      fprintf(nas_data_file,"%d \t!  on(1)/off(0) status of target %d\n", source_status, i);
+	      fprintf(nas_data_file,"%8.8f %8.8f \t! Lat, Long of target %d\n",source_pos_lat, source_pos_lon, i);					
+	      fprintf(nas_data_file,"%8.4f %8.4f %8.4f \t! X,Y,Z position (m) of target %d\n",source_pos_x, source_pos_y, source_dep,i);
+	      fprintf(nas_data_file,"%8.8f  \t! Broadband source amp. (Pa) of target %d\n",source_bb_amp,i);
+	      fprintf(nas_data_file,"%8.4f %8.4f \t! Broadband center freq and bandwidth of target %d\n",source_bb_freq, source_bb_bw,i);
+				
+	      int num_tones = Targets[i].tone_freq.size();
+	      fprintf(nas_data_file,"%d \t! Number of tones of target %d\n",num_tones,i);
+	      for (int j = 0; j < num_tones; j++)
+		{
+		  fprintf(nas_data_file,"%8.3f %8.3f %8.8f %8.8f \t! Tone %d of target %d: Freq, dB Amp., Wavenumber, Amp. (Pa)\n",
+			  tone_freqs[j],tone_amps[j],tone_ks[j],tone_amps_Pa[j],j,i);
+		}	
+	    }
+	}
+		
+      fclose(nas_data_file);
+      glog.is(DEBUG1) && glog << "Wrote file: " << nonacoustic_filename_buff
+			      << endl;
+		
+      if (sync)
+	{
+
+	  std::string nonacoustic_filename(nonacoustic_filename_buff);
+
+	  std::string sync_cmd;
+	  if (cfg_.has_sync_password())
+	    sync_cmd = "bash -c 'export RSYNC_PASSWORD=" + 
+	      cfg_.sync_password() + "; rsync " + 
+	      nonacoustic_filename + " " + sync_path + "/'";
+	  else
+	    sync_cmd = "rsync "
+	      + nonacoustic_filename + " " + sync_path + "/";
+		  
+		  
+	  glog.is(DEBUG1) && glog << "Synching with: " << 
+	    sync_cmd.c_str() << endl;
+	  system(sync_cmd.c_str());
+	}
+    }
+
+  return true;
 }
 
 
