@@ -533,7 +533,6 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  double range = sqrt(pow(contact_x-ownship_x,2) +
 			      pow(contact_y-ownship_y,2) );
 	  receiver -> set_range(range);
-
 	  // set ownship_depth to node depth
 	  if (request.receiver(rcv).has_depth())
 	    ownship_depth = request.receiver(rcv).depth();
@@ -556,6 +555,9 @@ void SimModemNetwork::handle_performance_request(const CMOOSMsg& msg)
 	  receiver -> set_tl(tl);
 	  receiver -> set_nl(nl);
 
+	  double delay, delay_std;
+	  if (compute_delay(eig,delay,delay_std))
+	    receiver -> set_delay(delay);
       
 	  if (cfg_.optimize() == ModemPerformanceMetric::MAE )
 	    {
@@ -2001,7 +2003,7 @@ void SimModemNetwork::create_cross_spectral_density()
 }
 
 void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp )
-{	  
+{
   if (eig.num_rays <= 0)
     {
       glog << ">>> No eigenrays - returning " << std::endl;
@@ -2090,6 +2092,71 @@ void SimModemNetwork::test_performance_request()
   publish("PERFORMANCE_REQUEST", serialized_request);
 }
   
+bool SimModemNetwork::compute_delay(CEigenRay eig,
+				  double& mean_delay, double& std_delay)
+{
+  // returns delay for strongest direct ray 
+  double max_power = 0;
+  int max_indx = -1;
+  mean_delay = 0;
+  std_delay = 0;
+  if (eig.num_rays < 1)
+    return (false);
+  int try_bounces = 0;
+  while (max_indx < 0)
+    {
+      double power_sum = 0;
+      double delay_sum = 0;
+      int count = 0;
+      // first search for non-bounce arrivals
+      for (int i=0; i<eig.num_rays; i++)
+	{
+	  int bounces = eig.bundle[i].surface_bounces +
+	    eig.bundle[i].bottom_bounces;
+	  if (bounces == try_bounces)
+	    {
+	      double power =pow(eig.bundle[i].amp,2);
+	      double delay = eig.bundle[i].tau;
+	      if ( power > max_power )
+		{
+		  max_power = power;
+		  max_indx = i;
+		}
+	      power_sum += power;
+	      delay_sum += delay;
+	      count++;
+	    }
+	}
+      if (max_indx >= 0)
+	{
+	  mean_delay = delay_sum/count;
+	  // now find standard deviation for bounce cluster
+	  double var_sum = 0;
+	  int count = 0;
+	  for (int i=0; i<eig.num_rays; i++)
+	    {
+	      int bounces = eig.bundle[i].surface_bounces +
+		eig.bundle[i].bottom_bounces;
+	      if (bounces == try_bounces)
+		{
+		  double power =pow(eig.bundle[i].amp,2);
+		  double delay = eig.bundle[i].tau;
+		  var_sum += power * pow(delay - mean_delay,2);		  
+		}
+	      count++;
+	    }
+	  std_delay = sqrt(var_sum/(count*power_sum));
+	}
+      try_bounces++;
+    }
+  glog.is(DEBUG2) && glog << " compute_delay: max_indx " << max_indx
+			  << ", bounces " << try_bounces-1
+			  << ", mean_delay " << mean_delay
+			  << ", std_delay " << std_delay
+			  << endl;
+  return(true);
+}
+
 double SimModemNetwork::compute_MAE(int con)
 {
   std::vector<std::vector<double> >delay;
