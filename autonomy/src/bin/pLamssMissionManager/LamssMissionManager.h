@@ -84,6 +84,8 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_status(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_vehicle_id(const CMOOSMsg& msg);
     void handle_vehicle_name(const CMOOSMsg& msg);
     void handle_collaborator_id(const CMOOSMsg& msg);
@@ -126,6 +128,11 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     double slow_loop_period_;
     double last_slow_loop_t_;
     
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
+  
     goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
 
     lamss::protobuf::PlatformInfo platform_info;

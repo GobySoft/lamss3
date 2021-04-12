@@ -72,8 +72,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       last_slow_loop_t_(0),
       collaborator_id_(-1),
       collaborator_name(""),
-  filter_length(10),
-  got_gps_nav(false)
+      new_lat_origin_(false),
+      new_lon_origin_(false),
+      filter_length(10),
+      got_gps_nav(false)
 {
 
     goby::glog.set_lock_action(lock);
@@ -85,6 +87,11 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     set_ignore_stale(false);
 
     // set up subscriptions before starting separate thread
+    if (cfg_.dynamic_utm())
+      {
+	subscribe("LAT_ORIGIN", &LamssMissionManager::handle_lat_origin, this);
+	subscribe("LONG_ORIGIN", &LamssMissionManager::handle_lon_origin, this);
+      }
     subscribe("LAMSS_STATUS_IN", &LamssMissionManager::handle_status, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
@@ -779,7 +786,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 {
-  LAMSS_PROSECUTE prosecute_cmd;
+   LAMSS_PROSECUTE prosecute_cmd;
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   // Only handle messages for me
   if (ownship_modem_ids_.count(prosecute_cmd._rcv_id()))
@@ -835,6 +842,33 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
   //	last_acomms_ = MOOSTime();
   if (!(MOOSStrCmp(msg.GetString(),"Null")))
     last_gps_ = MOOSTime();
+}
+
+void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
+{
+ double new_lat = msg.GetDouble();
+ if (new_lat_origin_ = !isnan(new_lat))
+     lat_origin_ = new_lat;
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
+}
+
+void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
+{
+ double new_lon = msg.GetDouble();
+ if (new_lon_origin_ = !isnan(new_lon))
+     lon_origin_ = new_lon;
+ // Initialize whewn both LAT and LONG received.
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
 }
 
 void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
