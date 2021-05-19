@@ -159,7 +159,7 @@ LamssBearingTracker::LamssBearingTracker(LamssBearingTrackerConfig& cfg)
 
   //
 
-  initialized = initialize();
+  // initialized = initialize();
   reset_tracking();
   
   glog.is(DEBUG1) && glog << cfg_.DebugString() << std::endl;
@@ -251,6 +251,12 @@ void LamssBearingTracker::handle_beamforming_vars(const CMOOSMsg& msg)
   num_elements_used = beamforming_vars.num_elements_used();
   mean_frequency = beamforming_vars.mean_frequency();
   mean_element_spacing = beamforming_vars.mean_element_spacing();
+  glog.is(DEBUG1) && glog << " integrate = " << integrate
+			  << " sample_freq = " << sample_freq
+			  << " overlap = " << overlap
+			  << " fft_length = " << fft_length
+			  << std::endl;
+  
   got_beamforming_vars = true;
   new_sampling = true;
 }
@@ -325,7 +331,7 @@ void LamssBearingTracker::loop()
   
   if (sonar_on && processing_on)
     {
-      if (got_heading && got_pitch)
+      if (got_heading && got_pitch && got_beamforming_vars)
 	{
 	  if (initialized)
 	    {
@@ -575,13 +581,13 @@ void LamssBearingTracker::filter_heading()
         ael_heading_ = ael_heading_ + 360.0;
     */
     ael_heading_ = angle360(ael_heading_);
-    //    resid_H = (ael_heading_-head_filt);
+    resid_H = (ael_heading_-head_filt);
     // Proper wrapped heading filter
-    double ch = cos(ael_heading_*M_PI/180);
-    double sh = sin(ael_heading_*M_PI/180);
-    double chf = cos(head_filt *M_PI/180);
-    double shf = sin(head_filt *M_PI/180);
-    resid_H = atan2(sh-shf,ch-chf)*180/M_PI;
+    //double ch = cos(ael_heading_*M_PI/180);
+    //double sh = sin(ael_heading_*M_PI/180);
+    //double chf = cos(head_filt *M_PI/180);
+    //double shf = sin(head_filt *M_PI/180);
+    //resid_H = atan2(sh-shf,ch-chf)*180/M_PI;
 
     glog.is(DEBUG1) && glog << "heading = " << ael_heading_ 
 			    <<", head_filt =" <<  head_filt
