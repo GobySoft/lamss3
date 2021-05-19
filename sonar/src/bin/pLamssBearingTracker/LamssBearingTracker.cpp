@@ -378,7 +378,13 @@ bool LamssBearingTracker::initialize()
     Int_Blocks = round((double)(integrate*sample_freq/((1-overlap)*fft_length)));
 
     Actual_Integration = Int_Blocks*((1-overlap)*fft_length)/sample_freq;
-
+    glog.is(DEBUG1) && glog << "Int_Blocks = " << Int_Blocks
+			    << " integrate = " << integrate
+			    << " sample_freq = " << sample_freq
+			    << " overlap = " << overlap
+			    << " fft_length = " << fft_length
+			    << "Actual_Integration = "
+			    << Actual_Integration << std::endl;
     err_const = (2.0/3.0)*(1.0/pow(3,0.5));
 
     //if (num_beams == 9)             //JPI/DHG 2007/07/06
@@ -569,15 +575,23 @@ void LamssBearingTracker::filter_heading()
         ael_heading_ = ael_heading_ + 360.0;
     */
     ael_heading_ = angle360(ael_heading_);
-    resid_H = (ael_heading_-head_filt);
+    //    resid_H = (ael_heading_-head_filt);
+    // Proper wrapped heading filter
+    double ch = cos(ael_heading_*M_PI/180);
+    double sh = sin(ael_heading_*M_PI/180);
+    double chf = cos(head_filt *M_PI/180);
+    double shf = sin(head_filt *M_PI/180);
+    resid_H = atan2(sh-shf,ch-chf)*180/M_PI;
+
     glog.is(DEBUG1) && glog << "heading = " << ael_heading_ 
-			    <<", head_filt =" <<  head_filt << std::endl;
+			    <<", head_filt =" <<  head_filt
+			    << std::endl;
 
     if (resid_H > 180.0)
         resid_H = resid_H - 360.0;
     else if (resid_H <= -180.0)
         resid_H = resid_H + 360.0;
-    glog.is(DEBUG2) && glog << "beta_head = " << beta_head
+    glog.is(DEBUG1) && glog << "beta_head = " << beta_head
 			    << ", resid_H = " << resid_H
 			    << ", Actual_Integration = " << Actual_Integration
 			    << std::endl;
@@ -630,8 +644,11 @@ bool LamssBearingTracker::Track_Bearing()
     glog.is(VERBOSE) && glog <<"Tracking Bearing" << std::endl;
       glog.is(DEBUG2) && glog <<"bbb value is  = " << bbb << std::endl;
     if (isnan(bbb))
-      reset_tracking();
-    
+      {
+	bbb=0;
+	return(false);
+	//      reset_tracking();
+      }    
     if(initial_time)
     {
         old_heading = ael_heading_;
