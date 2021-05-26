@@ -84,6 +84,8 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_ael_heading(const CMOOSMsg& msg);
     void handle_ael_pitch(const CMOOSMsg& msg);
@@ -127,6 +129,11 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     std::vector<CSensor> z_accelerometers;
 
 
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
+  
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool svp_updates;
     double svp_update_interval;
