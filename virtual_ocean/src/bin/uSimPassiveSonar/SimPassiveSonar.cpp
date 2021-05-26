@@ -99,7 +99,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   
   // set up subscriptions before starting separate thread
   subscribe("LAT_ORIGIN", &SimPassiveSonar::handle_lat_origin, this);
-  subscribe("LONG_ORIGIN", &SimpassiveSonar::handle_lon_origin, this);
+  subscribe("LONG_ORIGIN", &SimPassiveSonar::handle_lon_origin, this);
   subscribe("SONAR_CONTROL", &SimPassiveSonar::handle_sonar_control, this);    
   subscribe("AEL_HEADING", &SimPassiveSonar::handle_ael_heading, this);    
   subscribe("AEL_PITCH", &SimPassiveSonar::handle_ael_pitch, this);    
