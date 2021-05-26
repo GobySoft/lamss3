@@ -61,6 +61,8 @@ SimModemNetwork* SimModemNetwork::get_instance()
 SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   : goby::moos::GobyMOOSApp(&cfg),
     cfg_(cfg),
+    new_lat_origin_(false),
+    new_lon_origin_(false),
     max_number_bounces(cfg_.max_number_bounces()),
     mseas_svp_updates(cfg_.mseas_svp_updates()), 
     mseas_update_interval(cfg_.mseas_update_interval()), 
@@ -80,6 +82,8 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   set_ignore_stale(false);
   
   // set up subscriptions before starting separate thread
+  subscribe("LAT_ORIGIN", &SimModemNetwork::handle_lat_origin, this);
+  subscribe("LONG_ORIGIN", &SimModemNetwork::handle_lon_origin, this);
   subscribe("BELLHOP_RESPONSE", &SimModemNetwork::handle_bellhop_response, this);    
   subscribe("SVP_RESPONSE", &SimModemNetwork::handle_svp_response, this);    
   subscribe("NODE_REPORT", &SimModemNetwork::handle_node_report, this);
@@ -164,6 +168,33 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
       compCov.spherical_besgen.initSphBes(2,40*M_PI);
     }      
   test_count = 0;
+}
+
+void SimModemNetwork::handle_lat_origin(const CMOOSMsg& msg)
+{
+ double new_lat = msg.GetDouble();
+ if (new_lat_origin_ = !isnan(new_lat))
+     lat_origin_ = new_lat;
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
+}
+
+void SimModemNetwork::handle_lon_origin(const CMOOSMsg& msg)
+{
+ double new_lon = msg.GetDouble();
+ if (new_lon_origin_ = !isnan(new_lon))
+     lon_origin_ = new_lon;
+ // Initialize whewn both LAT and LONG received.
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
 }
 
 void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)

@@ -81,6 +81,8 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_transmit_test(const CMOOSMsg& msg);
     void handle_bellhop_response(const CMOOSMsg& msg);
     void handle_svp_response(const CMOOSMsg& msg);
@@ -105,6 +107,10 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     // Goby converter for modem name/id
     goby::moos::ModemIdConvert converter;
 
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
     double mseas_update_interval;
