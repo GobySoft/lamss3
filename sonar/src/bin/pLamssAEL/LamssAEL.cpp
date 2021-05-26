@@ -30,71 +30,97 @@ void* LamssAEL::driver_library_handle_= 0;
 
 int main(int argc, char * argv[])
 {
-    return goby::moos::run<LamssAEL>(argc, argv);
+  return goby::moos::run<LamssAEL>(argc, argv);
 }
 
 LamssAEL* LamssAEL::get_instance()
 {
-    if(!inst_)    {
-        master_config.reset(new LamssAELConfig);
-        inst_ = new LamssAEL(*master_config);
-    }
-    return inst_;
+  if(!inst_)    {
+    master_config.reset(new LamssAELConfig);
+    inst_ = new LamssAEL(*master_config);
+  }
+  return inst_;
 }
 
 LamssAEL::LamssAEL(LamssAELConfig& cfg)
-    : goby::moos::GobyMOOSApp(&cfg),
-      cfg_(cfg),
-      nav_count_(0),
-      filt_set_(false),
-      got_nav_(false)
+  : goby::moos::GobyMOOSApp(&cfg),
+    cfg_(cfg),
+    nav_count_(0),
+    filt_set_(false),
+    new_lat_origin_(false),
+    new_lon_origin_(false),
+    got_nav_(false)
 {
 
-    set_ignore_stale(false);
+  set_ignore_stale(false);
 
-    // set up subscriptions before starting separate thread
-    subscribe("NAV_DATA", &LamssAEL::handle_nav_data, this);    
-    //
-    glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+  // set up subscriptions before starting separate thread
+  subscribe("NAV_DATA", &LamssAEL::handle_nav_data, this);    
+  subscribe("LAT_ORIGIN", &LamssAEL::handle_lat_origin, this);    
+  subscribe("LONG_ORIGIN", &LamssAEL::handle_lon_origin, this);    
+  //
+  glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
 
-    // intialize MOOSGeodesy
+  // intialize MOOSGeodesy
 
-    m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+  m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
 
-    pitch_filter.configAvg(cfg_.filter_length());
-    roll_filter.configAvg(cfg_.filter_length());
-    heading_filter.configAvg(cfg_.filter_length());
-    filt_set_ = true;
-    glog << "initialized filters" << std::endl;
+  pitch_filter.configAvg(cfg_.filter_length());
+  roll_filter.configAvg(cfg_.filter_length());
+  heading_filter.configAvg(cfg_.filter_length());
+  filt_set_ = true;
+  glog << "initialized filters" << std::endl;
     
-    // for mooring, set last_nav_
+  // for mooring, set last_nav_
 
-    if (cfg_.is_mooring())
-      {
-	last_nav_.mutable_local_fix()->set_x(cfg_.deploy_x());    
-	last_nav_.mutable_local_fix()->set_y(cfg_.deploy_y());    
-	last_nav_.mutable_local_fix()->set_z(-cfg_.deploy_depth()); 
-	
-	double lat;
-	double lon;
-	m_Geodesy.UTM2LatLong(last_nav_.local_fix().x(),last_nav_.local_fix().y(),
-			      lat,lon);
-	
-	last_nav_.mutable_global_fix()->set_lat(lat);    
-	last_nav_.mutable_global_fix()->set_lon(lon);    
-	last_nav_.mutable_global_fix()->set_depth(cfg_.deploy_depth());    
-	
-	last_nav_.mutable_pose()->set_heading(cfg_.deploy_heading());
-        nav_count_++;
-	got_nav_ = true;
-      }
+  if (cfg_.is_mooring())
+    set_mooring_nav(); 
+}
+
+void LamssAEL::set_mooring_nav()
+{
+  if (cfg_.has_deploy_x() && cfg_.has_deploy_y())
+    {
+      last_nav_.mutable_local_fix()->set_x(cfg_.deploy_x());    
+      last_nav_.mutable_local_fix()->set_y(cfg_.deploy_y());    
+      double lat;
+      double lon;
+      m_Geodesy.UTM2LatLong(last_nav_.local_fix().x(),
+			    last_nav_.local_fix().y(),
+			    lat,lon);
+      last_nav_.mutable_global_fix()->set_lat(lat);    
+      last_nav_.mutable_global_fix()->set_lon(lon);    
+    }
+  else if (cfg_.has_deploy_lon() && cfg_.has_deploy_lat())
+    {
+      last_nav_.mutable_global_fix()->set_lat(cfg_.deploy_lat());    
+      last_nav_.mutable_global_fix()->set_lon(cfg_.deploy_lon());    
+      double x;
+      double y;
+      m_Geodesy.LatLong2LocalUTM(last_nav_.global_fix().lat(),
+				 last_nav_.global_fix().lon(),
+				 y,x);
+      last_nav_.mutable_local_fix()->set_x(x);    
+      last_nav_.mutable_local_fix()->set_y(y);    
+    }
+  else
+    {
+      got_nav_ = false;
+      return;
+    }
+  last_nav_.mutable_local_fix()->set_z(-cfg_.deploy_depth()); 
+  last_nav_.mutable_global_fix()->set_depth(cfg_.deploy_depth());    
+  last_nav_.mutable_pose()->set_heading(cfg_.deploy_heading());
+  nav_count_++;
+  got_nav_ = true;
 }
 
 void LamssAEL::loop()
 {
 
   double curr_time = MOOSTime();
-  
+
+
   if (got_nav_)
     {
       std::string serialized;
@@ -103,10 +129,10 @@ void LamssAEL::loop()
       // publish_pb(cfg_.ael_preample()+"_NAV", computeAEL());
     }
   
-   // process some events at a slower rate
-    const int slow_loop_period = 10;
-    if(curr_time > last_slow_loop_t_ + slow_loop_period)
-      slow_loop(curr_time);
+  // process some events at a slower rate
+  const int slow_loop_period = 10;
+  if(curr_time > last_slow_loop_t_ + slow_loop_period)
+    slow_loop(curr_time);
 }
 
 void LamssAEL::slow_loop(double curr_time)
@@ -116,27 +142,59 @@ void LamssAEL::slow_loop(double curr_time)
   last_slow_loop_t_ = curr_time;
 }
 
+void LamssAEL::handle_lat_origin(const CMOOSMsg& msg)
+{
+  double new_lat = msg.GetDouble();
+  if (new_lat_origin_ = !isnan(new_lat))
+    lat_origin_ = new_lat;
+  if (new_lat_origin_ && new_lon_origin_)
+    {
+      m_Geodesy.Initialise(lat_origin_,lon_origin_);
+      if (cfg_.is_mooring())
+	set_mooring_nav(); 
+      new_lat_origin_ = false;
+      new_lon_origin_ = false;
+    }
+}
+
+void LamssAEL::handle_lon_origin(const CMOOSMsg& msg)
+{
+  double new_lon = msg.GetDouble();
+  if (new_lon_origin_ = !isnan(new_lon))
+    lon_origin_ = new_lon;
+  // Initialize whewn both LAT and LONG received.
+  if (new_lat_origin_ && new_lon_origin_)
+    {
+      m_Geodesy.Initialise(lat_origin_,lon_origin_);
+      if (cfg_.is_mooring())
+	set_mooring_nav(); 
+      new_lat_origin_ = false;
+      new_lon_origin_ = false;
+    }
+}
+
 void LamssAEL::handle_nav_data(const CMOOSMsg& msg)
 {
-    goby::middleware::frontseat::protobuf::NodeStatus data;
-    parse_for_moos(msg.GetString(), &data);
+  goby::middleware::frontseat::protobuf::NodeStatus data;
+  parse_for_moos(msg.GetString(), &data);
     
-    last_nav_ = data;
+  last_nav_ = data;
 
-    if (filt_set_)
+  if (filt_set_)
     {
-	pitch_filter.setVal(last_nav_.pose().pitch()*pi/180);
-	roll_filter.setVal(last_nav_.pose().roll()*pi/180);
-	heading_filter.setVal(last_nav_.pose().heading());
+      pitch_filter.setVal(last_nav_.pose().pitch()*pi/180);
+      roll_filter.setVal(last_nav_.pose().roll()*pi/180);
+      heading_filter.setVal(last_nav_.pose().heading());
     }
 
-    nav_count_++;
-    if (nav_count_ >= cfg_.filter_length())
-      got_nav_ = true;
+  nav_count_++;
+  if (nav_count_ >= cfg_.filter_length())
+    got_nav_ = true;
 }
 
 ArrayNavigation LamssAEL::computeAEL()
 {
+  ArrayNavigation ael_nav;
   double curr_time = MOOSTime();
 
   double nav_x = last_nav_.local_fix().x();
@@ -158,7 +216,6 @@ ArrayNavigation LamssAEL::computeAEL()
       publish(cfg_.ael_preample()+"_X",ael_x);
       publish(cfg_.ael_preample()+"_Y",ael_y);
 
-      ArrayNavigation ael_nav;
       ael_nav.set_ael_utc(curr_time);
       ael_nav.set_ael_x(ael_x);
       ael_nav.set_ael_y(ael_y);
@@ -209,7 +266,6 @@ ArrayNavigation LamssAEL::computeAEL()
 		  publish(cfg_.ael_preample()+"_X",ael_x);
 		  publish(cfg_.ael_preample()+"_Y",ael_y);
 
-		  ArrayNavigation ael_nav;
 		  ael_nav.set_ael_utc(curr_time);
 		  ael_nav.set_ael_x(nav_hist[0].nav_x);
 		  ael_nav.set_ael_y(nav_hist[0].nav_y);
@@ -222,6 +278,7 @@ ArrayNavigation LamssAEL::computeAEL()
 	    }
 	}
     }
+  return(ael_nav);
 }
 
 double LamssAEL::angle360(double angle)

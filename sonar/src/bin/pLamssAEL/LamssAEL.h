@@ -55,8 +55,10 @@ class LamssAEL : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_nav_data(const CMOOSMsg& msg);
-
+    void set_mooring_nav();
     ArrayNavigation computeAEL();
     double angle360(double angle);
   private:
@@ -65,7 +67,12 @@ class LamssAEL : public goby::moos::GobyMOOSApp
     
     static LamssAEL* inst_;    
 
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
+  
     CRadianAvg pitch_filter;
     CRadianAvg roll_filter;
     CAngleAvg heading_filter;
