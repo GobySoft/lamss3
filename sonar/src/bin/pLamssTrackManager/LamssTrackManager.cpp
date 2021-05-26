@@ -65,6 +65,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
       active_track_trail(false),
+      new_lat_origin_(false),
+      new_lon_origin_(false),
       last_slow_loop_t_(0)
 {
 
@@ -85,6 +87,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
     subscribe("MISSION_STATE", &LamssTrackManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssTrackManager::handle_vehicle_id, this);
+    subscribe("LAT_ORIGIN", &LamssTrackManager::handle_lat_origin, this);
+    subscribe("LONG_ORIGIN", &LamssTrackManager::handle_lon_origin, this);
     subscribe("NAV_DATA", &LamssTrackManager::handle_nav_data, this);    
     subscribe("COLLABORATOR_ID", 
 	      &LamssTrackManager::handle_collaborator_id, this);    
@@ -304,6 +308,33 @@ void LamssTrackManager::try_publish()
             publish_queue_.pop_front();
 	}
     }
+}
+
+void LamssTrackManager::handle_lat_origin(const CMOOSMsg& msg)
+{
+ double new_lat = msg.GetDouble();
+ if (new_lat_origin_ = !isnan(new_lat))
+     lat_origin_ = new_lat;
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
+}
+
+void LamssTrackManager::handle_lon_origin(const CMOOSMsg& msg)
+{
+ double new_lon = msg.GetDouble();
+ if (new_lon_origin_ = !isnan(new_lon))
+     lon_origin_ = new_lon;
+ // Initialize whewn both LAT and LONG received.
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
 }
 
 void LamssTrackManager::handle_nav_data(const CMOOSMsg& msg)

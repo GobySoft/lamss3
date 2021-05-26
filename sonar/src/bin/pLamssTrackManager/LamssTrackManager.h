@@ -95,6 +95,10 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     LamssTrackManager& operator=(const LamssTrackManager&);
 
     goby::moos::CMOOSGeodesy m_Geodesy;
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
 
     
     // synchronous event
@@ -106,6 +110,8 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_nav_data(const CMOOSMsg& msg);
     void handle_deploy(const CMOOSMsg& msg);
     void handle_prosecute(const CMOOSMsg& msg);
