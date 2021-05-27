@@ -48,6 +48,8 @@ class SimTargets : public goby::moos::GobyMOOSApp
 
     // mail handlers
 
+    void handle_lat_origin(const CMOOSMsg& msg);
+    void handle_lon_origin(const CMOOSMsg& msg);
     void handle_tgt_state(const CMOOSMsg& msg);
     void handle_nav_x(const CMOOSMsg& msg);
     void handle_nav_y(const CMOOSMsg& msg);
@@ -59,6 +61,7 @@ class SimTargets : public goby::moos::GobyMOOSApp
 
  protected:
 
+    void reinitialize_targets();
     void update_target(LAMSS_SIMULATE_TARGET tgt_msg);
 
     void updateTargetList();
@@ -87,6 +90,10 @@ class SimTargets : public goby::moos::GobyMOOSApp
     bool got_y;
     bool noRangeCrit;
     
+    double lat_origin_;
+    double lon_origin_;
+    bool  new_lat_origin_;
+    bool  new_lon_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
     std::vector<CTarget> Targets;
     

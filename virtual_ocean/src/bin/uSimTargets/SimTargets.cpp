@@ -45,6 +45,8 @@ SimTargets* SimTargets::get_instance()
 SimTargets::SimTargets(SimTargetsConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
+      new_lat_origin_(false),
+      new_lon_origin_(false),
       source_control(true),
       target_number(0),
       target_init(false),
@@ -74,6 +76,8 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
   set_ignore_stale(false);
   
   // set up subscriptions before starting separate thread
+  subscribe("LAT_ORIGIN", &SimTargets::handle_lat_origin, this);
+  subscribe("LONG_ORIGIN", &SimTargets::handle_lon_origin, this);
   subscribe("TGT_STATE_IN", &SimTargets::handle_tgt_state, this);    
   subscribe("NAV_X", &SimTargets::handle_nav_x, this);
   subscribe("NAV_Y", &SimTargets::handle_nav_y, this);    
@@ -174,6 +178,33 @@ void SimTargets::slow_loop(double curr_time)
   last_slow_loop_t_ = curr_time;
 }
 
+void SimTargets::handle_lat_origin(const CMOOSMsg& msg)
+{
+ double new_lat = msg.GetDouble();
+ if (new_lat_origin_ = !isnan(new_lat))
+     lat_origin_ = new_lat;
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     reinitialize_targets();
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
+}
+
+void SimTargets::handle_lon_origin(const CMOOSMsg& msg)
+{
+ double new_lon = msg.GetDouble();
+ if (new_lon_origin_ = !isnan(new_lon))
+     lon_origin_ = new_lon;
+ // Initialize whewn both LAT and LONG received.
+ if (new_lat_origin_ && new_lon_origin_)
+   {
+     reinitialize_targets();
+     new_lat_origin_ = false;
+     new_lon_origin_ = false;
+   }
+}
+
 void SimTargets::handle_nav_x(const CMOOSMsg& msg)
 {
   auv_x = msg.GetDouble();
@@ -193,6 +224,37 @@ void SimTargets::handle_tgt_state(const CMOOSMsg& msg)
   glog.is(DEBUG1) && glog << "Got TGT_STATE message, target number " 
 			  << tgt_msg.tgt_num() << endl;
   update_target(tgt_msg);
+}
+
+void SimTargets::reinitialize_targets()
+{
+     //restart targets at current lat/lon when shifting UTM datum
+  std::vector<double> tgt_lat;
+  std::vector<double> tgt_lon;
+  tgt_lat.clear();
+  tgt_lon.clear();
+  
+  time_now = MOOSTime();
+  // First make table of current target lat/longs
+  for (int i=0; i< Targets.size(); i++)
+    {
+      double target_lat,target_lon;
+      elapsed = time_now - Targets[i].target_utc;
+      target_x = Targets[i].target_x+(sin(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
+      target_y = Targets[i].target_y+(cos(Targets[i].target_hdg*M_PI/180.0)*elapsed*Targets[i].target_spd);
+      m_Geodesy.UTM2LatLong(target_x,target_y,target_lat,target_lon);
+      tgt_lat.push_back(target_lat);
+      tgt_lon.push_back(target_lon);
+    }
+  m_Geodesy.Initialise(lat_origin_,lon_origin_);
+  // Restart targets at currfent time and location in new UTM
+  for (int i=0; i< Targets.size(); i++)
+    {
+      m_Geodesy.LatLong2LocalUTM(tgt_lat[i],tgt_lon[i],target_y,target_x);
+      Targets[i].target_x = target_x;
+      Targets[i].target_y = target_y;
+      Targets[i].target_utc = time_now;
+    }  
 }
 
 void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
