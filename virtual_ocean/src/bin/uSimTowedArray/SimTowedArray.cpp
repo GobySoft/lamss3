@@ -121,43 +121,13 @@ CSimTowedArray::~CSimTowedArray()
 
 bool CSimTowedArray::OnStartUp()
 {
-  //Initialize m_Geodesy from lat lon origin in .moos file
+
   string sVal;
-  double dfLatOrigin;
-  double dfLongOrigin;
     
   ok_local_dir_x = false;
   ok_local_dir_y = false;
   ok_local_dir_z = false;
     
-  if(m_MissionReader.GetValue("LatOrigin",sVal))
-    {
-      dfLatOrigin = atof(sVal.c_str());
-      MOOSTrace("  LatOrigin  = %10.5f deg.\n",dfLatOrigin);
-    }
-  else
-    {
-      MOOSTrace("LatOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
-    
-  if(m_MissionReader.GetValue("LongOrigin",sVal))
-    {
-      dfLongOrigin = atof(sVal.c_str());
-      MOOSTrace("  LongOrigin = %10.5f deg.\n",dfLongOrigin);
-    }
-  else
-    {
-      MOOSTrace("LongOrigin not specified in mission file - FAIL\n");
-      return false;
-    }
-
-  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-    {
-      MOOSTrace("Geodesy Init inside pSimTowedArray failed - FAIL\n");
-      return false;
-    }
-  //Done initializaing m_Geodesy
 
   if(m_MissionReader.GetConfigurationParam("cond_check",sVal))
     {
