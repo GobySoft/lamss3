@@ -122,6 +122,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+
     // Set up initial OpRegion if dynamic
     if (cfg_.dynamic_opregion())
       {
@@ -707,7 +708,137 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	  last_acomms_ = MOOSTime();
-      if (last_deploy_cmd_.depth_mode() == LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
+
+      // Setting behaviour update variables
+      if (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON) 
+	publish("SONAR_CONTROL","ON");
+      else
+	publish("SONAR_CONTROL","OFF");
+      if (last_deploy_cmd_.sonar_process() == LAMSS_DEPLOY::SONAR_PROCESS_ON) 
+	publish("SONAR_PROCESS","ON");
+      else
+	publish("SONAR_PROCESS","OFF");
+
+      std::stringstream ds;
+      ds << "point=" << last_deploy_cmd_.deploy_x()
+	 << "," << last_deploy_cmd_.deploy_y()
+	 << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("DEPLOY_STATION",ds.str());
+      publish("ORBIT_RADIUS",last_deploy_cmd_.loiter_radius());	
+
+      std::string clkw;
+      if (last_deploy_cmd_.clockwise())
+	clkw = "true";
+      else
+	clkw = "false";
+      
+      std::stringstream sd;
+      sd << "polygon=radial:" << last_deploy_cmd_.deploy_x()
+	 << "," << last_deploy_cmd_.deploy_y()
+	 << "," << last_deploy_cmd_.loiter_radius()
+	 << "," << last_deploy_cmd_.loiter_segments()
+	 << "#clockwise=" << clkw
+	 << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("SENSOR_DEPLOY",sd.str());
+      
+      std::stringstream srt;
+      srt << "points=" << last_deploy_cmd_.deploy_x()
+	 << "," << last_deploy_cmd_.deploy_y()
+	 << "#heading=" << last_deploy_cmd_.survey_heading()
+	 << "#track_length=" << last_deploy_cmd_.survey_length()
+	 << "#track_width=" << last_deploy_cmd_.survey_width()
+	 << "#clockwise=" << clkw
+	 << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("SENSOR_RACETRACK",srt.str());
+      
+      std::stringstream szc;
+      szc << "heading=" << last_deploy_cmd_.survey_heading()
+	 << "#period=" << last_deploy_cmd_.survey_period()
+	 << "#amplitude=" << last_deploy_cmd_.survey_width()
+	 << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("ZIGZAG_CONFIG",szc.str());
+      
+      std::stringstream szs;
+      szs  << "points=zigzag:" << last_deploy_cmd_.deploy_x()
+	   << "," << last_deploy_cmd_.deploy_y()
+	   << "," << last_deploy_cmd_.survey_heading()
+	   << "," << last_deploy_cmd_.survey_length()
+	   << "," << last_deploy_cmd_.survey_period()
+	 << "," << last_deploy_cmd_.survey_width();
+      publish("ZIGZAG_STATUS",szs.str());
+      
+      std::stringstream slm;
+      slm  << "points=format=lawnmower"
+	   << ",x=" << last_deploy_cmd_.deploy_x()
+	   << ",y=" << last_deploy_cmd_.deploy_y()
+	   << ",height=" << last_deploy_cmd_.survey_length()
+	   << ",width=" << last_deploy_cmd_.survey_width()
+	   << ",lane_width=" << last_deploy_cmd_.survey_period()
+	   << ",rows=east-west,degs="
+	   << last_deploy_cmd_.survey_heading()
+	   << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("SURVEY_CONFIG",slm.str());
+
+     std::stringstream sdd;
+      sdd  << "depth=" << last_deploy_cmd_.deploy_upper_depth();
+      publish("SENSOR_DEPTH_DEPLOY",sdd.str());
+      publish("SENSOR_DEPTH_TRACKING",sdd.str());
+
+      std::stringstream sda;
+      sda  << "depth=" << last_deploy_cmd_.deploy_lower_depth();
+      publish("SENSOR_DEPTH_ALTERNATE",sda.str());
+
+      std::stringstream sa;
+      sa  << "altitude=" << last_deploy_cmd_.deploy_altitude();
+      publish("SENSOR_ALTITUDE",sa.str());
+
+      std::stringstream gc;
+      gc  << "period=" << last_deploy_cmd_.gps_interval();
+      publish("GPS_CONFIGURATION",gc.str());
+
+      std::stringstream syy;
+      syy  << "min_depth=" << last_deploy_cmd_.deploy_upper_depth()
+	   << "#max_depth=" << last_deploy_cmd_.deploy_lower_depth();
+      publish("SENSOR_YOYO",syy.str());
+      syy << "#period=" << last_deploy_cmd_.survey_period();
+      publish("SMART_YOYO",syy.str());
+      
+      std::stringstream dsp;
+      dsp <<  "speed=" << last_deploy_cmd_.deploy_speed();
+      publish("DEPLOY_SPEED",sd.str());
+      
+      std::stringstream shg;
+      shg  << "heading=" << last_deploy_cmd_.survey_heading();
+      publish("SURVEY_HEADING",shg.str());
+      
+      std::string collab_str;
+      if (!deploy_cmd.has_collaborator() ||
+	  deploy_cmd.collaborator() == LAMSS_DEPLOY::DEFAULT)
+	collab_str = "contact=" + collaborator_name;
+      else
+	{
+	  LAMSS_DEPLOY::ContactEnum collab = deploy_cmd.collaborator();
+	  collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
+	}
+      publish("ADAPTIVE_DEPTH", collab_str);
+
+      // Trail behaviors
+      
+      std::stringstream stc;
+      stc << collab_str
+	  << "#trail_range=" << last_deploy_cmd_.trail_range()
+	  << "#trail_angle=" << last_deploy_cmd_.trail_angle();
+      if (last_deploy_cmd_.trail_angle_type() ==
+	  LAMSS_DEPLOY::TRAIL_ANGLE_TYPE_relative)
+	stc << "#trail_angle_type=relative";
+      else
+	stc << "#trail_angle_type=absolute";
+      publish("TRAIL_CONFIG",shg.str());
+
+      
+	
+      if (last_deploy_cmd_.depth_mode() ==
+	  LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
 	{
 	  // Set acomms depth to current depth
 	  std::stringstream ss ;
@@ -717,19 +848,10 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	}
       else
 	depth_adapting = false;
+
       publish("SURVEY_COMPLETED","FALSE");
       
-      if (!deploy_cmd.has_collaborator() ||
-	  deploy_cmd.collaborator() == LAMSS_DEPLOY::DEFAULT)
-	publish("ADAPTIVE_DEPTH", "contact=" + collaborator_name);
-      else
-	{
-	  LAMSS_DEPLOY::ContactEnum collab = deploy_cmd.collaborator();
-	  std::string collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
-	  publish("ADAPTIVE_DEPTH", collab_str);
-	}
-	
-      // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
+     // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
       if (last_deploy_cmd_.homing_enabled() &&
          last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
          cfg_.homing_array() == LamssMissionManagerConfig::USBL)
