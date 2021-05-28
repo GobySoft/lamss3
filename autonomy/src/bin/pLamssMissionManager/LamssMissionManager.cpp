@@ -708,6 +708,36 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	  last_acomms_ = MOOSTime();
+      
+      // Update variables for HelmIvP
+
+      deploy_behavior_updates();
+
+      // Queue state transitions
+      if (mission_active_)
+	queue_event<EvNewMission>();
+
+      if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
+	{
+	  // allow auv to get to abort depth before homing
+	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
+	  update_abort_mission();
+	  queue_event<EvStartAbort>();
+	}
+      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+	{
+	  queue_event<EvStartDeploy>();
+	  queue_event<EvReturnToBase>();
+	}
+      else
+	{
+	  queue_event<EvStartDeploy>();
+	}
+    }
+}
+
+void LamssMissionManager::deploy_behavior_updates()
+{
 
       // Setting behaviour update variables
       if (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON) 
@@ -812,12 +842,12 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       publish("SURVEY_HEADING",shg.str());
       
       std::string collab_str;
-      if (!deploy_cmd.has_collaborator() ||
-	  deploy_cmd.collaborator() == LAMSS_DEPLOY::DEFAULT)
+      if (!last_deploy_cmd_.has_collaborator() ||
+	  last_deploy_cmd_.collaborator() == LAMSS_DEPLOY::DEFAULT)
 	collab_str = "contact=" + collaborator_name;
       else
 	{
-	  LAMSS_DEPLOY::ContactEnum collab = deploy_cmd.collaborator();
+	  LAMSS_DEPLOY::ContactEnum collab = last_deploy_cmd_.collaborator();
 	  collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
 	}
       publish("ADAPTIVE_DEPTH", collab_str);
@@ -883,27 +913,6 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       else
         publish("USBL_ENABLED","FALSE");
 
-      // Queue state transitions
-      if (mission_active_)
-	queue_event<EvNewMission>();
-
-      if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
-	{
-	  // allow auv to get to abort depth before homing
-	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
-	  update_abort_mission();
-	  queue_event<EvStartAbort>();
-	}
-      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
-	{
-	  queue_event<EvStartDeploy>();
-	  queue_event<EvReturnToBase>();
-	}
-      else
-	{
-	  queue_event<EvStartDeploy>();
-	}
-    }
 }
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)

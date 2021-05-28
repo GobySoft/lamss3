@@ -106,6 +106,7 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_survey_wpt_index(const CMOOSMsg& msg);
     void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     void update_deploy_parameters();
+    void deploy_behavior_updates();
     void post_transit_route();
     // Stovepipe manager
     void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
