@@ -819,11 +819,47 @@ void LamssMissionManager::deploy_behavior_updates()
        << ",height=" << last_deploy_cmd_.survey_length()
        << ",width=" << last_deploy_cmd_.survey_width()
        << ",lane_width=" << last_deploy_cmd_.survey_period()
-       << ",rows=east-west,degs="
-       << last_deploy_cmd_.survey_heading()
+       << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
        << "#speed=" << last_deploy_cmd_.deploy_speed();
   publish("SURVEY_CONFIG",slm.str());
 
+  // Front mapping behaviors
+  std::stringstream ssu;
+  ssu  << "spiral_center_x=" << last_deploy_cmd_.deploy_x()
+       << "#spiral_center_y=" << last_deploy_cmd_.deploy_y()
+       << "#spiral_start_radius=" << last_deploy_cmd_.loiter_radius()
+       << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
+       << "#speed=" << last_deploy_cmd_.deploy_speed();
+  publish("SPIRAL_UPDATE",ssu.str());
+
+  std::stringstream stf;
+  stf  << "speed=" << last_deploy_cmd_.deploy_speed()
+       << "#helix_ctr_depth=" << last_deploy_cmd_.deploy_upper_depth();
+  publish("DEPLOY_TRACK_FRONT_UPDATE",stf.str());
+
+  std::stringstream shu;
+  shu  << "helix_start_x=" << last_deploy_cmd_.deploy_x()
+       << "#helix_start_y=" << last_deploy_cmd_.deploy_y()
+       << "#helix_radius=" << last_deploy_cmd_.loiter_radius()
+       << "#helix_constant=" << last_deploy_cmd_.survey_period()
+       << "#helix_ctr_depth=" << last_deploy_cmd_.deploy_upper_depth()
+       << "#helix_hdg=" << last_deploy_cmd_.survey_heading()
+       << "#clockwise=" << clkw
+       << "#speed=" << last_deploy_cmd_.deploy_speed();
+  publish("DEPLOY_HELIX_UPDATE",shu.str());
+
+  std::stringstream sstu;
+  sstu  << "tgt_x=" << last_deploy_cmd_.deploy_x()
+	<< "#tgt_y=" << last_deploy_cmd_.deploy_y();
+  publish("TGT_TO_CLASS",sstu.str());
+  sstu  << "#max_radius=" << last_deploy_cmd_.loiter_radius()
+	<< "#min_depth=" << last_deploy_cmd_.deploy_upper_depth()
+	<< "#max_depth=" << last_deploy_cmd_.deploy_lower_depth();
+  publish("SAMPLE_UPDATE",sstu.str());
+
+  
+  // Mission parameter values
+  
   std::stringstream sdd;
   sdd  << "depth=" << last_deploy_cmd_.deploy_upper_depth();
   publish("SENSOR_DEPTH_DEPLOY",sdd.str());
@@ -867,6 +903,9 @@ void LamssMissionManager::deploy_behavior_updates()
     }
   publish("ADAPTIVE_DEPTH", collab_str);
 
+  publish("TOGGLE_UPPER_DEPTH",last_deploy_cmd_.deploy_upper_depth());
+  publish("TOGGLE_LOWER_DEPTH",last_deploy_cmd_.deploy_lower_depth());
+  
   // Trail behaviors
       
   std::stringstream stc;
