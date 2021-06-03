@@ -266,6 +266,10 @@ void LamssMissionManager::slow_loop(double curr_time)
 			 << std::endl ;
 	      // allow auv to get to abort depth before homing
 	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
+	      // Turn off sonar
+	      publish("SONAR_CONTROL","OFF");
+	      publish("SONAR_PROCESS","OFF");
+	      
 	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
 		publish("USBL_ENABLED","TRUE");
 	      queue_event<EvNewMission>();
@@ -981,9 +985,9 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 
       if (prosecute_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
-      // Force single depth for prosecute
-        publish("DEPTH_MODE","SINGLE");
 
+      prosecute_behavior_updates();
+	  
       // prosecute only accepted if already in active mission
       if (mission_active_)
 	{
@@ -1007,7 +1011,83 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
     }
 }
 
-void LamssMissionManager::handle_status(const CMOOSMsg& msg)
+void LamssMissionManager::prosecute_behavior_updates()
+{
+
+  // Setting state variables
+
+  LAMSS_PROSECUTE::Prosecute_TypeEnum prosecute_type = last_prosecute_cmd_.prosecute_type();
+  std::string prosecute_type_str = LAMSS_PROSECUTE::Prosecute_TypeEnum_Name(prosecute_type);
+  MOOSChomp(prosecute_type_str,"PROSECUTE_TYPE_");
+  publish("PROSECUTE_MISSION",prosecute_type_str);
+
+  // Behavior updates
+  
+  // Force single depth for prosecute
+  publish("DEPTH_MODE","SINGLE");
+  
+  std::stringstream sti;
+  sti  << "TGT_=" << last_prosecute_cmd_.target_number();
+  publish("TARGET_ID",sti.str());
+      
+  std::stringstream smt;
+  smt  << "contact=" << last_prosecute_cmd_.target_number();
+  publish("MY_TARGET",smt.str());
+  
+  std::stringstream spt;
+  spt  << "contact=TGT_" << last_prosecute_cmd_.target_number();
+  publish("PRIORITY_TRK",spt.str());
+  publish("CURRENT_TARGET",spt.str());
+      
+  std::string angle_mode =
+    LAMSS_PROSECUTE::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
+  MOOSChomp(angle_mode,"ARRAY_ANGLE_MODE_");
+  std::stringstream sta;
+  sta  << "bearing_mode=" << angle_mode
+       << "#desired_angle=" << last_prosecute_cmd_.array_angle();
+  publish("ARRAY_TRACK_ANGLE",sta.str());
+  
+  
+  std::stringstream stc;
+  stc  << "tgt_id=" << last_prosecute_cmd_.target_number()
+       << ",tgt_x=" << last_prosecute_cmd_.target_x()
+       << ",tgt_y=" << last_prosecute_cmd_.target_y()
+       << ",tgt_dep=" << last_prosecute_cmd_.target_depth()
+       << ",tgt_hdg=" << last_prosecute_cmd_.target_heading()
+       << ",tgt_spd=" << last_prosecute_cmd_.target_speed()
+       << ",tgt_utc=" << last_prosecute_cmd_._time();
+  publish("TARGET_CUE",stc.str());
+
+  // Turn sonar and processing on
+  
+  publish("SONAR_CONTROL","ON");
+  publish("SONAR_PROCESS","ON");
+  publish("GOTO_SURFACE","FALSE");
+  
+  // Publish note report for target cue
+  double cue_lat, cue_lon;
+  m_Geodesy.UTM2LatLong(last_prosecute_cmd_.target_x(),
+		       last_prosecute_cmd_.target_y(),cue_lat,cue_lon);
+  std::stringstream scue;
+  scue  << "TGT_" << last_prosecute_cmd_.target_number();
+  NodeRecord node_report(scue.str(), "track");
+  node_report.setTimeStamp(last_prosecute_cmd_._time());
+  node_report.setX(last_prosecute_cmd_.target_x());
+  node_report.setY(last_prosecute_cmd_.target_y());
+  node_report.setLat(cue_lat);
+  node_report.setLon(cue_lon);
+  node_report.setDepth(last_prosecute_cmd_.target_depth());
+  node_report.setSpeed(last_prosecute_cmd_.target_speed());
+  node_report.setHeading(last_prosecute_cmd_.target_heading());
+  publish("NODE_REPORT", node_report.getSpec());
+  
+  // Prosecute parameters
+  publish("TARGET_NUMBER",last_prosecute_cmd_.target_number());
+  publish("PROSECUTE_DURATION",last_prosecute_cmd_.prosecute_duration());
+  
+}
+
+  void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
   LAMSS_STATUS status_msg;
   parse_for_moos(msg.GetString(), &status_msg);
@@ -1148,33 +1228,6 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
       transit_x[i] = transit_cmd.wpt(i).x();
       transit_y[i] = transit_cmd.wpt(i).y();
     }
-  /*
-  if (fabs(last_transit_route_.x_1()) > 1.0 && fabs(last_transit_route_.y_1()) > 1.0)
-    {
-      transit_x.push_back(last_transit_route_.x_1());
-      transit_y.push_back(last_transit_route_.y_1());
-    }
-  if (fabs(last_transit_route_.x_2()) > 1.0 && fabs(last_transit_route_.y_2()) > 1.0)
-    {
-      transit_x.push_back(last_transit_route_.x_2());
-      transit_y.push_back(last_transit_route_.y_2());
-    }
-  if (fabs(last_transit_route_.x_3()) > 1.0 && fabs(last_transit_route_.y_3()) > 1.0)
-    {
-      transit_x.push_back(last_transit_route_.x_3());
-      transit_y.push_back(last_transit_route_.y_3());
-    }
-  if (fabs(last_transit_route_.x_4()) > 1.0 && fabs(last_transit_route_.y_4()) > 1.0)
-    {
-      transit_x.push_back(last_transit_route_.x_4());
-      transit_y.push_back(last_transit_route_.y_4());
-    }
-  if (fabs(last_transit_route_.x_5()) > 1.0 && fabs(last_transit_route_.y_5()) > 1.0)
-    {
-      transit_x.push_back(last_transit_route_.x_5());
-      transit_y.push_back(last_transit_route_.y_5());
-    }
-  */
 }
 
 void LamssMissionManager::post_transit_route()
