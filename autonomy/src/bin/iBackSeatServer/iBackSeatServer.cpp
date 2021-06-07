@@ -74,10 +74,14 @@ CiBackSeatServer::~CiBackSeatServer()
 bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
 {
  
-    CMOOSMsg Msg;
-
-
-    double curr_time = MOOSTime();
+  CMOOSMsg Msg;
+  
+  double dfLatOrigin, dfLongOrigin;
+  bool got_lat_origin = false;
+  bool got_long_origin = false;
+  
+  
+  double curr_time = MOOSTime();
 
   //  MOOSMSG_LIST::iterator pp;
 
@@ -86,6 +90,29 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     {
     CMOOSMsg &Msg = *p;
  
+    if(Msg.m_sKey == "LAT_ORIGIN") 
+      {
+	dfLatOrigin = Msg.GetDouble();;
+	got_lat_origin = true;
+	if(got_lat_origin && got_long_origin)
+	  {
+	    if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	      MOOSTrace("Geodesy Init failed - FAIL\n");
+	  }
+	
+      }
+    
+    if(Msg.m_sKey == "LONG_ORIGIN") 
+      {
+	dfLongOrigin = Msg.GetDouble();
+	got_long_origin = true;
+	if(got_lat_origin && got_long_origin)
+	  {
+	    if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	      MOOSTrace("Geodesy Init failed - FAIL\n");
+	  }
+      }
+    
     if(Msg.m_sKey == "FRONTSEAT_X")  
     {
 	nav_x  = Msg.GetDouble();
