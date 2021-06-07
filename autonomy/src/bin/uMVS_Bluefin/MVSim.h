@@ -45,6 +45,7 @@
 //using namespace NEWMAT;
 
 #include <MOOS/libMOOS/Utils/MOOSUtils.h>
+#include "goby/moos/moos_geodesy.h"
 
 #include "AcousticNode.h"
 #include "AcousticSignal.h"
@@ -67,6 +68,8 @@ public:
 	
         CMVSim();
         virtual ~CMVSim();
+private:
+  	goby::moos::CMOOSGeodesy m_Geodesy;
 
 protected:
 	bool LogStartConditions();
@@ -89,6 +92,7 @@ protected:
 	bool m_bInitialised;
 	double m_dfUpdateRate;
 
+        void UTMUpdate();
 	void GPSUpdate();
 	double drift_x;
 	double drift_y;
@@ -96,10 +100,13 @@ protected:
 	double previous_gps;
 	double gps_x;
 	double gps_y;
+	double utm_x;
+	double utm_y;
 	double east_current_est;
 	double north_current_est;
 	double down_current_est;
 	bool gps_update;
+	bool utm_update;
 	bool dvl_lock;
 	double drift_update;
 

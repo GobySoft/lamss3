@@ -66,6 +66,7 @@ CMVSim::CMVSim()
     SetCommsFreq(20);
 
     gps_update = false;
+    utm_update = false;
     drift_x =0;
     drift_y = 0;
     drift_z = 0;
@@ -116,7 +117,9 @@ bool CMVSim::DoRegistrations()
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Y",0.0);
 		  m_Comms.Register(pAUV->m_sInputPrefix+"ARRAY_SHAPE_Z",0.0);
  		  m_Comms.Register(pAUV->m_sInputPrefix+"TRIM_KG",1.0);
- 		  m_Comms.Register("TRIM_CONTROL",1.0);
+		  m_Comms.Register("LAT_ORIGIN", 0);
+		  m_Comms.Register("LONG_ORIGIN", 0);
+		  m_Comms.Register("TRIM_CONTROL",1.0);
  		  m_Comms.Register("BUOYANCY_CONTROL",1.0);
  		  m_Comms.Register("BATHY_Z",1.0);
 		}
@@ -144,147 +147,189 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
     //someone has changed one of the variable we were intersted in!
     MOOSMSG_LIST::iterator p;
 
-    for(p=NewMail.begin();p!=NewMail.end();p++)
+  double dfLatOrigin, dfLongOrigin;
+  bool got_lat_origin = false;
+  bool got_long_origin = false;
+  
+  for(p=NewMail.begin();p!=NewMail.end();p++)
     {
-        CMOOSMsg & rMsg = *p;
-	CSixDOFAUV * pAUV = GetSubscriber(rMsg.m_sKey);
-
-		if(pAUV)
+      CMOOSMsg & rMsg = *p;
+      CSixDOFAUV * pAUV = GetSubscriber(rMsg.m_sKey);
+      
+      if(pAUV)
+	{
+	  if(rMsg.m_sKey == "LAT_ORIGIN") 
+	    {
+	      dfLatOrigin = rMsg.GetDouble();;
+	      got_lat_origin = true;
+	      if(got_lat_origin && got_long_origin)
 		{
-			//we now know which AUV wants this control data..
-			if(rMsg.m_sKey.find("DESIRED_ELEVATOR")!=string::npos)
-			{
-				pAUV->m_dfDesiredElevator = MOOSDeg2Rad(rMsg.m_dfVal);
-				continue;
-			}
-			else if(rMsg.m_sKey.find("DESIRED_RUDDER")!=string::npos)
-			{
-				pAUV->m_dfDesiredRudder = MOOSDeg2Rad(rMsg.m_dfVal);
-				continue;
-			}
-			else if(rMsg.m_sKey.find("DESIRED_THRUST")!=string::npos)
-			{
-				pAUV->m_dfDesiredThrust = rMsg.m_dfVal;
-				continue;
-			}
-			else if(rMsg.m_sKey.find("CABLE_TENSION")!=string::npos)
-			{
-				pAUV->m_dfCableTension = rMsg.m_dfVal;
-				continue;
-			}
-			else if(rMsg.m_sKey.find("ARRAY_SHAPE_X")!=string::npos)
-			{
-			        pAUV->StoreArrayX(rMsg.m_sVal);
-				continue;
-			}
-			else if(rMsg.m_sKey.find("ARRAY_SHAPE_Y")!=string::npos)
-			{
-			        pAUV->StoreArrayY(rMsg.m_sVal);
-				continue;
-			}
-			else if(rMsg.m_sKey.find("ARRAY_SHAPE_Z")!=string::npos)
-			{
-			        pAUV->StoreArrayZ(rMsg.m_sVal);
-				continue;
-			}
- 			else if(rMsg.m_sKey.find("TRIM_KG")!=string::npos)
- 			{
- 				pAUV->m_dfTrim = rMsg.m_dfVal;
- 				continue;
- 			}
- 			else if(rMsg.m_sKey.find("BATHY_Z")!=string::npos)
- 			{
-			  // BATHY_Z is negative of water depth
-			  double bathy =  -rMsg.m_dfVal;
-			  double altitude = bathy + pAUV->GetZ();
-			  if (altitude <= 1.0)
-			    {
-			      altitude = std::max(altitude,0.5);
-			      pAUV->SetZ(altitude-bathy);
-			      pAUV->SetDepth(bathy-altitude);
-			      pAUV->SetBodyVelY(0);
-			      pAUV->SetBodyVelX(0);
-			      pAUV->SetBodyVelZ(0);
-			      pAUV->SetPitch(0);
-			      pAUV->SetAltitude(altitude);
-			    }
-			  else
-			    pAUV->SetAltitude(altitude);
-			  continue;
- 			}
+		  // Get current lat/long
+		  double lat,lon;
+		  m_Geodesy.UTM2LatLong(pAUV->GetX(),pAUV->GetY(),lat,lon);
+		  // New origin
+		  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+		    MOOSTrace("Geodesy Init failed - FAIL\n");
+		  // publish new x,y
+		  m_Geodesy.LatLong2LocalUTM(lat,lon,utm_y,utm_x);
+		  utm_update = true;
 		}
-	
-		if(MOOSStrCmp(rMsg.m_sKey,"BUOYANCY_CONTROL"))
-		  {
-		    if (MOOSStrCmp(rMsg.m_sVal,"true"))
-		      {
-			pAUV->m_dfTrim = 0.0;
-			buoyancy_request_time = MOOSTime();
-			std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
-			m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
-			buoyancy_requested = true;
-			last_report = buoyancy_request_time;
-
-		      }
-		    continue;
-		  }
-		if(MOOSStrCmp(rMsg.m_sKey,"TRIM_CONTROL"))
-		  {
-		    if (MOOSStrCmp(rMsg.m_sVal,"true"))
-		      {
-			trim_request_time = MOOSTime();
-			std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
-			  + doubleToString(pitch_degrees) + ",trim_roll=0.0";
-			m_Comms.Notify("TRIM_REPORT",trim_status);
-			trim_requested = true;
-			last_report = trim_request_time;
-		      }
-		    continue;
-		  }
-		if(MOOSStrCmp(rMsg.m_sKey,"SIM_RESET"))
-		  {
-		    Initialise();
-		  }
-                if(rMsg.m_sKey == "CURRENT_X")
-		  {
-		    east_current_est = rMsg.m_dfVal;
-		  }
-                if(rMsg.m_sKey == "CURRENT_Y")
-		  {
-		    north_current_est = rMsg.m_dfVal;
-		  }
-                if(rMsg.m_sKey == "CURRENT_Z")
-		  {
-		    down_current_est = rMsg.m_dfVal;
-		  }
-                if(rMsg.m_sKey == "GPS_X")
-		  {
-		    gps_x = rMsg.m_dfVal;
-		    //nav_x_true = nav_x;
-		  }
-                if(rMsg.m_sKey == "GPS_Y")
-		  {
-		    gps_y = rMsg.m_dfVal;
-		    //nav_y_true = nav_y;
-		  }
-                if(rMsg.m_sKey == "GPS_UPDATE_RECEIVED")
-		  {
-		    double dummy;
-		    if (gps_update = MOOSValFromString(dummy,rMsg.m_sVal,"Timestamp"))
-		      {
-			double nav_lon,nav_lat;
-			MOOSValFromString(nav_lat,rMsg.m_sVal,"Latitude");
-			MOOSValFromString(nav_lon,rMsg.m_sVal,"Longitude");
-			previous_gps = dummy;
-			drift_x = 0;
-			drift_y = 0;
-			drift_z = 0;
-		      }
-		  }
+	      
+	    }
+	  
+	  if(rMsg.m_sKey == "LONG_ORIGIN") 
+	    {
+	      dfLongOrigin = rMsg.GetDouble();
+	      got_long_origin = true;
+	      if(got_lat_origin && got_long_origin)
+		{
+		  // Get current lat/long
+		  double lat,lon;
+		  m_Geodesy.UTM2LatLong(pAUV->GetX(),pAUV->GetY(),lat,lon);
+		  // New origin
+		  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+		    MOOSTrace("Geodesy Init failed - FAIL\n");
+		  // publish new x,y
+		  m_Geodesy.LatLong2LocalUTM(lat,lon,utm_y,utm_x);
+		  utm_update = true;
+		}
+	    }
+	  
+	  
+	  //we now know which AUV wants this control data..
+	  if(rMsg.m_sKey.find("DESIRED_ELEVATOR")!=string::npos)
+	    {
+	      pAUV->m_dfDesiredElevator = MOOSDeg2Rad(rMsg.m_dfVal);
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("DESIRED_RUDDER")!=string::npos)
+	    {
+	      pAUV->m_dfDesiredRudder = MOOSDeg2Rad(rMsg.m_dfVal);
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("DESIRED_THRUST")!=string::npos)
+	    {
+	      pAUV->m_dfDesiredThrust = rMsg.m_dfVal;
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("CABLE_TENSION")!=string::npos)
+	    {
+	      pAUV->m_dfCableTension = rMsg.m_dfVal;
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("ARRAY_SHAPE_X")!=string::npos)
+	    {
+	      pAUV->StoreArrayX(rMsg.m_sVal);
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("ARRAY_SHAPE_Y")!=string::npos)
+	    {
+	      pAUV->StoreArrayY(rMsg.m_sVal);
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("ARRAY_SHAPE_Z")!=string::npos)
+	    {
+	      pAUV->StoreArrayZ(rMsg.m_sVal);
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("TRIM_KG")!=string::npos)
+	    {
+	      pAUV->m_dfTrim = rMsg.m_dfVal;
+	      continue;
+	    }
+	  else if(rMsg.m_sKey.find("BATHY_Z")!=string::npos)
+	    {
+	      // BATHY_Z is negative of water depth
+	      double bathy =  -rMsg.m_dfVal;
+	      double altitude = bathy + pAUV->GetZ();
+	      if (altitude <= 1.0)
+		{
+		  altitude = std::max(altitude,0.5);
+		  pAUV->SetZ(altitude-bathy);
+		  pAUV->SetDepth(bathy-altitude);
+		  pAUV->SetBodyVelY(0);
+		  pAUV->SetBodyVelX(0);
+		  pAUV->SetBodyVelZ(0);
+		  pAUV->SetPitch(0);
+		  pAUV->SetAltitude(altitude);
+		}
+	      else
+		pAUV->SetAltitude(altitude);
+	      continue;
+	    }
+	}
+      
+      if(MOOSStrCmp(rMsg.m_sKey,"BUOYANCY_CONTROL"))
+	{
+	  if (MOOSStrCmp(rMsg.m_sVal,"true"))
+	    {
+	      pAUV->m_dfTrim = 0.0;
+	      buoyancy_request_time = MOOSTime();
+	      std::string buoyancy_status="status=1,error=0,progressing,buoyancy=0.0";
+	      m_Comms.Notify("BUOYANCY_REPORT",buoyancy_status);
+	      buoyancy_requested = true;
+	      last_report = buoyancy_request_time;
+	      
+	    }
+	  continue;
+	}
+      if(MOOSStrCmp(rMsg.m_sKey,"TRIM_CONTROL"))
+	{
+	  if (MOOSStrCmp(rMsg.m_sVal,"true"))
+	    {
+	      trim_request_time = MOOSTime();
+	      std::string trim_status="status=1,error=0,progressing,trim_pitch=" 
+		+ doubleToString(pitch_degrees) + ",trim_roll=0.0";
+	      m_Comms.Notify("TRIM_REPORT",trim_status);
+	      trim_requested = true;
+	      last_report = trim_request_time;
+	    }
+	  continue;
+	}
+      if(MOOSStrCmp(rMsg.m_sKey,"SIM_RESET"))
+	{
+	  Initialise();
+	}
+      if(rMsg.m_sKey == "CURRENT_X")
+	{
+	  east_current_est = rMsg.m_dfVal;
+	}
+      if(rMsg.m_sKey == "CURRENT_Y")
+	{
+	  north_current_est = rMsg.m_dfVal;
+	}
+      if(rMsg.m_sKey == "CURRENT_Z")
+	{
+	  down_current_est = rMsg.m_dfVal;
+	}
+      if(rMsg.m_sKey == "GPS_X")
+	{
+	  gps_x = rMsg.m_dfVal;
+	  //nav_x_true = nav_x;
+	}
+      if(rMsg.m_sKey == "GPS_Y")
+	{
+	  gps_y = rMsg.m_dfVal;
+	  //nav_y_true = nav_y;
+	}
+      if(rMsg.m_sKey == "GPS_UPDATE_RECEIVED")
+	{
+	  double dummy;
+	  if (gps_update = MOOSValFromString(dummy,rMsg.m_sVal,"Timestamp"))
+	    {
+	      double nav_lon,nav_lat;
+	      MOOSValFromString(nav_lat,rMsg.m_sVal,"Latitude");
+	      MOOSValFromString(nav_lon,rMsg.m_sVal,"Longitude");
+	      previous_gps = dummy;
+	      drift_x = 0;
+	      drift_y = 0;
+	      drift_z = 0;
+	    }
+	}
     }
-
-
-    return true;
+  
+  
+  return true;
 }
 
 
@@ -378,6 +423,12 @@ bool CMVSim::Iterate()
 	drift_update = MOOSTime();
       }
 
+    if (utm_update)
+      {
+	UTMUpdate();
+	utm_update = false;
+      }
+  
     ///////////////////////////////////////
     //          sort timing out
     ///////////////////////////////////////
@@ -610,6 +661,23 @@ void CMVSim::GPSUpdate()
       CSixDOFAUV* pAUV = dynamic_cast<CSixDOFAUV*> (pEntity);
       pAUV->SetX(gps_x);
       pAUV->SetY(gps_y);
+    }	
+
+  return;
+}
+
+void CMVSim::UTMUpdate()
+{
+  //index to entities...
+  SIM_ENTITY_LIST::iterator p;
+  
+  for(p = m_Entities.begin();p!=m_Entities.end();p++)
+    {
+      CSimEntity* pEntity = *p;
+      
+      CSixDOFAUV* pAUV = dynamic_cast<CSixDOFAUV*> (pEntity);
+      pAUV->SetX(utm_x);
+      pAUV->SetY(utm_y);
     }	
 
   return;
