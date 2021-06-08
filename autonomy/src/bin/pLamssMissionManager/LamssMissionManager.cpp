@@ -72,8 +72,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       last_slow_loop_t_(0),
       collaborator_id_(-1),
       collaborator_name(""),
-      new_lat_origin_(false),
-      new_lon_origin_(false),
+      new_origin_(false),
       filter_length(10),
       got_gps_nav(false)
 {
@@ -175,6 +174,12 @@ void LamssMissionManager::loop()
     double curr_time = MOOSTime();
     current_time_ = curr_time;
 
+    if (new_origin_)
+      {
+	m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	new_origin_ = false;
+      }
+    
     if (last_acomms_ < 1)
       last_acomms_ = curr_time;
 
@@ -1112,27 +1117,20 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = false;
    }
 }
 
 void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = false;
    }
 }
 
