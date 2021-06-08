@@ -1120,7 +1120,7 @@ void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
  if (!isnan(new_lat))
    {
      lat_origin_ = new_lat;
-     new_origin_ = false;
+     new_origin_ = true;
    }
 }
 
@@ -1130,7 +1130,7 @@ void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
  if (!isnan(new_lon))
    {
      lon_origin_ = new_lon;
-     new_origin_ = false;
+     new_origin_ = true;
    }
 }
 
