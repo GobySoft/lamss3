@@ -77,9 +77,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
   CMOOSMsg Msg;
   
   double dfLatOrigin, dfLongOrigin;
-  bool got_lat_origin = false;
-  bool got_long_origin = false;
-  
+  bool new_origin = false;
   
   double curr_time = MOOSTime();
 
@@ -93,24 +91,13 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     if(Msg.m_sKey == "LAT_ORIGIN") 
       {
 	dfLatOrigin = Msg.GetDouble();;
-	got_lat_origin = true;
-	if(got_lat_origin && got_long_origin)
-	  {
-	    if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-	      MOOSTrace("Geodesy Init failed - FAIL\n");
-	  }
-	
+	new_origin = true;
       }
     
     if(Msg.m_sKey == "LONG_ORIGIN") 
       {
 	dfLongOrigin = Msg.GetDouble();
-	got_long_origin = true;
-	if(got_lat_origin && got_long_origin)
-	  {
-	    if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-	      MOOSTrace("Geodesy Init failed - FAIL\n");
-	  }
+	new_origin = true;
       }
     
     if(Msg.m_sKey == "FRONTSEAT_X")  
@@ -255,7 +242,13 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST &NewMail)
     
   }
 
-  if(dvl_ice_track == 0)
+    if(new_origin)
+      {
+	if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	  MOOSTrace("Geodesy Init failed - FAIL\n");
+      }
+
+	if(dvl_ice_track == 0)
   {
       altitude = nav_z - last_bathy_z;
   }
@@ -374,6 +367,8 @@ bool CiBackSeatServer::OnConnectToServer()
 
   //Register MOOS variables
 
+    m_Comms.Register("LAT_ORIGIN",.0);
+    m_Comms.Register("LONG_ORIGIN",.0);
   m_Comms.Register("UMVS_BLUEFIN_STATUS",0);
   m_Comms.Register("TRUE_X",0);
   m_Comms.Register("TRUE_Y",0);
