@@ -109,8 +109,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     double lat_origin_;
     double lon_origin_;
-    bool  new_lat_origin_;
-    bool  new_lon_origin_;
+    bool  new_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
     double mseas_update_interval;
