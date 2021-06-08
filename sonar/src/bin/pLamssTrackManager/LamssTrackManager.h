@@ -97,8 +97,7 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     goby::moos::CMOOSGeodesy m_Geodesy;
     double lat_origin_;
     double lon_origin_;
-    bool  new_lat_origin_;
-    bool  new_lon_origin_;
+    bool  new_origin_;
 
     
     // synchronous event

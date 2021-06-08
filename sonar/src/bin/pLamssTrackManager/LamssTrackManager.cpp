@@ -65,8 +65,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
       active_track_trail(false),
-      new_lat_origin_(false),
-      new_lon_origin_(false),
+      new_origin_(false),
       last_slow_loop_t_(0)
 {
 
@@ -147,6 +146,13 @@ void LamssTrackManager::loop()
     // set time for fsm
     current_time_ = curr_time;
 
+ // Initialize whewn both LAT and LONG received.
+    if (new_origin_)
+      {
+	m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	new_origin_ = false;
+      }
+    
     try_publish(); // publish messages queued from state machine
 
     if (prosecute_mode_active_ || 
@@ -313,27 +319,20 @@ void LamssTrackManager::try_publish()
 void LamssTrackManager::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = false;
    }
 }
 
 void LamssTrackManager::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = false;
    }
 }
 
