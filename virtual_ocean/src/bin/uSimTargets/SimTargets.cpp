@@ -45,8 +45,7 @@ SimTargets* SimTargets::get_instance()
 SimTargets::SimTargets(SimTargetsConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
-      new_lat_origin_(false),
-      new_lon_origin_(false),
+      new_origin_(false),
       source_control(true),
       target_number(0),
       target_init(false),
@@ -106,7 +105,12 @@ void SimTargets::loop()
 
   double curr_time = MOOSTime();
   
-
+  if (new_origin_)
+    {
+      reinitialize_targets();
+      new_origin_ = false;
+    }
+  
   if (target_init && got_x && got_y)
     {
       target_utc = MOOSTime();
@@ -181,27 +185,20 @@ void SimTargets::slow_loop(double curr_time)
 void SimTargets::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     reinitialize_targets();
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = true;
    }
 }
 
 void SimTargets::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     reinitialize_targets();
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = true;
    }
 }
 
