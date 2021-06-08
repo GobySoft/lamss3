@@ -69,7 +69,8 @@ public:
         CMVSim();
         virtual ~CMVSim();
 private:
-  	goby::moos::CMOOSGeodesy m_Geodesy;
+  double dfLatOrigin, dfLongOrigin;
+  goby::moos::CMOOSGeodesy m_Geodesy;
 
 protected:
 	bool LogStartConditions();

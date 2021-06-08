@@ -147,10 +147,6 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
     //someone has changed one of the variable we were intersted in!
     MOOSMSG_LIST::iterator p;
 
-  double dfLatOrigin, dfLongOrigin;
-  bool got_lat_origin = false;
-  bool got_long_origin = false;
-  
   for(p=NewMail.begin();p!=NewMail.end();p++)
     {
       CMOOSMsg & rMsg = *p;
@@ -160,39 +156,14 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST &NewMail)
 	{
 	  if(rMsg.m_sKey == "LAT_ORIGIN") 
 	    {
-	      dfLatOrigin = rMsg.GetDouble();;
-	      got_lat_origin = true;
-	      if(got_lat_origin && got_long_origin)
-		{
-		  // Get current lat/long
-		  double lat,lon;
-		  m_Geodesy.UTM2LatLong(pAUV->GetX(),pAUV->GetY(),lat,lon);
-		  // New origin
-		  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-		    MOOSTrace("Geodesy Init failed - FAIL\n");
-		  // publish new x,y
-		  m_Geodesy.LatLong2LocalUTM(lat,lon,utm_y,utm_x);
-		  utm_update = true;
-		}
-	      
+	      dfLatOrigin = rMsg.GetDouble();
+	      utm_update = true;
 	    }
 	  
 	  if(rMsg.m_sKey == "LONG_ORIGIN") 
 	    {
 	      dfLongOrigin = rMsg.GetDouble();
-	      got_long_origin = true;
-	      if(got_lat_origin && got_long_origin)
-		{
-		  // Get current lat/long
-		  double lat,lon;
-		  m_Geodesy.UTM2LatLong(pAUV->GetX(),pAUV->GetY(),lat,lon);
-		  // New origin
-		  if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
-		    MOOSTrace("Geodesy Init failed - FAIL\n");
-		  // publish new x,y
-		  m_Geodesy.LatLong2LocalUTM(lat,lon,utm_y,utm_x);
-		  utm_update = true;
-		}
+	      utm_update = true;
 	    }
 	  
 	  
@@ -676,6 +647,14 @@ void CMVSim::UTMUpdate()
       CSimEntity* pEntity = *p;
       
       CSixDOFAUV* pAUV = dynamic_cast<CSixDOFAUV*> (pEntity);
+      // Get current lat/long
+      double lat,lon;
+      m_Geodesy.UTM2LatLong(pAUV->GetX(),pAUV->GetY(),lat,lon);
+      // New origin
+      if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	MOOSTrace("Geodesy Init failed - FAIL\n");
+      // publish new x,y
+      m_Geodesy.LatLong2LocalUTM(lat,lon,utm_y,utm_x);
       pAUV->SetX(utm_x);
       pAUV->SetY(utm_y);
     }	
