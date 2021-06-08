@@ -46,6 +46,9 @@ CiNoaaBathy::~CiNoaaBathy()
 // has arrived.
 bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST &NewMail)
 {
+  double dfLatOrigin, dfLongOrigin;
+  bool new_origin = false;
+  
   for(MOOSMSG_LIST::iterator p = NewMail.begin(); p != NewMail.end(); p++)
     {
       CMOOSMsg &msg = *p;
@@ -62,6 +65,18 @@ bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST &NewMail)
       // string msg_community = msg.GetCommunity();
 	
 
+      if(msg.m_sKey == "LAT_ORIGIN") 
+	{
+	  dfLatOrigin = msg.GetDouble();;
+	  new_origin = true;
+	}
+    
+      if(msg.m_sKey == "LONG_ORIGIN") 
+	{
+	  dfLongOrigin = msg.GetDouble();
+	  new_origin = true;
+	}
+    
       if(MOOSStrCmp(key, "NAV_X")) // case insensitive
         {
 	  auv_x_=dval;
@@ -77,6 +92,13 @@ bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST &NewMail)
 	  handle_outside_bathy_request(msg);
 	}
     }  
+
+  if(new_origin)
+    {
+      if(!geodesy_.Initialise(dfLatOrigin,dfLongOrigin))
+	MOOSTrace("Geodesy Init failed - FAIL\n");
+    }
+  
   return true;
 }
 

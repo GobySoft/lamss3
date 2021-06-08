@@ -93,6 +93,8 @@ bool CSimGPS::OnStartUp()
 bool CSimGPS::OnConnectToServer()
 {
  
+    m_Comms.Register( "LAT_ORIGIN",0);
+    m_Comms.Register( "LONG_ORIGIN",0);
     m_Comms.Register( "TRUE_X",0);
     m_Comms.Register( "TRUE_Y",0);
     m_Comms.Register( "NAV_DEPTH",0);
@@ -132,11 +134,27 @@ bool CSimGPS::Iterate()
 
 bool CSimGPS::OnNewMail(MOOSMSG_LIST &NewMail)
 {
+
+  double dfLatOrigin, dfLongOrigin;
+  bool new_origin = false;
+  
   MOOSMSG_LIST::iterator p;
 
   for(p = NewMail.begin(); p != NewMail.end(); p++) {
     CMOOSMsg &Msg = *p;
 
+      if(Msg.m_sKey == "LAT_ORIGIN") 
+	{
+	  dfLatOrigin = Msg.GetDouble();;
+	  new_origin = true;
+	}
+      
+      if(Msg.m_sKey == "LONG_ORIGIN") 
+	{
+	  dfLongOrigin = Msg.GetDouble();
+	  new_origin = true;
+	}
+      
       if(Msg.m_sKey == "TRUE_X")
       {
 	nav_x = Msg.m_dfVal;
@@ -162,6 +180,12 @@ bool CSimGPS::OnNewMail(MOOSMSG_LIST &NewMail)
 //       else
 //       MOOSTrace("Unrecognized command: [%s]\n",Msg.m_sKey.c_str());
    }
+  
+  if(new_origin)
+    {
+      if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	MOOSTrace("Geodesy Init failed - FAIL\n");
+    }
   
   return(true);
 }
