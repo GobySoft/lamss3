@@ -193,17 +193,38 @@ bool CGateway::OnNewMail(MOOSMSG_LIST &NewMail)
 {
   CMOOSMsg Msg;
   
+  double dfLatOrigin, dfLongOrigin;
+  bool new_origin = false;
+
   MOOSMSG_LIST::reverse_iterator p;
   for(p = NewMail.rbegin(); p != NewMail.rend(); p++) 
     {
       CMOOSMsg &Msg = *p;
       
+      if(Msg.m_sKey == "LAT_ORIGIN") 
+	{
+	  dfLatOrigin = Msg.GetDouble();;
+	  new_origin = true;
+	}
+      
+      if(Msg.m_sKey == "LONG_ORIGIN") 
+	{
+	  dfLongOrigin = Msg.GetDouble();
+	  new_origin = true;
+	}
       
       if(Msg.m_sKey == "VEHICLE_NAME")
 	{	
 	  ship_name = Msg.m_sVal;
 	}
     }
+  
+  if(new_origin)
+    {
+      if(!m_Geodesy.Initialise(dfLatOrigin,dfLongOrigin))
+	MOOSTrace("Geodesy Init failed - FAIL\n");
+    }
+  
   return(true);
 }
 
