@@ -539,6 +539,34 @@ bool CMVSim::Initialise()
     m_dfOldSimulatorTime = m_dfSimulatorTime;
     m_Environment.SetStartTime(m_dfSimulatorTime);
     
+    //    double dfLatOrigin;
+    //    double dfLongOrigin;
+
+    if(m_MissionReader.GetValue("LatOrigin", dfLatOrigin))
+    {
+	m_Comms.Notify("LAT_ORIGIN",dfLatOrigin);
+    }
+    else
+    {
+	std::cout<<"No Lat Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+   if(m_MissionReader.GetValue("LongOrigin", dfLongOrigin))
+    {
+	m_Comms.Notify("LONG_ORIGIN",dfLongOrigin);
+    }
+    else
+    {
+	std::cout<<"No Long Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if(!m_Geodesy.Initialise(dfLatOrigin, dfLongOrigin))
+    {
+	std::cout<<"Error in initialising Geodesy"<<std::endl;
+    }
+
     // Now load in terrain data
     string sTerrainFile= "terrain.dat";
     m_MissionReader.GetValue("TerrainFile",sTerrainFile);
