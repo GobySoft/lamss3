@@ -215,8 +215,8 @@ void LamssMissionManager::slow_loop(double curr_time)
   if (prosecute_mode_active_)
     {
       double station_range =
-	sqrt(pow(last_nav_.local_fix().x()-last_deploy_cmd_.deploy_x(),2)+
-	     pow(last_nav_.local_fix().y()-last_deploy_cmd_.deploy_y(),2));
+	sqrt(pow(last_nav_.local_fix().x()-last_deploy_x_,2)+
+	     pow(last_nav_.local_fix().y()-last_deploy_y_,2));
       if (cfg_.operation_radius() > 0 &&
 	  station_range >= cfg_.operation_radius_percent()*0.01*cfg_.operation_radius())
 	{
@@ -375,6 +375,52 @@ void LamssMissionManager::slow_loop(double curr_time)
     }
 
   last_slow_loop_t_ = curr_time;
+}
+
+void LamssMissionManager::UTM_update()
+{
+#ifndef GEO_COMMAND
+  // New UTM for invariant deploy lat/long
+  m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
+			    last_deploy_y_,last_deploy_x_);
+  deploy_behavior_updates();
+  // Current transit route
+  for (int i=0; i<transit_lat.size(); i++)
+    {
+      double x,y;
+      m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
+      transit_x[i] = x;
+      transit_y[i] = y;
+    }
+  post_transit_route();
+  
+  // Initial transit route updated for use by return state
+  for (int i=0; i<initial_transit_lat.size(); i++)
+    {
+      double x,y;
+      m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],initial_transit_lon[i],
+				 y,x);
+      initial_transit_x[i] = x;
+      initial_transit_y[i] = y;
+      LAMSS_TRANSIT::TransitWPT * wpt = initial_transit_cmd_.mutable_wpt(i);
+      wpt->set_x(x);
+      wpt->set_y(y);
+    }
+#else  
+  // New UTM for invariant deploy lat/long
+  m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
+			    last_deploy_y_,last_deploy_x_);
+  deploy_behavior_updates();
+  // Current transit route.
+  for (int i=0; i<transit_lat.size(); i++)
+    {
+      double x,y;
+      m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
+      transit_x[i] = x;
+      transit_y[i] = y;
+    }
+  post_transit_route();
+#endif 
 }
 
 void LamssMissionManager::send_deploy()
@@ -539,6 +585,7 @@ void LamssMissionManager::homing_return()
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
   publish("LAMSS_DEPLOY_OUT", serialized);
+
 }
 
 void LamssMissionManager::initial_transit()
@@ -555,6 +602,31 @@ void LamssMissionManager::initial_transit()
   std::string serialized;
   serialize_for_moos(&serialized,init_transit_cmd);
   publish("LAMSS_TRANSIT_OUT", serialized);
+
+  int n = initial_transit_cmd_.wpt_size();
+  initial_transit_x.resize(n);
+  initial_transit_y.resize(n);
+  initial_transit_lat.resize(n);
+  initial_transit_lon.resize(n);
+  for (int i=0; i<n; i++)
+    {
+#ifndef GEO_COMMAND
+      initial_transit_x[i] = initial_transit_cmd_.wpt(i).x();
+      initial_transit_y[i] = initial_transit_cmd_.wpt(i).y();
+      double lat,lon;
+      m_Geodesy.UTM2LatLong(initial_transit_x[i],initial_transit_y[i],lat,lon);
+      initial_transit_lat[i] = lat;
+      initial_transit_lon[i] = lon;
+#else
+      initial_transit_lat[i] = initial_transit_cmd.wpt(i).lat();
+      initial_transit_lon[i] = initial_transit_cmd.wpt(i).lon();
+      double x,y;
+      m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],initial_transit_lon[i],
+				 y,x);
+      initial_transit_x[i] = x;
+      initial_transit_y[i] = y;
+#endif
+    }
 }
 
 void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
@@ -713,6 +785,20 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       camp_y_deploy = camp_y_last + camp_y_spd_filt.getAvg()*
 	(MOOSTime() - last_tracking_msg);
       
+      // save x,y and lat/long for fututrre UTM update handling
+#ifndef GEO_COMMAND
+      // for standard UTM MANTARAY_DEPLOY command
+      last_deploy_x_ = last_deploy_cmd_.deploy_x();
+      last_deploy_y_ = last_deploy_cmd_.deploy_y();
+      m_Geodesy.UTM2LatLong(last_deploy_x_,last_deploy_y_,
+			    last_deploy_lat_,last_deploy_lon_);
+#else
+      // for UTM_MANTARAY_GEO command
+      last_deploy_lat_ = last_deploy_cmd_.deploy_latitude();
+      last_deploy_lon_ = last_deploy_cmd_.deploy_longitude();
+      m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
+			    last_deploy_y_,last_deploy_x_);
+#endif      
       post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
@@ -774,8 +860,8 @@ void LamssMissionManager::deploy_behavior_updates()
   // Setting behaviour update variables
   
   std::stringstream ds;
-  ds << "point=" << last_deploy_cmd_.deploy_x()
-     << "," << last_deploy_cmd_.deploy_y()
+  ds << "point=" << last_deploy_x_
+     << "," << last_deploy_y_
      << "#speed=" << last_deploy_cmd_.deploy_speed();
   publish("DEPLOY_STATION",ds.str());
   publish("ORBIT_RADIUS",last_deploy_cmd_.loiter_radius());	
@@ -787,8 +873,8 @@ void LamssMissionManager::deploy_behavior_updates()
     clkw = "false";
       
   std::stringstream sd;
-  sd << "polygon=radial:" << last_deploy_cmd_.deploy_x()
-     << "," << last_deploy_cmd_.deploy_y()
+  sd << "polygon=radial:" << last_deploy_x_
+     << "," << last_deploy_y_
      << "," << last_deploy_cmd_.loiter_radius()
      << "," << last_deploy_cmd_.loiter_segments()
      << "#clockwise=" << clkw
@@ -796,8 +882,8 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("SENSOR_DEPLOY",sd.str());
       
   std::stringstream srt;
-  srt << "points=" << last_deploy_cmd_.deploy_x()
-      << "," << last_deploy_cmd_.deploy_y()
+  srt << "points=" << last_deploy_x_
+      << "," << last_deploy_y_
       << "#heading=" << last_deploy_cmd_.survey_heading()
       << "#track_length=" << last_deploy_cmd_.survey_length()
       << "#track_width=" << last_deploy_cmd_.survey_width()
@@ -813,8 +899,8 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("ZIGZAG_CONFIG",szc.str());
       
   std::stringstream szs;
-  szs  << "points=zigzag:" << last_deploy_cmd_.deploy_x()
-       << "," << last_deploy_cmd_.deploy_y()
+  szs  << "points=zigzag:" << last_deploy_x_
+       << "," << last_deploy_y_
        << "," << last_deploy_cmd_.survey_heading()
        << "," << last_deploy_cmd_.survey_length()
        << "," << last_deploy_cmd_.survey_period()
@@ -823,8 +909,8 @@ void LamssMissionManager::deploy_behavior_updates()
       
   std::stringstream slm;
   slm  << "points=format=lawnmower"
-       << ",x=" << last_deploy_cmd_.deploy_x()
-       << ",y=" << last_deploy_cmd_.deploy_y()
+       << ",x=" << last_deploy_x_
+       << ",y=" << last_deploy_y_
        << ",height=" << last_deploy_cmd_.survey_length()
        << ",width=" << last_deploy_cmd_.survey_width()
        << ",lane_width=" << last_deploy_cmd_.survey_period()
@@ -834,8 +920,8 @@ void LamssMissionManager::deploy_behavior_updates()
 
   // Front mapping behaviors
   std::stringstream ssu;
-  ssu  << "spiral_center_x=" << last_deploy_cmd_.deploy_x()
-       << "#spiral_center_y=" << last_deploy_cmd_.deploy_y()
+  ssu  << "spiral_center_x=" << last_deploy_x_
+       << "#spiral_center_y=" << last_deploy_y_
        << "#spiral_start_radius=" << last_deploy_cmd_.loiter_radius()
        << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
        << "#speed=" << last_deploy_cmd_.deploy_speed();
@@ -847,8 +933,8 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("DEPLOY_TRACK_FRONT_UPDATE",stf.str());
 
   std::stringstream shu;
-  shu  << "helix_start_x=" << last_deploy_cmd_.deploy_x()
-       << "#helix_start_y=" << last_deploy_cmd_.deploy_y()
+  shu  << "helix_start_x=" << last_deploy_x_
+       << "#helix_start_y=" << last_deploy_y_
        << "#helix_radius=" << last_deploy_cmd_.loiter_radius()
        << "#helix_constant=" << last_deploy_cmd_.survey_period()
        << "#helix_ctr_depth=" << last_deploy_cmd_.deploy_upper_depth()
@@ -858,8 +944,8 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("DEPLOY_HELIX_UPDATE",shu.str());
 
   std::stringstream sstu;
-  sstu  << "tgt_x=" << last_deploy_cmd_.deploy_x()
-	<< "#tgt_y=" << last_deploy_cmd_.deploy_y();
+  sstu  << "tgt_x=" << last_deploy_x_
+	<< "#tgt_y=" << last_deploy_y_;
   publish("TGT_TO_CLASS",sstu.str());
   sstu  << "#max_radius=" << last_deploy_cmd_.loiter_radius()
 	<< "#min_depth=" << last_deploy_cmd_.deploy_upper_depth()
@@ -951,8 +1037,8 @@ void LamssMissionManager::deploy_behavior_updates()
     {
       std::stringstream cent;
       cent << "center_assign="
-	   << last_deploy_cmd_.deploy_x()
-	   << "," << last_deploy_cmd_.deploy_y();
+	   << last_deploy_x_
+	   << "," << last_deploy_y_;
       publish("HOMING_CONFIG",cent.str());
       publish("USBL_ENABLED","TRUE");
     }
@@ -1264,8 +1350,8 @@ void LamssMissionManager::post_transit_route()
 		  transit_route << colon ;
 		}
 	    }
-	  transit_route << last_deploy_cmd_.deploy_x() << comma
-			<< last_deploy_cmd_.deploy_y() ;
+	  transit_route << last_deploy_x_ << comma
+			<< last_deploy_y_ ;
 
  	  publish("TRANSIT_DEPTH", last_transit_route_.transit_depth());
 	  publish("TRANSIT_ROUTE",transit_route.str());
@@ -1650,17 +1736,17 @@ void LamssMissionManager::update_deploy_parameters()
     // Consistent station keeping point
     std::stringstream statn;
     statn << "point="
-	  << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-	  << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	  << last_deploy_x_ + camp_x-camp_x_deploy
+	  << "," << last_deploy_y_ + camp_y-camp_y_deploy;
     publish("DEPLOY_STATION",statn.str());
     // Move racetrack unless on trackline
     if (!in_track)
       {
 	std::stringstream trck;
 	trck << "points="
-	     << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+	     << last_deploy_x_ + camp_x-camp_x_deploy
 	     << ","
-	     << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+	     << last_deploy_y_ + camp_y-camp_y_deploy;
 	publish("SENSOR_RACETRACK",trck.str());
 	
       }
@@ -1674,8 +1760,8 @@ void LamssMissionManager::update_deploy_parameters()
 	    // Zamboni Loiters for ice camp ops
 	    std::stringstream cent;
 	    cent << "center_assign="
-		 << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-		 << "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy;
+		 << last_deploy_x_ + camp_x-camp_x_deploy
+		 << "," << last_deploy_y_ + camp_y-camp_y_deploy;
 	    publish("SENSOR_DEPLOY",cent.str());
 	  }
         else if (last_deploy_cmd_.deploy_mode() ==
@@ -1688,9 +1774,9 @@ void LamssMissionManager::update_deploy_parameters()
 	    //     width=%20%,lane_width=%21%,rows=east-west,degs=%18%#speed=%12%"
 	    std::stringstream clwnm;
 	    clwnm <<  "points=format=lawnmower,x="
-		  << last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
+		  << last_deploy_x_ + camp_x-camp_x_deploy
 		  << ",y="
-		  << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy
+		  << last_deploy_y_ + camp_y-camp_y_deploy
 		  << ",height=" << last_deploy_cmd_.survey_length()
 		  << ",width=" << last_deploy_cmd_.survey_width()
 		  << ",lane_width=" << last_deploy_cmd_.survey_period()
@@ -1707,8 +1793,8 @@ void LamssMissionManager::update_deploy_parameters()
 	    //
 	    std::stringstream czz;
 	    czz <<  "points=zigzag:"
-		<< last_deploy_cmd_.deploy_x() + camp_x-camp_x_deploy
-		<< "," << last_deploy_cmd_.deploy_y() + camp_y-camp_y_deploy
+		<< last_deploy_x_ + camp_x-camp_x_deploy
+		<< "," << last_deploy_y_ + camp_y-camp_y_deploy
 		<< "," << last_deploy_cmd_.survey_heading()
 		<< "," << last_deploy_cmd_.survey_length()
 		<< "," << last_deploy_cmd_.survey_period()
