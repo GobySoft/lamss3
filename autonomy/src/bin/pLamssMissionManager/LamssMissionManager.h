@@ -151,10 +151,10 @@ private:
   double last_deploy_lon_;
   double last_deploy_lat_;
   // Last AIS prosecution cue
-  double last_cue_x_;  
-  double last_cue_y_;
-  double last_cue_lon_;
-  double last_cue_lat_;
+  double last_target_x_;  
+  double last_target_y_;
+  double last_target_lon_;
+  double last_target_lat_;
   
   std::vector<double> transit_x;
   std::vector<double> transit_y;

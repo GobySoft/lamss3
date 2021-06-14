@@ -384,6 +384,11 @@ void LamssMissionManager::UTM_update()
   m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
 			    last_deploy_y_,last_deploy_x_);
   deploy_behavior_updates();
+  // New UTM for invariant target lat/long
+  m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
+			    last_target_y_,last_target_x_);
+  prosecute_behavior_updates();
+  
   // Current transit route
   for (int i=0; i<transit_lat.size(); i++)
     {
@@ -411,6 +416,11 @@ void LamssMissionManager::UTM_update()
   m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
 			    last_deploy_y_,last_deploy_x_);
   deploy_behavior_updates();
+  // New UTM for invariant target lat/long
+  m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
+			    last_target_y_,last_target_x_);
+  prosecute_behavior_updates();
+
   // Current transit route.
   for (int i=0; i<transit_lat.size(); i++)
     {
@@ -1077,7 +1087,22 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
       if (prosecute_cmd._src_id() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
 
-      prosecute_behavior_updates();
+       // save x,y and lat/long for UTM update handling
+#ifndef GEO_COMMAND
+      // for standard UTM MANTARAY_DEPLOY command
+      last_target_x_ = last_prosecute_cmd_.target_x();
+      last_target_y_ = last_prosecute_cmd_.target_y();
+      m_Geodesy.UTM2LatLong(last_target_x_,last_target_y_,
+			    last_target_lat_,last_target_lon_);
+#else
+      // for UTM_MANTARAY_GEO command
+      last_target_lat_ = last_prosecute_cmd_.target_latitude();
+      last_target_lon_ = last_prosecute_cmd_.target_longitude();
+      m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
+			    last_target_y_,last_tartget_x_);
+#endif      
+
+     prosecute_behavior_updates();
 	  
       // prosecute only accepted if already in active mission
       if (mission_active_)
