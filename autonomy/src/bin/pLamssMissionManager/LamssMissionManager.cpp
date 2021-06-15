@@ -92,18 +92,27 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	subscribe("LONG_ORIGIN", &LamssMissionManager::handle_lon_origin, this);
       }
 #ifndef GEO_COMMAND
-    subscribe("LAMSS_STATUS_IN", &LamssMissionManager::handle_status, this);
-    subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
-    subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
-    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
-    subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
+    subscribe("LAMSS_STATUS_IN",
+	      &LamssMissionManager::handle_status, this);
+    subscribe("LAMSS_DEPLOY_IN",
+	      &LamssMissionManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_IN",
+	      &LamssMissionManager::handle_prosecute, this);
+    subscribe("LAMSS_TRANSIT_IN",
+	      &LamssMissionManager::handle_transit_route, this);
 #else
-    subscribe("LAMSS_STATUS_GEO_IN", &LamssMissionManager::handle_status, this);
-    subscribe("LAMSS_DEPLOY_GEO_IN", &LamssMissionManager::handle_deploy, this);
-    subscribe("LAMSS_PROSECUTE_GEO_IN", &LamssMissionManager::handle_prosecute, this);
-    subscribe("LAMSS_TRANSIT_GEO_IN", &LamssMissionManager::handle_transit_route, this);
-    subscribe("LAMSS_STOVEPIPE_GEO_IN",&LamssMissionManager::handle_stovepipe_message, this);    
+    subscribe("LAMSS_STATUS_GEO_IN",
+	      &LamssMissionManager::handle_status, this);
+    subscribe("LAMSS_DEPLOY_GEO_IN",
+	      &LamssMissionManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_GEO_IN",
+	      &LamssMissionManager::handle_prosecute, this);
+    subscribe("LAMSS_TRANSIT_GEO_IN",
+	      &LamssMissionManager::handle_transit_route, this);
 #endif
+    // Note: stovepipes not yet converted to GEO
+    subscribe("LAMSS_STOVEPIPE_IN",
+	      &LamssMissionManager::handle_stovepipe_message, this);    
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
