@@ -129,6 +129,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+// save initial abort location for dynamic UTM
+    m_Geodesy.UTM2LatLong(abort_x,abort_y,abort_lat,abort_lon);
 
     // Set up initial OpRegion if dynamic
     if (cfg_.dynamic_opregion())
@@ -396,6 +398,9 @@ void LamssMissionManager::UTM_update()
   m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
 			    last_target_y_,last_target_x_);
   prosecute_behavior_updates();
+  // New UTM for invariant abort lat/long
+  m_Geodesy.LatLong2LocalUTM(abort_lat,abort_lon,
+			     abort_y,abort_x);
   
   // Current transit route
   for (int i=0; i<transit_lat.size(); i++)
@@ -428,6 +433,9 @@ void LamssMissionManager::UTM_update()
   m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
 			    last_target_y_,last_target_x_);
   prosecute_behavior_updates();
+  // New UTM for invariant abort lat/long
+  m_Geodesy.LatLong2LocalUTM(abort_lat,abort_lon,
+			    abort_y,abort_x);
 
   // Current transit route.
   for (int i=0; i<transit_lat.size(); i++)
@@ -472,15 +480,17 @@ void LamssMissionManager::homing_prosecute()
 {
 #ifndef GEO_COMMAND
   LAMSS_PROSECUTE prosecute_cmd;
+  prosecute_cmd.set_target_x(abort_x);
+  prosecute_cmd.set_target_y(abort_y);
 #else
   LAMSS_PROSECUTE_GEO prosecute_cmd;
+  prosecute_cmd.set_target_longitude(abort_lon);
+  prosecute_cmd.set_target_latitude(abort_lat);
 #endif  
   prosecute_cmd.set__src_id(vehicle_id_);
   prosecute_cmd.set__rcv_id(vehicle_id_);
   prosecute_cmd.set__time(current_time_);
   prosecute_cmd.set_target_number(2);
-  prosecute_cmd.set_target_x(abort_x);
-  prosecute_cmd.set_target_y(abort_y);
   prosecute_cmd.set_prosecute_duration(cfg_.prosecute_duration());
   prosecute_cmd.set_target_speed(0);
   prosecute_cmd.set_array_angle(60);
@@ -549,7 +559,7 @@ void LamssMissionManager::try_publish()
 void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
-#ifdef GEO_COMMAND
+#ifndef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
 #else
   LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy();
@@ -568,15 +578,22 @@ void LamssMissionManager::initial_deploy()
       init_deploy_cmd.set_auto_prosecute(false);
       // for auto redeploy, center at current abort location
       // This is important for dynamic scenarios such as in ICEX
+#ifndef GEO_COMMAND
       init_deploy_cmd.set_deploy_x(abort_x);
       init_deploy_cmd.set_deploy_y(abort_y);
       // If adapt depth mode, keep it for survey return
       if (depth_adapting)
-#ifndef GEO_COMMAND
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+	init_deploy_cmd.set_depth_mode
+	  (LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
 #else
-	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS);
+      init_deploy_cmd.set_deploy_longitude(abort_lon);
+      init_deploy_cmd.set_deploy_latitude(abort_lat);
+      // If adapt depth mode, keep it for survey return
+      if (depth_adapting)
+	init_deploy_cmd.set_depth_mode
+	  (LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS);
 #endif      
+
       init_deploy_cmd.set_deploy_upper_depth(cfg_.abort_depth());
       // If stale acomms, continue with current duration timer
       double stale_acomms = MOOSTime() - last_acomms_;
@@ -1931,6 +1948,8 @@ void LamssMissionManager::update_deploy_parameters()
   // update abort location. Note that it's defined as offset relative to camp
   abort_x = camp_x + abort_x_offset;
   abort_y = camp_y + abort_y_offset;
+  m_Geodesy.UTM2LatLong(abort_x,abort_y,abort_lat,abort_lon);
+
   if (!homing_lock)
     {
       // update homing beacon location (assumed to be abort location

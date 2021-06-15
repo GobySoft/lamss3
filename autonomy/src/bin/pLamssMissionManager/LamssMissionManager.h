@@ -205,6 +205,8 @@ private:
   //
   double abort_x;
   double abort_y;
+  double abort_lat;
+  double abort_lon;
   // Offset of abort point (hydrohole) from origin (camp)
   double abort_x_offset;
   double abort_y_offset;
