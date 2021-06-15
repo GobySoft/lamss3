@@ -1533,7 +1533,6 @@ void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd)
       transit_y[i] = y;
 #endif      
     }
-  transit_wpt_index = -1;
 }
 
 void LamssMissionManager::post_transit_route()
