@@ -463,17 +463,28 @@ void LamssMissionManager::send_deploy()
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssMissionManagerConfig::CURRENT)
     {
+#ifndef GEO_COMMAND
       redeploy.set_deploy_x(last_nav_.local_fix().x());
       redeploy.set_deploy_y(last_nav_.local_fix().y());
       // Re-deploy forced to loiter if local
       redeploy.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
       redeploy.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+#else
+      redeploy.set_deploy_longitude(last_nav_.global_fix().lon());
+      redeploy.set_deploy_latitude(last_nav_.global_fix().lat());
+      // Re-deploy forced to loiter if local
+      redeploy.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER);
+      redeploy.set_depth_mode(LAMSS_DEPLOY_GEO::DEPTH_MODE_SINGLE);
+#endif
     }
   // Auto prosecute only on initial deploy
   redeploy.set_auto_prosecute(false);
   serialize_for_moos(&serialized,redeploy);
+#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_OUT", serialized);
-
+#else
+  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+#endif
 }
 
 void LamssMissionManager::homing_prosecute()
@@ -903,9 +914,11 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  queue_event<EvStartAbort>();
 	}
 #ifndef GEO_COMMAND
-      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+      else if (last_deploy_cmd_.deploy_mode() ==
+	       LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
 #else
-      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
+      else if (last_deploy_cmd_.deploy_mode() ==
+	       LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
 #endif
 	{
 	  queue_event<EvStartDeploy>();
@@ -1125,15 +1138,26 @@ void LamssMissionManager::deploy_behavior_updates()
   stc << collab_str
       << "#trail_range=" << last_deploy_cmd_.trail_range()
       << "#trail_angle=" << last_deploy_cmd_.trail_angle();
+#ifndef GEO_COMMAND
   if (last_deploy_cmd_.trail_angle_type() ==
       LAMSS_DEPLOY::TRAIL_ANGLE_TYPE_relative)
+#else
+  if (last_deploy_cmd_.trail_angle_type() ==
+      LAMSS_DEPLOY_GEO::TRAIL_ANGLE_TYPE_relative)
+#endif
+
     stc << "#trail_angle_type=relative";
   else
     stc << "#trail_angle_type=absolute";
   publish("TRAIL_CONFIG",shg.str());
      	
+#ifndef GEO_COMMAND
   if (last_deploy_cmd_.depth_mode() ==
       LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
+#else
+  if (last_deploy_cmd_.depth_mode() ==
+      LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS)
+#endif    
     {
       // Set acomms depth to current depth
       std::stringstream ss ;
@@ -1148,7 +1172,11 @@ void LamssMissionManager::deploy_behavior_updates()
       
   // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
   if (last_deploy_cmd_.homing_enabled() &&
+#ifndef GEO_COMMAND
       last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
+#else
+      last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN &&
+#endif      
       cfg_.homing_array() == LamssMissionManagerConfig::USBL)
     {
       std::stringstream cent;
@@ -1160,7 +1188,13 @@ void LamssMissionManager::deploy_behavior_updates()
     }
   // USBL Homing for recovery
   else if (last_deploy_cmd_.homing_enabled() &&
-	   last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RECOVERY &&
+#ifndef GEO_COMMAND
+	   last_deploy_cmd_.deploy_mode() ==
+	   LAMSS_DEPLOY::DEPLOY_MODE_RECOVERY &&
+#else
+	   last_deploy_cmd_.deploy_mode() ==
+	   LAMSS_DEPLOY_GEO::DEPLOY_MODE_RECOVERY &&
+#endif	   
 	   cfg_.homing_array() == LamssMissionManagerConfig::USBL)
     {
       std::stringstream wpt;
@@ -1172,7 +1206,11 @@ void LamssMissionManager::deploy_behavior_updates()
       publish("HOMING_STATION",wpt.str());
       publish("USBL_ENABLED","TRUE");
     }
+#ifndef GEO_COMMAND
   else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
+#else
+  else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT &&
+#endif	   
 	   cfg_.homing_array() == LamssMissionManagerConfig::USBL)
     publish("USBL_ENABLED","TRUE");
   else
@@ -1182,8 +1220,12 @@ void LamssMissionManager::deploy_behavior_updates()
 
 void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
    LAMSS_PROSECUTE prosecute_cmd;
-  parse_for_moos(msg.GetString(), &prosecute_cmd);
+#else
+   LAMSS_PROSECUTE_GEO prosecute_cmd;
+#endif   
+   parse_for_moos(msg.GetString(), &prosecute_cmd);
   // Only handle messages for me
   if (ownship_modem_ids_.count(prosecute_cmd._rcv_id()))
     {
@@ -1238,8 +1280,21 @@ void LamssMissionManager::prosecute_behavior_updates()
 
   // Setting state variables
 
-  LAMSS_PROSECUTE::Prosecute_TypeEnum prosecute_type = last_prosecute_cmd_.prosecute_type();
-  std::string prosecute_type_str = LAMSS_PROSECUTE::Prosecute_TypeEnum_Name(prosecute_type);
+#ifndef GEO_COMMAND
+  LAMSS_PROSECUTE::Prosecute_TypeEnum prosecute_type =
+    last_prosecute_cmd_.prosecute_type();
+  std::string prosecute_type_str =
+    LAMSS_PROSECUTE::Prosecute_TypeEnum_Name(prosecute_type);
+  std::string angle_mode =
+    LAMSS_PROSECUTE::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
+#else
+  LAMSS_PROSECUTE_GEO::Prosecute_TypeEnum prosecute_type =
+    last_prosecute_cmd_.prosecute_type();
+  std::string prosecute_type_str =
+    LAMSS_PROSECUTE_GEO::Prosecute_TypeEnum_Name(prosecute_type);
+  std::string angle_mode =
+    LAMSS_PROSECUTE_GEO::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
+#endif  
   MOOSChomp(prosecute_type_str,"PROSECUTE_TYPE_");
   publish("PROSECUTE_MISSION",prosecute_type_str);
 
@@ -1261,8 +1316,6 @@ void LamssMissionManager::prosecute_behavior_updates()
   publish("PRIORITY_TRK",spt.str());
   publish("CURRENT_TARGET",spt.str());
       
-  std::string angle_mode =
-    LAMSS_PROSECUTE::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
   MOOSChomp(angle_mode,"ARRAY_ANGLE_MODE_");
   std::stringstream sta;
   sta  << "bearing_mode=" << angle_mode
@@ -1311,7 +1364,11 @@ void LamssMissionManager::prosecute_behavior_updates()
 
   void LamssMissionManager::handle_status(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_STATUS status_msg;
+#else
+  LAMSS_STATUS_GEO status_msg;
+#endif
   parse_for_moos(msg.GetString(), &status_msg);
   // If coming from topside count as being connected, 
   // except for ICEXTracker, where only nav updates and commands count
@@ -1432,23 +1489,60 @@ void LamssMissionManager::handle_opbox_distance(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_TRANSIT transit_cmd;
+#else
+  LAMSS_TRANSIT_GEO transit_cmd;
+#endif
   parse_for_moos(msg.GetString(), &transit_cmd);
+  // Only handle messages for me
+  if (transit_cmd._rcv_id() == vehicle_id_)
+    {
+      configure_transit_route(transit_cmd);
+      post_transit_route();
+    }
+}
+
+#ifndef GEO_COMMAND
+void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT transit_cmd)
+#else
+void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd)
+#endif  
+{
   last_transit_route_ = transit_cmd;
   int n_wpt = transit_cmd.wpt_size();
   transit_x.resize(n_wpt);
   transit_y.resize(n_wpt);
+  transit_lat.resize(n_wpt);
+  transit_lon.resize(n_wpt);
   for (int i=0; i<n_wpt; i++)
     {
+#ifndef GEO_COMMAND
       transit_x[i] = transit_cmd.wpt(i).x();
       transit_y[i] = transit_cmd.wpt(i).y();
+      double lat,lon;
+      m_Geodesy.UTM2LatLong(transit_x[i],transit_y[i],lat,lon);
+      transit_lat[i] = lat;
+      transit_lon[i] = lon;
+#else
+      transit_lat[i] = transit_cmd.wpt(i).lat();
+      transit_lon[i] = transit_cmd.wpt(i).lon();
+      double x,y;
+      m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
+      transit_x[i] = x;
+      transit_y[i] = y;
+#endif      
     }
+  transit_wpt_index = -1;
 }
 
 void LamssMissionManager::post_transit_route()
 {
-
+#ifndef GEO_COMMAND
   if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
+#else
+  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT_GEO::TRANSIT_MODE_ROUTE)
+#endif    
     {
       // remove trailing zero waypoints from transit route
 
@@ -1462,9 +1556,14 @@ void LamssMissionManager::post_transit_route()
 	  transit_route << "speed=" << last_transit_route_.transit_speed()
 			<< "#points="
 			<< last_nav_.local_fix().x() << comma
-			<< last_nav_.local_fix().y() << colon
-;
-	  if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+			<< last_nav_.local_fix().y() << colon ;
+#ifndef GEO_COMMAND
+	  if (last_deploy_cmd_.deploy_mode() ==
+	      LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+#else
+	  if (last_deploy_cmd_.deploy_mode() ==
+	      LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
+#endif	    
 	    {
 	      // If RETURN mode publish route in reverse order
 	      for (int i=n-1; i>=0; i--)
