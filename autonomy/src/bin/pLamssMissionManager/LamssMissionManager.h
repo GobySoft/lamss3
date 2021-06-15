@@ -61,12 +61,18 @@ private:
 
   goby::moos::CMOOSGeodesy m_Geodesy;
   XYPolygon opregion, opregion_init;
-    
+
+#ifndef GEO_COMMAND
   LAMSS_TRANSIT last_transit_route_;    
   LAMSS_TRANSIT initial_transit_cmd_;    
   LAMSS_DEPLOY last_deploy_cmd_;    
   LAMSS_PROSECUTE last_prosecute_cmd_;    
-
+#else
+  LAMSS_TRANSIT_GEO last_transit_route_;    
+  LAMSS_TRANSIT_GEO initial_transit_cmd_;    
+  LAMSS_DEPLOY_GEO last_deploy_cmd_;    
+  LAMSS_PROSECUTE_GEO last_prosecute_cmd_;    
+#endif
   // synchronous event
   void loop();    
   void slow_loop(double curr_time);

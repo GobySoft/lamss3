@@ -91,9 +91,19 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	subscribe("LAT_ORIGIN", &LamssMissionManager::handle_lat_origin, this);
 	subscribe("LONG_ORIGIN", &LamssMissionManager::handle_lon_origin, this);
       }
+#ifndef GEO_COMMAND
     subscribe("LAMSS_STATUS_IN", &LamssMissionManager::handle_status, this);
     subscribe("LAMSS_DEPLOY_IN", &LamssMissionManager::handle_deploy, this);
     subscribe("LAMSS_PROSECUTE_IN", &LamssMissionManager::handle_prosecute, this);
+    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
+    subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
+#else
+    subscribe("LAMSS_STATUS_GEO_IN", &LamssMissionManager::handle_status, this);
+    subscribe("LAMSS_DEPLOY_GEO_IN", &LamssMissionManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_GEO_IN", &LamssMissionManager::handle_prosecute, this);
+    subscribe("LAMSS_TRANSIT_GEO_IN", &LamssMissionManager::handle_transit_route, this);
+    subscribe("LAMSS_STOVEPIPE_GEO_IN",&LamssMissionManager::handle_stovepipe_message, this);    
+#endif
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
@@ -102,7 +112,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("COLLABORATOR_NAME", 
 	      &LamssMissionManager::handle_collaborator_name, this);  
     subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
-    subscribe("LAMSS_TRANSIT_IN", &LamssMissionManager::handle_transit_route, this);
     subscribe("HYDROMAN_NAV_DATA", &LamssMissionManager::handle_hydroman_data, this);
     subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);
     subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);
@@ -115,7 +124,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
-    subscribe("LAMSS_STOVEPIPE_IN",&LamssMissionManager::handle_stovepipe_message, this);    
     subscribe("SURVEY_WPT_INDEX",&LamssMissionManager::handle_survey_wpt_index, this);    
     subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &LamssMissionManager::handle_vehicle_transmit_selection, this);
     // intialize MOOSGeodesy
@@ -435,7 +443,11 @@ void LamssMissionManager::UTM_update()
 
 void LamssMissionManager::send_deploy()
 {
-  LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
+#ifndef GEO_COMMAND
+  LAMSS_DEPLOY redeploy = last_deploy_cmd_;
+#else
+  LAMSS_DEPLOY_GEO redeploy = last_deploy_cmd_;
+#endif  
   std::string serialized;
   redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
@@ -458,7 +470,11 @@ void LamssMissionManager::send_deploy()
 
 void LamssMissionManager::homing_prosecute()
 {
+#ifndef GEO_COMMAND
   LAMSS_PROSECUTE prosecute_cmd;
+#else
+  LAMSS_PROSECUTE_GEO prosecute_cmd;
+#endif  
   prosecute_cmd.set__src_id(vehicle_id_);
   prosecute_cmd.set__rcv_id(vehicle_id_);
   prosecute_cmd.set__time(current_time_);
@@ -481,7 +497,11 @@ void LamssMissionManager::homing_prosecute()
 
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);
+#ifndef GEO_COMMAND
   publish("LAMSS_PROSECUTE_OUT", serialized);
+#else
+  publish("LAMSS_PROSECUTE_GEO_OUT", serialized);
+#endif  
   glog.is(DEBUG1) && glog << "Homing Prosecute requested"
 			  << std::endl;
 }
@@ -529,7 +549,11 @@ void LamssMissionManager::try_publish()
 void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+#ifdef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
+#else
+  LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy();
+#endif  
   init_deploy_cmd.set__time(MOOSTime());
 
   init_deploy_cmd.set__rcv_id(vehicle_id_);
@@ -548,8 +572,11 @@ void LamssMissionManager::initial_deploy()
       init_deploy_cmd.set_deploy_y(abort_y);
       // If adapt depth mode, keep it for survey return
       if (depth_adapting)
-	init_deploy_cmd.set_depth_mode(
-	   LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+#ifndef GEO_COMMAND
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
+#else
+	init_deploy_cmd.set_depth_mode(LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS);
+#endif      
       init_deploy_cmd.set_deploy_upper_depth(cfg_.abort_depth());
       // If stale acomms, continue with current duration timer
       double stale_acomms = MOOSTime() - last_acomms_;
@@ -568,13 +595,23 @@ void LamssMissionManager::initial_deploy()
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
+#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_OUT", serialized);
+#else
+  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+#endif  
 }
 
 void LamssMissionManager::homing_return()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+#ifndef GEO_COMMAND
   LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
+  homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
+#else
+  LAMSS_DEPLOY_GEO homing_cmd = cfg_.initial_deploy();
+  homing_cmd.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN);
+#endif
   homing_cmd.set__time(MOOSTime());
 
   homing_cmd.set__rcv_id(vehicle_id_);
@@ -588,20 +625,27 @@ void LamssMissionManager::homing_return()
   // This is important for dynamic scenarios such as in ICEX
   homing_cmd.set_deploy_x(abort_x);
   homing_cmd.set_deploy_y(abort_y);
-  homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
   homing_cmd.set_homing_enabled(true);
   // Force non abort in case we lost comms
   last_acomms_ = MOOSTime();
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
+#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_OUT", serialized);
+#else
+  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+#endif
 
 }
 
 void LamssMissionManager::initial_transit()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
+#ifndef GEO_COMMAND
   LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
+#else
+  LAMSS_TRANSIT_GEO init_transit_cmd = cfg_.initial_transit();
+#endif
   init_transit_cmd.set__time(MOOSTime());
 
   // Note that the initial will have topside origin to allow resetting
@@ -611,8 +655,11 @@ void LamssMissionManager::initial_transit()
 
   std::string serialized;
   serialize_for_moos(&serialized,init_transit_cmd);
+#ifndef GEO_COMMAND
   publish("LAMSS_TRANSIT_OUT", serialized);
-
+#else
+  publish("LAMSS_TRANSIT_GEO_OUT", serialized);
+#endif  
   int n = initial_transit_cmd_.wpt_size();
   initial_transit_x.resize(n);
   initial_transit_y.resize(n);
@@ -777,7 +824,11 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_DEPLOY deploy_cmd;
+#else
+  LAMSS_DEPLOY_GEO deploy_cmd;
+#endif
   parse_for_moos(msg.GetString(), &deploy_cmd);
   // Only handle messages for me
   if (ownship_modem_ids_.count(deploy_cmd._rcv_id()))
@@ -789,6 +840,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  command_received_ = true;
 	  command_received_cond_.notify_one();
 	}
+      
       // Set camp location at deploy for zamboni behaviors
       camp_x_deploy = camp_x_last + camp_x_spd_filt.getAvg()*
 	(MOOSTime() - last_tracking_msg);
@@ -822,14 +874,22 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       if (mission_active_)
 	queue_event<EvNewMission>();
 
+#ifndef GEO_COMMAND
       if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
+#else
+      if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT)
+#endif
 	{
 	  // allow auv to get to abort depth before homing
 	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
 	  update_abort_mission();
 	  queue_event<EvStartAbort>();
 	}
+#ifndef GEO_COMMAND
       else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+#else
+      else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
+#endif
 	{
 	  queue_event<EvStartDeploy>();
 	  queue_event<EvReturnToBase>();
@@ -845,7 +905,7 @@ void LamssMissionManager::deploy_behavior_updates()
 {
 
   // Setting state variables
-
+#ifndef GEO_COMMAND
   LAMSS_DEPLOY::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
   std::string deploy_mode_str = LAMSS_DEPLOY::Deploy_ModeEnum_Name(deploy_mode);
   MOOSChomp(deploy_mode_str,"DEPLOY_MODE_");
@@ -865,8 +925,48 @@ void LamssMissionManager::deploy_behavior_updates()
     LAMSS_DEPLOY::Sonar_ProcessEnum_Name(last_deploy_cmd_.sonar_process());
   MOOSChomp(sonar_process_str,"SONAR_PROCESS_");
   publish("SONAR_PROCESS",sonar_process_str);
+  std::string collab_str;
+  if (!last_deploy_cmd_.has_collaborator() ||
+      last_deploy_cmd_.collaborator() == LAMSS_DEPLOY::DEFAULT)
+    collab_str = "contact=" + collaborator_name;
+  else
+    {
+      LAMSS_DEPLOY::ContactEnum collab = last_deploy_cmd_.collaborator();
+      collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
+    }
+#else
+  LAMSS_DEPLOY_GEO::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
+  std::string deploy_mode_str = LAMSS_DEPLOY::Deploy_ModeEnum_Name(deploy_mode);
+  MOOSChomp(deploy_mode_str,"DEPLOY_MODE_");
+  publish("DEPLOY_MISSION",deploy_mode_str);
 
+  std::string depth_mode_str =
+    LAMSS_DEPLOY_GEO::Depth_ModeEnum_Name(last_deploy_cmd_.depth_mode());
+  MOOSChomp(depth_mode_str,"DEPTH_MODE_");
+  publish("DEPTH_MODE",depth_mode_str);
 
+  std::string sonar_control_str =
+    LAMSS_DEPLOY_GEO::Sonar_ControlEnum_Name(last_deploy_cmd_.sonar_control());
+  MOOSChomp(sonar_control_str,"SONAR_CONTROL_");
+  publish("SONAR_CONTROL",sonar_control_str);
+
+  std::string sonar_process_str =
+    LAMSS_DEPLOY_GEO::Sonar_ProcessEnum_Name(last_deploy_cmd_.sonar_process());
+  MOOSChomp(sonar_process_str,"SONAR_PROCESS_");
+  publish("SONAR_PROCESS",sonar_process_str);
+
+  std::string collab_str;
+  if (!last_deploy_cmd_.has_collaborator() ||
+      last_deploy_cmd_.collaborator() == LAMSS_DEPLOY_GEO::DEFAULT)
+    collab_str = "contact=" + collaborator_name;
+  else
+    {
+      LAMSS_DEPLOY_GEO::ContactEnum collab = last_deploy_cmd_.collaborator();
+      collab_str = "contact=" + LAMSS_DEPLOY_GEO::ContactEnum_Name(collab);
+    }
+
+#endif
+  
   // Setting behaviour update variables
   
   std::stringstream ds;
@@ -997,15 +1097,6 @@ void LamssMissionManager::deploy_behavior_updates()
   shg  << "heading=" << last_deploy_cmd_.survey_heading();
   publish("SURVEY_HEADING",shg.str());
       
-  std::string collab_str;
-  if (!last_deploy_cmd_.has_collaborator() ||
-      last_deploy_cmd_.collaborator() == LAMSS_DEPLOY::DEFAULT)
-    collab_str = "contact=" + collaborator_name;
-  else
-    {
-      LAMSS_DEPLOY::ContactEnum collab = last_deploy_cmd_.collaborator();
-      collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
-    }
   publish("ADAPTIVE_DEPTH", collab_str);
 
   publish("TOGGLE_UPPER_DEPTH",last_deploy_cmd_.deploy_upper_depth());
@@ -1023,9 +1114,7 @@ void LamssMissionManager::deploy_behavior_updates()
   else
     stc << "#trail_angle_type=absolute";
   publish("TRAIL_CONFIG",shg.str());
-
-      
-	
+     	
   if (last_deploy_cmd_.depth_mode() ==
       LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
     {
