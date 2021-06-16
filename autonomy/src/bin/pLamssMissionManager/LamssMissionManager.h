@@ -37,6 +37,8 @@ public:
   double utc;
   double x;
   double y;
+  double lat;
+  double lon;
   double camp_x;
   double camp_y;
   double depth;
@@ -68,12 +70,16 @@ private:
   LAMSS_DEPLOY last_deploy_cmd_;    
   LAMSS_PROSECUTE last_prosecute_cmd_;    
   void configure_transit_route(LAMSS_TRANSIT transit_cmd);
+  // Stovepipe manager
+  void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
 #else
   LAMSS_TRANSIT_GEO last_transit_route_;    
   LAMSS_TRANSIT_GEO initial_transit_cmd_;    
   LAMSS_DEPLOY_GEO last_deploy_cmd_;    
   LAMSS_PROSECUTE_GEO last_prosecute_cmd_;    
   void configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd);
+  // Stovepipe manager
+  void update_stovepipes(LAMSS_STOVEPIPE_GEO stovepipe_msg);
 #endif
   // synchronous event
   void loop();    
@@ -124,7 +130,6 @@ private:
   void prosecute_behavior_updates();
   void post_transit_route();
   // Stovepipe manager
-  void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
   void publish_stovepipe(int i,double camp_x,double camp_y);
   void handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg);
 
@@ -191,6 +196,12 @@ private:
   double camp_y_last;
   double camp_x_deploy;
   double camp_y_deploy;
+  double camp_lat_init;
+  double camp_lon_init;
+  double camp_lat_last;
+  double camp_lon_last;
+  double camp_lat_deploy;
+  double camp_lon_deploy;
     
   double last_tracking_msg;
   bool got_gps_nav;    

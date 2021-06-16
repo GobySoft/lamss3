@@ -398,7 +398,6 @@ void LamssMissionManager::slow_loop(double curr_time)
 
 void LamssMissionManager::UTM_update()
 {
-#ifndef GEO_COMMAND
   // New UTM for invariant deploy lat/long
   m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
 			    last_deploy_y_,last_deploy_x_);
@@ -410,6 +409,14 @@ void LamssMissionManager::UTM_update()
   // New UTM for invariant abort lat/long
   m_Geodesy.LatLong2LocalUTM(abort_lat,abort_lon,
 			     abort_y,abort_x);
+  // camp locations
+  m_Geodesy.LatLong2LocalUTM(camp_lat_last,camp_lon_last,
+			     camp_y_last,camp_x_last);
+  m_Geodesy.LatLong2LocalUTM(camp_lat_init,camp_lon_init,
+			     camp_y_init,camp_x_init);
+  m_Geodesy.LatLong2LocalUTM(camp_lat_deploy,camp_lon_deploy,
+			     camp_y_deploy,camp_x_deploy);
+  
   
   // Current transit route
   for (int i=0; i<transit_lat.size(); i++)
@@ -421,6 +428,7 @@ void LamssMissionManager::UTM_update()
     }
   post_transit_route();
   
+#ifndef GEO_COMMAND
   // Initial transit route updated for use by return state
   for (int i=0; i<initial_transit_lat.size(); i++)
     {
@@ -433,29 +441,13 @@ void LamssMissionManager::UTM_update()
       wpt->set_x(x);
       wpt->set_y(y);
     }
-#else  
-  // New UTM for invariant deploy lat/long
-  m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
-			    last_deploy_y_,last_deploy_x_);
-  deploy_behavior_updates();
-  // New UTM for invariant target lat/long
-  m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
-			    last_target_y_,last_target_x_);
-  prosecute_behavior_updates();
-  // New UTM for invariant abort lat/long
-  m_Geodesy.LatLong2LocalUTM(abort_lat,abort_lon,
-			    abort_y,abort_x);
-
-  // Current transit route.
-  for (int i=0; i<transit_lat.size(); i++)
-    {
-      double x,y;
-      m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
-      transit_x[i] = x;
-      transit_y[i] = y;
-    }
-  post_transit_route();
 #endif 
+
+    // Stovepipes. Invariant lat/long
+  for (int i=0; i<Stovepipes.size(); i++)
+    m_Geodesy.LatLong2LocalUTM(Stovepipes[i].lat,Stovepipes[i].lon,
+			       Stovepipes[i].y,Stovepipes[i].x);
+
 }
 
 void LamssMissionManager::send_deploy()
@@ -778,10 +770,18 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
 		  // Set initial camp/launch position from GPS
 		  camp_x_last = last_nav_.local_fix().x();
 		  camp_y_last = last_nav_.local_fix().y();
+		  camp_lat_last = last_nav_.global_fix().lat();
+		  camp_lon_last = last_nav_.global_fix().lon();
+		  
 		  camp_x_init = last_nav_.local_fix().x();
 		  camp_y_init = last_nav_.local_fix().y();
+		  camp_lat_init = last_nav_.global_fix().lat();
+		  camp_lon_init = last_nav_.global_fix().lon();
+
 		  camp_x_deploy = last_nav_.local_fix().x();
 		  camp_y_deploy = last_nav_.local_fix().y();
+		  camp_lat_deploy = last_nav_.global_fix().lat();
+		  camp_lon_deploy = last_nav_.global_fix().lon();
 		}
 	    }
 	  std::stringstream ss;
@@ -883,6 +883,8 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	(MOOSTime() - last_tracking_msg);
       camp_y_deploy = camp_y_last + camp_y_spd_filt.getAvg()*
 	(MOOSTime() - last_tracking_msg);
+      m_Geodesy.UTM2LatLong(camp_x_deploy,camp_y_deploy,
+			    camp_lat_deploy,camp_lon_deploy);
       
       // save x,y and lat/long for fututrre UTM update handling
 #ifndef GEO_COMMAND
@@ -1671,6 +1673,8 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	    {
 	      camp_x_init = camp_x;
 	      camp_y_init = camp_y;
+	      m_Geodesy.UTM2LatLong(camp_x_init,camp_y_init,
+				    camp_lat_init,camp_lon_init);
 	      //	      got_first_tracking_msg = true;
 	      //              last_tracking_msg = tracking_result.vehicle_tx_time();
 	      camp_x_spd_filt.configAvg(filter_length);
@@ -1687,6 +1691,8 @@ void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
 	  // save camp location for possible deploy zambony being relative to deploy location
 	  camp_x_last = camp_x;
 	  camp_y_last = camp_y;
+	  m_Geodesy.UTM2LatLong(camp_x_last,camp_y_last,
+				camp_lat_last,camp_lon_last);
 	  
 	  // Use current vehicle time stamp
 	  //	  last_tracking_msg = tracking_result.vehicle_tx_time();
@@ -2104,7 +2110,11 @@ void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 //            times they were last written to. In the dynamic scenario, they are updated
 //            when camp updates are received 
 
+#ifndef GEO_COMMAND
 void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
+#else
+void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE_GEO stovepipe_msg)
+#endif  
 {
 
     CStovepipe Empty;
@@ -2128,8 +2138,19 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 	  {
 	    // If it exists, Update values
 	    Stovepipes[i].utc = stovepipe_msg._time();
+#ifndef GEO_COMMAND
 	    Stovepipes[i].x = stovepipe_msg.stovepipe_x();
 	    Stovepipes[i].y = stovepipe_msg.stovepipe_y();
+	    m_Geodesy.UTM2LatLong(Stovepipes[i].x,Stovepipes[i].y,
+				       Stovepipes[i].lat,Stovepipes[i].lon);
+#else
+	    Stovepipes[i].lat = stovepipe_msg.stovepipe_latitude();
+	    Stovepipes[i].lon = stovepipe_msg.stovepipe_longitude();
+	    
+	    m_Geodesy.LatLong2LocalUTM(Stovepipes[i].lat,Stovepipes[i].lon,
+				       Stovepipes[i].y,Stovepipes[i].x);
+#endif
+
 	    Stovepipes[i].camp_x = camp_x;
 	    Stovepipes[i].camp_y = camp_y;
 	    Stovepipes[i].depth = stovepipe_msg.depth();
@@ -2156,8 +2177,19 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
     Stovepipes.resize(last+1);
     Stovepipes[last].ID = stovepipe_msg.stovepipe_id();
     Stovepipes[last].utc = stovepipe_msg._time();
+#ifndef GEO_COMMAND
     Stovepipes[last].x = stovepipe_msg.stovepipe_x();
     Stovepipes[last].y = stovepipe_msg.stovepipe_y();
+    m_Geodesy.UTM2LatLong(Stovepipes[last].x,Stovepipes[last].y,
+			  Stovepipes[last].lat,Stovepipes[last].lon);
+#else
+    Stovepipes[last].lat = stovepipe_msg.stovepipe_latitude();
+    Stovepipes[last].lon = stovepipe_msg.stovepipe_longitude();
+    
+    m_Geodesy.LatLong2LocalUTM(Stovepipes[last].lat,
+			       Stovepipes[last].lon,
+			       Stovepipes[last].y,Stovepipes[last].x);
+#endif
     Stovepipes[last].camp_x = camp_x;
     Stovepipes[last].camp_y = camp_y;
     Stovepipes[last].depth = stovepipe_msg.depth();
