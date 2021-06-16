@@ -1,5 +1,6 @@
 import "dccl/protobuf/option_extensions.proto";
 import "goby/protobuf/option_extensions.proto";
+
 message LAMSS_SIMULATE_TARGET { 
 	option (dccl.msg).id = 29;
 	option (dccl.msg).max_bytes = 32;
@@ -9,6 +10,30 @@ message LAMSS_SIMULATE_TARGET {
 	optional int32 tgt_num = 4 [(dccl.field).max=31, (dccl.field).min=-31, default=0];
 	optional double tgt_x = 5 [(dccl.field).max=200000, (dccl.field).min=-200000, (dccl.field).precision=0];
 	optional double tgt_y = 6 [(dccl.field).max=200000, (dccl.field).min=-200000, (dccl.field).precision=0];
+	optional double tgt_dep = 7 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double tgt_hdg = 8 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double tgt_spd = 9 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+	optional double tgt_freq = 10 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double tgt_bw = 11 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double tgt_spl = 12 [(dccl.field).max=200, (dccl.field).min=0, (dccl.field).precision=0];
+	optional double tgt_str = 13 [(dccl.field).max=31, (dccl.field).min=-32, (dccl.field).precision=0];
+        repeated TargetTone tones = 20 [(dccl.field).max_repeat=4];
+        message TargetTone 
+          {
+	    required double freq = 1 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0];
+	    required double db = 2 [(dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=0];
+          }
+} 
+
+message LAMSS_SIMULATE_TARGET_GEO { 
+	option (dccl.msg).id = 29;
+	option (dccl.msg).max_bytes = 32;
+	optional double tgt_utc = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 tgt_num = 4 [(dccl.field).max=31, (dccl.field).min=-31, default=0];
+	optional double tgt_lon = 5 [(dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=4];
+	optional double tgt_lat = 6 [(dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=4];
 	optional double tgt_dep = 7 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double tgt_hdg = 8 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double tgt_spd = 9 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];
