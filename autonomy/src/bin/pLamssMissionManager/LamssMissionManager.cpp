@@ -464,7 +464,7 @@ void LamssMissionManager::send_deploy()
   LAMSS_DEPLOY redeploy = last_deploy_cmd_;
 #else
   LAMSS_DEPLOY_GEO redeploy = last_deploy_cmd_;
-#endif  
+#endif
   std::string serialized;
   redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
