@@ -1079,7 +1079,7 @@ void LamssMissionManager::deploy_behavior_updates()
   ssu  << "spiral_center_x=" << last_deploy_x_
        << "#spiral_center_y=" << last_deploy_y_
        << "#spiral_start_radius=" << last_deploy_cmd_.loiter_radius()
-       << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
+    //      << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
        << "#speed=" << last_deploy_cmd_.deploy_speed();
   publish("SPIRAL_UPDATE",ssu.str());
 
@@ -1148,24 +1148,21 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("TOGGLE_UPPER_DEPTH",last_deploy_cmd_.deploy_upper_depth());
   publish("TOGGLE_LOWER_DEPTH",last_deploy_cmd_.deploy_lower_depth());
   
+#ifndef GEO_COMMAND
   // Trail behaviors
-      
   std::stringstream stc;
   stc << collab_str
       << "#trail_range=" << last_deploy_cmd_.trail_range()
       << "#trail_angle=" << last_deploy_cmd_.trail_angle();
-#ifndef GEO_COMMAND
   if (last_deploy_cmd_.trail_angle_type() ==
       LAMSS_DEPLOY::TRAIL_ANGLE_TYPE_relative)
-#else
-  if (last_deploy_cmd_.trail_angle_type() ==
-      LAMSS_DEPLOY_GEO::TRAIL_ANGLE_TYPE_relative)
-#endif
-
     stc << "#trail_angle_type=relative";
   else
     stc << "#trail_angle_type=absolute";
+
   publish("TRAIL_CONFIG",shg.str());
+#endif
+
      	
 #ifndef GEO_COMMAND
   if (last_deploy_cmd_.depth_mode() ==
