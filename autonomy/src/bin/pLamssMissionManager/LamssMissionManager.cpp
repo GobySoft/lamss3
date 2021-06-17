@@ -574,7 +574,7 @@ void LamssMissionManager::initial_deploy()
 #ifndef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
 #else
-  LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy_geo();
 #endif  
   init_deploy_cmd.set__time(MOOSTime());
 
@@ -638,7 +638,7 @@ void LamssMissionManager::homing_return()
   LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
 #else
-  LAMSS_DEPLOY_GEO homing_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY_GEO homing_cmd = cfg_.initial_deploy_geo();
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN);
 #endif
   homing_cmd.set__time(MOOSTime());
@@ -678,7 +678,7 @@ void LamssMissionManager::initial_transit()
 #ifndef GEO_COMMAND
   LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
 #else
-  LAMSS_TRANSIT_GEO init_transit_cmd = cfg_.initial_transit();
+  LAMSS_TRANSIT_GEO init_transit_cmd = cfg_.initial_transit_geo();
 #endif
   init_transit_cmd.set__time(MOOSTime());
 
