@@ -652,8 +652,13 @@ void LamssMissionManager::homing_return()
   homing_cmd.set_auto_prosecute(false);
   // for auto redeploy, center at current abort location
   // This is important for dynamic scenarios such as in ICEX
+#ifndef GEO_COMMAND
   homing_cmd.set_deploy_x(abort_x);
   homing_cmd.set_deploy_y(abort_y);
+#else
+  homing_cmd.set_deploy_latitude(abort_lat);
+  homing_cmd.set_deploy_longitude(abort_lon);
+#endif  
   homing_cmd.set_homing_enabled(true);
   // Force non abort in case we lost comms
   last_acomms_ = MOOSTime();
@@ -704,8 +709,8 @@ void LamssMissionManager::initial_transit()
       initial_transit_lat[i] = lat;
       initial_transit_lon[i] = lon;
 #else
-      initial_transit_lat[i] = initial_transit_cmd.wpt(i).lat();
-      initial_transit_lon[i] = initial_transit_cmd.wpt(i).lon();
+      initial_transit_lat[i] = initial_transit_cmd_.wpt(i).lat();
+      initial_transit_lon[i] = initial_transit_cmd_.wpt(i).lon();
       double x,y;
       m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],initial_transit_lon[i],
 				 y,x);
@@ -977,7 +982,7 @@ void LamssMissionManager::deploy_behavior_updates()
     }
 #else
   LAMSS_DEPLOY_GEO::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
-  std::string deploy_mode_str = LAMSS_DEPLOY::Deploy_ModeEnum_Name(deploy_mode);
+  std::string deploy_mode_str = LAMSS_DEPLOY_GEO::Deploy_ModeEnum_Name(deploy_mode);
   MOOSChomp(deploy_mode_str,"DEPLOY_MODE_");
   publish("DEPLOY_MISSION",deploy_mode_str);
 
@@ -1258,7 +1263,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
       last_target_lat_ = last_prosecute_cmd_.target_latitude();
       last_target_lon_ = last_prosecute_cmd_.target_longitude();
       m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
-			    last_target_y_,last_tartget_x_);
+			    last_target_y_,last_target_x_);
 #endif      
 
      prosecute_behavior_updates();
@@ -1336,8 +1341,8 @@ void LamssMissionManager::prosecute_behavior_updates()
   
   std::stringstream stc;
   stc  << "tgt_id=" << last_prosecute_cmd_.target_number()
-       << ",tgt_x=" << last_prosecute_cmd_.target_x()
-       << ",tgt_y=" << last_prosecute_cmd_.target_y()
+       << ",tgt_x=" << last_target_x_
+       << ",tgt_y=" << last_target_y_
        << ",tgt_dep=" << last_prosecute_cmd_.target_depth()
        << ",tgt_hdg=" << last_prosecute_cmd_.target_heading()
        << ",tgt_spd=" << last_prosecute_cmd_.target_speed()
@@ -1352,14 +1357,14 @@ void LamssMissionManager::prosecute_behavior_updates()
   
   // Publish note report for target cue
   double cue_lat, cue_lon;
-  m_Geodesy.UTM2LatLong(last_prosecute_cmd_.target_x(),
-		       last_prosecute_cmd_.target_y(),cue_lat,cue_lon);
+  m_Geodesy.UTM2LatLong(last_target_x_,
+		       last_target_y_,cue_lat,cue_lon);
   std::stringstream scue;
   scue  << "TGT_" << last_prosecute_cmd_.target_number();
   NodeRecord node_report(scue.str(), "track");
   node_report.setTimeStamp(last_prosecute_cmd_._time());
-  node_report.setX(last_prosecute_cmd_.target_x());
-  node_report.setY(last_prosecute_cmd_.target_y());
+  node_report.setX(last_target_x_);
+  node_report.setY(last_target_y_);
   node_report.setLat(cue_lat);
   node_report.setLon(cue_lon);
   node_report.setDepth(last_prosecute_cmd_.target_depth());
@@ -1877,7 +1882,11 @@ std::string LamssMissionManager::NodeReport(std::string node_name,
 
 void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_STOVEPIPE stovepipe_msg;
+#else
+  LAMSS_STOVEPIPE_GEO stovepipe_msg;
+#endif
   parse_for_moos(msg.GetString(),&stovepipe_msg);
   glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
 			  << stovepipe_msg.stovepipe_id() << std::endl;
@@ -1998,8 +2007,13 @@ void LamssMissionManager::update_deploy_parameters()
     
     if (new_wpt_index)
       {
+#ifndef GEO_COMMAND
 	if (last_deploy_cmd_.deploy_mode() ==
 	    LAMSS_DEPLOY::DEPLOY_MODE_LOITER )
+#else
+	if (last_deploy_cmd_.deploy_mode() ==
+	    LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER )
+#endif
 	  {
 	    // Zamboni Loiters for ice camp ops
 	    std::stringstream cent;
@@ -2008,8 +2022,13 @@ void LamssMissionManager::update_deploy_parameters()
 		 << "," << last_deploy_y_ + camp_y-camp_y_deploy;
 	    publish("SENSOR_DEPLOY",cent.str());
 	  }
+#ifndef GEO_COMMAND
         else if (last_deploy_cmd_.deploy_mode() ==
 		 LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER )
+#else
+        else if (last_deploy_cmd_.deploy_mode() ==
+		 LAMSS_DEPLOY_GEO::DEPLOY_MODE_LAWNMOWER )
+#endif	  
 	  {
 	    //
 	    // Save shifted lawnmower config for publication at next waypoint
@@ -2029,8 +2048,13 @@ void LamssMissionManager::update_deploy_parameters()
 	    std::string survey_config = clwnm.str();
 	    publish("SURVEY_CONFIG",survey_config);
 	  }
+#ifndef GEO_COMMAND
 	else if (last_deploy_cmd_.deploy_mode() ==
 		 LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG )
+#else
+	else if (last_deploy_cmd_.deploy_mode() ==
+		 LAMSS_DEPLOY_GEO::DEPLOY_MODE_ZIGZAG )
+#endif	  
 	  {
 	    //
 	    // same for zigzag
