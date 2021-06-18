@@ -572,12 +572,15 @@ void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY init_deploy_cmd;
+  init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
 #else
-  LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy_geo();
+  LAMSS_DEPLOY_GEO init_deploy_cmd ;
+  init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
 #endif  
   init_deploy_cmd.set__time(MOOSTime());
 
+  init_deploy_cmd.set__src_id(vehicle_id_);
   init_deploy_cmd.set__rcv_id(vehicle_id_);
 
   // Auto prosecute only on initial deploy
@@ -586,7 +589,7 @@ void LamssMissionManager::initial_deploy()
       // Note that the initial will have topside origin to allow resetting
       // deploy_duration by poking for no-modem use.
       //  init_deploy_cmd.set__src_id(cfg_.topside_id());
-      init_deploy_cmd.set__src_id(vehicle_id_);
+      //init_deploy_cmd.set__src_id(vehicle_id_);
       init_deploy_cmd.set_auto_prosecute(false);
       // for auto redeploy, center at current abort location
       // This is important for dynamic scenarios such as in ICEX
