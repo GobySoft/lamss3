@@ -573,10 +573,16 @@ void LamssMissionManager::initial_deploy()
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd;
-  init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
+  if (cfg_.has_initial_deploy())
+    init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #else
   LAMSS_DEPLOY_GEO init_deploy_cmd ;
-  init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
+  if (cfg_.has_initial_deploy_geo())
+    init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #endif  
   init_deploy_cmd.set__time(MOOSTime());
 
@@ -638,10 +644,18 @@ void LamssMissionManager::homing_return()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY homing_cmd;
+  if (cfg_.has_initial_deploy())
+    homing_cmd.CopyFrom(cfg_.initial_deploy());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
 #else
-  LAMSS_DEPLOY_GEO homing_cmd = cfg_.initial_deploy_geo();
+  LAMSS_DEPLOY_GEO homing_cmd;
+  if (cfg_.has_initial_deploy_geo())
+    homing_cmd.CopyFrom(cfg_.initial_deploy_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN);
 #endif
   homing_cmd.set__time(MOOSTime());
@@ -679,9 +693,17 @@ void LamssMissionManager::initial_transit()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
+  LAMSS_TRANSIT init_transit_cmd;
+  if (cfg_.has_initial_transit())
+    init_transit_cmd.CopyFrom(cfg_.initial_transit());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
 #else
-  LAMSS_TRANSIT_GEO init_transit_cmd = cfg_.initial_transit_geo();
+  LAMSS_TRANSIT_GEO init_transit_cmd;
+  if (cfg_.has_initial_transit_geo())
+    init_transit_cmd.CopyFrom(cfg_.initial_transit_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
 #endif
   init_transit_cmd.set__time(MOOSTime());
 
