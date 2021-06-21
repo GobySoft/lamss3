@@ -572,12 +572,21 @@ void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_DEPLOY init_deploy_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY init_deploy_cmd;
+  if (cfg_.has_initial_deploy())
+    init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #else
-  LAMSS_DEPLOY_GEO init_deploy_cmd = cfg_.initial_deploy_geo();
+  LAMSS_DEPLOY_GEO init_deploy_cmd ;
+  if (cfg_.has_initial_deploy_geo())
+    init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #endif  
   init_deploy_cmd.set__time(MOOSTime());
 
+  init_deploy_cmd.set__src_id(vehicle_id_);
   init_deploy_cmd.set__rcv_id(vehicle_id_);
 
   // Auto prosecute only on initial deploy
@@ -586,7 +595,7 @@ void LamssMissionManager::initial_deploy()
       // Note that the initial will have topside origin to allow resetting
       // deploy_duration by poking for no-modem use.
       //  init_deploy_cmd.set__src_id(cfg_.topside_id());
-      init_deploy_cmd.set__src_id(vehicle_id_);
+      //init_deploy_cmd.set__src_id(vehicle_id_);
       init_deploy_cmd.set_auto_prosecute(false);
       // for auto redeploy, center at current abort location
       // This is important for dynamic scenarios such as in ICEX
@@ -635,10 +644,18 @@ void LamssMissionManager::homing_return()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_DEPLOY homing_cmd = cfg_.initial_deploy();
+  LAMSS_DEPLOY homing_cmd;
+  if (cfg_.has_initial_deploy())
+    homing_cmd.CopyFrom(cfg_.initial_deploy());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
 #else
-  LAMSS_DEPLOY_GEO homing_cmd = cfg_.initial_deploy_geo();
+  LAMSS_DEPLOY_GEO homing_cmd;
+  if (cfg_.has_initial_deploy_geo())
+    homing_cmd.CopyFrom(cfg_.initial_deploy_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN);
 #endif
   homing_cmd.set__time(MOOSTime());
@@ -676,9 +693,17 @@ void LamssMissionManager::initial_transit()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
 #ifndef GEO_COMMAND
-  LAMSS_TRANSIT init_transit_cmd = cfg_.initial_transit();
+  LAMSS_TRANSIT init_transit_cmd;
+  if (cfg_.has_initial_transit())
+    init_transit_cmd.CopyFrom(cfg_.initial_transit());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
 #else
-  LAMSS_TRANSIT_GEO init_transit_cmd = cfg_.initial_transit_geo();
+  LAMSS_TRANSIT_GEO init_transit_cmd;
+  if (cfg_.has_initial_transit_geo())
+    init_transit_cmd.CopyFrom(cfg_.initial_transit_geo());
+  else
+    glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
 #endif
   init_transit_cmd.set__time(MOOSTime());
 
@@ -1079,7 +1104,7 @@ void LamssMissionManager::deploy_behavior_updates()
   ssu  << "spiral_center_x=" << last_deploy_x_
        << "#spiral_center_y=" << last_deploy_y_
        << "#spiral_start_radius=" << last_deploy_cmd_.loiter_radius()
-       << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
+    //      << "#spiral_angle=" << last_deploy_cmd_.trail_angle()
        << "#speed=" << last_deploy_cmd_.deploy_speed();
   publish("SPIRAL_UPDATE",ssu.str());
 
@@ -1148,24 +1173,21 @@ void LamssMissionManager::deploy_behavior_updates()
   publish("TOGGLE_UPPER_DEPTH",last_deploy_cmd_.deploy_upper_depth());
   publish("TOGGLE_LOWER_DEPTH",last_deploy_cmd_.deploy_lower_depth());
   
+#ifndef GEO_COMMAND
   // Trail behaviors
-      
   std::stringstream stc;
   stc << collab_str
       << "#trail_range=" << last_deploy_cmd_.trail_range()
       << "#trail_angle=" << last_deploy_cmd_.trail_angle();
-#ifndef GEO_COMMAND
   if (last_deploy_cmd_.trail_angle_type() ==
       LAMSS_DEPLOY::TRAIL_ANGLE_TYPE_relative)
-#else
-  if (last_deploy_cmd_.trail_angle_type() ==
-      LAMSS_DEPLOY_GEO::TRAIL_ANGLE_TYPE_relative)
-#endif
-
     stc << "#trail_angle_type=relative";
   else
     stc << "#trail_angle_type=absolute";
+
   publish("TRAIL_CONFIG",shg.str());
+#endif
+
      	
 #ifndef GEO_COMMAND
   if (last_deploy_cmd_.depth_mode() ==
