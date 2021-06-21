@@ -160,7 +160,7 @@ message LAMSS_STATUS
 
 message LAMSS_STATUS_GEO
 {
-    option (dccl.msg).id = 20;
+    option (dccl.msg).id = 120;
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).unit_system = "si";
 
