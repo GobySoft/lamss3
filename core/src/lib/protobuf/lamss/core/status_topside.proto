@@ -46,3 +46,66 @@ message LAMSS_STATUS_NMEA_SHIP {
 	optional double HDG = 9 [(dccl.field).max=360.00, (dccl.field).min=0.00, (dccl.field).precision=2];
 	optional double DEPTH = 10 [(dccl.field).max=5000.0, (dccl.field).min=-10.0, (dccl.field).precision=1];
 } 
+
+message LAMSS_STATUS_NMEA_BUOY_GEO { 
+	option (dccl.msg).id = 122;
+	option (dccl.msg).max_bytes = 32;
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
+	optional TYPEEnum TYPE = 5;
+	enum TYPEEnum{ 
+		 TYPE_kayak = 0; 
+		 TYPE_asc = 1; 
+		 TYPE_auv = 2; 
+		 TYPE_ship = 3; 
+		 TYPE_buoy = 4; 
+		 TYPE_glider = 5; 
+		 TYPE_unknown = 6; 
+	} 
+    optional double Long = 6 [
+        (dccl.field).max = 180,
+        (dccl.field).min = -180,
+        (dccl.field).precision = 5
+    ];
+    optional double Lat = 7 [
+        (dccl.field).max = 90,
+        (dccl.field).min = -90,
+        (dccl.field).precision = 5
+    ];
+	optional double SPD = 8 [(dccl.field).max=20.0, (dccl.field).min=-2.0, (dccl.field).precision=1];
+	optional double HDG = 9 [(dccl.field).max=360.00, (dccl.field).min=0.00, (dccl.field).precision=2];
+	optional double DEPTH = 10 [(dccl.field).max=5000.0, (dccl.field).min=-10.0, (dccl.field).precision=1];
+} 
+message LAMSS_STATUS_NMEA_SHIP_GEO { 
+	option (dccl.msg).id = 121;
+	option (dccl.msg).max_bytes = 32;
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
+	optional TYPEEnum TYPE = 5;
+	enum TYPEEnum{ 
+		 TYPE_kayak = 0; 
+		 TYPE_asc = 1; 
+		 TYPE_auv = 2; 
+		 TYPE_ship = 3; 
+		 TYPE_buoy = 4; 
+		 TYPE_glider = 5; 
+		 TYPE_unknown = 6; 
+	} 
+    optional double Long = 6 [
+        (dccl.field).max = 180,
+        (dccl.field).min = -180,
+        (dccl.field).precision = 5
+    ];
+    optional double Lat = 7 [
+        (dccl.field).max = 90,
+        (dccl.field).min = -90,
+        (dccl.field).precision = 5
+    ];
+	optional double SPD = 8 [(dccl.field).max=20.0, (dccl.field).min=-2.0, (dccl.field).precision=1];
+	optional double HDG = 9 [(dccl.field).max=360.00, (dccl.field).min=0.00, (dccl.field).precision=2];
+	optional double DEPTH = 10 [(dccl.field).max=5000.0, (dccl.field).min=-10.0, (dccl.field).precision=1];
+} 
