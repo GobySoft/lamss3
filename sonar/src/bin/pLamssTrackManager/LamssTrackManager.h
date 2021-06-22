@@ -22,6 +22,8 @@
 #define RELATIVE     1
 #define ABSOLUTE     2
 
+// #define GEO_COMMAND
+
 class CReport
 {
  public:
@@ -99,6 +101,17 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     double lon_origin_;
     bool  new_origin_;
 
+  LAMSS_DEPLOY last_deploy_cmd_;    
+  LAMSS_PROSECUTE last_prosecute_cmd_;    
+  LAMSS_PROSECUTE auto_prosecute_cmd_;    
+  LAMSS_TRACK last_track_report_;    
+  
+  // Last opportunity track
+  double last_track_x_;  
+  double last_track_y_;
+  double last_track_lon_;
+  double last_track_lat_;
+  
     
     // synchronous event
     void loop();    
@@ -130,7 +143,7 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     void handle_sonar_control(const CMOOSMsg& msg);
     void handle_track_report(const CMOOSMsg& msg);
     void handle_active_track_trail(const CMOOSMsg& msg);
-
+    void UTM_update();
     // queue_event for FSM
     template<typename Event>
         void queue_event()
@@ -234,8 +247,11 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
 
     // Target cue from pSearch
     double cue_utc_;
-    double cue_x_;
+  // Last AIS prosecution cue
+    double cue_x_;  
     double cue_y_;
+    double cue_lon_;
+    double cue_lat_;
     double cue_speed_;
     double cue_heading_;
     double cue_depth_;
