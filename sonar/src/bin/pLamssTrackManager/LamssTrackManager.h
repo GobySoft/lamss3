@@ -102,11 +102,17 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     double lon_origin_;
     bool  new_origin_;
 
+#ifndef GEO_COMMAND  
   LAMSS_DEPLOY last_deploy_cmd_;    
   LAMSS_PROSECUTE last_prosecute_cmd_;    
   LAMSS_PROSECUTE auto_prosecute_cmd_;    
   LAMSS_TRACK last_track_report_;    
-  
+#else
+  LAMSS_DEPLOY_GEO last_deploy_cmd_;    
+  LAMSS_PROSECUTE_GEO last_prosecute_cmd_;    
+  LAMSS_PROSECUTE_GEO auto_prosecute_cmd_;    
+  LAMSS_TRACK_GEO last_track_report_;    
+#endif
   // Last opportunity track
   double last_track_x_;  
   double last_track_y_;

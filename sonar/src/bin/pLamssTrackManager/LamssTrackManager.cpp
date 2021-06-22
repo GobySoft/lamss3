@@ -438,8 +438,8 @@ void LamssTrackManager::UTM_update()
 		  auto_prosecute_cmd_.set_target_x(last_track_x_);
 		  auto_prosecute_cmd_.set_target_y(last_track_y_);
 #else
-		  auto_prosecute_cmd_.set_target_lon(last_track_lon_);
-		  auto_prosecute_cmd_.set_target_lat(last_track_lat_);
+		  auto_prosecute_cmd_.set_target_longitude(last_track_lon_);
+		  auto_prosecute_cmd_.set_target_latitude(last_track_lat_);
 #endif		  
 		  auto_prosecute_cmd_.set_target_speed(track_speed);
 		  auto_prosecute_cmd_.set_target_heading(track_heading);
@@ -733,8 +733,8 @@ void LamssTrackManager::send_prosecute()
 		  auto_prosecute_cmd_.set_target_x(last_track_x_);
 		  auto_prosecute_cmd_.set_target_y(last_track_y_);
 #else
-		  auto_prosecute_cmd_.set_target_lon(last_track_lon_);
-		  auto_prosecute_cmd_.set_target_lat(last_track_lat_);
+		  auto_prosecute_cmd_.set_target_longitude(last_track_lon_);
+		  auto_prosecute_cmd_.set_target_latitude(last_track_lat_);
 #endif		  
   cue_x_ = last_track_x_;
   cue_y_ = last_track_y_;
@@ -1199,12 +1199,21 @@ bool LamssTrackManager::postStateVars()
 	    //
 	    if (deploy_mode_active_ && auto_prosecute_ )
 	      {
-		auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
-						 sin(trk_bearing*M_PI/180.0) + 
-						 last_nav_.local_fix().x());
-		auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
-						 cos(trk_bearing*M_PI/180.0) + 
-						 last_nav_.local_fix().y());
+		double new_x = cfg_.auto_prosecute_range()* 
+		  sin(trk_bearing*M_PI/180.0) + 
+		  last_nav_.local_fix().x();
+		double new_y = cfg_.auto_prosecute_range()* 
+		  cos(trk_bearing*M_PI/180.0) + 
+		  last_nav_.local_fix().y();
+#ifndef GEO_COMMAND
+		auto_prosecute_cmd_.set_target_x(new_x);
+		auto_prosecute_cmd_.set_target_y(new_y);
+#else
+		double new_lat, new_lon;
+		m_Geodesy.UTM2LatLong(new_x,new_y,new_lat,new_lon);
+		auto_prosecute_cmd_.set_target_longitude(new_lon);
+		auto_prosecute_cmd_.set_target_latitude(new_lat);
+#endif		
 		auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
 		auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
 		auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
