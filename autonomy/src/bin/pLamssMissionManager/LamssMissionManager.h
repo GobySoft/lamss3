@@ -23,7 +23,7 @@
 #include "goby/moos/moos_geodesy.h"
 #include "XYPolygon.h"
 
-#define GEO_COMMAND
+// #define GEO_COMMAND
 
 class TrackManagerException : public std::runtime_error
 {
