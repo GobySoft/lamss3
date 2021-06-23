@@ -83,13 +83,17 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 
     // set up subscriptions before starting separate thread
 #ifndef GEO_COMMAND
-    subscribe("LAMSS_DEPLOY_IN", &LamssTrackManager::handle_deploy, this);
-    subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
+    subscribe("LAMSS_DEPLOY_IN",
+	      &LamssTrackManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_IN",
+	      &LamssTrackManager::handle_prosecute, this);
     subscribe("LAMSS_TRACK_IN", 
 	      &LamssTrackManager::handle_track_report, this);    
 #else
-    subscribe("LAMSS_DEPLOY_GEO_IN", &LamssTrackManager::handle_deploy, this);
-    subscribe("LAMSS_PROSECUTE_GEO_IN", &LamssTrackManager::handle_prosecute, this);
+    subscribe("LAMSS_DEPLOY_GEO_IN",
+	      &LamssTrackManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_GEO_IN",
+	      &LamssTrackManager::handle_prosecute, this);
     subscribe("LAMSS_TRACK_GEO_IN", 
 	      &LamssTrackManager::handle_track_report, this);    
 #endif    
@@ -403,8 +407,8 @@ void LamssTrackManager::UTM_update()
 #else
       last_track_lon_ = track_report.lon();
       last_track_lat_ = track_report.lat();
-      m_Geodesy.UTM2LatLong(last_track_lat_,last_track_lon_,
-			    last_track_y_,last_track_x_);
+      m_Geodesy.LatLong2LocalUTM(last_track_lat_,last_track_lon_,
+				 last_track_y_,last_track_x_);
 #endif
       double track_heading = track_report.heading();
       double track_speed = track_report.speed();
@@ -957,7 +961,7 @@ void LamssTrackManager::handle_bearing_stat(const CMOOSMsg& msg)
 
 bool LamssTrackManager::checkOpportunity()
 // This function checks whether target will ever be getting inside the 
-// giveup/detection range
+// giveup/detection range<
 {
   double h_ang = (90.0-cue_heading_)*M_PI/180.0;
   if (h_ang <= -M_PI)
