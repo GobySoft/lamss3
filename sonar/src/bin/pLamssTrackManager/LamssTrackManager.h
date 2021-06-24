@@ -22,7 +22,7 @@
 #define RELATIVE     1
 #define ABSOLUTE     2
 
-// #define GEO_COMMAND
+#define GEO_COMMAND
 
 
 class CReport
