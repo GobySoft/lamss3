@@ -23,7 +23,8 @@
 #include "goby/moos/moos_geodesy.h"
 #include "XYPolygon.h"
 
-#define GEO_COMMAND
+// The activation of GEO messages done in CMakeLists.txt"
+//#define GEO_COMMAND
 
 class TrackManagerException : public std::runtime_error
 {
