@@ -22,7 +22,8 @@
 #define RELATIVE     1
 #define ABSOLUTE     2
 
-#define GEO_COMMAND
+// The activation of GEO messages done in CMakeLists.txt"
+// #define GEO_COMMAND
 
 
 class CReport
