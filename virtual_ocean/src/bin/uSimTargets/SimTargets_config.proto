@@ -8,6 +8,9 @@ message SimTargetsConfig
   optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
 
     optional double max_range = 11;
-    optional LAMSS_SIMULATE_TARGET auto_target = 12;
+oneof target_nesaage {
+  LAMSS_SIMULATE_TARGET auto_target = 12;
+  LAMSS_SIMULATE_TARGET_GEO auto_target_geo = 13;
+  }
 }
 
