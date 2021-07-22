@@ -42,7 +42,7 @@ message LAMSS_PROSECUTE {
 
   repeated double tones = 40 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0, (dccl.field).max_repeat=4];
 
-  optional bool reset_tracker = 36 [default = false];
+  optional bool reset_tracker = 36 [default = true];
 } 
 
 message LAMSS_PROSECUTE_GEO { 
@@ -94,5 +94,5 @@ message LAMSS_PROSECUTE_GEO {
 
   repeated double tones = 40 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0, (dccl.field).max_repeat=4];
 
-  optional bool reset_tracker = 36 [default = false];
+  optional bool reset_tracker = 36 [default = true];
 } 

@@ -32,8 +32,8 @@ message LAMSS_SIMULATE_TARGET_GEO {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 tgt_num = 4 [(dccl.field).max=31, (dccl.field).min=-31, default=0];
-	optional double tgt_lon = 5 [(dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=4];
-	optional double tgt_lat = 6 [(dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=4];
+	optional double tgt_lon = 5 [(dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=3];
+	optional double tgt_lat = 6 [(dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=3];
 	optional double tgt_dep = 7 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double tgt_hdg = 8 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double tgt_spd = 9 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];
