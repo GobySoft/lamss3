@@ -188,11 +188,34 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
 }
 
+void LamssMissionManager::update_utm_datum()
+{
+  double offset = sqrt( pow(last_nav_.local_fix().x(),2)
+			+pow(last_nav_.local_fix().y(),2) );
+  if (offset >= cfg_.utm_update_range())
+    {
+      lat_origin_ = last_nav_.global_fix().lat();
+      lon_origin_ = last_nav_.global_fix().lon();
+      publish("LAT_ORIGIN",lat_origin_);
+      publish("LONG_ORIGIN",lon_origin_);
+      glog.is(VERBOSE) && glog << "New UTM Datum: " << lat_origin_
+			       << " N, " << lon_origin_
+			       << " E " << std::endl;
+      
+    }
+
+}
+
 void LamssMissionManager::loop()
 {
     double curr_time = MOOSTime();
     current_time_ = curr_time;
+    // dynamic UTM only for GEO_COMMAND set
 
+#ifdef GEO_COMMAND
+    if (cfg_.dynamic_utm())
+      update_utm_datum();	
+#endif
     if (new_origin_)
       {
 	m_Geodesy.Initialise(lat_origin_,lon_origin_);
@@ -1429,7 +1452,7 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (!isnan(new_lat))
+ if (!isnan(new_lat) && fabs(new_lat - lat_origin_) < 1e-6)
    {
      lat_origin_ = new_lat;
      new_origin_ = true;
@@ -1439,7 +1462,7 @@ void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (!isnan(new_lon))
+ if (!isnan(new_lon) && fabs(new_lon - lon_origin_) < 1e-6)
    {
      lon_origin_ = new_lon;
      new_origin_ = true;

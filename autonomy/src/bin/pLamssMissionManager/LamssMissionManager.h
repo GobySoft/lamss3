@@ -135,7 +135,7 @@ private:
   // Stovepipe manager
   void publish_stovepipe(int i,double camp_x,double camp_y);
   void handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg);
-
+  void update_utm_datum();
   // queue_event for FSM
   template<typename Event>
   void queue_event()
