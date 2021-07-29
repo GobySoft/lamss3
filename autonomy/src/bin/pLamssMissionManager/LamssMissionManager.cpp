@@ -74,6 +74,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       collaborator_name(""),
       new_origin_(false),
       filter_length(10),
+      last_utm_update_(0),
       got_gps_nav(false)
 {
 
@@ -188,20 +189,24 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
 }
 
-void LamssMissionManager::update_utm_datum()
+void LamssMissionManager::update_utm_datum(double curr_time)
 {
   double offset = sqrt( pow(last_nav_.local_fix().x(),2)
 			+pow(last_nav_.local_fix().y(),2) );
-  if (offset >= cfg_.utm_update_range())
+  // make sure the utm update has propagated at least 30 sec between updates
+  if (curr_time - last_utm_update_ >= 30 && offset >= cfg_.update_offset())
     {
-      lat_origin_ = last_nav_.global_fix().lat();
-      lon_origin_ = last_nav_.global_fix().lon();
-      publish("LAT_ORIGIN",lat_origin_);
-      publish("LONG_ORIGIN",lon_origin_);
-      glog.is(VERBOSE) && glog << "New UTM Datum: " << lat_origin_
-			       << " N, " << lon_origin_
+      publish("LAT_ORIGIN",last_nav_.global_fix().lat());
+      publish("LONG_ORIGIN",last_nav_.global_fix().lon());
+      glog.is(VERBOSE) && glog << "New UTM Datum: "
+			       << last_nav_.global_fix().lat()
+			       << " N, "
+			       << last_nav_.global_fix().lon()
 			       << " E " << std::endl;
-      
+      lon_origin_ = last_nav_.global_fix().lon();
+      lat_origin_ = last_nav_.global_fix().lat();
+      new_origin_ = true;
+      last_utm_update_ = curr_time;
     }
 
 }
@@ -214,7 +219,7 @@ void LamssMissionManager::loop()
 
 #ifdef GEO_COMMAND
     if (cfg_.dynamic_utm())
-      update_utm_datum();	
+      update_utm_datum(curr_time);	
 #endif
     if (new_origin_)
       {
@@ -1452,7 +1457,7 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (!isnan(new_lat) && fabs(new_lat - lat_origin_) < 1e-6)
+ if (!isnan(new_lat) && fabs(new_lat - lat_origin_) > 1e-6)
    {
      lat_origin_ = new_lat;
      new_origin_ = true;
@@ -1462,7 +1467,7 @@ void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (!isnan(new_lon) && fabs(new_lon - lon_origin_) < 1e-6)
+ if (!isnan(new_lon) && fabs(new_lon - lon_origin_) > 1e-6)
    {
      lon_origin_ = new_lon;
      new_origin_ = true;
