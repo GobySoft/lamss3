@@ -66,6 +66,15 @@ BHV_ZigZag::BHV_ZigZag(IvPDomain gdomain) :
   addInfoVars("NAV_Y");
   addInfoVars("CURRENT_X");
   addInfoVars("CURRENT_Y");
+  addInfoVars("LAT_ORIGIN");
+  addInfoVars("LONG_ORIGIN");
+
+  lat_origin_ = 0;
+  lon_origin_ = 0;
+  got_lat_origin = false;
+  got_lon_origin = false;
+  geo_init = false;
+
 }
 
 //-----------------------------------------------------------
@@ -167,12 +176,31 @@ IvPFunction *BHV_ZigZag::onRunState()
       east_current_spd = tmp_x;
     }
   
-  if(first_iteration) 
+  // Check for UTM update
+  double lat_origin=getBufferDoubleVal("LAT_ORIGIN",got_lat_origin);
+  double lon_origin=getBufferDoubleVal("LONG_ORIGIN",got_lon_origin);
+  if (got_lat_origin && got_lon_origin)
+    {
+      if (lat_origin != lat_origin_ || lon_origin != lon_origin_)
+	{
+	  lat_origin_ = lat_origin;
+	  lon_origin_ = lon_origin;
+	  m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	  geo_init = true;
+	  // If datum update, deploy_lat/long must be invariant
+	  if (!first_iteration)
+	    m_Geodesy.LatLong2LocalUTM(start_lat,start_lon,
+				       start_y,start_x); 
+	}
+    }
+  
+  if(geo_init && first_iteration) 
     {
       first_iteration = false;
       distance_traveled = 0;
       start_x = curr_x;
       start_y = curr_y; 
+      m_Geodesy.UTM2LatLong(start_x,start_y,start_lat,start_lon);
     }  
   else
     {
