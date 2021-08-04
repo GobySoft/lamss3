@@ -224,6 +224,7 @@ void LamssMissionManager::loop()
     if (new_origin_)
       {
 	m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	UTM_update();
 	new_origin_ = false;
       }
     
@@ -602,13 +603,15 @@ void LamssMissionManager::initial_deploy()
 #ifndef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd;
   if (cfg_.has_initial_deploy())
-    init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
+    init_deploy_cmd = cfg_.initial_deploy();
+    //    init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
   else
     glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #else
   LAMSS_DEPLOY_GEO init_deploy_cmd ;
   if (cfg_.has_initial_deploy_geo())
-    init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
+    init_deploy_cmd = cfg_.initial_deploy_geo();
+  //    init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
   else
     glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
 #endif  
@@ -946,13 +949,13 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
       
       // save x,y and lat/long for fututrre UTM update handling
 #ifndef GEO_COMMAND
-      // for standard UTM MANTARAY_DEPLOY command
+      // for standard UTM LAMSS_DEPLOY command
       last_deploy_x_ = last_deploy_cmd_.deploy_x();
       last_deploy_y_ = last_deploy_cmd_.deploy_y();
       m_Geodesy.UTM2LatLong(last_deploy_x_,last_deploy_y_,
 			    last_deploy_lat_,last_deploy_lon_);
 #else
-      // for UTM_MANTARAY_GEO command
+      // for UTM_LAMSS_GEO command
       last_deploy_lat_ = last_deploy_cmd_.deploy_latitude();
       last_deploy_lon_ = last_deploy_cmd_.deploy_longitude();
       m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
@@ -962,7 +965,11 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
 	  last_acomms_ = MOOSTime();
-      
+      glog.is(VERBOSE) && glog << "Initial Deploy X: " << last_deploy_x_
+			       << " Y: " << last_deploy_y_
+			       << " Lat: " << last_deploy_lat_
+			       << " Lon: " << last_deploy_lon_ << std::endl;
+
       // Update variables for HelmIvP
 
       deploy_behavior_updates();
