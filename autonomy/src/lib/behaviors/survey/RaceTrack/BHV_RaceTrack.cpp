@@ -86,6 +86,15 @@ BHV_RaceTrack::BHV_RaceTrack(IvPDomain gdomain) :
   addInfoVars("NAV_Y");
   addInfoVars("CURRENT_X");
   addInfoVars("CURRENT_Y");
+  addInfoVars("LAT_ORIGIN");
+  addInfoVars("LONG_ORIGIN");
+
+  lat_origin_ = 0;
+  lon_origin_ = 0;
+  got_lat_origin = false;
+  got_lon_origin = false;
+  geo_init = false;
+
 }
 
 //-----------------------------------------------------------
@@ -238,9 +247,28 @@ IvPFunction *BHV_RaceTrack::onRunState()
   heading_out = heading;
   heading_in = angle360(heading_out + 180.0);
 
+  // Check for UTM update
+  double lat_origin=getBufferDoubleVal("LAT_ORIGIN",got_lat_origin);
+  double lon_origin=getBufferDoubleVal("LONG_ORIGIN",got_lon_origin);
+  if (got_lat_origin && got_lon_origin)
+    {
+      if (lat_origin != lat_origin_ || lon_origin != lon_origin_)
+	{
+	  lat_origin_ = lat_origin;
+	  lon_origin_ = lon_origin;
+	  m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	  geo_init = true;
+	  // If datum update, deploy_lat/long must be invariant
+	  if (!first_iteration)
+	    m_Geodesy.LatLong2LocalUTM(deploy_lat_out,deploy_lon_out,
+					 deploy_y_out,deploy_x_out); 
+	}
+    }
+  
+
   //  deploy_x_out = deploy_x;
   //  deploy_y_out = deploy_y;
-  if (first_iteration)
+  if (geo_init && first_iteration)
     updateStart();
 
   head_angle = headingToRadians(heading_out); 
@@ -476,6 +504,7 @@ void BHV_RaceTrack::updateStart()
     {
       deploy_x_out = getBufferDoubleVal("NAV_X", ok);
       deploy_y_out = getBufferDoubleVal("NAV_Y", ok1);
+      
     }
   else 
     {
@@ -491,7 +520,8 @@ void BHV_RaceTrack::updateStart()
 	  deploy_y_out = yval;
 	}
     }
-  
+  m_Geodesy.UTM2LatLong(deploy_x_out,deploy_y_out,deploy_lat_out,deploy_lon_out); 
+
   double tmp_x = getBufferDoubleVal("CURRENT_X", ok);
   double tmp_y = getBufferDoubleVal("CURRENT_Y", ok1);
   if (ok && ok1)

@@ -23,6 +23,8 @@
 #ifndef BHV_RACETRACK_HEADER
 #define BHV_RACETRACK_HEADER
 
+#include "goby/moos/moos_geodesy.h"
+
 #include <string>
 #include "IvPBehavior.h"
 
@@ -52,11 +54,22 @@ protected:
   void         handleVisualHint(std::string);
 
 private: // Behavior Parameters
+
+  goby::moos::CMOOSGeodesy m_Geodesy;
+
+  // Dynamic UTM
+  double lat_origin_;
+  double lon_origin_;
+  bool got_lat_origin;
+  bool got_lon_origin; 
+  bool geo_init;
+
   double track_length, approach_angle, dist_tolerance;
   double distance_traveled,heading,track_width,deploy_x,deploy_y;
   double head_x,head_y,new_heading,speed, heading_out, heading_in,head_angle;
   double bearing;
   double deploy_x_out,deploy_y_out;
+  double deploy_lat_out,deploy_lon_out;
   double end_x_out,end_y_out;
   double deploy_x_in,deploy_y_in;
   double end_x_in,end_y_in;
