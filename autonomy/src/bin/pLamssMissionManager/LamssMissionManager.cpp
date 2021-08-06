@@ -430,11 +430,11 @@ void LamssMissionManager::UTM_update()
   // New UTM for invariant deploy lat/long
   m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
 			    last_deploy_y_,last_deploy_x_);
-  deploy_behavior_updates();
+  deploy_behavior_updates(false);
   // New UTM for invariant target lat/long
   m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
 			    last_target_y_,last_target_x_);
-  prosecute_behavior_updates();
+  prosecute_behavior_updates(false);
   // New UTM for invariant abort lat/long
   m_Geodesy.LatLong2LocalUTM(abort_lat,abort_lon,
 			     abort_y,abort_x);
@@ -972,7 +972,7 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 
       // Update variables for HelmIvP
 
-      deploy_behavior_updates();
+      deploy_behavior_updates(true);
 
       // Queue state transitions
       if (mission_active_)
@@ -1007,9 +1007,12 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
     }
 }
 
-void LamssMissionManager::deploy_behavior_updates()
+void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 {
-
+  // new_deploy=true indicates a new deploy command
+  // new_deploy=false indicates a change in UTM datum, and behaviors inherently
+  // handling that should not be updated.
+  
   // Setting state variables
 #ifndef GEO_COMMAND
   LAMSS_DEPLOY::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
@@ -1096,24 +1099,28 @@ void LamssMissionManager::deploy_behavior_updates()
      << "#clockwise=" << clkw
      << "#speed=" << last_deploy_cmd_.deploy_speed();
   publish("SENSOR_DEPLOY",sd.str());
+
+  // Custumized behaviors handling UTM updates inherently
+  if (new_deploy)
+    {
+      std::stringstream srt;
+      srt << "points=" << last_deploy_x_
+	  << "," << last_deploy_y_
+	  << "#heading=" << last_deploy_cmd_.survey_heading()
+	  << "#track_length=" << last_deploy_cmd_.survey_length()
+	  << "#track_width=" << last_deploy_cmd_.survey_width()
+	  << "#clockwise=" << clkw
+	  << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("SENSOR_RACETRACK",srt.str());
       
-  std::stringstream srt;
-  srt << "points=" << last_deploy_x_
-      << "," << last_deploy_y_
-      << "#heading=" << last_deploy_cmd_.survey_heading()
-      << "#track_length=" << last_deploy_cmd_.survey_length()
-      << "#track_width=" << last_deploy_cmd_.survey_width()
-      << "#clockwise=" << clkw
-      << "#speed=" << last_deploy_cmd_.deploy_speed();
-  publish("SENSOR_RACETRACK",srt.str());
-      
-  std::stringstream szc;
-  szc << "heading=" << last_deploy_cmd_.survey_heading()
-      << "#period=" << last_deploy_cmd_.survey_period()
-      << "#amplitude=" << last_deploy_cmd_.survey_width()
-      << "#speed=" << last_deploy_cmd_.deploy_speed();
-  publish("ZIGZAG_CONFIG",szc.str());
-      
+      std::stringstream szc;
+      szc << "heading=" << last_deploy_cmd_.survey_heading()
+	  << "#period=" << last_deploy_cmd_.survey_period()
+	  << "#amplitude=" << last_deploy_cmd_.survey_width()
+	  << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("ZIGZAG_CONFIG",szc.str());
+    }
+
   std::stringstream szs;
   szs  << "points=zigzag:" << last_deploy_x_
        << "," << last_deploy_y_
@@ -1323,7 +1330,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 			    last_target_y_,last_target_x_);
 #endif      
 
-     prosecute_behavior_updates();
+     prosecute_behavior_updates(true);
 	  
       // prosecute only accepted if already in active mission
       if (mission_active_)
@@ -1348,7 +1355,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
     }
 }
 
-void LamssMissionManager::prosecute_behavior_updates()
+void LamssMissionManager::prosecute_behavior_updates(bool new_prosecute)
 {
 
   // Setting state variables

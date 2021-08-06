@@ -130,8 +130,8 @@ private:
   void handle_survey_wpt_index(const CMOOSMsg& msg);
   void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
   void update_deploy_parameters();
-  void deploy_behavior_updates();
-  void prosecute_behavior_updates();
+  void deploy_behavior_updates(bool new_deploy);
+  void prosecute_behavior_updates(bool new_prosecute);
   void post_transit_route();
   // Stovepipe manager
   void publish_stovepipe(int i,double camp_x,double camp_y);
