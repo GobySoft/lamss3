@@ -33,6 +33,7 @@
 #include "XYSegList.h"
 
 #include "goby/version.h"
+#include "goby/moos/moos_geodesy.h"
 
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_protobuf_helpers.h"
@@ -46,7 +47,9 @@ public:
 
 private:
   CViewMessage();
-  void loop() {}
+  void loop() override; // from GobyMOOSApp
+
+  //  void loop() {}
 
   // take publishes from BHVs and write appropriate output for pAcommsHandler
   void handle_view_point(const CMOOSMsg &msg);
@@ -73,7 +76,9 @@ private:
   lamss::protobuf::ViewSegList convex_polygon(const XYSegList &point);
   lamss::protobuf::ViewSegList to_protobuf(const XYSegList &point);
   XYSegList from_protobuf(const lamss::protobuf::ViewSegList &point);
-
+  void handle_lat_origin(const CMOOSMsg& msg);
+  void handle_lon_origin(const CMOOSMsg& msg);
+  
   // NaN values have the odd property that comparisons involving them are always
   // false
   bool is_nan(double a) { return a != a; }
@@ -111,6 +116,10 @@ private:
 
   int destination_;
 
+  goby::moos::CMOOSGeodesy geodesy_;
+  double lat_origin_;
+  double lon_origin_;
+  bool new_origin_;
 };
 
 #endif

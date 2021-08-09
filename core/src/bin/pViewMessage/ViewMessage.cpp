@@ -67,8 +67,45 @@ CViewMessage::CViewMessage() :
     subscribe("IN_VIEW_POINT", &CViewMessage::handle_in_view_point, this);
 
     subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &CViewMessage::handle_icex_transmit_selection, this);
+
+    subscribe("LAT_ORIGIN", &CViewMessage::handle_lat_origin, this);
+    subscribe("LONG_ORIGIN", &CViewMessage::handle_lon_origin, this);
+
+    geodesy_.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+    // Dynamic UTM. H. Schmidt 8/9/21
+    new_origin_ = false;
 }
 
+void CViewMessage::loop()
+{
+  if (new_origin_)
+    {
+      geodesy_.Initialise(lat_origin_, lon_origin_);
+      new_origin_ = false;
+    }
+
+}
+
+
+void CViewMessage::handle_lat_origin(const CMOOSMsg& msg)
+{
+ double new_lat = msg.GetDouble();
+ if (!isnan(new_lat))
+   {
+     lat_origin_ = new_lat;
+     new_origin_ = true;
+   }
+}
+
+void CViewMessage::handle_lon_origin(const CMOOSMsg& msg)
+{
+ double new_lon = msg.GetDouble();
+ if (!isnan(new_lon))
+   {
+     lon_origin_ = new_lon;
+     new_origin_ = true;
+   }
+}
 
 void CViewMessage::handle_view_point(const CMOOSMsg& msg)
 {
@@ -93,7 +130,9 @@ void CViewMessage::handle_view_point(const CMOOSMsg& msg)
     glog << "as key=value, string: " << goby1_moos_str << std::endl;            
 
     if(proto_point.active())
-        publish("OUT_VIEW_POINT", goby1_moos_str);
+      {
+	publish("OUT_VIEW_POINT", goby1_moos_str);
+      }
 }
 
 void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
@@ -138,7 +177,12 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
 {
     glog << "XYSegList:" <<  seglist.get_spec() << std::endl;
     lamss::protobuf::ViewSegList proto_seglist ;
-    if (seglist.size() >= 10)
+#ifndef GEO_COMMAND
+    int max_pnts = 9;
+#else
+    int max_pnts = 6;
+#endif
+    if (seglist.size() > max_pnts)
     {
 	// if more than 9 points plot surrounding polygon
 	proto_seglist = convex_polygon(seglist);
@@ -222,8 +266,16 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
     out.set_destination(destination_);
 
     out.set_active(point.active());
+    //ifndef GEO_COMMAND
     out.mutable_point()->set_x(point.x());
     out.mutable_point()->set_y(point.y());
+    //else
+    double lat, lon;
+    geodesy_.UTM2LatLong(point.x(),point.y(),lat,lon);
+    out.mutable_point()->set_x(lon);
+    out.mutable_point()->set_y(lat);
+    //endif
+
     out.mutable_point()->set_z(point.z());
 
 
@@ -241,7 +293,13 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
 XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
 {
     XYPoint out;
+#ifndef GEO_COMMAND
     out.set_vertex(point.point().x(), point.point().y(), point.point().z());
+#else
+    double x,y;
+    geodesy_.LatLong2LocalUTM(point.point().y(), point.point().x(),y,x);
+    out.set_vertex(x, y, point.point().z());
+#endif    
     out.set_active(point.active());
     out.set_type(point.GetReflection()->GetEnum(point, point.GetDescriptor()->FindFieldByName(TYPE_FIELD_NAME))->name());
     out.set_label(point.vehicle_name() + "_" + out.get_type());
@@ -251,7 +309,7 @@ XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
 lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& seglist)
 {
    lamss::protobuf::ViewSegList out;
-    out.set_vehicle_name(ownship_);
+   out.set_vehicle_name(ownship_);
 
     out.set_destination(destination_);
 
@@ -269,8 +327,15 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 	  min_indx = i;
 	}
     lamss::protobuf::Point* point = out.add_point();
+#ifndef GEO_COMMAND
     point->set_x(seglist.get_vx(min_indx));
     point->set_y(seglist.get_vy(min_indx));
+#else
+    double lat, lon;
+    geodesy_.UTM2LatLong(seglist.get_vx(min_indx),seglist.get_vy(min_indx),lat,lon);
+    point->set_x(lon);
+    point->set_y(lat);
+#endif
     point->set_z(seglist.get_vz(min_indx));
     indx.push_back(min_indx);
     false && glog << "convex_polygon: Lefmost vertex: x,y = "
@@ -330,8 +395,16 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 	  {
 	    // set the min_indx point as vertex
 	    point = out.add_point();
+#ifndef GEO_COMMAND
 	    point->set_x(seglist.get_vx(min_indx));
 	    point->set_y(seglist.get_vy(min_indx));
+#else
+	    double lat, lon;
+	    geodesy_.UTM2LatLong(seglist.get_vx(min_indx),seglist.get_vy(min_indx),
+				 lat,lon);
+	    point->set_x(lon);
+	    point->set_y(lat);
+#endif
 	    point->set_z(seglist.get_vz(min_indx));
 	    indx.push_back(min_indx);
 	    prev_bearing = bearing;
@@ -372,15 +445,28 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
 
     glog << "Seglist size is: " << seglist.size() << std::endl;
     int seglist_inc = 1;
-    if (seglist.size() >= 10)
-      seglist_inc = int(seglist.size()/10.0)+1;
+#ifndef GEO_COMMAND
+    int max_pnt = 9;
+#else
+    int max_pnt = 6;
+#endif
+    if (seglist.size() > max_pnt)
+      seglist_inc = int(seglist.size()/(max_pnt+1))+1;
     
     for(unsigned i = 0, n = seglist.size(); i < n; ++i)
       if (i%seglist_inc == 0)
 	{
 	  lamss::protobuf::Point* point = out.add_point();
+#ifndef GEO_COMMAND
 	  point->set_x(seglist.get_vx(i));
 	  point->set_y(seglist.get_vy(i));
+#else
+	  double lat, lon;
+	  geodesy_.UTM2LatLong(seglist.get_vx(i),seglist.get_vy(i),
+			       lat,lon);
+	  point->set_x(lon);
+	  point->set_y(lat);
+#endif
 	  point->set_z(seglist.get_vz(i));
 	}
     const google::protobuf::EnumDescriptor* enum_desc =
@@ -406,26 +492,37 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
 
 XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglist)
 {
-    XYSegList out;
-
-    for(int i = 0, n = seglist.point_size(); i < n; ++i)
+  XYSegList out;
+  
+  for(int i = 0, n = seglist.point_size(); i < n; ++i)
     {
-        glog << "seglist.point(i).x() == NaN" << std::boolalpha << is_nan(seglist.point(i).x()) << std::endl;
-        
-        if(!is_nan(seglist.point(i).x()) &&
-           !is_nan(seglist.point(i).y()) &&
-           !is_nan(seglist.point(i).z()))
+      glog << "seglist.point(i).x() == NaN" << std::boolalpha << is_nan(seglist.point(i).x()) << std::endl;
+      
+      if(!is_nan(seglist.point(i).x()) &&
+	 !is_nan(seglist.point(i).y()) &&
+	 !is_nan(seglist.point(i).z()))
         {
-            glog << "adding x: " << seglist.point(i).x() << ", y: " << seglist.point(i).y() << ", z: " << seglist.point(i).z() << std::endl;      
-            
-            out.add_vertex(seglist.point(i).x(), seglist.point(i).y(), seglist.point(i).z());
+#ifndef GEO_COMMAND
+	  glog << "adding x: " << seglist.point(i).x() << ", y: " << seglist.point(i).y() << ", z: " << seglist.point(i).z() << std::endl;      
+          
+	  out.add_vertex(seglist.point(i).x(),
+			 seglist.point(i).y(),
+			 seglist.point(i).z());
+#else
+	  double x, y;
+	  geodesy_.LatLong2LocalUTM(seglist.point(i).y(),seglist.point(i).x(),y,x);
+	  glog << "adding x: " << x << ", y: " << ", z: "
+	       << seglist.point(i).z() << std::endl;      
+	  
+	  out.add_vertex(x, y, seglist.point(i).z());
+#endif
         }
     }
-    
-    out.set_active(seglist.active());
-    out.set_label(seglist.vehicle_name() + "_" + seglist.GetReflection()->GetEnum(seglist, seglist.GetDescriptor()->FindFieldByName(MISSION_FIELD_NAME))->name());
-    out.set_edge_size(1);
-    return out;
+  
+  out.set_active(seglist.active());
+  out.set_label(seglist.vehicle_name() + "_" + seglist.GetReflection()->GetEnum(seglist, seglist.GetDescriptor()->FindFieldByName(MISSION_FIELD_NAME))->name());
+  out.set_edge_size(1);
+  return out;
 }
 
 void CViewMessage::handle_icex_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& selection)
