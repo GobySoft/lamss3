@@ -49,3 +49,4 @@ message VIEW_SEGLIST
     }
     optional PolyType polytype = 11;
 }
+

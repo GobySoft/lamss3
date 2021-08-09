@@ -17,3 +17,4 @@ message VIEW_POINT {
 	optional double point_x = 6 [(dccl.field).max=200000.000000, (dccl.field).min=-200000.000000, (dccl.field).precision=-1];
 	optional double point_y = 7 [(dccl.field).max=200000.000000, (dccl.field).min=-200000.000000, (dccl.field).precision=-1];
 } 
+

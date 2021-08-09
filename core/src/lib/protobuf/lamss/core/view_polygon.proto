@@ -49,3 +49,4 @@ message VIEW_POLYGON
     }
     optional PolyType polytype = 11;
 }
+
