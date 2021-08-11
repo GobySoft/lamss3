@@ -319,11 +319,18 @@ void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_poly
     else if (proto_seglist.mission() == lamss::protobuf::ViewSegList_GEO::TRANSIT)
       mission = "TRANSIT";
 
+    std::string polytype = "NORMAL";
+    if (proto_seglist.polytype() == lamss::protobuf::ViewSegList_GEO::OPBOX)
+      polytype = "OPBOX";
+    else if (proto_seglist.polytype() == lamss::protobuf::ViewSegList_GEO::OBSTACLE)
+      polytype = "OBSTACLE";
+    
     std::string bl ="false";
     if (proto_seglist.active())
       bl = "true";
     cc << "active," << bl << ":"
-       << "label," << proto_seglist.vehicle_name() << "_" << mission << ":"
+       << "label," << proto_seglist.vehicle_name() << "_" << mission
+       << "-" << polytype << ":"
        << "edge_size,0" << ":"
        << "vertex_size,0" ;
     for (int i=0; i< proto_seglist.point_size(); i++)
