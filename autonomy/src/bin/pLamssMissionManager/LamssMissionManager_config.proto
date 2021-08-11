@@ -40,16 +40,16 @@ message LamssMissionManagerConfig
   optional double abort_y_offset = 21[default = 0];
   optional double abort_depth = 22 [default = 30];
   optional double abort_speed = 23 [default = 1.5];
-  oneof initial_deploy_msg
-    {
-      LAMSS_DEPLOY initial_deploy = 24;
-      LAMSS_DEPLOY_GEO initial_deploy_geo = 26 ;
-    }
-  oneof initial_transit_msg
-    {
-      LAMSS_TRANSIT initial_transit = 25;
-      LAMSS_TRANSIT_GEO initial_transit_geo = 27;
-    }
+//  oneof initial_deploy_msg
+//    {
+      optional LAMSS_DEPLOY initial_deploy = 24;
+      optional LAMSS_DEPLOY_GEO initial_deploy_geo = 26 ;
+//    }
+//  oneof initial_transit_msg
+//    {
+      optional LAMSS_TRANSIT initial_transit = 25;
+      optional LAMSS_TRANSIT_GEO initial_transit_geo = 27;
+//  }
   optional HomingArrayEnum homing_array = 30 [default = NONE];
   enum HomingArrayEnum {
      USBL = 1;
