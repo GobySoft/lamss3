@@ -328,11 +328,8 @@ void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_poly
        << "vertex_size,0" ;
     for (int i=0; i< proto_seglist.point_size(); i++)
       {
-	double x,y;
-	geodesy_.LatLong2LocalUTM(proto_seglist.point(i).y(),
-				  proto_seglist.point(i).x(),y,x);
-	cc << ":" << x << "," << y ;
-	if (is_polygon)
+	if (!isnan(proto_seglist.point(i).x()) &&
+	    !isnan(proto_seglist.point(i).y()))
 	  {
 	    double x,y;
 	    geodesy_.LatLong2LocalUTM(proto_seglist.point(i).y(),
@@ -340,8 +337,17 @@ void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_poly
 	    cc << ":" << x << "," << y ;
 	  }
       }
-    publish(is_polygon ? "OLD_VIEW_POLYGON" : "OLD_VIEW_SEGLIST",
-	    xyseglist_str);
+    if (is_polygon &&
+	!isnan(proto_seglist.point(0).x()) &&
+	!isnan(proto_seglist.point(0).y()))
+      {
+	double x,y;
+	geodesy_.LatLong2LocalUTM(proto_seglist.point(0).y(),
+				  proto_seglist.point(0).x(),y,x);
+	cc << ":" << x << "," << y ;
+      }
+       publish(is_polygon ? "OLD_VIEW_POLYGON" : "OLD_VIEW_SEGLIST",
+	    cc.str());
 #endif	
 
 }
