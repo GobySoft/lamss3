@@ -716,8 +716,8 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  
 	  if (m_Geodesy.UTM2LatLong(track_x,track_y,track_lat,track_lon))
 	    {
-	      track_report += ",track_lat=" + doubleToString(track_lat) 
-		+ ",track_lon=" + doubleToString(track_lon);
+	      track_report += ",lon=" + doubleToString(track_lon) +
+		",lat=" + doubleToString(track_lat);
 	    }
 	  publish("TRACK_REPORT",track_report);
 	  glog.is(DEBUG1) && glog 
