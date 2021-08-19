@@ -45,6 +45,8 @@ BHV_WiggleTail::BHV_WiggleTail(IvPDomain gdomain) :
 
   addInfoVars("NAV_X");
   addInfoVars("NAV_Y");
+  // Wiggle tail around target cue heading 
+  addInfoVars("PROSECUTE_HEADING");
   // changed to AEL_HEADING. HS 103106
   // addInfoVars("AEL_HEADING");
   // addInfoVars("NAV_HEADING");
@@ -103,7 +105,7 @@ bool BHV_WiggleTail::setParam(string param, string val)
 
 IvPFunction *BHV_WiggleTail::onRunState() 
 {
-  bool ok1,ok2,ok3,ok4;
+  bool ok1,ok2,ok3,ok4,ok5;
   //get current course
   // changed to AEL_HEADING. HS 103106
   double osCourse = getBufferDoubleVal(heading_variable, ok1);
@@ -114,6 +116,8 @@ IvPFunction *BHV_WiggleTail::onRunState()
   double osY = getBufferDoubleVal("NAV_Y", ok3);
   //get current tracking state
   string tState = getBufferStringVal(bearing_variable, ok4);
+  double cue_hdg = getBufferDoubleVal("PROSECUTE_HEADING", ok5);
+
   
   if(!ok1 || !ok2 || !ok3 || !ok4)
     {
@@ -125,7 +129,11 @@ IvPFunction *BHV_WiggleTail::onRunState()
 
   if ( first_time )
     {
-      course_lr_init = osCourse;
+      if (ok5)
+	course_lr_init = cue_hdg;
+      else
+	course_lr_init = osCourse;
+
       curr_turn=0;
       //    double b_ang = (90.0-osCourse)*M_PI/180.0;
       double b_ang = headingToRadians(osCourse);
