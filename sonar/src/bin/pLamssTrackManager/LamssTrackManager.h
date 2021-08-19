@@ -245,6 +245,9 @@ class LamssTrackManager : public goby::moos::GobyMOOSApp
     bool postStateVars();
     bool postStateCollab();
     
+  bool reset_pending_;
+  bool reset_time_;
+  
     // From pTrackQuality
     bool close_range_;
     double prev_bearing_;

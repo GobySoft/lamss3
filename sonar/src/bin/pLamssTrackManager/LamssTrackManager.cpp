@@ -66,6 +66,7 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       auto_prosecute_(cfg_.auto_prosecute()),
       active_track_trail(false),
       new_origin_(false),
+      reset_pending_(false),
       last_slow_loop_t_(0)
 {
 
@@ -167,23 +168,34 @@ void LamssTrackManager::loop()
     
     try_publish(); // publish messages queued from state machine
 
-    if (prosecute_mode_active_ || 
-	(deploy_mode_active_ && sonar_on_))
+    if (true)
       {
-	boost::lock_guard<boost::mutex> lock(moos_mutex_);
-	if (!dclt_enable_)
+      	boost::lock_guard<boost::mutex> lock(moos_mutex_);
+	
+	if (prosecute_mode_active_ || 
+	    (deploy_mode_active_ && sonar_on_))
 	  {
-	    dclt_enable_ = true;
-	    dclt_cond_.notify_one();
-	    queue_event<EvDcltStart>();
+	    if (!dclt_enable_)
+	      {
+		dclt_enable_ = true;
+		dclt_cond_.notify_one();
+		queue_event<EvDcltStart>();
+	      }
+	  }
+	else
+	  {
+	    dclt_enable_ = false;
+	    if (dclt_active_)
+	      queue_event<EvDcltOff>();
 	  }
       }
-    else
+    
+    // Second tracker reset after state transitions
+    if (reset_pending_ && curr_time >= reset_time_ + 10.0)
       {
-	boost::lock_guard<boost::mutex> lock(moos_mutex_);
-	dclt_enable_ = false;
-	if (dclt_active_)
-	  queue_event<EvDcltOff>();
+	reset_tracking();
+	// queie another reset after delay tto have behavors settling
+	reset_pending_ = false;
       }
 
     //if (dclt_enable_)
@@ -373,6 +385,9 @@ void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
       sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY_GEO::SONAR_CONTROL_ON);
 #endif    
       reset_tracking();
+      // queue another reset after delay to have array behavors settling
+      reset_time_ = MOOSTime();
+      reset_pending_ = true;
       auto_prosecute_ = deploy_cmd.auto_prosecute();
     }
 }
@@ -540,7 +555,12 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
     }
 
   if (last_prosecute_cmd_.reset_tracker())
-    reset_tracking();
+    {
+      reset_tracking();
+      // queue another reset after delay tto have behavors settling
+      reset_time_ = MOOSTime();
+      reset_pending_ = true;
+    }
 
   std::string buff = "heading=" + doubleToString(new_heading,1);
   publish("INIT_TRACK_HEADING",buff);   
@@ -1060,8 +1080,8 @@ void LamssTrackManager::reset_tracking()
 {
   //	m_Comms.Notify   ("TRACKING","NO_TRACK");  
   publish("TRACKER_COMMAND","RESET");
-  if (dclt_active_)
-    queue_event<EvDcltReset>();
+
+  queue_event<EvDcltReset>();
   
   for (int i=0; i<num_tracks; i++)
     { 
