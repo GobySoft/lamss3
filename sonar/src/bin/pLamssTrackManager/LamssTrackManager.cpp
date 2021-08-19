@@ -168,26 +168,21 @@ void LamssTrackManager::loop()
     
     try_publish(); // publish messages queued from state machine
 
-    if (true)
-      {
-      	boost::lock_guard<boost::mutex> lock(moos_mutex_);
 	
-	if (prosecute_mode_active_ || 
-	    (deploy_mode_active_ && sonar_on_))
+    if (prosecute_mode_active_ || 
+	(deploy_mode_active_ && sonar_on_))
+      {
+	if (!dclt_enable_)
 	  {
-	    if (!dclt_enable_)
-	      {
-		dclt_enable_ = true;
-		dclt_cond_.notify_one();
-		queue_event<EvDcltStart>();
-	      }
+	    dclt_enable_ = true;
+	    dclt_cond_.notify_one();
+	    queue_event<EvDcltStart>();
 	  }
-	else
-	  {
-	    dclt_enable_ = false;
-	    if (dclt_active_)
-	      queue_event<EvDcltOff>();
-	  }
+      }
+    else
+      {
+	dclt_enable_ = false;
+	queue_event<EvDcltOff>();
       }
     
     // Second tracker reset after state transitions
@@ -1167,7 +1162,7 @@ bool LamssTrackManager::postStateVars()
 	}
     }
   
-    if (dclt_active_ && highest_index != prev_highest)
+    if (highest_index != prev_highest)
       queue_event<EvDcltReset>();
   //    tracking_published = false;
   
