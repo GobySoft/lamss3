@@ -1332,6 +1332,12 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
 
      prosecute_behavior_updates(true);
 	  
+     // Turn sonar and processing on
+     
+     publish("SONAR_CONTROL","ON");
+     publish("SONAR_PROCESS","ON");
+     publish("GOTO_SURFACE","FALSE");
+     
       // prosecute only accepted if already in active mission
       if (mission_active_)
 	{
@@ -1413,12 +1419,6 @@ void LamssMissionManager::prosecute_behavior_updates(bool new_prosecute)
        << ",tgt_utc=" << last_prosecute_cmd_._time();
   publish("TARGET_CUE",stc.str());
 
-  // Turn sonar and processing on
-  
-  publish("SONAR_CONTROL","ON");
-  publish("SONAR_PROCESS","ON");
-  publish("GOTO_SURFACE","FALSE");
-  
   // Publish note report for target cue
   double cue_lat, cue_lon;
   m_Geodesy.UTM2LatLong(last_target_x_,
