@@ -103,6 +103,7 @@ private:
 
   // mail handlers
 
+  void handle_helm_mode(const CMOOSMsg& msg);
   void handle_ifs_data(const CMOOSMsg& msg);
   void handle_hydroman_data(const CMOOSMsg& msg);
   void handle_status(const CMOOSMsg& msg);
@@ -147,6 +148,9 @@ private:
   boost::statechart::fifo_scheduler<>::processor_handle fsm_;
   boost::shared_ptr<boost::thread> fsm_thread_;
 
+  std::string helm_mode_;
+  bool transit_state_;
+  
   double mission_start_time_;
   bool initial_deploy_done_;
 

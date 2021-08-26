@@ -92,6 +92,9 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	subscribe("LAT_ORIGIN", &LamssMissionManager::handle_lat_origin, this);
 	subscribe("LONG_ORIGIN", &LamssMissionManager::handle_lon_origin, this);
       }
+    
+    subscribe("MODE", &LamssMissionManager::handle_helm_mode, this);
+
 #ifndef GEO_COMMAND
     subscribe("LAMSS_STATUS_IN",
 	      &LamssMissionManager::handle_status, this);
@@ -101,6 +104,8 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_prosecute, this);
     subscribe("LAMSS_TRANSIT_IN",
 	      &LamssMissionManager::handle_transit_route, this);
+    subscribe("LAMSS_STOVEPIPE_IN",
+	      &LamssMissionManager::handle_stovepipe_message, this);    
 #else
     subscribe("LAMSS_STATUS_GEO_IN",
 	      &LamssMissionManager::handle_status, this);
@@ -110,10 +115,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_prosecute, this);
     subscribe("LAMSS_TRANSIT_GEO_IN",
 	      &LamssMissionManager::handle_transit_route, this);
+    subscribe("LAMSS_STOVEPIPE_GEO_IN",
+	      &LamssMissionManager::handle_stovepipe_message, this);    
 #endif
     // Note: stovepipes not yet converted to GEO
-    subscribe("LAMSS_STOVEPIPE_IN",
-	      &LamssMissionManager::handle_stovepipe_message, this);    
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
     subscribe("VEHICLE_NAME", &LamssMissionManager::handle_vehicle_name, this);
@@ -217,10 +222,6 @@ void LamssMissionManager::loop()
     current_time_ = curr_time;
     // dynamic UTM only for GEO_COMMAND set
 
-#ifdef GEO_COMMAND
-    if (cfg_.dynamic_utm())
-      update_utm_datum(curr_time);	
-#endif
     if (new_origin_)
       {
 	m_Geodesy.Initialise(lat_origin_,lon_origin_);
@@ -259,8 +260,14 @@ void LamssMissionManager::slow_loop(double curr_time)
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
+  // Update UTM datum unless on trackline or in survey pattern
+#ifdef GEO_COMMAND
+    if (cfg_.dynamic_utm() &&
+	deploy_mode_active_ && survey_wpt_index < 1 && !in_track )
+      update_utm_datum(curr_time);	
+#endif
 
-  if (prosecute_mode_active_)
+    if (prosecute_mode_active_)
     {
       double station_range =
 	sqrt(pow(last_nav_.local_fix().x()-last_deploy_x_,2)+
@@ -969,7 +976,10 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 			       << " Y: " << last_deploy_y_
 			       << " Lat: " << last_deploy_lat_
 			       << " Lon: " << last_deploy_lon_ << std::endl;
-
+      // reset deploy flags
+      publish("SURVEY_WPT_FLAG",0);
+      publish("IN_TRACK","FALSE");
+      
       // Update variables for HelmIvP
 
       deploy_behavior_updates(true);
@@ -1127,7 +1137,9 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << "," << last_deploy_cmd_.survey_heading()
        << "," << last_deploy_cmd_.survey_length()
        << "," << last_deploy_cmd_.survey_period()
-       << "," << last_deploy_cmd_.survey_width();
+       << "," << last_deploy_cmd_.survey_width()
+       << "#currix=" << survey_wpt_index
+       << "#captureline=true" ;
   publish("ZIGZAG_STATUS",szs.str());
       
   std::stringstream slm;
@@ -1138,7 +1150,9 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << ",width=" << last_deploy_cmd_.survey_width()
        << ",lane_width=" << last_deploy_cmd_.survey_period()
        << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
-       << "#speed=" << last_deploy_cmd_.deploy_speed();
+       << "#speed=" << last_deploy_cmd_.deploy_speed()
+       << "#currix=" << survey_wpt_index
+       << "#captureline=true" ;
   publish("SURVEY_CONFIG",slm.str());
 
   // Front mapping behaviors
@@ -1456,6 +1470,12 @@ void LamssMissionManager::prosecute_behavior_updates(bool new_prosecute)
   if (!got_first_tracking_msg && status_msg.node() == cfg_.topside_id())
 	last_acomms_ = MOOSTime();
 #endif
+}
+
+void LamssMissionManager::handle_helm_mode(const CMOOSMsg& msg)
+{
+  helm_mode_ = msg.GetString();
+  transit_state_ = MOOSStrCmp(msg.GetString(),"MISSION:DIVING:DEPLOY:TRANSIT");
 }
 
 void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
@@ -2108,7 +2128,8 @@ void LamssMissionManager::update_deploy_parameters()
 		  << ",width=" << last_deploy_cmd_.survey_width()
 		  << ",lane_width=" << last_deploy_cmd_.survey_period()
 		  << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
-		  << "#currix=" << survey_wpt_index;
+		  << "#currix=" << survey_wpt_index
+		  << "#captureline=true";
 	    std::string survey_config = clwnm.str();
 	    publish("SURVEY_CONFIG",survey_config);
 	  }
@@ -2131,9 +2152,11 @@ void LamssMissionManager::update_deploy_parameters()
 		<< "," << last_deploy_cmd_.survey_length()
 		<< "," << last_deploy_cmd_.survey_period()
 		<< "," << last_deploy_cmd_.survey_width()
-		<< "#currix=" << survey_wpt_index;
+		<< "#currix=" << survey_wpt_index
+		<< "#captureline=true" ;
 	    std::string zigzag_status = czz.str();
-	    publish("SURVEY_CONFIG",zigzag_status);
+	    //	    publish("SURVEY_CONFIG",zigzag_status);
+	    publish("ZIGZAG_STATUS",zigzag_status);
 	  }
 	
 	new_wpt_index = false;
