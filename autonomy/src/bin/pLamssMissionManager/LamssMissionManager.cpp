@@ -263,7 +263,7 @@ void LamssMissionManager::slow_loop(double curr_time)
   // Update UTM datum unless on trackline or in survey pattern
 #ifdef GEO_COMMAND
     if (cfg_.dynamic_utm() &&
-	deploy_mode_active_ && survey_wpt_index < 1 && !in_track )
+	deploy_mode_active_ && survey_wpt_index < 1  && !in_track )
       update_utm_datum(curr_time);	
 #endif
 
@@ -1101,18 +1101,19 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
   else
     clkw = "false";
       
-  std::stringstream sd;
-  sd << "polygon=radial:" << last_deploy_x_
-     << "," << last_deploy_y_
-     << "," << last_deploy_cmd_.loiter_radius()
-     << "," << last_deploy_cmd_.loiter_segments()
-     << "#clockwise=" << clkw
-     << "#speed=" << last_deploy_cmd_.deploy_speed();
-  publish("SENSOR_DEPLOY",sd.str());
 
   // Custumized behaviors handling UTM updates inherently
   if (new_deploy)
     {
+      std::stringstream sd;
+      sd << "polygon=radial:" << last_deploy_x_
+	 << "," << last_deploy_y_
+	 << "," << last_deploy_cmd_.loiter_radius()
+	 << "," << last_deploy_cmd_.loiter_segments()
+	 << "#clockwise=" << clkw
+	 << "#speed=" << last_deploy_cmd_.deploy_speed();
+      publish("SENSOR_DEPLOY",sd.str());
+
       std::stringstream srt;
       srt << "points=" << last_deploy_x_
 	  << "," << last_deploy_y_
@@ -1130,7 +1131,14 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 	  << "#speed=" << last_deploy_cmd_.deploy_speed();
       publish("ZIGZAG_CONFIG",szc.str());
     }
-
+  else
+    {
+      std::stringstream sd;
+      sd << "center_assign:" << last_deploy_x_
+	 << "," << last_deploy_y_;
+      publish("SENSOR_DEPLOY",sd.str());
+    }
+  
   std::stringstream szs;
   szs  << "points=zigzag:" << last_deploy_x_
        << "," << last_deploy_y_
@@ -1218,7 +1226,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
       
   std::stringstream dsp;
   dsp <<  "speed=" << last_deploy_cmd_.deploy_speed();
-  publish("DEPLOY_SPEED",sd.str());
+  publish("DEPLOY_SPEED",dsp.str());
       
   std::stringstream shg;
   shg  << "heading=" << last_deploy_cmd_.survey_heading();
