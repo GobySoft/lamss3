@@ -263,7 +263,8 @@ void LamssMissionManager::slow_loop(double curr_time)
   // Update UTM datum unless on trackline or in survey pattern
 #ifdef GEO_COMMAND
     if (cfg_.dynamic_utm() &&
-	deploy_mode_active_ && survey_wpt_index < 1  && !in_track )
+	//	deploy_mode_active_  && !in_track )
+      	deploy_mode_active_ && survey_wpt_index < 1  && !in_track )
       update_utm_datum(curr_time);	
 #endif
 
@@ -1102,19 +1103,19 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
     clkw = "false";
       
 
-  // Custumized behaviors handling UTM updates inherently
+  std::stringstream sd;
+  sd << "polygon=radial:" << last_deploy_x_
+     << "," << last_deploy_y_
+     << "," << last_deploy_cmd_.loiter_radius()
+     << "," << last_deploy_cmd_.loiter_segments()
+     << "#clockwise=" << clkw
+     << "#speed=" << last_deploy_cmd_.deploy_speed();
+  publish("SENSOR_DEPLOY",sd.str());
+  
+   // Custumized behaviors handling UTM updates inherently
   if (new_deploy)
     {
-      std::stringstream sd;
-      sd << "polygon=radial:" << last_deploy_x_
-	 << "," << last_deploy_y_
-	 << "," << last_deploy_cmd_.loiter_radius()
-	 << "," << last_deploy_cmd_.loiter_segments()
-	 << "#clockwise=" << clkw
-	 << "#speed=" << last_deploy_cmd_.deploy_speed();
-      publish("SENSOR_DEPLOY",sd.str());
-
-      std::stringstream srt;
+     std::stringstream srt;
       srt << "points=" << last_deploy_x_
 	  << "," << last_deploy_y_
 	  << "#heading=" << last_deploy_cmd_.survey_heading()
@@ -1131,14 +1132,6 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 	  << "#speed=" << last_deploy_cmd_.deploy_speed();
       publish("ZIGZAG_CONFIG",szc.str());
     }
-  else
-    {
-      std::stringstream sd;
-      sd << "center_assign:" << last_deploy_x_
-	 << "," << last_deploy_y_;
-      publish("SENSOR_DEPLOY",sd.str());
-    }
-  
   std::stringstream szs;
   szs  << "points=zigzag:" << last_deploy_x_
        << "," << last_deploy_y_
@@ -1149,7 +1142,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << "#currix=" << survey_wpt_index
        << "#capture_line=true" ;
   publish("ZIGZAG_STATUS",szs.str());
-      
+  
   std::stringstream slm;
   slm  << "points=format=lawnmower"
        << ",x=" << last_deploy_x_
