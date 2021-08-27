@@ -1139,7 +1139,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << "," << last_deploy_cmd_.survey_period()
        << "," << last_deploy_cmd_.survey_width()
        << "#currix=" << survey_wpt_index
-       << "#captureline=true" ;
+       << "#capture_line=true" ;
   publish("ZIGZAG_STATUS",szs.str());
       
   std::stringstream slm;
@@ -1152,7 +1152,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
        << "#speed=" << last_deploy_cmd_.deploy_speed()
        << "#currix=" << survey_wpt_index
-       << "#captureline=true" ;
+       << "#capture_line=true" ;
   publish("SURVEY_CONFIG",slm.str());
 
   // Front mapping behaviors
@@ -2088,29 +2088,29 @@ void LamssMissionManager::update_deploy_parameters()
 	
       }
 
+#ifndef GEO_COMMAND
+    if (last_deploy_cmd_.deploy_mode() ==
+	LAMSS_DEPLOY::DEPLOY_MODE_LOITER )
+#else
+      if (last_deploy_cmd_.deploy_mode() ==
+	  LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER )
+#endif
+	{
+	  // Zamboni Loiters for ice camp ops
+	  std::stringstream cent;
+	  cent << "center_assign="
+	       << last_deploy_x_ + camp_x-camp_x_deploy
+	       << "," << last_deploy_y_ + camp_y-camp_y_deploy;
+	  publish("SENSOR_DEPLOY",cent.str());
+	}
     
     if (new_wpt_index)
       {
 #ifndef GEO_COMMAND
-	if (last_deploy_cmd_.deploy_mode() ==
-	    LAMSS_DEPLOY::DEPLOY_MODE_LOITER )
+        if (last_deploy_cmd_.deploy_mode() ==
+	    LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER )
 #else
-	if (last_deploy_cmd_.deploy_mode() ==
-	    LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER )
-#endif
-	  {
-	    // Zamboni Loiters for ice camp ops
-	    std::stringstream cent;
-	    cent << "center_assign="
-		 << last_deploy_x_ + camp_x-camp_x_deploy
-		 << "," << last_deploy_y_ + camp_y-camp_y_deploy;
-	    publish("SENSOR_DEPLOY",cent.str());
-	  }
-#ifndef GEO_COMMAND
-        else if (last_deploy_cmd_.deploy_mode() ==
-		 LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER )
-#else
-        else if (last_deploy_cmd_.deploy_mode() ==
+        if (last_deploy_cmd_.deploy_mode() ==
 		 LAMSS_DEPLOY_GEO::DEPLOY_MODE_LAWNMOWER )
 #endif	  
 	  {
@@ -2129,7 +2129,7 @@ void LamssMissionManager::update_deploy_parameters()
 		  << ",lane_width=" << last_deploy_cmd_.survey_period()
 		  << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
 		  << "#currix=" << survey_wpt_index
-		  << "#captureline=true";
+		  << "#capture_line=true";
 	    std::string survey_config = clwnm.str();
 	    publish("SURVEY_CONFIG",survey_config);
 	  }
@@ -2153,7 +2153,7 @@ void LamssMissionManager::update_deploy_parameters()
 		<< "," << last_deploy_cmd_.survey_period()
 		<< "," << last_deploy_cmd_.survey_width()
 		<< "#currix=" << survey_wpt_index
-		<< "#captureline=true" ;
+		<< "#capture_line=true" ;
 	    std::string zigzag_status = czz.str();
 	    //	    publish("SURVEY_CONFIG",zigzag_status);
 	    publish("ZIGZAG_STATUS",zigzag_status);
