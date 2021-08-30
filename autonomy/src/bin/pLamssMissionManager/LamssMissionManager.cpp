@@ -143,6 +143,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_survey_wpt_index, this);    
     subscribe("TRANSIT_WPT_INDEX",
 	      &LamssMissionManager::handle_transit_wpt_index, this);    
+    subscribe("TRANSIT_COMPLETED", &LamssMissionManager::handle_transit_flag, this);
     subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &LamssMissionManager::handle_vehicle_transmit_selection, this);
     // intialize MOOSGeodesy
 
@@ -467,7 +468,6 @@ void LamssMissionManager::UTM_update()
       transit_x[i] = x;
       transit_y[i] = y;
     }
-  if (transit_state_)
     post_transit_route();
   
 #ifndef GEO_COMMAND
@@ -1619,6 +1619,20 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
     }
 }
 
+void LamssMissionManager::handle_transit_flag(const CMOOSMsg& msg)
+{
+  if (MOOSStrCmp(toupper(msg.GetString()),"TRUE"))
+    {
+      // Clear transit route
+      transit_x.clear();
+      transit_y.clear();
+      transit_lat.clear();
+      transit_lon.clear();
+      publish("TRANSIT_MODE","DIRECT");
+      glog.is(DEBUG1) && glog << "Transit completed " << std::endl;
+    }
+}
+
 #ifndef GEO_COMMAND
 void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT transit_cmd)
 #else
@@ -1649,6 +1663,7 @@ void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd)
       transit_y[i] = y;
 #endif      
     }
+  transit_wpt_index = 0;
 }
 
 void LamssMissionManager::post_transit_route()
@@ -1669,7 +1684,6 @@ void LamssMissionManager::post_transit_route()
       if (n>0)
 	{
 	  transit_route << "speed=" << last_transit_route_.transit_speed()
-			<< "#currix=" << transit_wpt_index
 			<< "#capture_line=true"
 			<< "#points=" ;
 	    //			<< last_nav_.local_fix().x() << comma
@@ -1706,7 +1720,7 @@ void LamssMissionManager::post_transit_route()
 	  td << "depth=" << last_transit_route_.transit_depth();
  	  publish("TRANSIT_DEPTH", td.str());
 	  publish("TRANSIT_ROUTE",transit_route.str());
-	  // publish("TRANSIT_MODE", "ROUTE");
+	  //publish("TRANSIT_MODE", "ROUTE");
 	}
       else
 	publish("TRANSIT_MODE", "DIRECT");
@@ -1940,11 +1954,40 @@ void LamssMissionManager::handle_survey_wpt_index(const CMOOSMsg& msg)
 void LamssMissionManager::handle_transit_wpt_index(const CMOOSMsg& msg)
 {
   int wpt_index = msg.GetDouble();
-  if (wpt_index != transit_wpt_index)
-    {
-      transit_wpt_index = wpt_index;
+  if (wpt_index != transit_wpt_index &&  wpt_index > 0 )
+    { 
       new_transit_wpt_index = true;
+      // pop last route waypoint in case we have to 
+#ifndef GEO_COMMAND
+      if (transit_state_ && transit_x.size() > 0)
+	if (last_deploy_cmd_.deploy_mode() ==
+	    LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+#else
+      if (transit_state_ && transit_x.size() > 0)
+	if (last_deploy_cmd_.deploy_mode() ==
+	    LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
+#endif
+	  {
+	    transit_x.pop_back();
+	    transit_y.pop_back();
+	    transit_lat.pop_back();
+	    transit_lon.pop_back();
+	  }
+	else
+	  {
+	    transit_x.erase(transit_x.begin());
+	    transit_y.erase(transit_y.begin());
+	    transit_lat.erase(transit_lat.begin());
+	    transit_lon.erase(transit_lon.begin());
+	  }
+      glog.is(DEBUG1) && glog << "Reached waypoint " << wpt_index
+			      << " Pruning. Remaining waypoints: "
+			      << transit_x.size() << std::endl;
+      // Note that must post TRANSIT_ROUTE when returning from prosecute
+      // post_transit_route();
     }
+  transit_wpt_index = wpt_index;
+
 }
 
 std::string LamssMissionManager::NodeReport(std::string node_name,
