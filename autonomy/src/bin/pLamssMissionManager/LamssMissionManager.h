@@ -129,6 +129,7 @@ private:
   void handle_stovepipe_message(const CMOOSMsg& msg);
   void handle_homing_lock(const CMOOSMsg& msg);
   void handle_survey_wpt_index(const CMOOSMsg& msg);
+  void handle_transit_wpt_index(const CMOOSMsg& msg);
   void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
   void update_deploy_parameters();
   void deploy_behavior_updates(bool new_deploy);
@@ -234,6 +235,8 @@ private:
   double abort_y_offset;
   bool homing_lock;
     
+  int transit_wpt_index;
+  bool new_transit_wpt_index;
   int survey_wpt_index;
   bool new_wpt_index;
     

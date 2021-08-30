@@ -139,7 +139,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
     subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
     subscribe_pb(cfg_.track_signal_update_message(), &LamssMissionManager::handle_track_signal_update_message, this);
-    subscribe("SURVEY_WPT_INDEX",&LamssMissionManager::handle_survey_wpt_index, this);    
+    subscribe("SURVEY_WPT_INDEX",
+	      &LamssMissionManager::handle_survey_wpt_index, this);    
+    subscribe("TRANSIT_WPT_INDEX",
+	      &LamssMissionManager::handle_transit_wpt_index, this);    
     subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN", &LamssMissionManager::handle_vehicle_transmit_selection, this);
     // intialize MOOSGeodesy
 
@@ -167,6 +170,7 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 
     camp_x_spd_filt.configAvg(filter_length);
     camp_y_spd_filt.configAvg(filter_length);
+    transit_wpt_index = 0;
     survey_wpt_index = 0;
     new_wpt_index = false;
     
@@ -463,7 +467,8 @@ void LamssMissionManager::UTM_update()
       transit_x[i] = x;
       transit_y[i] = y;
     }
-  post_transit_route();
+  if (transit_state_)
+    post_transit_route();
   
 #ifndef GEO_COMMAND
   // Initial transit route updated for use by return state
@@ -1476,7 +1481,8 @@ void LamssMissionManager::prosecute_behavior_updates(bool new_prosecute)
 void LamssMissionManager::handle_helm_mode(const CMOOSMsg& msg)
 {
   helm_mode_ = msg.GetString();
-  transit_state_ = MOOSStrCmp(msg.GetString(),"MISSION:DIVING:DEPLOY:TRANSIT");
+  transit_state_ =
+    MOOSStrCmp(msg.GetString(),"MISSION:DIVING:DEPLOY:TRANSIT");
 }
 
 void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
@@ -1654,9 +1660,11 @@ void LamssMissionManager::post_transit_route()
       if (n>0)
 	{
 	  transit_route << "speed=" << last_transit_route_.transit_speed()
-			<< "#points="
-			<< last_nav_.local_fix().x() << comma
-			<< last_nav_.local_fix().y() << colon ;
+			<< "#currix=" << transit_wpt_index
+			<< "#capture_line=true"
+			<< "#points=" ;
+	    //			<< last_nav_.local_fix().x() << comma
+	    //			<< last_nav_.local_fix().y() << colon ;
 #ifndef GEO_COMMAND
 	  if (last_deploy_cmd_.deploy_mode() ==
 	      LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
@@ -1669,7 +1677,8 @@ void LamssMissionManager::post_transit_route()
 	      for (int i=n-1; i>=0; i--)
 		{
 		  transit_route << transit_x[i] << comma << transit_y[i] ;
-		  transit_route << colon ;
+		  if (i>0)
+		    transit_route << colon ;
 		}
 	    }
 	  else
@@ -1677,13 +1686,16 @@ void LamssMissionManager::post_transit_route()
 	      for (int i=0; i<n; i++)
 		{
 		  transit_route << transit_x[i] << comma << transit_y[i] ;
+		  if (i < n-1)
 		  transit_route << colon ;
 		}
 	    }
-	  transit_route << last_deploy_x_ << comma
-			<< last_deploy_y_ ;
+	  //	  transit_route << last_deploy_x_ << comma
+	  //			<< last_deploy_y_ ;
 
- 	  publish("TRANSIT_DEPTH", last_transit_route_.transit_depth());
+	  std::stringstream td;
+	  td << "depth=" << last_transit_route_.transit_depth();
+ 	  publish("TRANSIT_DEPTH", td.str());
 	  publish("TRANSIT_ROUTE",transit_route.str());
 	  publish("TRANSIT_MODE", "ROUTE");
 	}
@@ -1913,6 +1925,16 @@ void LamssMissionManager::handle_survey_wpt_index(const CMOOSMsg& msg)
     {
       survey_wpt_index = wpt_index;
       new_wpt_index = true;
+    }
+}
+
+void LamssMissionManager::handle_transit_wpt_index(const CMOOSMsg& msg)
+{
+  int wpt_index = msg.GetDouble();
+  if (wpt_index != transit_wpt_index)
+    {
+      transit_wpt_index = wpt_index;
+      new_transit_wpt_index = true;
     }
 }
 
