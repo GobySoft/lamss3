@@ -1607,6 +1607,15 @@ void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
     {
       configure_transit_route(transit_cmd);
       post_transit_route();
+#ifndef GEO_COMMAND
+  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
+#else
+  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT_GEO::TRANSIT_MODE_ROUTE)
+#endif    
+    publish("TRANSIT_MODE","ROUTE");
+  else
+    publish("TRANSIT_MODE","DIRECT");
+    
     }
 }
 
@@ -1697,7 +1706,7 @@ void LamssMissionManager::post_transit_route()
 	  td << "depth=" << last_transit_route_.transit_depth();
  	  publish("TRANSIT_DEPTH", td.str());
 	  publish("TRANSIT_ROUTE",transit_route.str());
-	  publish("TRANSIT_MODE", "ROUTE");
+	  // publish("TRANSIT_MODE", "ROUTE");
 	}
       else
 	publish("TRANSIT_MODE", "DIRECT");
