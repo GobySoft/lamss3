@@ -1144,8 +1144,8 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << "," << last_deploy_cmd_.survey_length()
        << "," << last_deploy_cmd_.survey_period()
        << "," << last_deploy_cmd_.survey_width()
-       << "#currix=" << survey_wpt_index
-       << "#capture_line=true" ;
+       << "#currix=" << survey_wpt_index;
+    //       << "#capture_line=true" ;
   publish("ZIGZAG_STATUS",szs.str());
   
   std::stringstream slm;
@@ -1157,8 +1157,8 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
        << ",lane_width=" << last_deploy_cmd_.survey_period()
        << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
        << "#speed=" << last_deploy_cmd_.deploy_speed()
-       << "#currix=" << survey_wpt_index
-       << "#capture_line=true" ;
+       << "#currix=" << survey_wpt_index;
+    //       << "#capture_line=true" ;
   publish("SURVEY_CONFIG",slm.str());
 
   // Front mapping behaviors
@@ -1684,7 +1684,7 @@ void LamssMissionManager::post_transit_route()
       if (n>0)
 	{
 	  transit_route << "speed=" << last_transit_route_.transit_speed()
-			<< "#capture_line=true"
+	    //			<< "#capture_line=true"
 			<< "#points=" ;
 	    //			<< last_nav_.local_fix().x() << comma
 	    //			<< last_nav_.local_fix().y() << colon ;
@@ -2203,8 +2203,8 @@ void LamssMissionManager::update_deploy_parameters()
 		  << ",width=" << last_deploy_cmd_.survey_width()
 		  << ",lane_width=" << last_deploy_cmd_.survey_period()
 		  << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
-		  << "#currix=" << survey_wpt_index
-		  << "#capture_line=true";
+		  << "#currix=" << survey_wpt_index;
+	      //		  << "#capture_line=true";
 	    std::string survey_config = clwnm.str();
 	    publish("SURVEY_CONFIG",survey_config);
 	  }
@@ -2227,8 +2227,8 @@ void LamssMissionManager::update_deploy_parameters()
 		<< "," << last_deploy_cmd_.survey_length()
 		<< "," << last_deploy_cmd_.survey_period()
 		<< "," << last_deploy_cmd_.survey_width()
-		<< "#currix=" << survey_wpt_index
-		<< "#capture_line=true" ;
+		<< "#currix=" << survey_wpt_index;
+	      //		<< "#capture_line=true" ;
 	    std::string zigzag_status = czz.str();
 	    //	    publish("SURVEY_CONFIG",zigzag_status);
 	    publish("ZIGZAG_STATUS",zigzag_status);
