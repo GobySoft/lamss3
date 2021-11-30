@@ -65,8 +65,8 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
       prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
       active_track_trail(false),
-      new_lat_origin_(false),
-      new_lon_origin_(false),
+      new_origin_(false),
+      reset_pending_(false),
       last_slow_loop_t_(0)
 {
 
@@ -83,8 +83,21 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     m_buffer_length_ = cfg_.buffer_length_single();
 
     // set up subscriptions before starting separate thread
-    subscribe("LAMSS_DEPLOY_IN", &LamssTrackManager::handle_deploy, this);
-    subscribe("LAMSS_PROSECUTE_IN", &LamssTrackManager::handle_prosecute, this);
+#ifndef GEO_COMMAND
+    subscribe("LAMSS_DEPLOY_IN",
+	      &LamssTrackManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_IN",
+	      &LamssTrackManager::handle_prosecute, this);
+    subscribe("LAMSS_TRACK_IN", 
+	      &LamssTrackManager::handle_track_report, this);    
+#else
+    subscribe("LAMSS_DEPLOY_GEO_IN",
+	      &LamssTrackManager::handle_deploy, this);
+    subscribe("LAMSS_PROSECUTE_GEO_IN",
+	      &LamssTrackManager::handle_prosecute, this);
+    subscribe("LAMSS_TRACK_GEO_IN", 
+	      &LamssTrackManager::handle_track_report, this);    
+#endif    
     subscribe("MISSION_STATE", &LamssTrackManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssTrackManager::handle_vehicle_id, this);
     subscribe("LAT_ORIGIN", &LamssTrackManager::handle_lat_origin, this);
@@ -102,8 +115,6 @@ LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
 	      &LamssTrackManager::handle_ael_heading, this);    
     subscribe("TRACK_STAT", 
 	      &LamssTrackManager::handle_track_stat, this);    
-    subscribe("LAMSS_TRACK_IN", 
-	      &LamssTrackManager::handle_track_report, this);    
     subscribe("BEARING_STAT", 
 	      &LamssTrackManager::handle_bearing_stat, this);    
     subscribe("CLOSE_RANGE", 
@@ -147,12 +158,20 @@ void LamssTrackManager::loop()
     // set time for fsm
     current_time_ = curr_time;
 
+ // Initialize whewn both LAT and LONG received.
+    if (new_origin_)
+      {
+	m_Geodesy.Initialise(lat_origin_,lon_origin_);
+	UTM_update();
+	new_origin_ = false;
+      }
+    
     try_publish(); // publish messages queued from state machine
 
+	
     if (prosecute_mode_active_ || 
 	(deploy_mode_active_ && sonar_on_))
       {
-	boost::lock_guard<boost::mutex> lock(moos_mutex_);
 	if (!dclt_enable_)
 	  {
 	    dclt_enable_ = true;
@@ -162,10 +181,16 @@ void LamssTrackManager::loop()
       }
     else
       {
-	boost::lock_guard<boost::mutex> lock(moos_mutex_);
 	dclt_enable_ = false;
-	if (dclt_active_)
-	  queue_event<EvDcltOff>();
+	queue_event<EvDcltOff>();
+      }
+    
+    // Second tracker reset after state transitions
+    if (reset_pending_ && curr_time >= reset_time_ + 10.0)
+      {
+	reset_tracking();
+	// queie another reset after delay tto have behavors settling
+	reset_pending_ = false;
       }
 
     //if (dclt_enable_)
@@ -313,27 +338,20 @@ void LamssTrackManager::try_publish()
 void LamssTrackManager::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = true;
    }
 }
 
 void LamssTrackManager::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = true;
    }
 }
 
@@ -347,27 +365,61 @@ void LamssTrackManager::handle_nav_data(const CMOOSMsg& msg)
 
 void LamssTrackManager::handle_deploy(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_DEPLOY deploy_cmd;
+#else
+  LAMSS_DEPLOY_GEO deploy_cmd;
+#endif
   parse_for_moos(msg.GetString(), &deploy_cmd);
   if (deploy_cmd._rcv_id() == vehicle_id_)
     {
       last_deploy_cmd_ = deploy_cmd;
+#ifndef GEO_COMMAND
       sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY::SONAR_CONTROL_ON);
+#else
+      sonar_on_ = (last_deploy_cmd_.sonar_control() == LAMSS_DEPLOY_GEO::SONAR_CONTROL_ON);
+#endif    
       reset_tracking();
+      // queue another reset after delay to have array behavors settling
+      reset_time_ = MOOSTime();
+      reset_pending_ = true;
       auto_prosecute_ = deploy_cmd.auto_prosecute();
     }
 }
 
-void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
+void LamssTrackManager::UTM_update()
 {
+  // New UTM for invariant deploy lat/long
+  m_Geodesy.LatLong2LocalUTM(last_track_lat_,last_track_lon_,
+			    last_track_y_,last_track_x_);
+  // New UTM for invariant target lat/long
+  m_Geodesy.LatLong2LocalUTM(cue_lat_,cue_lon_,
+			    cue_y_,cue_x_);
+}
+
+  void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
+{
+#ifndef GEO_COMMAND
   LAMSS_TRACK track_report;
+#else
+  LAMSS_TRACK_GEO track_report;
+#endif
   parse_for_moos(msg.GetString(), &track_report);
   if (track_report.node() == collaborator_id)
     {
       last_track_report_ = track_report;
       int track_id = track_report.tgt_num();
-      double track_x = track_report.x();
-      double track_y = track_report.y();
+#ifndef GEO_COMMAND
+      last_track_x_ = track_report.x();
+      last_track_y_ = track_report.y();
+      m_Geodesy.UTM2LatLong(last_track_x_,last_track_y_,
+			    last_track_lat_,last_track_lon_);
+#else
+      last_track_lon_ = track_report.lon();
+      last_track_lat_ = track_report.lat();
+      m_Geodesy.LatLong2LocalUTM(last_track_lat_,last_track_lon_,
+				 last_track_y_,last_track_x_);
+#endif
       double track_heading = track_report.heading();
       double track_speed = track_report.speed();
       double track_utc = track_report.time();
@@ -382,8 +434,8 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
 	    h_ang = h_ang - 2*M_PI;
 	  double vehicle_x = last_nav_.local_fix().x();
 	  double vehicle_y = last_nav_.local_fix().y();
-	  double b_ang =atan2(track_y-vehicle_y,track_x-vehicle_x);
-	  double t_range=sqrt(pow(track_x-vehicle_x,2)+pow(track_y-vehicle_y,2));
+	  double b_ang =atan2(last_track_y_-vehicle_y,last_track_x_-vehicle_x);
+	  double t_range=sqrt(pow(last_track_x_-vehicle_x,2)+pow(last_track_y_-vehicle_y,2));
 	  double dif_ang = h_ang-b_ang;
 	  if (dif_ang <= -M_PI)
 	    dif_ang = dif_ang + 2*M_PI;
@@ -396,8 +448,13 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
 		{
 		  glog.is(VERBOSE) && glog 
 		    << "Intercept Opportunity - Prosecuting" << std::endl;
-		  auto_prosecute_cmd_.set_target_x(track_x);
-		  auto_prosecute_cmd_.set_target_y(track_y);
+#ifndef GEO_COMMAND
+		  auto_prosecute_cmd_.set_target_x(last_track_x_);
+		  auto_prosecute_cmd_.set_target_y(last_track_y_);
+#else
+		  auto_prosecute_cmd_.set_target_longitude(last_track_lon_);
+		  auto_prosecute_cmd_.set_target_latitude(last_track_lat_);
+#endif		  
 		  auto_prosecute_cmd_.set_target_speed(track_speed);
 		  auto_prosecute_cmd_.set_target_heading(track_heading);
 		  send_prosecute();
@@ -420,7 +477,11 @@ void LamssTrackManager::handle_sonar_control(const CMOOSMsg& msg)
 
 void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
 {
-  LAMSS_PROSECUTE prosecute_cmd;
+#ifndef GEO_COMMAND
+   LAMSS_PROSECUTE prosecute_cmd;
+#else
+   LAMSS_PROSECUTE_GEO prosecute_cmd;
+#endif   
   parse_for_moos(msg.GetString(), &prosecute_cmd);
   if (prosecute_cmd._rcv_id() == vehicle_id_)
     last_prosecute_cmd_ = prosecute_cmd;
@@ -428,12 +489,26 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   // set up  search parameters from target cue
 
   cue_utc_ = last_prosecute_cmd_._time();
+
+  // save x,y and lat/long for UTM update handling
+#ifndef GEO_COMMAND
+  // for standard UTM MANTARAY_DEPLOY command
   cue_x_ = last_prosecute_cmd_.target_x();
   cue_y_ = last_prosecute_cmd_.target_y();
+  m_Geodesy.UTM2LatLong(cue_x_,cue_y_,
+			cue_lat_,cue_lon_);
+#else
+  // for UTM_MANTARAY_GEO command
+  cue_lat_ = last_prosecute_cmd_.target_latitude();
+  cue_lon_ = last_prosecute_cmd_.target_longitude();
+  m_Geodesy.LatLong2LocalUTM(cue_lat_,cue_lon_,
+			     cue_y_,cue_x_);
+#endif      
+  
   cue_heading_= last_prosecute_cmd_.target_heading();
   cue_speed_ = last_prosecute_cmd_.target_speed();
   cue_depth_ = last_prosecute_cmd_.target_depth();
-
+  
   glog.is(DEBUG1) && glog << "handle_prosecute:" << std::endl;
   glog.is(DEBUG1) && glog << "cue_x_ =" << cue_x_ << std::endl;
   glog.is(DEBUG1) && glog << "cue_y_ =" << cue_y_ << std::endl;
@@ -475,7 +550,12 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
     }
 
   if (last_prosecute_cmd_.reset_tracker())
-    reset_tracking();
+    {
+      reset_tracking();
+      // queue another reset after delay tto have behavors settling
+      reset_time_ = MOOSTime();
+      reset_pending_ = true;
+    }
 
   std::string buff = "heading=" + doubleToString(new_heading,1);
   publish("INIT_TRACK_HEADING",buff);   
@@ -483,6 +563,20 @@ void LamssTrackManager::handle_prosecute(const CMOOSMsg& msg)
   buff = "heading=" + doubleToString(cue_heading_,1);
   publish("PROSECUTE_HEADING",buff);
   
+  std::stringstream update;
+  update << "bearing_mode=";
+#ifndef GEO_COMMAND
+  if (last_prosecute_cmd_.array_angle_mode() ==
+      LAMSS_PROSECUTE::ARRAY_ANGLE_MODE_quad)
+#else
+  if (last_prosecute_cmd_.array_angle_mode() ==
+    LAMSS_PROSECUTE_GEO::ARRAY_ANGLE_MODE_quad)
+#endif
+    update << "quad#";
+  else
+    update << "dual#";
+  update << "desired_angle=" << last_prosecute_cmd_.array_angle();
+  publish("ARRAY_TRACK_ANGLE",update.str());   
 }
 
 
@@ -606,7 +700,11 @@ void LamssTrackManager::handle_active_track_trail(const CMOOSMsg& msg)
 
 void LamssTrackManager::send_deploy()
 {
-  LAMSS_DEPLOY redeploy = last_deploy_cmd_;;
+#ifndef GEO_COMMAND
+  LAMSS_DEPLOY redeploy = last_deploy_cmd_;
+#else
+  LAMSS_DEPLOY_GEO redeploy = last_deploy_cmd_;
+#endif
   std::string serialized;
   redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
@@ -614,16 +712,28 @@ void LamssTrackManager::send_deploy()
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssTrackManagerConfig::STATION)
     {
+#ifndef GEO_COMMAND
       redeploy.set_deploy_x(last_nav_.local_fix().x());
       redeploy.set_deploy_y(last_nav_.local_fix().y());
-      // Re-deploy forced to loiter if not station
+      // Re-deploy forced to loiter if local
       redeploy.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
       redeploy.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
+#else
+      redeploy.set_deploy_longitude(last_nav_.global_fix().lon());
+      redeploy.set_deploy_latitude(last_nav_.global_fix().lat());
+      // Re-deploy forced to loiter if local
+      redeploy.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER);
+      redeploy.set_depth_mode(LAMSS_DEPLOY_GEO::DEPTH_MODE_SINGLE);
+#endif
     }
   // Auto prosecute only on initial deploy
   redeploy.set_auto_prosecute(false);
   serialize_for_moos(&serialized,redeploy);    
+#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_OUT", serialized);
+#else
+  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+#endif
 
 }
 
@@ -638,8 +748,15 @@ void LamssTrackManager::send_prosecute()
   auto_prosecute_cmd_.set_center_frequency(cfg_.auto_prosecute_center_frequency());
   auto_prosecute_cmd_.set_bandwidth(cfg_.auto_prosecute_bandwidth());
   cue_utc_ = auto_prosecute_cmd_._time();
-  cue_x_ = auto_prosecute_cmd_.target_x();
-  cue_y_ = auto_prosecute_cmd_.target_y();
+#ifndef GEO_COMMAND
+		  auto_prosecute_cmd_.set_target_x(last_track_x_);
+		  auto_prosecute_cmd_.set_target_y(last_track_y_);
+#else
+		  auto_prosecute_cmd_.set_target_longitude(last_track_lon_);
+		  auto_prosecute_cmd_.set_target_latitude(last_track_lat_);
+#endif		  
+  cue_x_ = last_track_x_;
+  cue_y_ = last_track_y_;
   cue_heading_= auto_prosecute_cmd_.target_heading();
   cue_speed_ = auto_prosecute_cmd_.target_speed();
   cue_depth_ = auto_prosecute_cmd_.target_depth();
@@ -647,7 +764,11 @@ void LamssTrackManager::send_prosecute()
   std::string serialized;
   serialize_for_moos(&serialized,auto_prosecute_cmd_);    
   //	      publish("OUTGOING_COMMAND", serialized);
+#ifndef GEO_COMMAND
   publish("LAMSS_PROSECUTE_OUT", serialized);
+#else
+  publish("LAMSS_PROSECUTE_GEO_OUT", serialized);
+#endif  
   glog.is(DEBUG1) && glog << "Auto_Prosecute activated" 
 			  << std::endl;
 }
@@ -716,8 +837,8 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  
 	  if (m_Geodesy.UTM2LatLong(track_x,track_y,track_lat,track_lon))
 	    {
-	      track_report += ",track_lat=" + doubleToString(track_lat) 
-		+ ",track_lon=" + doubleToString(track_lon);
+	      track_report += ",lon=" + doubleToString(track_lon) +
+		",lat=" + doubleToString(track_lat);
 	    }
 	  publish("TRACK_REPORT",track_report);
 	  glog.is(DEBUG1) && glog 
@@ -731,8 +852,13 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 	  
 	  if (current_time_ - m_report_start >= cfg_.track_report_time())
 	    {
+#ifndef GEO_COMMAND
 	      if (last_prosecute_cmd_.prosecute_mission() == 
 		  LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_ONLY )
+#else
+	      if (last_prosecute_cmd_.prosecute_mission() == 
+		  LAMSS_PROSECUTE_GEO::PROSECUTE_MISSION_TRACK_ONLY )
+#endif
 		{
 		  // Tracking only, send deploy
 		  if (prosecute_mode_active_)
@@ -746,8 +872,13 @@ void LamssTrackManager::handle_track_stat(const CMOOSMsg& msg)
 		      publish("SURVEY_COMPLETED","TRUE");
 		    }
 		}
+#ifndef GEO_COMMAND
 	      else if (last_prosecute_cmd_.prosecute_mission() == 
 		       LAMSS_PROSECUTE::PROSECUTE_MISSION_TRACK_CLASSIFY )
+#else
+	      else if (last_prosecute_cmd_.prosecute_mission() == 
+		       LAMSS_PROSECUTE_GEO::PROSECUTE_MISSION_TRACK_CLASSIFY )
+#endif		
 		{            
 		  // Switch to classify
 		  queue_event<EvToClassifying>();
@@ -845,7 +976,7 @@ void LamssTrackManager::handle_bearing_stat(const CMOOSMsg& msg)
 
 bool LamssTrackManager::checkOpportunity()
 // This function checks whether target will ever be getting inside the 
-// giveup/detection range
+// giveup/detection range<
 {
   double h_ang = (90.0-cue_heading_)*M_PI/180.0;
   if (h_ang <= -M_PI)
@@ -944,8 +1075,8 @@ void LamssTrackManager::reset_tracking()
 {
   //	m_Comms.Notify   ("TRACKING","NO_TRACK");  
   publish("TRACKER_COMMAND","RESET");
-  if (dclt_active_)
-    queue_event<EvDcltReset>();
+
+  queue_event<EvDcltReset>();
   
   for (int i=0; i<num_tracks; i++)
     { 
@@ -1031,7 +1162,7 @@ bool LamssTrackManager::postStateVars()
 	}
     }
   
-    if (dclt_active_ && highest_index != prev_highest)
+    if (highest_index != prev_highest)
       queue_event<EvDcltReset>();
   //    tracking_published = false;
   
@@ -1087,12 +1218,21 @@ bool LamssTrackManager::postStateVars()
 	    //
 	    if (deploy_mode_active_ && auto_prosecute_ )
 	      {
-		auto_prosecute_cmd_.set_target_x(cfg_.auto_prosecute_range()* 
-						 sin(trk_bearing*M_PI/180.0) + 
-						 last_nav_.local_fix().x());
-		auto_prosecute_cmd_.set_target_y(cfg_.auto_prosecute_range()* 
-						 cos(trk_bearing*M_PI/180.0) + 
-						 last_nav_.local_fix().y());
+		double new_x = cfg_.auto_prosecute_range()* 
+		  sin(trk_bearing*M_PI/180.0) + 
+		  last_nav_.local_fix().x();
+		double new_y = cfg_.auto_prosecute_range()* 
+		  cos(trk_bearing*M_PI/180.0) + 
+		  last_nav_.local_fix().y();
+#ifndef GEO_COMMAND
+		auto_prosecute_cmd_.set_target_x(new_x);
+		auto_prosecute_cmd_.set_target_y(new_y);
+#else
+		double new_lat, new_lon;
+		m_Geodesy.UTM2LatLong(new_x,new_y,new_lat,new_lon);
+		auto_prosecute_cmd_.set_target_longitude(new_lon);
+		auto_prosecute_cmd_.set_target_latitude(new_lat);
+#endif		
 		auto_prosecute_cmd_.set_target_speed(cfg_.auto_prosecute_speed());
 		auto_prosecute_cmd_.set_target_heading(angle360(trk_bearing+180.0));
 		auto_prosecute_cmd_.set_prosecute_duration(cfg_.auto_prosecute_duration());
