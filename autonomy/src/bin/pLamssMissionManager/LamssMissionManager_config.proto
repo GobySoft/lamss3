@@ -17,6 +17,7 @@ message LamssMissionManagerConfig
 
   optional bool dynamic_opregion = 5 [default = false];
   optional bool dynamic_utm = 6 [default = false];
+  optional double update_offset = 9 [default = 1000] ;
   optional int32 opregion_update_period_sec = 8 [default = 600];
     
   repeated OpBoxVertex opbox_vertex = 7;
@@ -39,9 +40,16 @@ message LamssMissionManagerConfig
   optional double abort_y_offset = 21[default = 0];
   optional double abort_depth = 22 [default = 30];
   optional double abort_speed = 23 [default = 1.5];
-  optional LAMSS_DEPLOY initial_deploy = 24;
-  optional LAMSS_TRANSIT initial_transit = 25;
-  
+  oneof initial_deploy_msg
+    {
+      LAMSS_DEPLOY initial_deploy = 24;
+      LAMSS_DEPLOY_GEO initial_deploy_geo = 26 ;
+    }
+  oneof initial_transit_msg
+    {
+      LAMSS_TRANSIT initial_transit = 25;
+      LAMSS_TRANSIT_GEO initial_transit_geo = 27;
+    }
   optional HomingArrayEnum homing_array = 30 [default = NONE];
   enum HomingArrayEnum {
      USBL = 1;
