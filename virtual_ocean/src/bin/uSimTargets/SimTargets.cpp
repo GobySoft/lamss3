@@ -45,8 +45,7 @@ SimTargets* SimTargets::get_instance()
 SimTargets::SimTargets(SimTargetsConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
-      new_lat_origin_(false),
-      new_lon_origin_(false),
+      new_origin_(false),
       source_control(true),
       target_number(0),
       target_init(false),
@@ -78,7 +77,11 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
   // set up subscriptions before starting separate thread
   subscribe("LAT_ORIGIN", &SimTargets::handle_lat_origin, this);
   subscribe("LONG_ORIGIN", &SimTargets::handle_lon_origin, this);
+#ifndef GEO_COMMAND
   subscribe("TGT_STATE_IN", &SimTargets::handle_tgt_state, this);    
+#else
+  subscribe("TGT_STATE_GEO_IN", &SimTargets::handle_tgt_state, this);    
+#endif
   subscribe("NAV_X", &SimTargets::handle_nav_x, this);
   subscribe("NAV_Y", &SimTargets::handle_nav_y, this);    
 
@@ -93,9 +96,15 @@ SimTargets::SimTargets(SimTargetsConfig& cfg)
   //
   // Load auto_target and wait for nav data before publis=hin target list
   //
+#ifndef GEO_COMMAND
   if (cfg_.has_auto_target() && cfg_.auto_target().tgt_num() > 0)
     {
       update_target(cfg_.auto_target());
+#else
+    if (cfg_.has_auto_target_geo() && cfg_.auto_target().tgt_num() > 0)
+    {
+      update_target(cfg_.auto_target_geo());
+#endif
       target_init = true;
       glog.is(DEBUG1) && glog << "Starting Auto Target" <<  std::endl;
     }
@@ -106,7 +115,12 @@ void SimTargets::loop()
 
   double curr_time = MOOSTime();
   
-
+  if (new_origin_)
+    {
+      reinitialize_targets();
+      new_origin_ = false;
+    }
+  
   if (target_init && got_x && got_y)
     {
       target_utc = MOOSTime();
@@ -181,27 +195,20 @@ void SimTargets::slow_loop(double curr_time)
 void SimTargets::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     reinitialize_targets();
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = true;
    }
 }
 
 void SimTargets::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     reinitialize_targets();
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = true;
    }
 }
 
@@ -219,7 +226,11 @@ void SimTargets::handle_nav_y(const CMOOSMsg& msg)
 
 void SimTargets::handle_tgt_state(const CMOOSMsg& msg)
 {
+#ifndef GEO_COMMAND
   LAMSS_SIMULATE_TARGET tgt_msg;
+#else
+  LAMSS_SIMULATE_TARGET_GEO tgt_msg;
+#endif
   parse_for_moos(msg.GetString(),&tgt_msg);
   glog.is(DEBUG1) && glog << "Got TGT_STATE message, target number " 
 			  << tgt_msg.tgt_num() << endl;
@@ -257,11 +268,20 @@ void SimTargets::reinitialize_targets()
     }  
 }
 
+#ifndef GEO_COMMAND
 void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
+#else
+void SimTargets::update_target(LAMSS_SIMULATE_TARGET_GEO tgt_msg)
+#endif
 {
   target_number = tgt_msg.tgt_num();
+#ifndef GEO_COMMAND
   target_x_start = tgt_msg.tgt_x();
   target_y_start = tgt_msg.tgt_y();
+#else
+  m_Geodesy.LatLong2LocalUTM(tgt_msg.tgt_lat(),tgt_msg.tgt_lon(),
+			     target_y_start,target_x_start);
+#endif
   target_depth = tgt_msg.tgt_dep();
   target_heading = tgt_msg.tgt_hdg();
   target_speed = tgt_msg.tgt_spd();

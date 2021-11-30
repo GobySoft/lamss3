@@ -61,8 +61,7 @@ SimPassiveSonar* SimPassiveSonar::get_instance()
 SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   : goby::moos::GobyMOOSApp(&cfg),
     cfg_(cfg),
-    new_lat_origin_(false),
-    new_lon_origin_(false),
+    new_origin_(false),
     max_number_bounces(cfg_.max_number_bounces()),
     num_array_elements(cfg_.num_array_elements()),
     c_0(cfg_.svp_surface()),
@@ -274,27 +273,20 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
 void SimPassiveSonar::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = true;
    }
 }
 
 void SimPassiveSonar::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = true;
    }
 }
 
@@ -640,6 +632,13 @@ void SimPassiveSonar::loop()
 {
 
   double curr_time = MOOSTime();
+  
+ // Initialize whewn both LAT and LONG received.
+  if (new_origin_)
+    {
+      m_Geodesy.Initialise(lat_origin_,lon_origin_);
+      new_origin_ = false;
+    }
   
   if (sonar_on_)
     {

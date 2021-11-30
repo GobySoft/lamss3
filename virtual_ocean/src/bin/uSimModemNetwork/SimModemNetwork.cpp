@@ -61,8 +61,7 @@ SimModemNetwork* SimModemNetwork::get_instance()
 SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
   : goby::moos::GobyMOOSApp(&cfg),
     cfg_(cfg),
-    new_lat_origin_(false),
-    new_lon_origin_(false),
+    new_origin_(false),
     max_number_bounces(cfg_.max_number_bounces()),
     mseas_svp_updates(cfg_.mseas_svp_updates()), 
     mseas_update_interval(cfg_.mseas_update_interval()), 
@@ -173,27 +172,20 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
 void SimModemNetwork::handle_lat_origin(const CMOOSMsg& msg)
 {
  double new_lat = msg.GetDouble();
- if (new_lat_origin_ = !isnan(new_lat))
-     lat_origin_ = new_lat;
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lat))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lat_origin_ = new_lat;
+     new_origin_ = true;
    }
 }
 
 void SimModemNetwork::handle_lon_origin(const CMOOSMsg& msg)
 {
  double new_lon = msg.GetDouble();
- if (new_lon_origin_ = !isnan(new_lon))
-     lon_origin_ = new_lon;
- // Initialize whewn both LAT and LONG received.
- if (new_lat_origin_ && new_lon_origin_)
+ if (!isnan(new_lon))
    {
-     m_Geodesy.Initialise(lat_origin_,lon_origin_);
-     new_lat_origin_ = false;
-     new_lon_origin_ = false;
+     lon_origin_ = new_lon;
+     new_origin_ = true;
    }
 }
 
@@ -674,10 +666,16 @@ double SimModemNetwork::get_ambient_noise(double depth,
 
 void SimModemNetwork::loop()
 {
-  
+ 
   double curr_time = MOOSTime();
   
-  // request BELLHOP from queue: last in first out!
+ // Initialize whewn both LAT and LONG received.
+ if (new_origin_)
+   {
+     m_Geodesy.Initialise(lat_origin_,lon_origin_);
+     new_origin_ = false;
+   }
+     // request BELLHOP from queue: last in first out!
   if (bellhop_requests.size() > 0)
     {
       m_Comms.Notify("BELLHOP_REQUEST", bellhop_requests[bellhop_requests.size()-1]);

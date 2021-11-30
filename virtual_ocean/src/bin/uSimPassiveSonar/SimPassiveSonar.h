@@ -131,8 +131,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     double lat_origin_;
     double lon_origin_;
-    bool  new_lat_origin_;
-    bool  new_lon_origin_;
+    bool  new_origin_;
   
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool svp_updates;
