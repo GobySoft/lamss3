@@ -180,7 +180,8 @@ IvPFunction *BHV_SmartYoyo::onRunState()
   // for inverted DVL let IVP avoid collision with ice cover
   if (m_inverted_dvl)
     curr_altitude = 0;
-  if (curr_altitude > 0 && curr_water_depth-min_altitude < max_depth && min_altitude > 0)
+  if (!isnan(curr_water_depth) && curr_water_depth > 0 &&
+      curr_water_depth-min_altitude < max_depth && min_altitude > 0)
     max_depth_local = curr_water_depth-min_altitude;
   else
     max_depth_local = max_depth;
