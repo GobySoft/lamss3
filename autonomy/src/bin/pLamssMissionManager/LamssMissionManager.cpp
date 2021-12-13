@@ -321,58 +321,63 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
 	  
-	  if (deploy_time >= last_deploy_cmd_.deploy_duration() ||
-	      stale_gps >= last_deploy_cmd_.deploy_duration())
+	  if (last_deploy_cmd_.has_deploy_duration())
 	    {
-	      goby::glog.is(VERBOSE) && glog << group("helm")
-			 << "Deploy duration exceeded w/o acomms or gps - initiating Abort"
-			 << "\n"
-			 << "Stale: acomms: " << stale_acomms 
-			 << ", nav: " << stale_gps 
-			 << std::endl ;
-	      // allow auv to get to abort depth before homing
-	      last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
-	      // Turn off sonar
-	      publish("SONAR_CONTROL","OFF");
-	      publish("SONAR_PROCESS","OFF");
-	      
-	      if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
-		publish("USBL_ENABLED","TRUE");
-	      queue_event<EvNewMission>();
-	      queue_event<EvStartAbort>();
+	      if (deploy_time >= last_deploy_cmd_.deploy_duration() ||
+		  stale_gps >= last_deploy_cmd_.deploy_duration())
+		{
+		  goby::glog.is(VERBOSE) && glog << group("helm")
+						 << "Deploy duration exceeded w/o acomms or gps - initiating Abort"
+						 << "\n"
+						 << "Stale: acomms: " << stale_acomms 
+						 << ", nav: " << stale_gps 
+						 << std::endl ;
+		  // allow auv to get to abort depth before homing
+		  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
+		  // Turn off sonar
+		  publish("SONAR_CONTROL","OFF");
+		  publish("SONAR_PROCESS","OFF");
+		  
+		  if (cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+		    publish("USBL_ENABLED","TRUE");
+		  queue_event<EvNewMission>();
+		  queue_event<EvStartAbort>();
+		}
+	      else if (cfg_.auto_depth_adaptation() &&
+		       !prosecute_mode_active_ &&
+		       stale_acomms >= 0.5 * last_deploy_cmd_.deploy_duration() &&
+		       !depth_adapting )
+		{
+		  goby::glog.is(VERBOSE) && glog << group("helm")
+						 << "50% of deploy duration exceeded w/o acomms "
+						 << " going to acomms depth with collaborator"
+						 << last_deploy_cmd_.collaborator()
+						 << "\n"
+						 << "Stale: acomms: " << stale_acomms 
+						 << ", nav: " << stale_gps 
+						 << std::endl ;
+		  publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
+		  // Set acomms depth to current depth
+		  std::stringstream ss ;
+		  ss << "depth=" << last_nav_.global_fix().depth() ;
+		  publish("ACOMMS_DEPTH",ss.str());	  
+		  
+		  depth_adapting = true;
+		}
+	      else
+		{
+		  double remaining = last_deploy_cmd_.deploy_duration() -
+		    std::max(stale_acomms,stale_gps);
+		  goby::glog.is(VERBOSE) && glog << group("helm")
+						 << "Deploy time remaining: " << remaining
+						 << "\n"
+						 << "Stale: acomms: " << stale_acomms 
+						 << ", nav: " << stale_gps 
+						 << std::endl;
+		  publish("DEPLOY_REMAINING",remaining);
+		}
 	    }
-	  else if (cfg_.auto_depth_adaptation() && !prosecute_mode_active_ &&
-		   stale_acomms >= 0.5 * last_deploy_cmd_.deploy_duration() &&
-		    !depth_adapting )
-	    {
-	      goby::glog.is(VERBOSE) && glog << group("helm")
-			 << "50% of deploy duration exceeded w/o acomms "
-			 << " going to acomms depth with collaborator"
-			 << last_deploy_cmd_.collaborator()
-			 << "\n"
-			 << "Stale: acomms: " << stale_acomms 
-			 << ", nav: " << stale_gps 
-			 << std::endl ;
-	      publish("DEPTH_MODE","ADAPTIVE_ACOMMS");
-	      // Set acomms depth to current depth
-	      std::stringstream ss ;
-	      ss << "depth=" << last_nav_.global_fix().depth() ;
-	      publish("ACOMMS_DEPTH",ss.str());	  
-	      
-	      depth_adapting = true;
-	    }
-	  else
-	    {
-	      double remaining = last_deploy_cmd_.deploy_duration() -
-		std::max(stale_acomms,stale_gps);
-	      goby::glog.is(VERBOSE) && glog << group("helm")
-			 << "Deploy time remaining: " << remaining
-			 << "\n"
-			 << "Stale: acomms: " << stale_acomms 
-			 << ", nav: " << stale_gps 
-			 << std::endl;
-	      publish("DEPLOY_REMAINING",remaining);
-	    }
+
 	  // Update abort mission for ice motion
 	  update_abort_mission();
 	}
@@ -524,9 +529,9 @@ void LamssMissionManager::send_deploy()
   redeploy.set_auto_prosecute(false);
   serialize_for_moos(&serialized,redeploy);
 #ifndef GEO_COMMAND
-  publish("LAMSS_DEPLOY_OUT", serialized);
+  publish("LAMSS_DEPLOY_IN", serialized);
 #else
-  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+  publish("LAMSS_DEPLOY_GEO_IN", serialized);
 #endif
 }
 
@@ -562,9 +567,9 @@ void LamssMissionManager::homing_prosecute()
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);
 #ifndef GEO_COMMAND
-  publish("LAMSS_PROSECUTE_OUT", serialized);
+  publish("LAMSS_PROSECUTE_IN", serialized);
 #else
-  publish("LAMSS_PROSECUTE_GEO_OUT", serialized);
+  publish("LAMSS_PROSECUTE_GEO_IN", serialized);
 #endif  
   glog.is(DEBUG1) && glog << "Homing Prosecute requested"
 			  << std::endl;
@@ -678,9 +683,9 @@ void LamssMissionManager::initial_deploy()
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
 #ifndef GEO_COMMAND
-  publish("LAMSS_DEPLOY_OUT", serialized);
+  publish("LAMSS_DEPLOY_IN", serialized);
 #else
-  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+  publish("LAMSS_DEPLOY_GEO_IN", serialized);
 #endif  
 }
 
@@ -726,9 +731,9 @@ void LamssMissionManager::homing_return()
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
 #ifndef GEO_COMMAND
-  publish("LAMSS_DEPLOY_OUT", serialized);
+  publish("LAMSS_DEPLOY_IN", serialized);
 #else
-  publish("LAMSS_DEPLOY_GEO_OUT", serialized);
+  publish("LAMSS_DEPLOY_GEO_IN", serialized);
 #endif
 
 }
@@ -759,9 +764,9 @@ void LamssMissionManager::initial_transit()
   std::string serialized;
   serialize_for_moos(&serialized,init_transit_cmd);
 #ifndef GEO_COMMAND
-  publish("LAMSS_TRANSIT_OUT", serialized);
+  publish("LAMSS_TRANSIT_IN", serialized);
 #else
-  publish("LAMSS_TRANSIT_GEO_OUT", serialized);
+  publish("LAMSS_TRANSIT_GEO_IN", serialized);
 #endif  
   int n = initial_transit_cmd_.wpt_size();
   initial_transit_x.resize(n);

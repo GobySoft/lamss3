@@ -27,7 +27,7 @@ message LamssMissionManagerConfig
            required double y = 2 ;
 	}
   
-  optional double deploy_duration = 10 [default = 1800];
+  optional double deploy_duration = 10 [default = 1000];
   optional double prosecute_duration = 11 [default = 1200];
   optional DeployLocationEnum deploy_location = 12 [default = STATION];
   enum DeployLocationEnum {
