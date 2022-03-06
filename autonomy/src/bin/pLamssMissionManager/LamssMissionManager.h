@@ -126,6 +126,7 @@ private:
   void handle_gps_update(const CMOOSMsg& msg);
   void handle_in_track(const CMOOSMsg& msg);
   void handle_icex20_tracking_message(const CMOOSMsg& msg);
+  void handle_stovepipe_geo_message(const CMOOSMsg& msg);
   void handle_stovepipe_message(const CMOOSMsg& msg);
   void handle_homing_lock(const CMOOSMsg& msg);
   void handle_survey_wpt_index(const CMOOSMsg& msg);

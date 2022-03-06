@@ -104,8 +104,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_prosecute, this);
     subscribe("LAMSS_TRANSIT_IN",
 	      &LamssMissionManager::handle_transit_route, this);
-    subscribe("LAMSS_STOVEPIPE_IN",
-	      &LamssMissionManager::handle_stovepipe_message, this);    
 #else
     subscribe("LAMSS_STATUS_GEO_IN",
 	      &LamssMissionManager::handle_status, this);
@@ -115,9 +113,11 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	      &LamssMissionManager::handle_prosecute, this);
     subscribe("LAMSS_TRANSIT_GEO_IN",
 	      &LamssMissionManager::handle_transit_route, this);
-    subscribe("LAMSS_STOVEPIPE_GEO_IN",
-	      &LamssMissionManager::handle_stovepipe_message, this);    
 #endif
+    subscribe("LAMSS_STOVEPIPE_GEO_IN",
+	      &LamssMissionManager::handle_stovepipe_geo_message, this);    
+    subscribe("LAMSS_STOVEPIPE_IN",
+	      &LamssMissionManager::handle_stovepipe_message, this);    
     // Note: stovepipes not yet converted to GEO
     subscribe("MISSION_STATE", &LamssMissionManager::handle_mission_state, this);
     subscribe("VEHICLE_ID", &LamssMissionManager::handle_vehicle_id, this);
@@ -2044,13 +2044,31 @@ std::string LamssMissionManager::NodeReport(std::string node_name,
   return(output);
 }
 
+void LamssMissionManager::handle_stovepipe_geo_message(const CMOOSMsg& msg)
+{
+  LAMSS_STOVEPIPE_GEO stovepipe_geo_msg;
+  parse_for_moos(msg.GetString(),&stovepipe_geo_msg);
+  LAMSS_STOVEPIPE stovepipe_msg;
+  stovepipe_msg.set_stovepipe_id(stovepipe_geo_msg.stovepipe_id());
+  stovepipe_msg.set__time(stovepipe_geo_msg._time());
+  stovepipe_msg.set_depth(stovepipe_geo_msg.depth());
+  stovepipe_msg.set_bearing(stovepipe_geo_msg.bearing());
+  stovepipe_msg.set_length(stovepipe_geo_msg.length());
+  stovepipe_msg.set_width(stovepipe_geo_msg.width());
+  stovepipe_msg.set_verteces(stovepipe_geo_msg.verteces());
+  double x,y;
+  m_Geodesy.LatLong2LocalUTM(stovepipe_geo_msg.stovepipe_latitude(),
+			     stovepipe_geo_msg.stovepipe_longitude(),
+			     y,x);
+  stovepipe_msg.set_stovepipe_x(x);
+  stovepipe_msg.set_stovepipe_y(y);
+  update_stovepipes(stovepipe_msg);
+}
+
 void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
 {
-#ifndef GEO_COMMAND
   LAMSS_STOVEPIPE stovepipe_msg;
-#else
-  LAMSS_STOVEPIPE_GEO stovepipe_msg;
-#endif
+
   parse_for_moos(msg.GetString(),&stovepipe_msg);
   glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
 			  << stovepipe_msg.stovepipe_id() << std::endl;
