@@ -2343,18 +2343,10 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 	  {
 	    // If it exists, Update values
 	    Stovepipes[i].utc = stovepipe_msg._time();
-#ifndef GEO_COMMAND
 	    Stovepipes[i].x = stovepipe_msg.stovepipe_x();
 	    Stovepipes[i].y = stovepipe_msg.stovepipe_y();
 	    m_Geodesy.UTM2LatLong(Stovepipes[i].x,Stovepipes[i].y,
 				       Stovepipes[i].lat,Stovepipes[i].lon);
-#else
-	    Stovepipes[i].lat = stovepipe_msg.stovepipe_latitude();
-	    Stovepipes[i].lon = stovepipe_msg.stovepipe_longitude();
-	    
-	    m_Geodesy.LatLong2LocalUTM(Stovepipes[i].lat,Stovepipes[i].lon,
-				       Stovepipes[i].y,Stovepipes[i].x);
-#endif
 
 	    Stovepipes[i].camp_x = camp_x;
 	    Stovepipes[i].camp_y = camp_y;
@@ -2382,19 +2374,11 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
     Stovepipes.resize(last+1);
     Stovepipes[last].ID = stovepipe_msg.stovepipe_id();
     Stovepipes[last].utc = stovepipe_msg._time();
-#ifndef GEO_COMMAND
     Stovepipes[last].x = stovepipe_msg.stovepipe_x();
     Stovepipes[last].y = stovepipe_msg.stovepipe_y();
     m_Geodesy.UTM2LatLong(Stovepipes[last].x,Stovepipes[last].y,
 			  Stovepipes[last].lat,Stovepipes[last].lon);
-#else
-    Stovepipes[last].lat = stovepipe_msg.stovepipe_latitude();
-    Stovepipes[last].lon = stovepipe_msg.stovepipe_longitude();
-    
-    m_Geodesy.LatLong2LocalUTM(Stovepipes[last].lat,
-			       Stovepipes[last].lon,
-			       Stovepipes[last].y,Stovepipes[last].x);
-#endif
+
     Stovepipes[last].camp_x = camp_x;
     Stovepipes[last].camp_y = camp_y;
     Stovepipes[last].depth = stovepipe_msg.depth();
