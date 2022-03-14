@@ -2319,11 +2319,7 @@ void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 //            times they were last written to. In the dynamic scenario, they are updated
 //            when camp updates are received 
 
-#ifndef GEO_COMMAND
 void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
-#else
-void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE_GEO stovepipe_msg)
-#endif  
 {
 
     CStovepipe Empty;
