@@ -7,6 +7,10 @@
 // NetCdf files extracted from the GDEM database.
 
 #include "CLamssNetcdf.h"
+#include <sys/types.h>
+#include <boost/filesystem.hpp>
+#include <math.h>
+#include "strnatcmp.hpp"
 
 bool LamssNetCdf::open_nc_file(std::string nc_file_)
 {
@@ -26,6 +30,33 @@ bool LamssNetCdf::open_nc_file(std::string nc_file_)
       std::cout<<"netcdf file < "<<nc_file_<<" > opened successfully!"<<std::endl;
     }
   return(true);
+}
+
+bool LamssNetCdf::close_nc_file()
+{
+  int status;  // error status
+
+  if(nc_is_open_ == true){
+	  status = nc_close(ncid_);
+	  if (status != NC_NOERR)
+		{
+		  std::cout<<"ERROR - nc_file did not close"<<std::endl;
+		  std::cout<<nc_strerror(status)<<std::endl;
+		  exit(EXIT_FAILURE);
+		}
+	  else
+		{
+		  nc_is_open_ = false;
+		  std::cout<<"netcdf file closed successfully!"<<std::endl;
+		}
+	  return(true);
+   }
+   else{
+	   // do nothing
+	   std::cout<<"no netcdf file is open in order to close"<<std::endl;
+	   return(true);
+   }
+
 }
 
 void LamssNetCdf::initialize_gdem_nc(std::string nc_file,
@@ -126,8 +157,47 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
 {
   nc_is_open_  = false;
   nc_vars = nc_type; // 'ts' or 'uv'
-  
-  if (open_hycom_nc(nc_file))
+  if(boost::filesystem::is_regular(nc_file)){
+	  boost::filesystem::path entry(nc_file);
+	  // Check if file name in the path object has extension
+	  if (entry.has_extension()) {
+		 // only use the file if it is a netcdf file
+		 if(entry.extension().string() == std::string(".nc")){
+			  std::cout << entry << '\n';
+			  files.push_back(entry.string());
+		 }
+	  }
+	  std::cout << nc_file << " is a regular file:\n";
+  }
+  else if(boost::filesystem::is_directory(nc_file)) {
+	  std::cout << nc_file << " is a directory containing:\n";
+
+     for (boost::filesystem::directory_entry& entry : boost::filesystem::directory_iterator(nc_file)){
+		  // Check if file name in the path object has extension
+		 if (entry.path().has_extension()) {
+			 // only use the file if it is a netcdf file
+			 if(entry.path().extension().string() == std::string(".nc")){
+				  std::cout << entry.path() << '\n';
+				  files.push_back(entry.path().string());
+			 }
+		 }
+  	 }
+     if(files.empty()){
+    	 std::cout<<"ERROR - no nc file present in input filename or directory!"<<std::endl;
+    	 	  exit(EXIT_FAILURE);
+     }
+
+  }
+  else{
+	  std::cout<<"ERROR - nc_file is not a filename or directory!"<<std::endl;
+	  exit(EXIT_FAILURE);
+  }
+
+  // Sort by date and time (nat sort) so the files are in order when we grab them
+  std::sort(files.begin(), files.end(), compareNat);
+
+
+  if (open_hycom_nc(files[0]))
     {
       scewed_grid - false;
       geodesy_.Initialise(lat_origin,lon_origin);
@@ -154,8 +224,22 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
 	utc_incr = nc_unit;
       
       init_timebase(moos_start,utc_start,utc_incr,fixed_start);
+
+      int numLons = lon_vec_.size();
+      isLonNeg = false;
+      for(int i =0; i < numLons; i++){
+    	  if(lon_vec_[i] < 0){
+    		  isLonNeg = true;
+    		  break;
+    	  }
+      }
+
+		// close the file
+		close_nc_file();
     }
 }
+
+
 
 bool LamssNetCdf::get_lat_lon_dimensions()
 {
@@ -985,7 +1069,7 @@ std::vector<double> LamssNetCdf:: get_gdem_profile( double lat_, double lon_,
 
 void LamssNetCdf:: get_hycom_profile( double lat_,
 				      double lon_,
-				      const std::vector<double>& dep_,
+				      std::vector<double>& dep_,
 				      double curr_time,
 				      std::vector<double>& temp,
 				      std::vector<double>& salt
@@ -998,16 +1082,29 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   std::vector<int> min_ilat,min_ilon;
   std::vector<double> min_lat_val;
   std::vector<double> min_lon_val;
-  std::vector<double> x,y,z_tmp,z_sal;
+  std::vector<double> x,y;
 
   bool debug = false;
   
   // HYCOM stores longitudes 0-360
-  if (lon_ < 0.0)
-    lon_ += 360.0;
-  
-  z_tmp.resize(3);
-  z_sal.resize(3);
+  // Check if the input lon matches the format of the file (0-360 or -180 -180)
+  if(lon_ < 0){
+	  if(isLonNeg == false){
+		  // make sure the input lon is too
+		  lon_ += 360.0;
+	  }
+	  //else do nothing since the inputs formats match -180-180
+  }
+  else if(lon_ > 180){
+	  if(isLonNeg == true){
+		  // make sure the input lon is too
+		  lon_ -= 360.0;
+	  }
+	  //else do nothing since the inputs formats match 0-360
+  }
+  else{
+	  // do nothing when lon is between 0-180
+  }
 
   std::vector<double> nc_temp;
   nc_temp.resize(dep_vec_.size());
@@ -1035,134 +1132,185 @@ void LamssNetCdf:: get_hycom_profile( double lat_,
   // is closest point to auv over 5km away?
   // if not, get me that bathymetry!
     if (!closest_lat_lon(lat_,lon_,
-		       min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
-      {
-	temp.resize(dep_.size());
-	salt.resize(dep_.size());
-	for (int i=0; i<temp.size(); i++)
-	  {
-	    temp[i]=default_val;
-	    salt[i]=default_val;
-	  }
-      }
-    else
-      {
-	double min_depth = vecUtils.vmin(dep_);
-	double max_depth = vecUtils.vmax(dep_);
+		       min_lat_val,min_lon_val,x,y,min_ilat,min_ilon)){
+    	temp.resize(dep_.size());
+    	salt.resize(dep_.size());
+    	for (int i=0; i<temp.size(); i++)
+    	{
+    		temp[i]=default_val;
+    		salt[i]=default_val;
+    	}
+    }
+    else{
+    	double min_depth = vecUtils.vmin(dep_); // requested
+    	double max_depth = vecUtils.vmax(dep_); // requested
 	
-	int dep_indx_1 = dep_vec_.size()-1;
-	for  (int i=0; i<dep_vec_.size(); i++)
-	  if (dep_vec_[i] <= min_depth)
-	    dep_indx_1 = i;
-	int dep_indx_2 = dep_indx_1;
-	for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
-	  if (dep_vec_[i] >= max_depth)
-	    dep_indx_2 = i;
+    	/*int dep_indx_1 = dep_vec_.size()-1;
+    	for  (int i=0; i<dep_vec_.size(); i++)
+    		if (dep_vec_[i] <= min_depth)
+    			dep_indx_1 = i;
+    	int dep_indx_2 = dep_indx_1;
+    	for  (int i=dep_vec_.size()-1; i>=dep_indx_1; i--)
+    		if (dep_vec_[i] >= max_depth)
+    			dep_indx_2 = i;
+    	*/
+    	int dep_indx_1 = 0;
+    	int dep_indx_2 = dep_vec_.size() -1;
 	
-	// time indexing
+    	// time indexing
+    	double mission_time = curr_time - moos_start_time;
+    	double utc_ref;
+    	if (fixed_model_start)        // Mission start at file start
+    	{
+    		utc_ref = moos_start_time;
+    	}
+    	else                          // Absolute time with rewind
+    	{
+    		utc_ref = nc_utc_start ;
+    	}
+    	double utc_rel = curr_time - utc_ref;
+    	double utc_corr = floor(utc_rel/nc_utc_duration)*
+    			nc_utc_duration;
+    	double utc_rdcd = utc_rel - utc_corr;
 
-	double mission_time = curr_time - moos_start_time;
-	double utc_ref;
-	if (fixed_model_start)        // Mission start at file start
-	  {
-	    utc_ref = moos_start_time;
-	  }
-	else                          // Absolute time with rewind
-	  {
-	    utc_ref = nc_utc_start ;
-	  }
-	double utc_rel = curr_time - utc_ref;
-	double utc_corr = floor(utc_rel/nc_utc_duration)*
-	  nc_utc_duration;
-	double utc_rdcd = utc_rel - utc_corr;
-	
-	int indx_1 = floor(utc_rdcd/nc_utc_delta);
-	int indx_2 = indx_1+1;
-	if (indx_2 >= utc_vec_.size())
-	  indx_2 = 0;
-	if (debug)
-	  std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl; 
-	//get temp and salt at closest grid points
+    	int file_no = floor(utc_rel/nc_utc_duration);
+    	int real_file_no = file_no % files.size(); // for idx1 - time index1 comes from which file
+    	int real_file_no2 = real_file_no; // for idx1 - time index1 comes from which file
+		int indx_1 = floor(utc_rdcd/nc_utc_delta); // time idx into the netcdf file
+		int indx_2 = indx_1+1; // grab 2
+		if (indx_2 >= utc_vec_.size()){
+			// now we need to index into the next file
+			// or restartin current file if there is only one file
+			indx_2 = 0;
+			real_file_no2 = (real_file_no2 + 1) % files.size();
+		}
+		if (debug)
+			std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl;
 
-	for (int i_dep=dep_indx_1; i_dep<=dep_indx_2; i_dep++)
-	  {
-	    for(int n=0;n<3;n++)
-	      {
-		// temperature and salinity
-		size_t ssp_index_1[] = {static_cast<size_t>(indx_1),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
-		short int temp_val_1,salt_val_1;
-		int status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
-						   ssp_index_1, &temp_val_1);
-		int status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
-						   ssp_index_1, &salt_val_1);
-		size_t ssp_index_2[] = {static_cast<size_t>(indx_2),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
-		short int temp_val_2,salt_val_2;
-		int status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
-						   ssp_index_2, &temp_val_2);
-		int status_s_2 = nc_get_var1_short(ncid_, salt_varid_,
-						   ssp_index_2, &salt_val_2);
-		if ((status_s_1 && status_s_2 &&
-		     status_t_1 && status_t_2) != NC_NOERR)
-		  {
-		    std::cout <<"ERROR - failed to get t and s values for "
-			      << std::setprecision(std::numeric_limits<double>::digits10)
-			      << min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
-			      << dep_vec_[i_dep] << " m."<< std::endl;
-		    std::cout << nc_strerror(status)<<std::endl;
-		    z_tmp[n] = default_val;
-		    z_sal[n] = default_val;
-		  }
-		else 
-		  {
-		    if (temp_val_1== (short)temp_missing ||
-			temp_val_2== (short)temp_missing)
-		      if (n==0)
-			z_tmp[n] = default_val;
-		      else
-			z_tmp[n] = z_tmp[n-1];
-		    else
-		      z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				  *(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
-			+ temp_offset;
-		    
-		    if (salt_val_1==(short)salt_missing ||
-			salt_val_2==(short)salt_missing)
-		      if (n==0)
-			z_sal[n] = default_val;
-		      else
-			z_sal[n] = z_sal[n-1];
-		    else
-		      z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
-				  *(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
-			+ salt_offset;
-		  }
-	      }
 
-	    if (debug)
-	      std::cout << "done with z_tmp,z_sal" << std::endl;
-	    //get lat/lon/bathy of closest grid point
-	    nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
-	    nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
-	    if (debug)
-	      std::cout << "done with depth " << dep_vec_[i_dep] << std::endl;
-	  }
-	// Interpolate in depth
-	temp.resize(dep_.size());
-	salt.resize(dep_.size());
-	if (dep_indx_1 == dep_indx_2)
-	  for (int i = 0; i< dep_.size(); i++)
-	    {
-	      temp[i] = nc_temp[dep_indx_1];
-	      salt[i] = nc_salt[dep_indx_1];
-	    }
-	else
-	  {
-	    bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
-	    ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
-	  }
-	if (debug)
-	  std::cout << "done with get_hycom_profile " << std::endl;
-      }
+
+		double saltVal, tempVal;
+		for(int i_dep = 0; i_dep < dep_vec_.size(); i_dep ++){
+			int status_s_1, status_s_2, status_t_1, status_t_2;
+			short int temp_val_1,salt_val_1;
+			short int temp_val_2,salt_val_2;
+			std::vector<double> z_tmp,z_sal;
+			double default_val = std::numeric_limits<double>::quiet_NaN() ; // NaN
+
+			z_tmp.resize(3);
+			z_sal.resize(3);
+
+
+			for(int n=0;n<3;n++){
+				// temperature and salinity
+				// open the correct file in the directory
+				if(open_hycom_nc(files[real_file_no])){
+					size_t ssp_index_1[] = {static_cast<size_t>(indx_1),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
+					status_t_1 = nc_get_var1_short(ncid_, temp_varid_,
+							   ssp_index_1, &temp_val_1);
+					status_s_1 = nc_get_var1_short(ncid_, salt_varid_,
+							   ssp_index_1, &salt_val_1);
+					// close the file
+					close_nc_file();
+				}
+				// open the correct file in the directory
+				if(open_hycom_nc(files[real_file_no2])){
+					size_t ssp_index_2[] = {static_cast<size_t>(indx_2),static_cast<size_t>(i_dep),static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])};
+					status_t_2 = nc_get_var1_short(ncid_, temp_varid_,
+							   ssp_index_2, &temp_val_2);
+					status_s_2 = nc_get_var1_short(ncid_, salt_varid_,
+							   ssp_index_2, &salt_val_2);
+					// close the file
+					close_nc_file();
+				}
+				if ((status_s_1 && status_s_2 &&
+						status_t_1 && status_t_2) != NC_NOERR)
+				{
+					std::cout <<"ERROR - failed to get t and s values for "
+							<< std::setprecision(std::numeric_limits<double>::digits10)
+							//<< min_lat_val[n]<<"N x "<< min_lon_val[n]<<"E x "
+							<< dep_vec_[i_dep] << " m."<< std::endl;
+					std::cout << nc_strerror(status)<<std::endl;
+					z_tmp[n] = default_val;
+					z_sal[n] = default_val;
+				}
+				else
+				{
+					if (temp_val_1== (short)temp_missing ||
+							temp_val_2== (short)temp_missing)
+						if (n==0)
+							z_tmp[n] = default_val;
+						else
+							z_tmp[n] = z_tmp[n-1];
+					else
+						z_tmp[n] = (temp_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_1])
+								*(temp_val_2-temp_val_1)/nc_utc_delta)*temp_scaling
+								+ temp_offset;
+
+					if (salt_val_1==(short)salt_missing ||
+							salt_val_2==(short)salt_missing)
+						if (n==0)
+							z_sal[n] = default_val;
+						else
+							z_sal[n] = z_sal[n-1];
+					else
+						z_sal[n] = (salt_val_1 + (utc_rdcd+utc_ref-utc_vec_[indx_2])
+								*(salt_val_2-salt_val_1)/nc_utc_delta)*salt_scaling
+								+ salt_offset;
+				}
+			}
+
+			//get lat/lon/bathy of closest grid point
+			nc_temp[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_tmp);
+			nc_salt[i_dep]  = interp_triangle(lat_m,lon_m,x,y,z_sal);
+		}
+
+
+		// find the indices where the salt and temp values start becoming Nan
+		// those values are only NaN when the depth is below the actual depth at that lat lon point
+		int temp_NaN_idx = nc_temp.size();
+		for(int i_temp = 0; i_temp < nc_temp.size(); i_temp++){
+			if(isnan(nc_temp[i_temp])){
+				temp_NaN_idx = i_temp;
+				break;
+			}
+		}
+
+		int salt_NaN_idx = nc_salt.size();
+		for(int i_salt = 0; i_salt < nc_salt.size(); i_salt++){
+			if(isnan(nc_salt[i_salt])){
+				salt_NaN_idx = i_salt;
+				break;
+			}
+		}
+
+		// Interpolate in depth
+		temp.resize(dep_.size());
+		salt.resize(dep_.size());
+		if (dep_indx_1 == dep_indx_2)
+			for (int i = 0; i< dep_.size(); i++)
+			{
+				temp[i] = nc_temp[dep_indx_1];
+				salt[i] = nc_salt[dep_indx_1];
+			}
+		else
+		{
+			bool ok = vecUtils.interp(dep_vec_,nc_temp,dep_,temp);
+			ok = vecUtils.interp(dep_vec_,nc_salt,dep_,salt);
+		}
+		// time to check if any of the selected depths are deeper than the depth at that location
+		// ie. salt and temp values are NaN
+		for(int idx = 0; idx < dep_.size(); idx++){
+			if(isnan(salt[idx]) && dep_[idx] >= nc_salt[salt_NaN_idx -1]){
+				salt[idx] = nc_salt[salt_NaN_idx -1];
+			}
+			if(isnan(temp[idx]) && dep_[idx] >= nc_temp[temp_NaN_idx -1]){
+				temp[idx] = nc_temp[temp_NaN_idx -1];
+			}
+		}
+		if (debug)
+			std::cout << "done with get_hycom_profile " << std::endl;
+	}
 }
 
 double LamssNetCdf::interp_triangle(double x_here,double y_here,
