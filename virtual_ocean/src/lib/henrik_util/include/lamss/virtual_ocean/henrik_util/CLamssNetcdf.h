@@ -17,6 +17,7 @@
 #include <sstream>
 #include <iostream>
 #include <netcdf.h>
+#include <vector>
 
 // Date number of Netcdf time origin
 #define MSEAS_TIME_ORIGIN 730486  // datenum 2000-1-1-00.00.00
@@ -32,6 +33,7 @@ class LamssNetCdf
 
   // Generic arrays and variables
   bool open_nc_file(std::string);
+  bool close_nc_file();
   bool get_lat_lon_dimensions();
   void get_depth_dimension();
   void get_time_dimension();
@@ -163,7 +165,7 @@ class LamssNetCdf
   void get_hycom_varnames();
   void get_hycom_varids_att();
   void get_hycom_profile(double lat_, double lon_,
-			 const std::vector<double>& dep_,
+			 std::vector<double>& dep_,
 			 double utc_time,
 			 std::vector<double>& temp,
 			 std::vector<double>& salt);
@@ -218,6 +220,11 @@ class LamssNetCdf
   double eof_num_depth_value;
   std::vector<std::vector<double> > eof_eofs_values;
   std::vector<std::vector<double> > baseval_weighted_eofs;
+
+ private:
+  std::vector<std::string> files;
+  bool isLonNeg = false;
+
 };
 
 #endif
