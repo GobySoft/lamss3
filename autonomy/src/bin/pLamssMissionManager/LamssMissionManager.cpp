@@ -2052,9 +2052,9 @@ void LamssMissionManager::handle_stovepipe_geo_message(const CMOOSMsg& msg)
   stovepipe_msg.set_stovepipe_id(stovepipe_geo_msg.stovepipe_id());
   stovepipe_msg.set__time(stovepipe_geo_msg._time());
   stovepipe_msg.set_depth(stovepipe_geo_msg.depth());
-  stovepipe_msg.set_bearing(stovepipe_geo_msg.bearing());
-  stovepipe_msg.set_length(stovepipe_geo_msg.length());
-  stovepipe_msg.set_width(stovepipe_geo_msg.width());
+  stovepipe_msg.set_heading(stovepipe_geo_msg.heading());
+  stovepipe_msg.set_major_axis(stovepipe_geo_msg.major_axis());
+  stovepipe_msg.set_minor_axis(stovepipe_geo_msg.minor_axis());
   stovepipe_msg.set_verteces(stovepipe_geo_msg.verteces());
   double x,y;
   m_Geodesy.LatLong2LocalUTM(stovepipe_geo_msg.stovepipe_latitude(),
@@ -2286,7 +2286,7 @@ void LamssMissionManager::update_deploy_parameters()
 
 void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 {
-  double degs = 90.0-Stovepipes[i].bearing;
+  double degs = 90.0-Stovepipes[i].heading;
   if (degs > 360)
     degs -= 360;
   else if (degs < 0)
@@ -2307,8 +2307,8 @@ void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
        << ", y=" << Stovepipes[i].y+camp_y-Stovepipes[i].camp_y
        << ", degs="  << degs
        << ", pts="  << Stovepipes[i].verteces
-       << ", major="  << Stovepipes[i].length/2
-       << ", minor="  << Stovepipes[i].width/2;
+       << ", major="  << Stovepipes[i].major_axis
+       << ", minor="  << Stovepipes[i].minor_axis;
   publish("OBSTACLE_ALERT",stvp.str());
   
 }
@@ -2351,20 +2351,21 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 	    Stovepipes[i].camp_x = camp_x;
 	    Stovepipes[i].camp_y = camp_y;
 	    Stovepipes[i].depth = stovepipe_msg.depth();
-	    Stovepipes[i].bearing = stovepipe_msg.bearing();
-	    Stovepipes[i].length = stovepipe_msg.length();
-	    Stovepipes[i].width = stovepipe_msg.width();
+	    Stovepipes[i].heading = stovepipe_msg.heading();
+	    Stovepipes[i].major_axis = stovepipe_msg.major_axis();
+	    Stovepipes[i].minor_axis = stovepipe_msg.minor_axis();
 	    Stovepipes[i].verteces = stovepipe_msg.verteces();
-	    glog.is(VERBOSE) && glog << "Modified Stovepipe ID " << Stovepipes[i].ID
-				     << " Stovepipe_x = " << Stovepipes[i].x
-				     << " Stovepipe_y = " << Stovepipes[i].y
-				     << " Bearing = " << Stovepipes[i].bearing
-				     << " Length = " << Stovepipes[i].length
-				     << " Width = " << Stovepipes[i].width
-				     << " Verteces = " << Stovepipes[i].verteces
-				     << " camp_x = " << camp_x
-				     << " camp_y = " << camp_y
-				     << std::endl;
+	    glog.is(VERBOSE) &&
+	      glog << "Modified Stovepipe ID " << Stovepipes[i].ID
+		   << " Stovepipe_x = " << Stovepipes[i].x
+		   << " Stovepipe_y = " << Stovepipes[i].y
+		   << " heading = " << Stovepipes[i].heading
+		   << " major_axis = " << Stovepipes[i].major_axis
+		   << " minor_axis = " << Stovepipes[i].minor_axis
+		   << " Verteces = " << Stovepipes[i].verteces
+		   << " camp_x = " << camp_x
+		   << " camp_y = " << camp_y
+		   << std::endl;
 	    publish_stovepipe(i,camp_x,camp_y);
 	    return;
 	  }
@@ -2382,17 +2383,17 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
     Stovepipes[last].camp_x = camp_x;
     Stovepipes[last].camp_y = camp_y;
     Stovepipes[last].depth = stovepipe_msg.depth();
-    Stovepipes[last].bearing = stovepipe_msg.bearing();
-    Stovepipes[last].length = stovepipe_msg.length();
-    Stovepipes[last].width = stovepipe_msg.width();
+    Stovepipes[last].heading = stovepipe_msg.heading();
+    Stovepipes[last].major_axis = stovepipe_msg.major_axis();
+    Stovepipes[last].minor_axis = stovepipe_msg.minor_axis();
     Stovepipes[last].verteces = stovepipe_msg.verteces();
     Stovepipes[last].spawned = false;
     glog.is(VERBOSE) && glog << "New Stovepipe ID " << Stovepipes[last].ID
 			     << " Stovepipe_x = " << Stovepipes[last].x
 			     << " Stovepipe_y = " << Stovepipes[last].y
-			     << " Bearing = " << Stovepipes[last].bearing
-			     << " Length = " << Stovepipes[last].length
-			     << " Width = " << Stovepipes[last].width
+			     << " Heading = " << Stovepipes[last].heading
+			     << " Major_Axis = " << Stovepipes[last].major_axis
+			     << " Minor_axis = " << Stovepipes[last].minor_axis
 			     << " Verteces = " << Stovepipes[last].verteces
 			     << " camp_x = " << camp_x
 			     << " camp_y = " << camp_y

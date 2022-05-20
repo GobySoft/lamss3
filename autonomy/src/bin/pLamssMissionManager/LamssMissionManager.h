@@ -45,9 +45,9 @@ public:
   double camp_x;
   double camp_y;
   double depth;
-  double bearing;
-  double length;
-  double width;
+  double heading;
+  double major_axis;
+  double minor_axis;
   int verteces;
   bool spawned;
 };
