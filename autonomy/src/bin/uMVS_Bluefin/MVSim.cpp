@@ -792,6 +792,11 @@ void CMVSim::PostResults()
 			  {
 			    m_Comms.Notify(sP+"X",nav_x_true);
 			    m_Comms.Notify(sP+"Y",nav_y_true);
+			    double lat,lon;
+			    m_Geodesy.UTM2LatLong(nav_x_true,nav_y_true,lat,lon);
+			    m_Comms.Notify(sP+"LATITUDE",lat);
+			    m_Comms.Notify(sP+"LONGITUDE",lon);
+			    
 			    m_Comms.Notify(sP+"Z",nav_z_true);
 			    m_Comms.Notify(sP+"TOW_POS_X",dfTowPosX+drift_x);
 			    m_Comms.Notify(sP+"TOW_POS_Y",dfTowPosY+drift_y);
@@ -801,6 +806,10 @@ void CMVSim::PostResults()
 			  {
 			    m_Comms.Notify(sP+"X",dfX);
 			    m_Comms.Notify(sP+"Y",dfY);
+			    double lat,lon;
+			    m_Geodesy.UTM2LatLong(dfX,dfY,lat,lon);
+			    m_Comms.Notify(sP+"LATITUDE",lat);
+			    m_Comms.Notify(sP+"LONGITUDE",lon);
 			    m_Comms.Notify(sP+"Z",dfZ);
 			    m_Comms.Notify(sP+"TOW_POS_X",dfTowPosX);
 			    m_Comms.Notify(sP+"TOW_POS_Y",dfTowPosY);
