@@ -12,6 +12,7 @@
 #include <boost/asio.hpp>
 #include "lamss/lib_lamss_protobuf/IXBlueINSData.pb.h"
 #include "goby/moos/goby_moos_app.h"
+#include "goby/moos/moos_geodesy.h"
 
 using boost::asio::ip::udp;
 
@@ -95,6 +96,8 @@ class SimPhinsINS : public CMOOSApp
  double m_ins_wdot;
  double m_current_nav_x;
  double m_current_nav_y;
+ double m_current_nav_lat;
+ double m_current_nav_lon;
  int m_ins_update_no;
  double m_ins_calc_u;
  double m_ins_calc_v;
@@ -108,6 +111,11 @@ class SimPhinsINS : public CMOOSApp
  const u_char* startOfData;
  size_t dataLength;
 
+  //  geodesy
+  goby::moos::CMOOSGeodesy m_Geodesy;
+  double dfLatOrigin;
+  double dfLongOrigin;
+  bool utm_update;
 };
 
 #endif 
