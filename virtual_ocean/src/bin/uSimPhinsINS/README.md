@@ -14,24 +14,24 @@ Figure 1 shows the legacy platform coordinate convention used by MOOS to the lef
 
 ## MOOS Varible Subscriptions
 
-The INS simulator subscribes to the following required variables in the frontseat MOOSDB:
+The INS simulator subscribes to the following required variables in the frontseat MOOSDB, which must be published by a dynamic model for the vehicle:
 
     MOOS variable           Type    Description
-    FRONTSEAT_SPEED         double  Forward speed in m/s for the vehicle.
-    FRONTSEAT_HEADING       double  Heading of the vehicle in degrees, clockwise from geographical North.
-    FRONTSEAT_DEPTH         double  Depth of vehicle in meters.
-    FRONTSEAT_PITCH         double  Pitch of the vehicle in radians, positive nose up.
-    FRONTSEAT_ROLL          double  Roll of vehicle, positive starboard down
-    FRONTSEAT_BODY_VEL_Y    double  Forward velocity v in MOOS platfom coordinates (m/s).
-    FRONTSEAT_BODY_VEL_X    double  Starboard velocity u in MOOS platfom coordinates (m/s).
-    FRONTSEAT_BODY_VEL_Z    double  Upward velocity w  in MOOS platfom coordinates (m/s).
+    FRONTSEAT_SPEED         double  Forward speed in **m/s** for the vehicle.
+    FRONTSEAT_HEADING       double  Heading of the vehicle in **degrees**, clockwise from geographical North.
+    FRONTSEAT_DEPTH         double  Depth of vehicle in **meters**.
+    FRONTSEAT_PITCH         double  Pitch of the vehicle in **radians**, positive nose up.
+    FRONTSEAT_ROLL          double  Roll of vehicle in **radians**, positive starboard down
+    FRONTSEAT_BODY_VEL_Y    double  Forward velocity v in MOOS platfom coordinates (**m/s**).
+    FRONTSEAT_BODY_VEL_X    double  Starboard velocity u in MOOS platfom coordinates (**m/s**).
+    FRONTSEAT_BODY_VEL_Z    double  Upward velocity w  in MOOS platfom coordinates (**m/s)**.
 
 In addition 'uSimPhinINS' subscribes to MOOS variables solely used for internal evaluation of the INS simulator error in the presence of current:
 
-    FRONTSEAT_LATITUDE      double  Latitude in decimal degrees of current location.
-    FRONTSEAT_LONGITUDE     double  Longitude in decimal degrees of current location.
-    CURRENT_X               double  Local current in m/s, positive towards east
-    CURRENT_Y               double  local current in m/s, positive towards north.
+    FRONTSEAT_LATITUDE      double  Latitude in decimal **degrees** of current location.
+    FRONTSEAT_LONGITUDE     double  Longitude in decimal **degrees** of current location.
+    CURRENT_X               double  Local current in **m/s**, positive towards east
+    CURRENT_Y               double  local current in **m/s**, positive towards north.
 
 ## MOOS Variable Publications
 
