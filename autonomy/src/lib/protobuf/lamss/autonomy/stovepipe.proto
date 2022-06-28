@@ -9,16 +9,16 @@ optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field
 optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 optional string MessageType = 4 [default="LAMSS_STOVEPIPE", (dccl.field).static_value="LAMSS_STOVEPIPE", (dccl.field).codec="_static"];
 optional int32 Stovepipe_ID = 5 [(dccl.field).max=31, (dccl.field).min=-31, default=1];
-oneof east {
-  double Stovepipe_Longitude = 6 [(dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=4];
-  double Stovepipe_x = 16 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1]; // UTM X
-  double Delta_x = 26 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1]; // Meters East of UUV
-  }
-oneof north {
-  double Stovepipe_Latitude = 7 [(dccl.field).max=90.0, (dccl.field).min=-90, (dccl.field).precision=4];
-  double Stovepipe_y = 17 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1];
-  double Delta_y = 27 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1];
-  }
+//oneof east {
+//  double Stovepipe_Longitude = 6 [(dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=4];
+  optional double Stovepipe_x = 16 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1]; // UTM X
+//  double Delta_x = 26 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1]; // Meters East of UUV
+//  }
+//oneof north {
+//  double Stovepipe_Latitude = 7 [(dccl.field).max=90.0, (dccl.field).min=-90, (dccl.field).precision=4];
+  optional double Stovepipe_y = 17 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1];
+//  double Delta_y = 27 [(dccl.field).max=20470.0, (dccl.field).min=-20480, (dccl.field).precision=-1];
+//  }
 
 optional double Depth = 8 [default=500.0, (dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 optional int32 Heading = 9 [(dccl.field).max=359, (dccl.field).min=0, default=0];
