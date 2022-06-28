@@ -150,14 +150,20 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     CRapRays Rap;
  
     //---Declare variables that get their valies directly from the .moos file---
-    LAMSS_PINGER_COMMAND pinger_command;
-    bool getPingerInfo();
+#ifndef GEO_COMMAND
+  LAMSS_PINGER_COMMAND pinger_command;
+#else
+  LAMSS_PINGER_COMMAND_GEO pinger_command;
+#endif
+  bool getPingerInfo();
     void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
     bool pinger_active;
     std::string pinger_id;
     bool pinger_enabled;
     double pinger_x;
     double pinger_y;
+    double pinger_lat;
+    double pinger_lon;
     double pinger_depth;
     double pinger_db;
 

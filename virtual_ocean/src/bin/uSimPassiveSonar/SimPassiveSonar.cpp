@@ -119,8 +119,11 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   subscribe("VEHICLE_NAME", &SimPassiveSonar::handle_vehicle_name, this);    
   subscribe("SOUND_SPEED", &SimPassiveSonar::handle_sound_speed, this);    
   subscribe("SOUND_SPEED_GRAM", &SimPassiveSonar::handle_sound_speed, this);    
+#ifndef GEO_COMMAND
   subscribe("LAMSS_PINGER_COMMAND_IN", &SimPassiveSonar::handle_pinger_command, this);    
-
+#else
+  subscribe("LAMSS_PINGER_COMMAND_GEO_IN", &SimPassiveSonar::handle_pinger_command, this);    
+#endif
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
   //
@@ -130,6 +133,9 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   // intialize MOOSGeodesy
   
   m_Geodesy.Initialise(cfg_.common().lat_origin(),cfg_.common().lon_origin());
+  lat_origin_ = cfg_.common().lat_origin();
+  lon_origin_ = cfg_.common().lon_origin();
+  
 
   // Clear ray buffer
   eig.clear();
@@ -194,6 +200,12 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   // random number seed
   iseed = -123456;
   array_prev_pitch = -1000;
+
+  // Pinger
+  pinger_lat = lat_origin_;
+  pinger_lon = lon_origin_;
+  pinger_x = 0;
+  pinger_y = 0;
 
   minimum_frequency = 0;
   maximum_frequency = 1e20;
@@ -637,6 +649,10 @@ void SimPassiveSonar::loop()
   if (new_origin_)
     {
       m_Geodesy.Initialise(lat_origin_,lon_origin_);
+      // Update pinger UTM location
+      m_Geodesy.LatLong2LocalUTM(pinger_lat,pinger_lon,
+				 pinger_y,pinger_x);
+
       new_origin_ = false;
     }
   
@@ -2735,8 +2751,18 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   if (pinger_active)
     {
       pinger_id = "PINGER";
+#ifndef GEO_COMMAND
       pinger_x = pinger_command.pinger_x();
       pinger_y = pinger_command.pinger_y();
+      m_Geodesy.UTM2LatLong(pinger_x,pinger_y,
+			    pinger_lat,pinger_lon); 
+#else
+      pinger_lat = pinger_command.pinger_lat();
+      pinger_lon = pinger_command.pinger_lon();
+      m_Geodesy.LatLong2LocalUTM(pinger_lat,pinger_lon,
+				 pinger_y,pinger_x);
+#endif			    
+      
       pinger_depth = pinger_command.pinger_depth();
       pinger_db = pinger_command.pinger_db();
 
