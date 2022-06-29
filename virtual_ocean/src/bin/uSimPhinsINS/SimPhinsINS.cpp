@@ -379,8 +379,12 @@ void SimPhinsINS::PublishPhinsDataMOOSVar()
   phins_data.mutable_speed_vessel_frame_msec()->set_xv1(m_ins_calc_u);
   phins_data.mutable_speed_vessel_frame_msec()->set_xv2(-1*m_ins_calc_v); // xv2 is positive port
   phins_data.mutable_speed_vessel_frame_msec()->set_xv3(-1*m_ins_calc_w); // xv3 is positive up
-  phins_data.mutable_position()->set_longitude(m_current_nav_lon);
-  phins_data.mutable_position()->set_latitude(m_current_nav_lat);
+  // Position
+  double lat,lon;
+  m_Geodesy.UTM2LatLong(m_ins_calc_x,m_ins_calc_y,lat,lon);
+
+  phins_data.mutable_position()->set_longitude(lon);
+  phins_data.mutable_position()->set_latitude(lat);
   phins_data.mutable_position()->set_altitude(-m_current_nav_depth);
   std::string serialized;
   serialize_for_moos(&serialized,phins_data);
