@@ -27,6 +27,7 @@ SimPhinsINS::SimPhinsINS()
   m_prev_auv_v = 0;
   m_prev_auv_w = 0;
   m_ins_update_no=0;
+  utm_update = false;
 }
 
 //---------------------------------------------------------
@@ -59,7 +60,19 @@ bool SimPhinsINS::OnNewMail(MOOSMSG_LIST &NewMail)
     bool   mdbl  = msg.IsDouble();
     bool   mstr  = msg.IsString();
 #endif
-    if (key == "FRONTSEAT_BODY_VEL_Y") {
+
+    if(key == "LAT_ORIGIN") 
+      {
+	dfLatOrigin = dval;
+	utm_update = true;
+      }
+    
+    else if(key == "LONG_ORIGIN") 
+      {
+	dfLongOrigin = dval;
+	utm_update = true;
+      }
+    else if (key == "FRONTSEAT_BODY_VEL_Y") {
       m_current_u = dval;             // MOOS convension Y is surge
       m_current_u_time = MOOSTime();
       m_current_u_received = true;
@@ -90,16 +103,19 @@ bool SimPhinsINS::OnNewMail(MOOSMSG_LIST &NewMail)
     else if(key == "FRONTSEAT_HEADING") {
       m_current_nav_heading = dval;
     }
-    else if(key == "FRONTSEAT_X") {
-      m_current_nav_x = dval;
+    else if(key == "FRONTSEAT_LATITUDE") {
+      m_current_nav_lat = dval;
     }
-    else if(key == "FRONTSEAT_Y") {
-      m_current_nav_y = dval;
+    else if(key == "FRONTSEAT_LONGITUDE") {
+      m_current_nav_lon = dval;
     }
 
     
    }
-	
+
+  m_Geodesy.LatLong2LocalUTM(m_current_nav_lat,m_current_nav_lon,
+			     m_current_nav_y,m_current_nav_x);
+
    return(true);
 }
 
@@ -123,6 +139,18 @@ bool SimPhinsINS::OnConnectToServer()
 
 bool SimPhinsINS::Iterate()
 {
+  // New Lat/Long origin
+  if (utm_update)
+    {
+      double lat,lon;
+      m_Geodesy.UTM2LatLong(m_ins_calc_x,m_ins_calc_y,lat,lon);
+      m_Geodesy.Initialise(dfLatOrigin, dfLongOrigin);
+      m_Geodesy.LatLong2LocalUTM(m_current_nav_lat,m_current_nav_lon,
+				 m_current_nav_y,m_current_nav_x);
+      m_Geodesy.LatLong2LocalUTM(lat,lon,
+				 m_ins_calc_y,m_ins_calc_x);
+      utm_update = false;
+    }
   // Converting ground relative AUV velocity from body frame to earth frame
   double current_ydot = m_current_u*cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_roll*M_PI/180) - sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180))+m_current_w*(sin(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180)+cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180));
   double current_xdot = m_current_u*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_pitch*M_PI/180)+m_current_v*(cos(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)+sin(m_current_nav_roll*M_PI/180)*sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180))+m_current_w*(sin(m_current_nav_pitch*M_PI/180)*sin(m_current_nav_heading*M_PI/180)*cos(m_current_nav_roll*M_PI/180)-cos(m_current_nav_heading*M_PI/180)*sin(m_current_nav_roll*M_PI/180));
@@ -237,6 +265,33 @@ bool SimPhinsINS::OnStartUp()
       }
     }
   }
+  
+  
+  if(m_MissionReader.GetValue("LatOrigin", dfLatOrigin))
+    {
+	m_Comms.Notify("LAT_ORIGIN",dfLatOrigin);
+    }
+    else
+    {
+	std::cout<<"No Lat Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+   if(m_MissionReader.GetValue("LongOrigin", dfLongOrigin))
+    {
+	m_Comms.Notify("LONG_ORIGIN",dfLongOrigin);
+    }
+    else
+    {
+	std::cout<<"No Long Origin value in the MOOS file"<<std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if(!m_Geodesy.Initialise(dfLatOrigin, dfLongOrigin))
+    {
+	std::cout<<"Error in initialising Geodesy"<<std::endl;
+    }
+
   string sVal;
   if(m_MissionReader.GetConfigurationParam("ins_bias_udot",sVal))
   {
@@ -295,8 +350,8 @@ void SimPhinsINS::RegisterVariables()
   Register("FRONTSEAT_BODY_VEL_Z", 0);
   Register("CURRENT_X", 0);
   Register("CURRENT_Y", 0); 
-  Register("FRONTSEAT_X", 0); 
-  Register("FRONTSEAT_Y", 0);
+  Register("FRONTSEAT_LATITUDE", 0); 
+  Register("FRONTSEAT_LONGITUDE", 0);
 }
 
 void SimPhinsINS::PublishPhinsDataMOOSVar()
@@ -324,7 +379,13 @@ void SimPhinsINS::PublishPhinsDataMOOSVar()
   phins_data.mutable_speed_vessel_frame_msec()->set_xv1(m_ins_calc_u);
   phins_data.mutable_speed_vessel_frame_msec()->set_xv2(-1*m_ins_calc_v); // xv2 is positive port
   phins_data.mutable_speed_vessel_frame_msec()->set_xv3(-1*m_ins_calc_w); // xv3 is positive up
+  // Position
+  double lat,lon;
+  m_Geodesy.UTM2LatLong(m_ins_calc_x,m_ins_calc_y,lat,lon);
 
+  phins_data.mutable_position()->set_longitude(lon);
+  phins_data.mutable_position()->set_latitude(lat);
+  phins_data.mutable_position()->set_altitude(-m_current_nav_depth);
   std::string serialized;
   serialize_for_moos(&serialized,phins_data);
   Notify("FRONTSEAT_PHINS_DATA", serialized);
