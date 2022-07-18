@@ -33,7 +33,7 @@ SimPhinsINS::SimPhinsINS()
   m_ins_update_no=0;
   utm_update = false;
   // Initialize averaging filters
-  int filter_length = 10;
+  int filter_length = 5;
   roll_rate_filter.configAvg(filter_length);
   pitch_rate_filter.configAvg(filter_length);
   heading_rate_filter.configAvg(filter_length);
@@ -252,12 +252,18 @@ bool SimPhinsINS::Iterate()
     m_ins_pitch_rate =
       (m_current_nav_pitch-m_prev_nav_pitch)/(m_current_heading_time-m_prev_heading_time);
     if (m_current_nav_heading - m_prev_nav_heading > 180)
-      m_current_nav_heading -= 360;
+      m_ins_heading_rate =
+	(m_current_nav_heading-m_prev_nav_heading - 360)/
+	(m_current_heading_time-m_prev_heading_time);
     else if (m_current_nav_heading - m_prev_nav_heading <= -180)
-      m_current_nav_heading += 360;
-    m_ins_heading_rate =
-      (m_current_nav_heading-m_prev_nav_heading)/(m_current_heading_time-m_prev_heading_time);
-
+      m_ins_heading_rate =
+	(m_current_nav_heading-m_prev_nav_heading + 360)/
+	(m_current_heading_time-m_prev_heading_time);
+    else
+      m_ins_heading_rate =
+	(m_current_nav_heading-m_prev_nav_heading)/
+	(m_current_heading_time-m_prev_heading_time);
+    
     roll_rate_filter.setVal(m_ins_roll_rate);
     pitch_rate_filter.setVal(m_ins_pitch_rate);
     heading_rate_filter.setVal(m_ins_heading_rate);
