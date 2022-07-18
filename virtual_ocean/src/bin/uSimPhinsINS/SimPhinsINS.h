@@ -83,8 +83,10 @@ class SimPhinsINS : public CMOOSApp
  double m_current_nav_pitch;
  double m_current_nav_heading;
  double m_current_u_time;
+ double m_current_heading_time;
  double m_current_nav_depth_time;
  bool m_current_u_received;
+ bool m_current_heading_received;
  double m_auv_udot;
  double m_auv_vdot;
  double m_auv_wdot;
@@ -95,6 +97,7 @@ class SimPhinsINS : public CMOOSApp
  double m_prev_nav_pitch;
  double m_prev_nav_heading;
  double m_prev_u_time;
+ double m_prev_heading_time;
  double m_ins_udot;
  double m_ins_vdot;
  double m_ins_wdot;

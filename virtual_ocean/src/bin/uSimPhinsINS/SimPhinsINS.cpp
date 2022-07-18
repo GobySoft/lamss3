@@ -22,7 +22,8 @@ SimPhinsINS::SimPhinsINS()
 {
   m_current_u_received = false;
   m_current_u_time = MOOSTime();
-  m_prev_u_time = MOOSTime();
+  m_current_heading_time = MOOSTime();
+  m_prev_heading_time = MOOSTime();
   m_prev_auv_u = 0;
   m_prev_auv_v = 0;
   m_prev_auv_w = 0;
@@ -109,6 +110,8 @@ bool SimPhinsINS::OnNewMail(MOOSMSG_LIST &NewMail)
       m_current_nav_pitch = dval*180/M_PI;
     }
     else if(key == "FRONTSEAT_HEADING") {
+      m_current_heading_received = true;
+      m_current_heading_time = MOOSTime();
       m_current_nav_heading = dval;
     }
     else if(key == "FRONTSEAT_LATITUDE") {
@@ -238,22 +241,31 @@ bool SimPhinsINS::Iterate()
   MOOSTrace("INS error: pos=%.4f, u=%.4f, v=%.4f, w=%.3f \n",ins_pos_error, ins_u_error, ins_v_error, ins_w_error);
   // --------------------------------------------------------------------------------------------------------
 
-  // Differentiate to calculate pose rates
-  if (m_current_u_received == true && (m_current_u_time-m_prev_u_time)<2 &&
-      (m_current_u_time-m_prev_u_time)>0 &&
+  // Differentiate to calculate attitude rates
+  if (m_current_heading_received &&
+      (m_current_heading_time-m_prev_heading_time)>0 &&
       !isnan(m_current_nav_roll) && !isnan(m_current_nav_pitch) &&
       !isnan(m_current_nav_heading))
   {
     m_ins_roll_rate =
-      (m_current_nav_roll-m_prev_nav_roll)/(m_current_u_time-m_prev_u_time);
+      (m_current_nav_roll-m_prev_nav_roll)/(m_current_heading_time-m_prev_heading_time);
     m_ins_pitch_rate =
-      (m_current_nav_pitch-m_prev_nav_pitch)/(m_current_u_time-m_prev_u_time);
+      (m_current_nav_pitch-m_prev_nav_pitch)/(m_current_heading_time-m_prev_heading_time);
     if (m_current_nav_heading - m_prev_nav_heading > 180)
       m_current_nav_heading -= 360;
     else if (m_current_nav_heading - m_prev_nav_heading <= -180)
       m_current_nav_heading += 360;
     m_ins_heading_rate =
-      (m_current_nav_heading-m_prev_nav_heading)/(m_current_u_time-m_prev_u_time);
+      (m_current_nav_heading-m_prev_nav_heading)/(m_current_heading_time-m_prev_heading_time);
+
+    roll_rate_filter.setVal(m_ins_roll_rate);
+    pitch_rate_filter.setVal(m_ins_pitch_rate);
+    heading_rate_filter.setVal(m_ins_heading_rate);
+    m_prev_nav_roll = m_current_nav_roll;
+    m_prev_nav_pitch = m_current_nav_pitch;
+    m_prev_nav_heading = m_current_nav_heading;
+    m_prev_heading_time = m_current_heading_time;
+    m_current_heading_received = false;
   }
 
   // Publish Phins Data
@@ -263,9 +275,6 @@ bool SimPhinsINS::Iterate()
   m_prev_auv_u = auv_u;
   m_prev_auv_v = auv_v;
   m_prev_auv_w = auv_w;
-  m_prev_nav_roll = m_current_nav_roll;
-  m_prev_nav_pitch = m_current_nav_pitch;
-  m_prev_nav_heading = m_current_nav_heading;
   m_prev_u_time = m_current_u_time;
   m_current_u_received == false;
   return(true);
@@ -397,9 +406,9 @@ void SimPhinsINS::PublishPhinsDataMOOSVar()
   phins_data.mutable_attitude_deg()->set_pitch(m_current_nav_pitch);
   phins_data.mutable_attitude_deg()->set_heading(m_current_nav_heading);
   // Setting attitude rate data
-  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv1(m_ins_roll_rate);
-  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv2(m_ins_pitch_rate);
-  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv3(m_ins_heading_rate);
+  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv1(roll_rate_filter.getAvg());
+  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv2(pitch_rate_filter.getAvg());
+  phins_data.mutable_rot_rate_vessel_frame_degsec()->set_xv3(heading_rate_filter.getAvg());
   // Setting linear acceleration vessel frame data
   phins_data.mutable_acce_vessel_frame_msec2()->set_xv1(m_ins_udot);
   phins_data.mutable_acce_vessel_frame_msec2()->set_xv2(-1*m_ins_vdot); // xv2 is positive port
