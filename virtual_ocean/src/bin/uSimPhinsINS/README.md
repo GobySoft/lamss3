@@ -17,7 +17,7 @@ Figure 1 shows the legacy platform coordinate convention used by MOOS to the lef
 The INS simulator subscribes to the following required variables in the frontseat MOOSDB, which must be published by a dynamic model for the vehicle:
 
     MOOS variable           Type    Description
-    FRONTSEAT_SPEED         double  Speed over ground in m/s for the vehicle.
+
     FRONTSEAT_HEADING       double  Heading of the vehicle in degrees, clockwise from geographical North.
     FRONTSEAT_DEPTH         double  Depth of vehicle in meters.
     FRONTSEAT_PITCH         double  Pitch of the vehicle in radians, positive nose up.
@@ -218,16 +218,14 @@ message speedGeographicFrameDeviation
 }
 ```
 
-The entire message is not required to be completed, a minimum publication is as follows:
+The entire message is not required to be completed, a typical publication is as follows:
 
 ```
 PHINS_DATA     "@PB[lamss.hydroman.protobuf.IXBlueINSData] header { protocol_version: 3 navigation_bit_mask: 2145648639 extended_navigation_bit_mask: 3 telegram_size: 390 navigation_data_validity_time_100us: 299149998 } 
-acce_vessel_frame_msec2 { xv1: -0.0088289668122777248 xv2: -0.0068793532609167391 
-                          xv3: 0.008971029162415347 } 
+rot_rate_vessel_frame_degsec { xv1: 0 xv2: 0.57912501679816153 xv3: -0.6273974324103434 } acce_vessel_frame_msec2 { xv1: -0.0028664350098073516 xv2: 0.014463748557885134 xv3: 0.024275026849454772 } 
 acce_vessel_frame_stdev { xv1: 0.01 xv2: 0.01 xv3: 0.01 } 
-attitude_deg { roll: 0 pitch: -15.98068855410431 heading: 22 } 
-speed_vessel_frame_msec { xv1: 1.0676560932883106 xv2: -0.071048257540984983 
-                          xv3:0.0047070799642347991 } "
+attitude_deg { roll: 0 pitch: 2.4976674395474134 heading: 38.70911521441832 } 
+speed_vessel_frame_msec { xv1: 1.8962745819915034 xv2: -0.0083516745968871316 xv3: 0.0020429459101123457 }  "
 ```
 
 
