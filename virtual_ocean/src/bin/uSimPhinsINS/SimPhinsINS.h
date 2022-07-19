@@ -11,6 +11,7 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include <boost/asio.hpp>
 #include "lamss/lib_lamss_protobuf/IXBlueINSData.pb.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
 
@@ -82,18 +83,27 @@ class SimPhinsINS : public CMOOSApp
  double m_current_nav_pitch;
  double m_current_nav_heading;
  double m_current_u_time;
+ double m_current_heading_time;
  double m_current_nav_depth_time;
  bool m_current_u_received;
+ bool m_current_heading_received;
  double m_auv_udot;
  double m_auv_vdot;
  double m_auv_wdot;
  double m_prev_auv_u;
  double m_prev_auv_v;
  double m_prev_auv_w;
+ double m_prev_nav_roll;
+ double m_prev_nav_pitch;
+ double m_prev_nav_heading;
  double m_prev_u_time;
+ double m_prev_heading_time;
  double m_ins_udot;
  double m_ins_vdot;
  double m_ins_wdot;
+ double m_ins_roll_rate;
+ double m_ins_pitch_rate;
+ double m_ins_heading_rate;
  double m_current_nav_x;
  double m_current_nav_y;
  double m_current_nav_lat;
@@ -116,6 +126,11 @@ class SimPhinsINS : public CMOOSApp
   double dfLatOrigin;
   double dfLongOrigin;
   bool utm_update;
+
+  // Measurement filters
+  CMeasAvg roll_rate_filter;
+  CMeasAvg pitch_rate_filter;
+  CMeasAvg heading_rate_filter;
 };
 
 #endif 
