@@ -111,6 +111,20 @@ void LamssNetCdf::initialize_noaa_nc(std::string nc_file,
     }
 }
 
+void LamssNetCdf::initialize_gebco_nc(std::string nc_file,
+				     double lat_origin,
+				     double lon_origin,
+				     double moos_start,
+				     bool fixed_start)
+{
+  nc_is_open_  = false;
+  if (open_gebco_nc(nc_file))
+    {
+      scewed_grid = false;
+      geodesy_.Initialise(lat_origin,lon_origin);
+    }
+}
+
 void LamssNetCdf::initialize_mseas_nc(std::string nc_file,
 				      double lat_origin,
 				      double lon_origin,
@@ -747,6 +761,44 @@ bool LamssNetCdf::open_noaa_nc(std::string nc_file_)
 
   return true;
 }
+
+bool LamssNetCdf::open_gebco_nc(std::string nc_file_)
+{
+
+  // First open NetCdf file
+  
+  if(nc_is_open_) return(true);
+  
+  std::cout << "Opening GEBCO bathy nc file: " << nc_file_ << std::endl;
+  open_nc_file(nc_file_);
+
+  lon_ncname = "lon";
+  lat_ncname = "lat";
+
+  //  get_lat_lon_dimensions();
+  if (!get_lat_lon_dimensions())
+    {
+      lon_ncname = "x";
+      lat_ncname = "y";
+      if (!get_lat_lon_dimensions())
+	exit(EXIT_FAILURE);
+    }
+  get_lat_lon();
+  
+  status = nc_inq_varid (ncid_, "elevation", &gebco_bathy_varid_);
+  if (status != NC_NOERR)
+    {
+      std::cout<<"ERROR - failed to get variable id for elevation."<< std::endl;
+      std::cout<<nc_strerror(status)<< std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+  std::cout << "gebco_bathy_varid_=" << gebco_bathy_varid_ << std::endl;
+ 
+
+  return true;
+}
+
 
 bool LamssNetCdf::open_hycom_nc(std::string nc_file_)
 {
@@ -1847,6 +1899,63 @@ double LamssNetCdf::get_noaa_bathy( double lat_, double lon_)
       return(bathy_z);
     }
 }
+
+double LamssNetCdf::get_gebco_bathy( double lat_, double lon_)
+{
+  int status;
+
+  double lat_m;
+  double lon_m;
+  std::vector<int> min_ilat,min_ilon;
+  std::vector<double> min_lat_val;
+  std::vector<double> min_lon_val;
+  std::vector<double> x,y,z;
+  double bathy_z;
+  bool debug = false;
+  
+  z.resize(3);
+
+  double default_bathy = std::numeric_limits<double>::quiet_NaN() ; // NaN
+
+  //convert lat/lon position to local UTM
+
+  if(!geodesy_.LatLong2LocalUTM(lat_,lon_,lat_m,lon_m)) 
+  {
+    std::cout << "ERROR: Failed to calculate UTM position. " << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  //get sound speed of closest 3 grid points
+  // Note that here x is N and y E!
+  if ( !closest_lat_lon(lat_,lon_,
+			min_lat_val,min_lon_val,x,y,min_ilat,min_ilon))
+    return(default_bathy);
+  else
+    {
+      for(int n=0;n<3;n++)
+	{
+	  //get lat/lon/bathy of closest grid point
+	  size_t bathy_index[] = {static_cast<size_t>(min_ilat[n]),static_cast<size_t>(min_ilon[n])}; 
+	  short val;
+	  status = nc_get_var1_short(ncid_, gebco_bathy_varid_, bathy_index, &val);
+	  if (status != NC_NOERR)
+	    {
+	      std::cout<<"ERROR - failed to get bathy value for "
+		       << std::setprecision(std::numeric_limits<double>::digits10)
+		       <<min_lat_val[n]<<"N x "
+		       <<min_lon_val[n]<<"E."<<std::endl;
+	      std::cout<<nc_strerror(status)<<std::endl;
+	      z[n] = default_bathy;
+	    }
+	  else
+	    z[n] = val;
+	}
+      //get lat/lon/bathy of closest grid point
+      bathy_z = interp_triangle(lat_m,lon_m,x,y,z);
+      return(bathy_z);
+    }
+}
+
 
 double LamssNetCdf::datenum(const std::vector<int>& date_vec)
 {

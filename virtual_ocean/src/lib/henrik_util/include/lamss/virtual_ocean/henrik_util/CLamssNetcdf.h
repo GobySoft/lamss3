@@ -91,6 +91,7 @@ class LamssNetCdf
   int temp_varid_;
   int salt_varid_;
   int bathy_varid_;
+  int gebco_bathy_varid_;
 
   std::string time_units_;
   double nc_time_unit;
@@ -136,6 +137,13 @@ class LamssNetCdf
 			  double moos_start, bool fixed_start);
   bool open_noaa_nc(std::string);
   double get_noaa_bathy(double lat, double lon);
+  
+  // GEBCO specific functions and variables
+  void initialize_gebco_nc(std::string nc_file,
+			  double lat_origin, double lon_origin,
+			  double moos_start, bool fixed_start);
+  bool open_gebco_nc(std::string);
+  double get_gebco_bathy(double lat, double lon);
 
   // MSEAS specific functions and variables 
   void initialize_mseas_nc(std::string nc_file,
