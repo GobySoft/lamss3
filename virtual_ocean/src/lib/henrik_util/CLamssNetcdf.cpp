@@ -213,7 +213,7 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file,
 
   if (open_hycom_nc(files[0]))
     {
-      scewed_grid - false;
+      scewed_grid = false;
       geodesy_.Initialise(lat_origin,lon_origin);
 
       // conversion of nc times to utc
