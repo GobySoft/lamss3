@@ -4,6 +4,7 @@ import "goby/protobuf/option_extensions.proto";
 message LAMSS_PINGER_COMMAND { 
 	option (dccl.msg).id = 59;
 	option (dccl.msg).max_bytes = 32;
+        option (dccl.msg).codec_version = 4;
 	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
@@ -38,6 +39,7 @@ message LAMSS_PINGER_COMMAND {
 message LAMSS_PINGER_COMMAND_GEO { 
 	option (dccl.msg).id = 159;
 	option (dccl.msg).max_bytes = 32;
+        option (dccl.msg).codec_version = 4;
 	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
