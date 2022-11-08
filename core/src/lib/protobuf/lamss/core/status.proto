@@ -5,6 +5,7 @@ message LAMSS_STATUS
     option (dccl.msg).id = 20;
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).unit_system = "si";
+        option (dccl.msg).codec_version = 4;
 
     optional double timestamp = 1 [
         (dccl.field).codec = "_time",
@@ -163,6 +164,7 @@ message LAMSS_STATUS_GEO
     option (dccl.msg).id = 120;
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).unit_system = "si";
+        option (dccl.msg).codec_version = 4;
 
     optional double timestamp = 1 [
         (dccl.field).codec = "_time",

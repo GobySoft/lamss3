@@ -4,6 +4,7 @@ message VIEW_SEGLIST
 {
     option (dccl.msg).id = 57;
     option (dccl.msg).max_bytes = 32;
+        option (dccl.msg).codec_version = 4;
     optional double _time = 1
         [(dccl.field).codec = "_time", (dccl.field).in_head = true];
     optional int32 vehicle_name = 2 [
@@ -54,6 +55,7 @@ message VIEW_SEGLIST_GEO
 {
     option (dccl.msg).id = 157;
     option (dccl.msg).max_bytes = 32;
+        option (dccl.msg).codec_version = 4;
     optional double _time = 1
         [(dccl.field).codec = "_time", (dccl.field).in_head = true];
     optional int32 vehicle_name = 2 [
