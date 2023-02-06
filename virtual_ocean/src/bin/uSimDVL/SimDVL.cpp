@@ -141,25 +141,44 @@ bool SimDVL::Iterate()
             // DVL has bottom/ice lock
             // Adding water velocity since DVL has bottom lock
             // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-            auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
-            auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
-            auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            if (m_using_umvs_bluefin){
+              auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
+              auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
+              auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            } else{
+              auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+              auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+              auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            }
+            
         }
         else {
             // DVL in water-track mode
             // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-            auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
-            auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
-            auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            if (m_using_umvs_bluefin){
+              auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+              auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+              auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            } else {
+              auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
+              auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
+              auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+            }
             MOOSTrace("No DVL lock. Water current: xdot=%.2f, ydot=%.2f \n",m_current_water_vel_x,m_current_water_vel_y);
         }
     }
     else {
         // Adding water velocity since DVL has bottom lock
         // Calculating vel of the AUV relative to surface ice in X/Y frame (i.e. xdot, ydot, zdot)
-        auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
-        auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
-        auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+        if (m_using_umvs_bluefin){
+          auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot + m_current_water_vel_x;
+          auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot + m_current_water_vel_y;
+          auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+        } else {
+          auvVelRelIce_xdot = m_current_xdot - m_icecamp_xdot;
+          auvVelRelIce_ydot = m_current_ydot - m_icecamp_ydot;
+          auvVelRelIce_zdot = m_current_zdot - m_icecamp_zdot;
+        }
     }
 
     // Converting ice relative AUV velocity from earth-frame to body frame
@@ -273,6 +292,10 @@ bool SimDVL::OnStartUp()
     {
         c_simulate_dvl_range = atof(sVal.c_str());
         MOOSTrace("Simulate DVL range: %i \n",c_simulate_dvl_range);
+    }
+    if(m_MissionReader.GetConfigurationParam("using_umvs_bluefin",sVal))
+    {
+        setBooleanOnString(m_using_umvs_bluefin, sVal);
     }
     m_dvl_data_post_time = m_current_u_time;
     RegisterVariables();

@@ -35,6 +35,7 @@ class SimDVL : public CMOOSApp
     double c_dvl_max_range;
     double c_dvl_min_range;
     double c_simulate_dvl_range;
+    bool   m_using_umvs_bluefin = true;
 
  private: // State variables
     double m_dvl_data_post_time;
