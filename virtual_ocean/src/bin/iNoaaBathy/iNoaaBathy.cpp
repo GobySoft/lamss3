@@ -152,6 +152,8 @@ bool CiNoaaBathy::OnStartUp()
 void CiNoaaBathy::RegisterVariables()
 {
   // m_Comms.Register(variable, min_time_between_updates)
+  m_Comms.Register("LAT_ORIGIN", 0); 
+  m_Comms.Register("LONG_ORIGIN", 0); 
   m_Comms.Register("NAV_X", 0); 
   m_Comms.Register("NAV_Y", 0); 
   m_Comms.Register("BATHY_REQUEST", 0); 
