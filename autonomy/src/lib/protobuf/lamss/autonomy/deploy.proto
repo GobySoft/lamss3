@@ -26,6 +26,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_ABORT = 12;
 		 DEPLOY_MODE_RECOVERY = 13;
 		 DEPLOY_MODE_SANDSHARK = 14;
+		 DEPLOY_MODE_LANDING = 15;
 	}
 	optional Depth_ModeEnum Depth_Mode = 6 [default=DEPTH_MODE_SINGLE];
 	enum Depth_ModeEnum{
