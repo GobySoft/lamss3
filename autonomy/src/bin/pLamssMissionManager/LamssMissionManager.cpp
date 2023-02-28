@@ -262,6 +262,12 @@ void LamssMissionManager::slow_loop(double curr_time)
   // First update deploy and abort parameters
   if (cfg_.dynamic_opregion() && got_first_tracking_msg)
     update_deploy_parameters();
+
+  double loiter_range =
+    sqrt(pow(last_nav_.local_fix().x()-last_deploy_x_,2)+
+	 pow(last_nav_.local_fix().y()-last_deploy_y_,2));
+
+
   // Here we should add the check for blackout_duration and prosecute_duration.
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
@@ -272,6 +278,38 @@ void LamssMissionManager::slow_loop(double curr_time)
       	deploy_mode_active_ && survey_wpt_index < 1  && !in_track )
       update_utm_datum(curr_time);	
 #endif
+
+  if (descent_state_active_)
+    {
+      if (touchdown_location_reached_ =
+	  (loiter_range <= 2*last_deploy_cmd_.loiter_radius()))
+	glog.is(VERBOSE) && glog << "Touchdown location range  " <<
+	  loiter_range << " reached" << std::endl;
+; 
+      double touchdown_altitude;
+      if (last_deploy_cmd_.has_deploy_altitude())
+	touchdown_altitude = last_deploy_cmd_.deploy_altitude();
+      else
+	touchdown_altitude = 10;
+			
+      if (last_nav_.global_fix().altitude() > 0 &&
+	  last_nav_.global_fix().altitude() <= touchdown_altitude + 10) {
+	touchdown_altitude_reached_ = true;
+	glog.is(VERBOSE) && glog << "Touchdown Altitude " <<
+	  touchdown_altitude << " reached" << std::endl;
+      }
+      
+      if (touchdown_location_reached_ && touchdown_altitude_reached_)  
+	{
+	  queue_event<EvTouchdown>();
+	  touchdown_altitude_cond_.notify_one();
+	  goby::glog.is(VERBOSE) && glog
+	    << group("helm")
+	    << "Touchdown location and depth reached: "
+	    << std::endl;
+	}
+    }
+    
 
     if (prosecute_mode_active_)
     {
@@ -1021,9 +1059,16 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  queue_event<EvStartDeploy>();
 	  queue_event<EvReturnToBase>();
 	}
-      else
+#ifndef GEO_COMMAND
+      else if (last_deploy_cmd_.deploy_mode() ==
+	       LAMSS_DEPLOY::DEPLOY_MODE_LANDING)
+#else
+      else if (last_deploy_cmd_.deploy_mode() ==
+	       LAMSS_DEPLOY_GEO::DEPLOY_MODE_LANDING)
+#endif
 	{
 	  queue_event<EvStartDeploy>();
+	  queue_event<EvStartLanding>();
 	}
     }
 }
