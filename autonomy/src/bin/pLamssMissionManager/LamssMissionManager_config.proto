@@ -36,6 +36,8 @@ message LamssMissionManagerConfig
   }
   optional int32  topside_id = 13      [default = 1];
   optional string topside_name = 14    [default = "camp_sargo"];
+  optional double minimum_altitude = 15 [default = 5];
+
   optional double abort_x_offset = 20 [default = 0];
   optional double abort_y_offset = 21[default = 0];
   optional double abort_depth = 22 [default = 30];
