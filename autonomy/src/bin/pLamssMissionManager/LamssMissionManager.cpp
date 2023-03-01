@@ -1112,6 +1112,9 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	    queue_event<EvStartDeploy>();
 	    queue_event<EvStartLanding>();
 	  }
+	else
+	  queue_event<EvStartDeploy>();
+	  
     }
 }
 

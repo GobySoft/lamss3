@@ -443,8 +443,6 @@ namespace lamss
 	{
 	  boost::mutex::scoped_lock lock(moos_mutex_);
 	  // make sure we reached touchdown altitude
-	  while(!touchdown_completed_)
-	    touchdown_completed_cond_.wait(lock);
 	  goby::glog.is(goby::util::logger::VERBOSE) && 
 	    goby::glog << group("fsm") 
 		       << "completed ..." 
