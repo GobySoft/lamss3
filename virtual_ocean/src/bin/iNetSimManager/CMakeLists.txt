@@ -19,9 +19,3 @@ TARGET_LINK_LIBRARIES(iNetSimManager
   netsim_tcp
   netsim_messages
   )
-
-if(CMAKE_VERSION VERSION_LESS 3.1)
-  set_target_properties(iNetSimManager PROPERTIES COMPILE_FLAGS "-std=c++11")
-else()
-  set_property(TARGET iNetSimManager PROPERTY CXX_STANDARD 11)
-endif()
