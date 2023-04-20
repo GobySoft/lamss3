@@ -915,9 +915,8 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
   // Handle landing and takeoff
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
   if (last_nav_.global_fix().altitude() >=
-      cfg_.minimum_altitude() ||
-      last_nav_.global_fix().altitude() == 0 )
-    {
+      cfg_.minimum_altitude() )
+        {
       operation_altitude_ = true;
       operation_altitude_cond_.notify_one();
     }
@@ -998,8 +997,7 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
   // Handle landing and takeoff
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
   if (last_nav_.global_fix().altitude() >=
-      cfg_.minimum_altitude() ||
-      last_nav_.global_fix().altitude() == 0 )
+      cfg_.minimum_altitude())
     {
       operation_altitude_ = true;
       operation_altitude_cond_.notify_one();
