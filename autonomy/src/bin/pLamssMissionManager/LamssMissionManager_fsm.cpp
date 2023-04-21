@@ -50,7 +50,7 @@ bool  lamss::shared::fsm::liftoff_state_active_;
 bool  lamss::shared::fsm::touchdown_altitude_reached_;
 bool  lamss::shared::fsm::touchdown_location_reached_;
 bool  lamss::shared::fsm::touchdown_completed_;
-bool  lamss::shared::fsm::operation_altitude_;
+bool  lamss::shared::fsm::operation_altitude_ = true;;
 
 double lamss::shared::fsm::current_time_ = 0;
 double lamss::shared::fsm::last_acomms_ = 0;

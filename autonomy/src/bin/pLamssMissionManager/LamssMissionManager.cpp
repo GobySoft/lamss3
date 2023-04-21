@@ -914,17 +914,17 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
     }
   // Handle landing and takeoff
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
+  operation_altitude_ = false;
   if (last_nav_.global_fix().altitude() >=
-      cfg_.minimum_altitude() ||
-      last_nav_.global_fix().altitude() == 0 )
-    {
+      cfg_.minimum_altitude() )
+        {
       operation_altitude_ = true;
       operation_altitude_cond_.notify_one();
     }
   else
     operation_altitude_ = false;
   // Template: declare landing when less than 0.5 m altitude
-  if (touchdown_state_active_ && last_nav_.global_fix().altitude() <= 1.0)
+  if (touchdown_state_active_ && last_nav_.global_fix().altitude() <= cfg_.touchdown_altitude())
     {
       touchdown_completed_ = true;
       queue_event<EvBottoming>();
@@ -997,9 +997,9 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 
   // Handle landing and takeoff
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
+  operation_altitude_ = false;
   if (last_nav_.global_fix().altitude() >=
-      cfg_.minimum_altitude() ||
-      last_nav_.global_fix().altitude() == 0 )
+      cfg_.minimum_altitude())
     {
       operation_altitude_ = true;
       operation_altitude_cond_.notify_one();
