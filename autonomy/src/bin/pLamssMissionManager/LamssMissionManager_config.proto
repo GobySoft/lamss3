@@ -76,6 +76,15 @@ message LamssMissionManagerConfig
   repeated lamss.icex.protobuf.BeaconDepth beacon_depth = 70;
 
   optional bool auto_depth_adaptation = 80 [default=false];
+
+  message GlideParameters {
+     required double slope = 1;
+     required double speed = 2;
+     optional double utility = 3 [default = 100];
+  }
+
+  repeated GlideParameters glide_parameters = 52;
+
 }
 
 

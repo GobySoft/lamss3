@@ -1404,15 +1404,93 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 #ifndef GEO_COMMAND
   else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
 #else
-	   else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT &&
+  else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT &&
 #endif	   
-		    cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+    cfg_.homing_array() == LamssMissionManagerConfig::USBL)
 		  publish("USBL_ENABLED","TRUE");
-	     else
-	       publish("USBL_ENABLED","FALSE");
+  else
+    publish("USBL_ENABLED","FALSE");
 
+	   //
+	   // Glider yoyo behavior
+	   //
+	   std::stringstream transit_yoyo;
+	   transit_yoyo << "min_depth=" << last_deploy_cmd_.deploy_upper_depth()
+	   << "#max_depth=" << last_deploy_cmd_.deploy_lower_depth() ;
+	   double period = (2*last_deploy_cmd_.deploy_lower_depth() -
+			    last_deploy_cmd_.deploy_lower_depth())/cos(M_PI/12);
+	   std::stringstream pstr;
+	   pstr << "#period=" << period ;
+	   publish("SMART_YOYO", transit_yoyo.str() + pstr.str());
+	   //
+	   // Dynamic setting of glideslope and speed
+	   //
+	   int npar = cfg_.glide_parameters().size();
+	   std::stringstream glideparameters;
+	   if (npar > 0)
+	     {
+	       double diff_up = 1e6;
+	       int closest_up = -1;
+	       double diff_dn = 1e6;
+	       int closest_dn = -1;
+	       for (int i=0; i<npar; i++)
+		 {
+		   if (cfg_.glide_parameters(i).slope() >0 &&
+		       fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
+		       diff_up)
+		     {
+		       closest_up = i;
+		       diff_up = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
+		     }
+		   else if (cfg_.glide_parameters(i).slope() <= 0 &&
+			    fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
+			    diff_dn)
+		     {
+		       closest_dn = i;
+		       diff_dn = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
+		     }
+		 }
+	       if (closest_up >= 0 && closest_dn >=0)
+		 {
+		   glideparameters << "#glideslopes=";
+		   for (int i=0; i<npar; i++)
+		     {
+		       glideparameters << cfg_.glide_parameters(i).slope();
+		       if (i < npar-1)
+			 glideparameters << ",";
+		     }
+		   glideparameters << "#glidespeeds=";
+		   for (int i=0; i<npar; i++)
+		     {
+		       glideparameters << cfg_.glide_parameters(i).speed();
+		       if (i < npar-1)
+			 glideparameters << ",";
+		     }
+		   glideparameters << "#utilities=";
+		   for (int i=0; i<npar; i++)
+		     {
+		       if (i == closest_up)
+			 glideparameters << cfg_.glide_parameters(i).utility();
+		       else if (i == closest_dn)
+			 glideparameters << cfg_.glide_parameters(i).utility();
+		       else
+			 glideparameters << 0;
+		       if (i < npar-1)
+			 glideparameters << ",";
+		     }
+		 }
+	       else
+		 {
+		   glog.is_die() && glog << "Configuration Error: Both negative and positive valid glidelopes required"
+		     
+					 << std::endl;
+		 }
+	       
+	     }
+	   publish("GLIDER_TRANSIT_YOYO", transit_yoyo.str() + glideparameters.str());
+	   
 	   }
-
+  
   void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
   {
 #ifndef GEO_COMMAND
