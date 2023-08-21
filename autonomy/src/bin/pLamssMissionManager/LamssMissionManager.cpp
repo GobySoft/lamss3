@@ -126,8 +126,10 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	    &LamssMissionManager::handle_collaborator_id, this);
   subscribe("COLLABORATOR_NAME", 
 	    &LamssMissionManager::handle_collaborator_name, this);  
-  subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
-  subscribe("HYDROMAN_NAV_DATA", &LamssMissionManager::handle_hydroman_data, this);
+  if (cfg_.navigating_with_hydroman())
+    subscribe("HYDROMAN_NAV_DATA", &LamssMissionManager::handle_hydroman_data, this);
+  else
+    subscribe("IFS_DATA_IN", &LamssMissionManager::handle_ifs_data, this);
   subscribe("OPREG_TRAJECTORY_PERIM_DIST", &LamssMissionManager::handle_opbox_distance, this);
   subscribe("DESIRED_DEPTH", &LamssMissionManager::handle_desired_depth, this);
   subscribe("GOTO_SURFACE", &LamssMissionManager::handle_goto_surface, this);
@@ -984,6 +986,8 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 	  std::stringstream ss;
 	  ss << "Timestamp=" << std::setprecision(15) << data.time();
 	  publish("GPS_UPDATE_RECEIVED", ss.str());
+	  got_gps_nav = true;
+	  last_gps_ = MOOSTime();
 	}
 	
       // post NAV_DATA
