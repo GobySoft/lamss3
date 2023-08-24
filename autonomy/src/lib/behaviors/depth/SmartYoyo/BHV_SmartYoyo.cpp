@@ -238,6 +238,7 @@ IvPFunction *BHV_SmartYoyo::onRunState()
 	    new_depth = mean_depth + (max_depth_local-mean_depth)*cos((distance_traveled/period)*2*M_PI);
 	  mark_distance = distance_traveled;  
 	}
+      new_depth = std::max(new_depth,min_depth);
     }
   ZAIC_PEAK zaic_depth(m_domain, "depth");
   zaic_depth.setSummit(new_depth);
