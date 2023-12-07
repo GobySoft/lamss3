@@ -438,8 +438,12 @@ void LamssMissionManager::slow_loop(double curr_time)
 		{
 		  // Make sure homing is on if available before activating return command
 		  publish("USBL_ENABLED","TRUE");
+		  homing_return();
 		}
-	      homing_return();
+	      else
+		goby::glog.is(VERBOSE) && glog << group("helm")
+					       << "Abort time remaining: " << remaining
+					       << std::endl;
 	    }
 	  else
 	    {
@@ -997,6 +1001,7 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
       std::string serialized;
       serialize_for_moos(&serialized,data);
       publish("NAV_DATA", serialized);
+      last_nav_ = data;
     }
 
   // Handle landing and takeoff
