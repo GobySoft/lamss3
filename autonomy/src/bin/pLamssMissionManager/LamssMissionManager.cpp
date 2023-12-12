@@ -364,7 +364,8 @@ void LamssMissionManager::slow_loop(double curr_time)
 	  double stale_acomms = curr_time - last_acomms_;
 	  double stale_gps = curr_time - last_gps_;
 	  
-	  if (last_deploy_cmd_.has_deploy_duration())
+	  if (last_deploy_cmd_.has_deploy_duration() &&
+	      last_deploy_cmd_.deploy_duration() > 0)
 	    {
 	      if (deploy_time >= last_deploy_cmd_.deploy_duration() ||
 		  stale_gps >= last_deploy_cmd_.deploy_duration())
@@ -373,7 +374,9 @@ void LamssMissionManager::slow_loop(double curr_time)
 						 << "Deploy duration exceeded w/o acomms or gps - initiating Abort"
 						 << "\n"
 						 << "Stale: acomms: " << stale_acomms 
-						 << ", nav: " << stale_gps 
+						 << ", nav: " << stale_gps
+						 << ", duration: "
+						 << last_deploy_cmd_.deploy_duration()
 						 << std::endl ;
 		  // allow auv to get to abort depth before homing
 		  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
@@ -734,6 +737,8 @@ void LamssMissionManager::initial_deploy()
 #else
   publish("LAMSS_DEPLOY_GEO_IN", serialized);
 #endif  
+  // Initial deploy counts as acomms
+  last_acomms_ = MOOSTime();
 }
 
 void LamssMissionManager::homing_return()
