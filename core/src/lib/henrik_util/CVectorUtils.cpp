@@ -636,8 +636,8 @@ void CmyVectorUtils::resample(double dx, const std::vector<double>& y,
 
 void CmyVectorUtils::vpair_sort(std::vector<double> x, 
 				std::vector<double> y,
-				std::vector<double> x_sort,
-				std::vector<double> y_sort)
+				std::vector<double> &x_sort,
+				std::vector<double> &y_sort)
 
 {
   // Note that sorting can be done in-place
