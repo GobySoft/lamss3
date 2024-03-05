@@ -52,8 +52,8 @@ class CmyVectorUtils
 		double dx_new, std::vector<double>& y_new);
   void vpair_sort(std::vector<double> x, 
 		  std::vector<double> y,
-		  std::vector<double> x_sort,
-		  std::vector<double> y_sort);
+		  std::vector<double> &x_sort,
+		  std::vector<double> &y_sort);
   bool mmul(std::vector<double> A, int rows_A, int cols_A, std::vector<double> B, int cols_B, std::vector<double>& C);
   bool vadd(std::vector<double> a, std::vector<double> b, std::vector<double>& c);
   bool vmul(std::vector<double> a, std::vector<double> b, std::vector<double>& c);
