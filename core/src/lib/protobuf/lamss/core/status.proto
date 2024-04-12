@@ -8,7 +8,7 @@ message LAMSS_STATUS
         option (dccl.msg).codec_version = 4;
 
     optional double timestamp = 1 [
-        (dccl.field).codec = "dccl.time",
+        (dccl.field).codec = "_time",
         (dccl.field).in_head = true,
         (dccl.field).units = {base_dimensions: "T"}
     ];
@@ -26,7 +26,7 @@ message LAMSS_STATUS
     optional string messagetype = 4 [
         default = "LAMSS_STATUS",
         (dccl.field).static_value = "LAMSS_STATUS",
-        (dccl.field).codec = "dccl.static"
+        (dccl.field).codec = "_static"
     ];
     optional double nav_x = 5 [
         (dccl.field).max = 250000,
@@ -167,7 +167,7 @@ message LAMSS_STATUS_GEO
         option (dccl.msg).codec_version = 4;
 
     optional double timestamp = 1 [
-        (dccl.field).codec = "dccl.time",
+        (dccl.field).codec = "_time",
         (dccl.field).in_head = true,
         (dccl.field).units = {base_dimensions: "T"}
     ];
@@ -185,7 +185,7 @@ message LAMSS_STATUS_GEO
     optional string messagetype = 4 [
         default = "LAMSS_STATUS_GEO",
         (dccl.field).static_value = "LAMSS_STATUS_GEO",
-        (dccl.field).codec = "dccl.static"
+        (dccl.field).codec = "_static"
     ];
     optional double nav_long = 5 [
         (dccl.field).max = 180,

@@ -4,7 +4,7 @@ message LAMSS_STATUS_NMEA_BUOY {
 	option (dccl.msg).id = 22;
 	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
-	optional double UTC_TIME = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
@@ -28,7 +28,7 @@ message LAMSS_STATUS_NMEA_SHIP {
 	option (dccl.msg).id = 21;
 	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
-	optional double UTC_TIME = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
@@ -54,7 +54,7 @@ message LAMSS_STATUS_NMEA_BUOY_GEO {
 	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
     
-	optional double UTC_TIME = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
@@ -87,7 +87,7 @@ message LAMSS_STATUS_NMEA_SHIP_GEO {
 	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
     
-	optional double UTC_TIME = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
+	optional double UTC_TIME = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 NAME = 4 [(dccl.field).max=31, (dccl.field).min=0];
