@@ -53,7 +53,7 @@ message VIEW_SEGLIST
 
 message VIEW_SEGLIST_GEO
 {
-    option (dccl.msg).id = 157;
+    option (dccl.msg).id = 57;
     option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
     optional double _time = 1
