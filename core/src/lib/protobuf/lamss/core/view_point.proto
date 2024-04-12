@@ -4,7 +4,7 @@ message VIEW_POINT {
 	option (dccl.msg).id = 55;
 	option (dccl.msg).max_bytes = 64;
         option (dccl.msg).codec_version = 4;
-	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional double _time = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
 	optional int32 vehicle_name = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 destination = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional bool active = 4;
@@ -23,7 +23,7 @@ message VIEW_POINT_GEO {
 	option (dccl.msg).id = 155;
 	option (dccl.msg).max_bytes = 64;
         option (dccl.msg).codec_version = 4;
-	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional double _time = 1 [(dccl.field).codec="dccl.time", (dccl.field).in_head=true];
 	optional int32 vehicle_name = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 destination = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional bool active = 4;

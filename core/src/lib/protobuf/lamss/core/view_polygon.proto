@@ -6,7 +6,7 @@ message VIEW_POLYGON
     option (dccl.msg).max_bytes = 64;
         option (dccl.msg).codec_version = 4;
     optional double _time = 1
-        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+        [(dccl.field).codec = "dccl.time", (dccl.field).in_head = true];
     optional int32 vehicle_name = 2 [
         (dccl.field).max = 31,
         (dccl.field).min = 0,
@@ -57,7 +57,7 @@ message VIEW_POLYGON_GEO
     option (dccl.msg).max_bytes = 64;
         option (dccl.msg).codec_version = 4;
     optional double _time = 1
-        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+        [(dccl.field).codec = "dccl.time", (dccl.field).in_head = true];
     optional int32 vehicle_name = 2 [
         (dccl.field).max = 31,
         (dccl.field).min = 0,
