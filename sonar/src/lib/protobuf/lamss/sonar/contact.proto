@@ -37,7 +37,7 @@ message LAMSS_CONTACT {
 } 
 
 message LAMSS_CONTACT_GEO { 
-	option (dccl.msg).id = 123;
+	option (dccl.msg).id = 23;
 	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
 	optional double time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];

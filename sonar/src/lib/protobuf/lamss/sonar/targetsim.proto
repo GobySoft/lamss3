@@ -27,7 +27,7 @@ message LAMSS_SIMULATE_TARGET {
 } 
 
 message LAMSS_SIMULATE_TARGET_GEO { 
-	option (dccl.msg).id = 129;
+	option (dccl.msg).id = 29;
 	option (dccl.msg).max_bytes = 64;
         option (dccl.msg).codec_version = 4;
 	optional double tgt_utc = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
