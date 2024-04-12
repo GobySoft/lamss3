@@ -68,12 +68,12 @@ message LAMSS_STATUS_NMEA_BUOY_GEO {
 		 TYPE_glider = 5; 
 		 TYPE_unknown = 6; 
 	} 
-    optional double Long = 6 [
+    optional double LON = 6 [
         (dccl.field).max = 180,
         (dccl.field).min = -180,
         (dccl.field).precision = 5
     ];
-    optional double Lat = 7 [
+    optional double LAT = 7 [
         (dccl.field).max = 90,
         (dccl.field).min = -90,
         (dccl.field).precision = 5
@@ -101,12 +101,12 @@ message LAMSS_STATUS_NMEA_SHIP_GEO {
 		 TYPE_glider = 5; 
 		 TYPE_unknown = 6; 
 	} 
-    optional double Long = 6 [
+    optional double LON = 6 [
         (dccl.field).max = 180,
         (dccl.field).min = -180,
         (dccl.field).precision = 5
     ];
-    optional double Lat = 7 [
+    optional double LAT = 7 [
         (dccl.field).max = 90,
         (dccl.field).min = -90,
         (dccl.field).precision = 5
