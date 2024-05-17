@@ -691,8 +691,36 @@ void SimPassiveSonar::loop()
 
 	  time_last = timestamp;
 
-	  if (pinger_enabled)
+	  if (pinger_enabled) {
 	    getPingerInfo();
+	    CEigenRayTable buffer;
+	    buffer.clear();
+	    putAcousticContact(pinger_id,
+			       source_pos_x,
+			       source_pos_y,
+			       source_dep, 
+			       buffer);
+	    // SVP update
+	    int cn_num = findAcousticContact(pinger_id);
+	    if ( svp_updates &&
+		 (t_now - acoustic_contacts[cn_num].last_svp_request >= 
+		  svp_update_interval ))
+	      {
+		requestSVPUpdate(acoustic_contacts[cn_num].contact,
+				 cn_num);
+	      }
+	    // Acoustic modeling update
+	    if (MOOSTime() - acoustic_contacts[cn_num].last_request > 10)
+	      {
+		// force fresh raytracing
+		acoustic_contacts[cn_num].ready = false;
+	      }
+	    // Get ready for next ping
+	    if (ping_interval > 0 &&
+		t_now > pingtime+pinger_command.pulsewidth()) {
+	      pingtime += ping_interval;
+	    }
+	  }
 	  else if (multi_target && number_of_targets >0)
 	    getTargetInfo(0);
 	  else
@@ -2421,8 +2449,15 @@ bool SimPassiveSonar::getPingerInfo()
 {
   if (pinger_enabled)
     {
-      source_pos_x = pinger_x;
-      source_pos_y = pinger_y;
+      
+      double deg2rad = M_PI/180;
+      double hd_ang = pinger_heading*deg2rad;
+      double costh = cos(hd_ang);
+      double sinth = sin(hd_ang);
+      source_pos_x = pinger_x +
+	pinger_speed*(MOOSTime()-pinger_command.pingtime()) * sinth;
+      source_pos_y = pinger_y +
+	pinger_speed*(MOOSTime()-pinger_command.pingtime()) * costh;
       source_dep = pinger_depth;
       source_bb_amp = pow(10.0,pinger_db/20.0);
       got_source_bb_info = true;
@@ -2764,8 +2799,10 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 #endif			    
       
       pinger_depth = pinger_command.pinger_depth();
+      pinger_speed = pinger_command.pinger_speed();
+      pinger_heading = pinger_command.pinger_heading();
       pinger_db = pinger_command.pinger_db();
-
+      ping_interval = pinger_command.ping_interval();
       ping_center_frequency = pinger_command.center_frequency();
       ping_bandwidth = pinger_command.bandwidth();
       ping_pulsewidth = pinger_command.pulsewidth();
@@ -2798,9 +2835,9 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
     }
 
   if (pinger_command.pingtime() < 1)
-    pingtime = pinger_command._time();
+    pingtime = floor(pinger_command._time()) + 1;
   else
-    pingtime = pinger_command.pingtime();
+    pingtime = floor(pinger_command.pingtime());
   // read replica if from file
   if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
     replica = read_replica(cfg_.pinger_replica_path());

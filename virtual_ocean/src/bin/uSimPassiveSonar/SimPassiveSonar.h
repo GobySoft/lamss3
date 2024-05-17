@@ -156,27 +156,30 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
   LAMSS_PINGER_COMMAND_GEO pinger_command;
 #endif
   bool getPingerInfo();
-    void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
-    bool pinger_active;
-    std::string pinger_id;
-    bool pinger_enabled;
-    double pinger_x;
-    double pinger_y;
-    double pinger_lat;
-    double pinger_lon;
-    double pinger_depth;
-    double pinger_db;
-
-    double pingtime;
-    double ping_center_frequency;
-    double ping_bandwidth;
-    double ping_pulsewidth;
-    std::vector<double> waveform;
-    // Time stam for each recorded file
-    double timestamp;
-    // Target control. true= SourceSim, false = prosecute message
-    bool t_control; 
-
+  void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
+  bool pinger_active;
+  std::string pinger_id;
+  bool pinger_enabled;
+  double pinger_x;
+  double pinger_y;
+  double pinger_lat;
+  double pinger_lon;
+  double pinger_depth;
+  double pinger_speed;
+  double pinger_heading;
+  double pinger_db;
+  
+  double pingtime; 
+  double ping_interval{0};
+  double ping_center_frequency;
+  double ping_bandwidth;
+  double ping_pulsewidth;
+  std::vector<double> waveform;
+  // Time stam for each recorded file
+  double timestamp;
+  // Target control. true= SourceSim, false = prosecute message
+  bool t_control; 
+  
     // Multi target expansion
 
     int str2int_vec(std::string, std::vector<int>&);
