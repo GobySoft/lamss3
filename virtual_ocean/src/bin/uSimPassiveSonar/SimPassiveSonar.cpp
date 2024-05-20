@@ -507,10 +507,10 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
 	  ok_target_info.push_back(false);
 	  Targets[i].target_number = m_target_number[i];
 	}
-      glog.is(DEBUG1) && glog << "Done resetting " << endl;
+      glog.is(DEBUG2) && glog << "Done resetting " << endl;
     }
   else
-    glog.is(DEBUG1) && glog << "No resetting " << endl;
+    glog.is(DEBUG2) && glog << "No resetting " << endl;
   int active_targets = 0;
   for (int i = 0; i< number_of_targets; i++)
     {
@@ -760,23 +760,23 @@ void SimPassiveSonar::loop()
 	      
 	      for (int i=0; i<number_of_targets; i++)
 		{
-		  glog.is(VERBOSE) && glog << "Handling target " << i <<endl;
+		  glog.is(DEBUG1) && glog << "Handling target " << i <<endl;
 	      
 		  bool ok_tgt_info = getTargetInfo(i);
 		  if (!ok_tgt_info)
 		    {
-		      glog.is(VERBOSE) && glog << "Waiting for info for TGT_"
+		      glog.is(DEBUG1) && glog << "Waiting for info for TGT_"
 					       << m_target_number[i] << endl;
 		      return;
 		    }
 	      
-		  glog.is(VERBOSE) && glog << "Got info for TGT_" << m_target_number[i]
+		  glog.is(DEBUG1) && glog << "Got info for TGT_" << m_target_number[i]
 					   << endl;;
 		  int cn_num = findAcousticContact(Targets[i].target_id());
 		  if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
 		    {
 		      generate_signal_spectrum(i);  
-		      glog.is(VERBOSE) && glog << "Target signal spectrum done -  target "
+		      glog.is(DEBUG1) && glog << "Target signal spectrum done -  target "
 					       << Targets[i].target_id() << endl;
 		      icnt_rot = int( (t_now-start_time)/7 )%number_of_targets;
 		      //		  if(got_source_loc && i == icnt_rot)
@@ -795,7 +795,7 @@ void SimPassiveSonar::loop()
 
 	      if (pinger_enabled && pinger_active)
 		{
-		  glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
+		  glog.is(DEBUG1) && glog << "Handling Pinger " <<endl;
 	  
 		  bool ok_pinger_info = getPingerInfo() && got_pinger_eigenrays;
 	      
@@ -955,13 +955,13 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
       eigenray_table.getEigenRays(range_req, depth_req, range_ref, depth_ref, eig);
       if (ray_acoustics)
 	{
-	  glog.is(VERBOSE) && glog << "Source range = " << range_req
+	  glog.is(DEBUG2) && glog << "Source range = " << range_req
 				   << " Raytracing range = " << eig.range
 				   << endl;
-	  glog.is(VERBOSE) && glog << "Receiver depth = " << depth_req
+	  glog.is(DEBUG2) && glog << "Receiver depth = " << depth_req
 				   << " Raytracing depth = "
 				   << eig.receiver_depth << endl;
-	  glog.is(VERBOSE) && glog << "Number of eigenrays: " 
+	  glog.is(DEBUG2) && glog << "Number of eigenrays: " 
 				   << eig.num_rays << endl;
 	  tl_est = 1e-30;
 	  for (int iray = 0; iray < eig.num_rays; iray++)
@@ -1109,7 +1109,7 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       // Raytracing resolution less critical for horizontal variability 
       num_r = int((r_max-r_min)/(10*spacing)) + 3;
       num_dep = 2*int((dep_max-dep_min)/(2*spacing)) + 3;
-      glog.is(DEBUG1) && glog << "Ray Tracing box: rmin: " << r_min 
+      glog.is(DEBUG2) && glog << "Ray Tracing box: rmin: " << r_min 
 			      << " r_max: " << r_max
 			      << " spacing: " << spacing
 			      << " num ranges: " << num_r
@@ -1118,8 +1118,8 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
       if (target.last_rate_update > 0)
 	{
 	  target.last_rate = (range-target.last_range)/delta_t;	    
-	  glog.is(DEBUG1) && glog << endl << ">>> rate_update= " << target.last_rate << endl; 
-	  glog.is(DEBUG1) && glog  << ">>> delta_t = " << delta_t << endl << endl ;
+	  glog.is(DEBUG2) && glog << endl << ">>> rate_update= " << target.last_rate << endl; 
+	  glog.is(DEBUG2) && glog  << ">>> delta_t = " << delta_t << endl << endl ;
 	}
       else
 	target.last_rate = 0;
@@ -1146,14 +1146,14 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
       
       int f_lo = int(f_lower*nfft/sampling_frequency);
       int f_up = int(f_upper*nfft/sampling_frequency);
-      glog.is(DEBUG1) && glog << "Generating signale spectrum num_freqs "
+      glog.is(DEBUG2) && glog << "Generating signale spectrum num_freqs "
 			      << num_freqs << std::endl;
       vector<double> source_spect_mag(num_freqs,0); 
       vector<double> source_spect_phase(num_freqs,0); 
       
       source_spect_mag.at(0) = 0;
       source_spect_phase.at(0) = 0;
-      glog.is(DEBUG1) && glog << "Generating signal spectrum, tgt_count "
+      glog.is(DEBUG2) && glog << "Generating signal spectrum, tgt_count "
 			      << tgt_count
 			      << " f_lower " << f_lower
 			      << " f_upper " << f_upper
@@ -1240,13 +1240,13 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-	  glog.is(DEBUG1) && glog << "Receiver " << phone_iter << endl;
-	  glog.is(DEBUG1) && glog << "Target range= " << range
+	  glog.is(DEBUG2) && glog << "Receiver " << phone_iter << endl;
+	  glog.is(DEBUG2) && glog << "Target range= " << range
 				  << " Raytracing range = " << eig.range << endl;
-	  glog.is(DEBUG1) && glog << "Receiver depth= " << depth_req 
+	  glog.is(DEBUG2) && glog << "Receiver depth= " << depth_req 
 				  << " Raytracing depth = " << eig.receiver_depth
 				  << endl;
-	  glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
+	  glog.is(DEBUG2) && glog << "Number of eigenrays: " << eig.num_rays << endl;
 	
           double delta_r = range - range_ray;
 	  double delta_dep = - array_z.at(phone_iter) - depth_ray;  
@@ -1454,13 +1454,13 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double> > & del
 	  double range_ray = eig.range;
 	  double depth_ray = eig.receiver_depth;
 	  int num_rays     = eig.num_rays;
-	  glog.is(DEBUG1) && glog << "Receiver " << phone_iter << endl;
-	  glog.is(DEBUG1) && glog << "Source range= " << range
+	  glog.is(DEBUG2) && glog << "Receiver " << phone_iter << endl;
+	  glog.is(DEBUG2) && glog << "Source range= " << range
 				  << " Raytracing range = " << eig.range << endl;
-	  glog.is(DEBUG1) && glog << "Receiver depth= " << depth_req 
+	  glog.is(DEBUG2) && glog << "Receiver depth= " << depth_req 
 				  << " Raytracing depth = " << eig.receiver_depth
 				  << endl;
-	  glog.is(DEBUG1) && glog << "Number of eigenrays: " << eig.num_rays << endl;
+	  glog.is(DEBUG2) && glog << "Number of eigenrays: " << eig.num_rays << endl;
 	
 	  // push array eigenray table. Delay adjusted later.
 
@@ -1652,7 +1652,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
       
       if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
 	{
-	  glog.is(DEBUG1) && glog <<"Generating CW waveform" << endl;
+	  glog.is(DEBUG2) && glog <<"Generating CW waveform" << endl;
 	  for( int k=0;k<t_src.size(); k++)
 	    {
 	      source_waveform[k] = sin(2*M_PI*dop_center_frequency*t_src[k])*
@@ -1661,7 +1661,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 	}
       else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
 	{
-	  glog.is(DEBUG1) && glog << "Generating LFM waveform" << endl;
+	  glog.is(DEBUG2) && glog << "Generating LFM waveform" << endl;
 	  double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
 	  double min_lfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
 	  for( int k=0;k<t_src.size();k++)
@@ -1743,7 +1743,7 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
 	    noise_realization.push_back(realization[sensor_iter]);
 	}
     }
-  glog.is(DEBUG1) && glog << "Realizations done" << endl;
+  glog.is(DEBUG2) && glog << "Realizations done" << endl;
  
   // array element loop
   for (int elem_iter=0; elem_iter < num_array_elements; elem_iter++)
@@ -2148,7 +2148,7 @@ bool SimPassiveSonar::write_hyd_file()
 	sync_cmd = "rsync "
       	+ acoustic_filename + " " + sync_path + "/";
 
-      glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+      glog.is(DEBUG2) && glog << "Synching with: " << sync_cmd.c_str() << endl;
       system(sync_cmd.c_str());
     }
 
@@ -2324,7 +2324,7 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
 	    sync_cmd = "rsync "
 	      + nonacoustic_filename + " " + sync_path + "/";
 	  
-	  glog.is(DEBUG1) && glog << "Synching with: " << sync_cmd.c_str() << endl;
+	  glog.is(DEBUG2) && glog << "Synching with: " << sync_cmd.c_str() << endl;
 	  system(sync_cmd.c_str());
 	}
     }
@@ -2458,7 +2458,7 @@ bool SimPassiveSonar::write_nas_file_verbose(double timestamp)
 	      + nonacoustic_filename + " " + sync_path + "/";
 		  
 		  
-	  glog.is(DEBUG1) && glog << "Synching with: " << 
+	  glog.is(DEBUG2) && glog << "Synching with: " << 
 	    sync_cmd.c_str() << endl;
 	  system(sync_cmd.c_str());
 	}
@@ -2596,9 +2596,9 @@ bool SimPassiveSonar::putAcousticContact(std::string cn,
   new_contact.last_rate = 0;
   new_contact.last_rate_update = -1;
   acoustic_contacts.push_back(new_contact);
-  glog.is(DEBUG1) && glog << "Contact " << cn << " eigenrays updated" << endl;
-  glog.is(DEBUG1) && glog << "Number of ranges: " << eig_table.num_ranges << endl;
-  glog.is(DEBUG1) && glog << "Number of depths: " << eig_table.num_depths << endl;
+  glog.is(DEBUG2) && glog << "Contact " << cn << " eigenrays updated" << endl;
+  glog.is(DEBUG2) && glog << "Number of ranges: " << eig_table.num_ranges << endl;
+  glog.is(DEBUG2) && glog << "Number of depths: " << eig_table.num_depths << endl;
   return(true);
 }
 
@@ -2949,7 +2949,7 @@ double SimPassiveSonar::getAmbientNoise(double depth,
 	ndim = 4*num_array_elements;
       else
 	ndim = num_array_elements;
-	glog.is(DEBUG1) && glog << "nl=" << nl
+	glog.is(DEBUG2) && glog << "nl=" << nl
 				<< ", Fs=" << sampling_frequency
 				<< ", nfft=" << nfft << endl;
 	//      double p_intens = 1e-12 * pow(10.0,nl/10) 
@@ -2984,7 +2984,7 @@ double SimPassiveSonar::getAmbientNoise(double depth,
 	      double a_intens = p_intens*pow(k,2.0)
 		/(3*pow(rho,2.0));
 	      if (i_frq==i_first || (i_frq== (i_first+i_last)/2) || i_frq==i_last)
-		glog.is(DEBUG1) && glog << "p_intens= " << p_intens
+		glog.is(DEBUG2) && glog << "p_intens= " << p_intens
 					<< ", a_intens= " << a_intens
 					<< ", freq= " << freq <<  "Hz" << endl;
 	      for (int i=0; i< num_array_elements; i++)
@@ -3022,7 +3022,7 @@ double SimPassiveSonar::getAmbientNoise(double depth,
 	    {
 	      noise_covar[k].scaleCovMat(amp_fac);
 	    }
-	  glog.is(DEBUG1) && glog << "Scaled covariance matrices, factor = "
+	  glog.is(DEBUG2) && glog << "Scaled covariance matrices, factor = "
 				  << amp_fac << endl;
 	}
       noise_level = nl;
@@ -3036,7 +3036,7 @@ double SimPassiveSonar::getAmbientNoise(double depth,
 	  string req = "nfft=" + intToString(nfft) + ",sampling_frequency=" + doubleToString(sampling_frequency);   
 	  m_Comms.Notify("COVARIANCE_REQUEST",req);
 
-	  glog.is(DEBUG1) && glog << "Requesting correlated noise covariances, i_first="
+	  glog.is(DEBUG2) && glog << "Requesting correlated noise covariances, i_first="
 				  << i_first << ", i_last=" << i_last << endl;
 	  array_prev_pitch = array_avg_pitch;
 	}
@@ -3243,7 +3243,7 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
       int num_sensors;
 
       fread(&num_sensors, sizeof(int), 1 , cov_data_file);
-      glog.is(DEBUG1) && glog << "Done reading header, i_first=" << i_first
+      glog.is(DEBUG2) && glog << "Done reading header, i_first=" << i_first
 			      << ", i_last=" << i_last
 			      << ", num-sensors=" << num_sensors<< endl;
       for (int f_iter=i_first; f_iter <= i_last; f_iter++)
@@ -3308,7 +3308,7 @@ bool SimPassiveSonar::read_weight_file(string src_wgt_file)
       int num_sources;
 
       fread(&num_sources, sizeof(int), 1 , wgt_file);
-      glog.is(DEBUG1) && glog << "Done reading header, fmin= " << fmin
+      glog.is(DEBUG2) && glog << "Done reading header, fmin= " << fmin
 			      << ", df =" << df
 			      << ", num_freq=" << num_freq
 			      << ", num_sources=" << num_sources<< endl;
