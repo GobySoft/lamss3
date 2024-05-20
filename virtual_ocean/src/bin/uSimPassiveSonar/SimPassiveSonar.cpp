@@ -24,6 +24,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/math/special_functions.hpp>
+//#include "ivp/NodeRecord.h"
 
 
 #include "goby/moos/moos_string.h"
@@ -637,6 +638,7 @@ void SimPassiveSonar::handle_pinger_arrival_file(const CMOOSMsg& msg)
 			     pinger_y,
 			     pinger_depth,
 			     eigenray_table);
+	  got_pinger_eigenrays = true;
 	}	
 }
 
@@ -691,37 +693,7 @@ void SimPassiveSonar::loop()
 
 	  time_last = timestamp;
 
-	  if (pinger_enabled) {
-	    getPingerInfo();
-	    CEigenRayTable buffer;
-	    buffer.clear();
-	    putAcousticContact(pinger_id,
-			       source_pos_x,
-			       source_pos_y,
-			       source_dep, 
-			       buffer);
-	    // SVP update
-	    int cn_num = findAcousticContact(pinger_id);
-	    if ( svp_updates &&
-		 (t_now - acoustic_contacts[cn_num].last_svp_request >= 
-		  svp_update_interval ))
-	      {
-		requestSVPUpdate(acoustic_contacts[cn_num].contact,
-				 cn_num);
-	      }
-	    // Acoustic modeling update
-	    if (MOOSTime() - acoustic_contacts[cn_num].last_request > 10)
-	      {
-		// force fresh raytracing
-		acoustic_contacts[cn_num].ready = false;
-	      }
-	    // Get ready for next ping
-	    if (ping_interval > 0 &&
-		t_now > pingtime+pinger_command.pulsewidth()) {
-	      pingtime += ping_interval;
-	    }
-	  }
-	  else if (multi_target && number_of_targets >0)
+	  if (multi_target && number_of_targets >0)
 	    getTargetInfo(0);
 	  else
 	    {
@@ -817,33 +789,67 @@ void SimPassiveSonar::loop()
 		    }
 
 		}
+	      save_spectral_timeseries();
 	  
 	      // here we add the PINGER timeseries in time domain
+
 	      if (pinger_enabled && pinger_active)
 		{
 		  glog.is(VERBOSE) && glog << "Handling Pinger " <<endl;
 	  
-		  bool ok_pinger_info = getPingerInfo();
+		  bool ok_pinger_info = getPingerInfo() && got_pinger_eigenrays;
 	      
-		  if (!ok_pinger_info)
+		  if (ok_pinger_info)
+		    {
+		      glog.is(VERBOSE) && glog << "Got info for PINGER" 
+					       << endl;;
+		      if (add_pinger_timeseries())
+			{
+			  glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
+						   << endl;;
+			}
+		      else
+			{
+			  glog.is(VERBOSE) && glog << "Pinger timeseries not generated" 
+						   << endl;;
+			}
+		    }
+		  else
 		    {
 		      glog.is(VERBOSE) && glog << "Waiting for info for PINGER"
 					       << endl;
-		      return;
 		    }
-		  glog.is(VERBOSE) && glog << "Got info for PINGER" 
-					   << endl;;
-		  if (add_pinger_timeseries())
+		    
+		  int cn_num = findAcousticContact(pinger_id);
+		  // Acoustic modeling update
+		  // Get ready for next ping
+		  if (ping_interval > 0 &&
+		      t_now > pingtime+pinger_command.pulsewidth())
 		    {
-		      glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
-					       << endl;;
+		      // Publish node report for target cue
+		      double plat, plon;
+		      m_Geodesy.UTM2LatLong(source_pos_x,
+					    source_pos_y,plat,plon);
+		      std::stringstream pstr;
+		      pstr << "NAME=" << tolower(pinger_id) + "_sim" 
+			   << ",TYPE=" << "track"
+			   << ",UTC_TIME=" << t_now
+			   << ",X=" << source_pos_x
+			   << ",Y=" << source_pos_y
+			   << ",LAT=" << plat
+			   << ",LON=" << plon
+			   << ",SPD=" << source_spd
+			   << ",HDG=" << source_hdg
+			   << ",DEPTH=" << source_dep
+			   << ",PITCH=0,ROLL=0" ;		
+		      publish("NODE_REPORT", pstr.str());
+		      pingtime += ping_interval;
+		      got_pinger_eigenrays = false;
+		      acoustic_contacts[cn_num].ready = false;
+		      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
 		    }
 		}
-	      else
-		{
-		  save_spectral_timeseries();
-		}
-
+	      
 	      glog.is(VERBOSE) && glog << "Writing data files " << endl;
 	      write_nas_file(timestamp);
 	      write_nas_file_verbose(timestamp);
@@ -851,10 +857,10 @@ void SimPassiveSonar::loop()
 	      write_eigenray_file();
 	      m_Comms.Notify("SONAR_DIR", base_dir_name);
 	      m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
-	  
+	      
 	      frame_number++;
-	    }
-	}
+	    } // if got_array_info
+	} // if tnow
     }
   else
     {
@@ -1024,6 +1030,34 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
   return(eigenrays_ready);
 
 }
+
+void SimPassiveSonar::request_eigenrays(int cn_num,
+					CAcousticContact &acoustic_contact)
+    {
+      double range_min;
+      double range_max;
+      double depth_min;
+      double depth_max;
+      int num_ranges;
+      int num_depths;
+      defineRayTracingBox(acoustic_contact,
+			  range_min,range_max,
+			  depth_min,depth_max,
+			  num_ranges,num_depths);
+      requestRayTrace(acoustic_contact.contact, 
+		      range_min, range_max, num_ranges, 
+		      depth_min, depth_max, num_depths,
+		      source_bb_freq, cn_num);
+		  
+      // if svp_updates, request SVP
+      if (svp_updates &&
+	  (MOOSTime() - acoustic_contact.last_svp_request >= 
+	   svp_update_interval) )
+	{
+	  requestSVPUpdate(acoustic_contact.contact,
+			   cn_num);
+	}
+    }
 
 bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 					   double& r_min,
@@ -1794,6 +1828,9 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
 bool SimPassiveSonar::add_pinger_timeseries()
 {
   int cn_num = findAcousticContact(pinger_id);
+  glog.is(DEBUG1) && glog << "Source id " << cn_num
+			  << ": " << pinger_id
+			  << " generating eigenray table " << std::endl;
   if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
     {
       // Here goes the timeseries generation for pinger
@@ -1853,7 +1890,11 @@ bool SimPassiveSonar::add_pinger_timeseries()
       return(true);
     }
   else
-    return(false);
+    {
+      glog.is(VERBOSE) && glog << "No raytracing data available for source "
+			       << pinger_id << std::endl;
+      return(false);
+    }
 }
 
 bool SimPassiveSonar::save_spectral_timeseries()
@@ -2447,7 +2488,7 @@ int SimPassiveSonar::str2int_vec(string msg, vector<int>& values)
 
 bool SimPassiveSonar::getPingerInfo()
 {
-  if (pinger_enabled)
+  if (pinger_enabled )
     {
       
       double deg2rad = M_PI/180;
@@ -2459,7 +2500,10 @@ bool SimPassiveSonar::getPingerInfo()
       source_pos_y = pinger_y +
 	pinger_speed*(MOOSTime()-pinger_command.pingtime()) * costh;
       source_dep = pinger_depth;
+      source_spd = pinger_speed;
+      source_hdg = pinger_heading;
       source_bb_amp = pow(10.0,pinger_db/20.0);
+      source_bb_freq = ping_center_frequency;
       got_source_bb_info = true;
       got_source_loc = true;
       source_status = true;
@@ -2783,6 +2827,9 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   parse_for_moos(serialized_pinger_command,&pinger_command);
 
   pinger_active = pinger_command.pinger_active();
+  glog.is(VERBOSE) && glog << "Received Pinger Command: "
+			   << pinger_command.DebugString() << std::endl;
+  
   if (pinger_active)
     {
       pinger_id = "PINGER";
@@ -2813,11 +2860,29 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 			 pinger_depth, 
 			 buffer);
       int cn_num = findAcousticContact(pinger_id);
-      if (MOOSTime() - acoustic_contacts[cn_num].last_request > 10)
-	{
-	  // force fresh raytracing
-	  acoustic_contacts[cn_num].ready = false;
-	}
+
+      // Publish node report for pinger
+      double plat, plon;
+      m_Geodesy.UTM2LatLong(pinger_x,
+			    pinger_y,plat,plon);
+      std::stringstream pstr;
+      pstr << "NAME=" << tolower(pinger_id) + "_sim" 
+	   << ",TYPE=" << "track"
+	   << ",UTC_TIME=" << MOOSTime()
+	   << ",X=" << pinger_x
+	   << ",Y=" << pinger_y
+	   << ",LAT=" << plat
+	   << ",LON=" << plon
+	   << ",SPD=" << pinger_speed
+	   << ",HDG=" << pinger_heading
+	   << ",DEPTH=" << pinger_depth
+	   << ",PITCH=0,ROLL=0" ;		
+      publish("NODE_REPORT", pstr.str());
+      // force fresh raytracing
+      got_pinger_eigenrays = false;
+      acoustic_contacts[cn_num].ready = false;
+      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
+
       glog.is(DEBUG1) && glog << "Pinger " 
 			      << " assigned acoustic contact number "
 			      << findAcousticContact(pinger_id) << std::endl;

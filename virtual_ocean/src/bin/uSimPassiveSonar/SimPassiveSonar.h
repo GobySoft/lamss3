@@ -345,6 +345,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
       got_array_info, 
       ok_source_bb_spl, ok_source_bb_freq, 
       ok_source_bb_bw, got_source_bb_info;
+  bool got_pinger_eigenrays{false};
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
     std::vector<double> replica;
@@ -392,7 +393,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     //    int get_values(std::string, std::vector<double>& values);
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
-
+  void request_eigenrays(int cn_num, CAcousticContact &acoustic_contact);
     bool generate_eigenray_table(int cn_num, 
 				 CAcousticContact& acoustic_contact);
     bool generate_signal_spectrum(int tgt_count);
