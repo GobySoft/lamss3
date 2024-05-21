@@ -626,12 +626,14 @@ void SimPassiveSonar::handle_target_arrival_file(const CMOOSMsg& msg)
 
 void SimPassiveSonar::handle_pinger_arrival_file(const CMOOSMsg& msg)
 {
-      glog.is(DEBUG2) && glog << "Looking for arr file for " << pinger_id << endl;
       
       string arr_file =pinger_id+"_SIM_ARR_FILE";
       
       if (msg.m_sKey == arr_file)
 	{
+	  glog.is(DEBUG1) && glog << "\nOpening arr file for "
+				  << pinger_id << ": "
+				  << arr_file << std::endl;
 	  eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
 	  putAcousticContact(pinger_id, 
 			     pinger_x,
@@ -695,14 +697,7 @@ void SimPassiveSonar::loop()
 
 	  if (multi_target && number_of_targets >0)
 	    getTargetInfo(0);
-	  else
-	    {
-	      got_source_bb_info = (ok_source_bb_spl && ok_source_bb_freq && 
-				    ok_source_bb_bw);
-	      //	  got_source_loc = (ok_pinger_x && ok_pinger_y);
-	      got_source_loc = pinger_enabled;
-	    }
-      
+    
 	  // Output error messages 
 	  if(!got_array_info)
 	    {
@@ -801,11 +796,11 @@ void SimPassiveSonar::loop()
 	      
 		  if (ok_pinger_info)
 		    {
-		      glog.is(VERBOSE) && glog << "Got info for PINGER" 
+		      glog.is(VERBOSE) && glog << "\n **** Got info for PINGER ****" 
 					       << endl;;
 		      if (add_pinger_timeseries())
 			{
-			  glog.is(VERBOSE) && glog << "Added PINGER timeseries" 
+			  glog.is(VERBOSE) && glog << "\n*** Added PINGER timeseries ***\n" 
 						   << endl;;
 			}
 		      else
@@ -844,7 +839,7 @@ void SimPassiveSonar::loop()
 			   << ",PITCH=0,ROLL=0" ;		
 		      publish("NODE_REPORT", pstr.str());
 		      pingtime += ping_interval;
-		      got_pinger_eigenrays = false;
+		      // got_pinger_eigenrays = false;
 		      acoustic_contacts[cn_num].ready = false;
 		      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
 		    }
@@ -973,58 +968,14 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
 		      
 	  if (fabs(range_req - acoustic_contact.last_range) > raytracing_interval)
 	    {
-	      double range_min;
-	      double range_max;
-	      double depth_min;
-	      double depth_max;
-	      int num_ranges;
-	      int num_depths;
-	      defineRayTracingBox(acoustic_contact,
-				  range_min,range_max,
-				  depth_min,depth_max,
-				  num_ranges,num_depths);
-	      requestRayTrace(acoustic_contact.contact, 
-			      range_min, range_max, num_ranges, 
-			      depth_min, depth_max, num_depths,
-			      source_bb_freq, cn_num);
-	    }
-	  // if svp_updates, request SVP
-	  if ( svp_updates && 
-	       (MOOSTime() - acoustic_contact.last_svp_request >= 
-		svp_update_interval ) )
-	    {
-	      requestSVPUpdate(acoustic_contact.contact,
-			       cn_num);
+	      request_eigenrays(cn_num, acoustic_contact);		  
 	    }
 	}
       eigenrays_ready = true;
     }
   else if (ray_acoustics && (MOOSTime() - acoustic_contact.last_request > 10))
     {
-      double range_min;
-      double range_max;
-      double depth_min;
-      double depth_max;
-      int num_ranges;
-      int num_depths;
-      defineRayTracingBox(acoustic_contact,
-			  range_min,range_max,
-			  depth_min,depth_max,
-			  num_ranges,num_depths);
-      requestRayTrace(acoustic_contact.contact, 
-		      range_min, range_max, num_ranges, 
-		      depth_min, depth_max, num_depths,
-		      source_bb_freq, cn_num);
-		  
-      // if svp_updates, request SVP
-      if (svp_updates &&
-	  (MOOSTime() - acoustic_contact.last_svp_request >= 
-	   svp_update_interval) )
-	{
-	  requestSVPUpdate(acoustic_contact.contact,
-			   cn_num);
-	}
-		  
+      request_eigenrays(cn_num, acoustic_contact);		  
     }
 
   return(eigenrays_ready);
@@ -1033,31 +984,31 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num,
 
 void SimPassiveSonar::request_eigenrays(int cn_num,
 					CAcousticContact &acoustic_contact)
+{
+  double range_min;
+  double range_max;
+  double depth_min;
+  double depth_max;
+  int num_ranges;
+  int num_depths;
+  defineRayTracingBox(acoustic_contact,
+		      range_min,range_max,
+		      depth_min,depth_max,
+		      num_ranges,num_depths);
+  requestRayTrace(acoustic_contact.contact, 
+		  range_min, range_max, num_ranges, 
+		  depth_min, depth_max, num_depths,
+		  source_bb_freq, cn_num);
+  
+  // if svp_updates, request SVP
+  if (svp_updates &&
+      (MOOSTime() - acoustic_contact.last_svp_request >= 
+       svp_update_interval) )
     {
-      double range_min;
-      double range_max;
-      double depth_min;
-      double depth_max;
-      int num_ranges;
-      int num_depths;
-      defineRayTracingBox(acoustic_contact,
-			  range_min,range_max,
-			  depth_min,depth_max,
-			  num_ranges,num_depths);
-      requestRayTrace(acoustic_contact.contact, 
-		      range_min, range_max, num_ranges, 
-		      depth_min, depth_max, num_depths,
-		      source_bb_freq, cn_num);
-		  
-      // if svp_updates, request SVP
-      if (svp_updates &&
-	  (MOOSTime() - acoustic_contact.last_svp_request >= 
-	   svp_update_interval) )
-	{
-	  requestSVPUpdate(acoustic_contact.contact,
-			   cn_num);
-	}
+      requestSVPUpdate(acoustic_contact.contact,
+		       cn_num);
     }
+}
 
 bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target,
 					   double& r_min,
@@ -1886,7 +1837,12 @@ bool SimPassiveSonar::add_pinger_timeseries()
 				 ts_hyd[i_samp]);
 		}
 	    }
+	  glog.is(DEBUG1) && glog << "\n ***** Added ping to timeseries *****\n"
+				<< std::endl;
 	}
+      else  
+	glog.is(DEBUG1) && glog << "Waiting for next ping"
+				<< std::endl;
       return(true);
     }
   else
@@ -2879,7 +2835,6 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 	   << ",PITCH=0,ROLL=0" ;		
       publish("NODE_REPORT", pstr.str());
       // force fresh raytracing
-      got_pinger_eigenrays = false;
       acoustic_contacts[cn_num].ready = false;
       request_eigenrays(cn_num, acoustic_contacts[cn_num]);
 
