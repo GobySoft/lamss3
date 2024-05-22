@@ -32,8 +32,9 @@ message LAMSS_PINGER_COMMAND {
     }
     optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
     optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
-    optional double pulsewidth = 16 [(dccl.field).max=1, (dccl.field).min=0, (dccl.field).precision=3, default=1];
+    optional double pulsewidth = 16 [(dccl.field).max=4.0, (dccl.field).min=0, (dccl.field).precision=3, default=1.0];
     optional double pinger_db = 17 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
+    optional uint32 ping_interval = 18 [default=0, (dccl.field).max=180, (dccl.field).min=0];
 } 
 
 message LAMSS_PINGER_COMMAND_GEO { 
@@ -67,6 +68,7 @@ message LAMSS_PINGER_COMMAND_GEO {
     }
     optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
     optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
-    optional double pulsewidth = 16 [(dccl.field).max=1, (dccl.field).min=0, (dccl.field).precision=3, default=1];
-    optional double pinger_db = 17 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
+    optional double pulsewidth = 16 [(dccl.field).max=4, (dccl.field).min=0, (dccl.field).precision=3, default=1];
+    optional double pinger_db = 17 [default=0, (dccl.field).max=180, (dccl.field).min=0, (dccl.field).precision=1];
+    optional uint32 ping_interval = 18 [default=0, (dccl.field).max=250, (dccl.field).min=0];
 } 
