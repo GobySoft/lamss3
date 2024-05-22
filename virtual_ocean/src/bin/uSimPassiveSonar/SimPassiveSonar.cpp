@@ -819,7 +819,7 @@ void SimPassiveSonar::loop()
 		  // Acoustic modeling update
 		  // Get ready for next ping
 		  if (ping_interval > 0 &&
-		      t_now > pingtime+pinger_command.pulsewidth())
+		      t_now > pingtime + 0.8*ping_interval)
 		    {
 		      // Publish node report for target cue
 		      double plat, plon;
@@ -1799,14 +1799,27 @@ bool SimPassiveSonar::add_pinger_timeseries()
       // timestamp: UTC of current file start
       // pingtime: UTC of ping transmission.
       // sum_of_timeseries(num_array_elements,num_samples): Total hydrophone timeseries
+      double min_delay = 1e6;
       double max_delay = 0;
+      double max_amp = 0;
+      double max_ping = 0;
       double file_duration = num_samples/sampling_frequency;
       for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
-	for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
+	for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++) {
+	  min_delay = std::min(min_delay,arr_delays[i_elem][i_ray]);
 	  max_delay = std::max(max_delay,arr_delays[i_elem][i_ray]);
-      
-      if ((pingtime+ping_pulsewidth >= timestamp) &&
-	  (max_delay+pingtime < timestamp + file_duration))
+	  max_amp = std::max(max_amp,fabs(arr_amplitudes[i_elem][i_ray]));
+	}
+      /*
+      glog.is(DEBUG1) && glog << "pingtime+min_delay-timestamp: "
+			      << pingtime+min_delay-timestamp
+			      << std::endl;
+      glog.is(DEBUG1) && glog << "pingtime+ping_pulsewidth+max_delay-timestamp: "
+			      << pingtime+ping_pulsewidth+max_delay-timestamp
+			      << std::endl;
+      */
+      if ((pingtime + ping_pulsewidth + max_delay >= timestamp) &&
+	  (pingtime + min_delay <= timestamp + file_duration))
 	{ 
 	  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
 	    {
@@ -1826,9 +1839,12 @@ bool SimPassiveSonar::add_pinger_timeseries()
 		      int indx_offset = -indx_1;
 		      indx_1 = std::max(indx_1,0);
 		      indx_2 = std::min(indx_2,num_samples-1);
-		      for (int i=indx_1; i<=indx_2; i++)
-			ts_hyd[i] += waveform[i+indx_offset] *
+		      for (int i=indx_1; i<=indx_2; i++) {
+			double amp = waveform[i+indx_offset] *
 			  arr_amplitudes[i_elem][i_ray];
+			ts_hyd[i] += amp ;
+			max_ping = std::max(max_ping,fabs(amp));
+		      }
 		    }
 		}
 	      for(int i_samp=0; i_samp < num_samples; i_samp++)
@@ -1838,12 +1854,16 @@ bool SimPassiveSonar::add_pinger_timeseries()
 		}
 	    }
 	  glog.is(DEBUG1) && glog << "\n ***** Added ping to timeseries *****\n"
-				<< std::endl;
+				  << ",max_signal  = " << max_amp 
+				  << ",max_ping = " << max_ping << "\n" 
+				  << std::endl;
+	  return(true);
 	}
       else  
-	glog.is(DEBUG1) && glog << "Waiting for next ping"
+	glog.is(DEBUG1) && glog << "\nWaiting for next ping in "
+				<< pingtime-timestamp << " secs"
 				<< std::endl;
-      return(true);
+      return(false);
     }
   else
     {
