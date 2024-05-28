@@ -67,6 +67,38 @@ class CAcousticContact
   netsim::SVP::protobuf::Response svp_response;
 };
 
+class CPinger
+{
+public:
+  bool active;
+  unsigned int number;
+  std::string id{"PINGER_xx"};
+  bool enabled{false};
+  double x;
+  double y;
+  double lat;
+  double lon;
+  double depth;
+  double speed;
+  double heading;
+  double db;
+  double interval{0};
+  double center_frequency;
+  double bandwidth;
+  double pulsewidth;
+#ifndef GEO_COMMAND
+  LAMSS_PINGER_COMMAND::WaveformEnum waveform;
+  LAMSS_PINGER_COMMAND::WindowShading window;
+#else
+  LAMSS_PINGER_COMMAND_GEO::WaveformEnum waveform;
+  LAMSS_PINGER_COMMAND_GEO::WindowShading window;
+#endif
+
+
+  double pingtime; 
+  bool got_eigenrays{false};
+};
+
 class SimPassiveSonar : public goby::moos::GobyMOOSApp
 {
   public:
@@ -155,25 +187,13 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 #else
   LAMSS_PINGER_COMMAND_GEO pinger_command;
 #endif
-  bool getPingerInfo();
-  void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac);
-  bool pinger_active;
-  std::string pinger_id;
-  bool pinger_enabled;
-  double pinger_x;
-  double pinger_y;
-  double pinger_lat;
-  double pinger_lon;
-  double pinger_depth;
-  double pinger_speed;
-  double pinger_heading;
-  double pinger_db;
-  
-  double pingtime; 
-  double ping_interval{0};
-  double ping_center_frequency;
-  double ping_bandwidth;
-  double ping_pulsewidth;
+  std::vector<CPinger> pinger;
+  std::vector<double> replica;
+
+  bool getPingerInfo(unsigned int i);
+  void generate_doppler_waveform(std::vector<double>& source_waveform,
+				 double dop_fac, double source_strength,
+				 unsigned int pinger_indx);
   std::vector<double> waveform;
   // Time stam for each recorded file
   double timestamp;
@@ -341,14 +361,11 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     // --- Declare other variables ---
     bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, 
       ok_array_pitch, ok_array_heading, 
-      ok_pinger_x, ok_pinger_y, 
       got_array_info, 
       ok_source_bb_spl, ok_source_bb_freq, 
       ok_source_bb_bw, got_source_bb_info;
-  bool got_pinger_eigenrays{false};
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
-    std::vector<double> replica;
     double noise_std;
     std::vector<double> tone_amps_Pa; 
     std::vector<double> tone_ks; 
@@ -399,7 +416,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
     bool save_spectral_timeseries();
-    bool add_pinger_timeseries();
+    bool add_pinger_timeseries(unsigned int pinger_indx);
     bool initialize_spectrum();
     bool ray_arrivals(CEigenRay eig, 
 		      double rcv_range,

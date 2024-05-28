@@ -74,7 +74,6 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     ray_acoustics(cfg_.ray_acoustics()),
     rap_acoustics(cfg_.rap_acoustics()),
     sampling_frequency(cfg_.sampling_frequency()),
-    pinger_enabled(false),
     noise_level(cfg_.noise_level()),
     svp_updates(cfg_.svp_updates()), 
     svp_update_interval(cfg_.svp_update_interval()), 
@@ -176,8 +175,6 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   ok_dir_y = false;
   ok_dir_z = false;
   got_array_dir_info = false;
-  ok_pinger_x = false;
-  ok_pinger_y = false;
   ok_source_bb_spl = false;
   ok_source_bb_freq = false;
   ok_source_bb_bw = false;
@@ -201,12 +198,6 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   // random number seed
   iseed = -123456;
   array_prev_pitch = -1000;
-
-  // Pinger
-  pinger_lat = lat_origin_;
-  pinger_lon = lon_origin_;
-  pinger_x = 0;
-  pinger_y = 0;
 
   minimum_frequency = 0;
   maximum_frequency = 1e20;
@@ -626,24 +617,25 @@ void SimPassiveSonar::handle_target_arrival_file(const CMOOSMsg& msg)
 
 void SimPassiveSonar::handle_pinger_arrival_file(const CMOOSMsg& msg)
 {
-      
-      string arr_file =pinger_id+"_SIM_ARR_FILE";
-      
-      if (msg.m_sKey == arr_file)
-	{
-	  glog.is(DEBUG1) && glog << "\nOpening arr file for "
-				  << pinger_id << ": "
-				  << arr_file << std::endl;
-	  eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
-	  putAcousticContact(pinger_id, 
-			     pinger_x,
-			     pinger_y,
-			     pinger_depth,
-			     eigenray_table);
-	  got_pinger_eigenrays = true;
-	}	
+  for (unsigned int indx=0; indx<pinger.size(); indx++) {      
+    string arr_file =pinger[indx].id+"_SIM_ARR_FILE";
+    
+    if (msg.m_sKey == arr_file)
+      {
+	glog.is(DEBUG1) && glog << "\nOpening arr file for "
+				<< pinger[indx].id << ": "
+				<< arr_file << std::endl;
+	eigenray_table.readEigenRayTable(msg.m_sVal, max_number_bounces);
+	putAcousticContact(pinger[indx].id, 
+			   pinger[indx].x,
+			   pinger[indx].y,
+			   pinger[indx].depth,
+			   eigenray_table);
+	pinger[indx].got_eigenrays = true;
+      }
+  }
 }
-
+  
 void SimPassiveSonar::loop()
 {
 
@@ -654,9 +646,10 @@ void SimPassiveSonar::loop()
     {
       m_Geodesy.Initialise(lat_origin_,lon_origin_);
       // Update pinger UTM location
-      m_Geodesy.LatLong2LocalUTM(pinger_lat,pinger_lon,
-				 pinger_y,pinger_x);
-
+      for (unsigned int indx=0; indx<pinger.size(); indx++) 
+	m_Geodesy.LatLong2LocalUTM(pinger[indx].lat,pinger[indx].lon,
+				   pinger[indx].y,pinger[indx].x);
+      
       new_origin_ = false;
     }
   
@@ -788,45 +781,49 @@ void SimPassiveSonar::loop()
 	  
 	      // here we add the PINGER timeseries in time domain
 
-	      if (pinger_enabled && pinger_active)
-		{
-		  glog.is(DEBUG1) && glog << "Handling Pinger " <<endl;
+	      for (unsigned int indx=0; indx<pinger.size(); indx++) {
+		if (pinger[indx].enabled && pinger[indx].active)
+		  {
+		    glog.is(DEBUG1) && glog << "Handling Pinger " << endl;
 	  
-		  bool ok_pinger_info = getPingerInfo() && got_pinger_eigenrays;
+		    bool ok_pinger_info = getPingerInfo(indx) &&
+		      pinger[indx].got_eigenrays;
 	      
-		  if (ok_pinger_info)
-		    {
-		      glog.is(VERBOSE) && glog << "\n **** Got info for PINGER ****" 
-					       << endl;;
-		      if (add_pinger_timeseries())
-			{
-			  glog.is(VERBOSE) && glog << "\n*** Added PINGER timeseries ***\n" 
-						   << endl;;
-			}
-		      else
-			{
-			  glog.is(VERBOSE) && glog << "Pinger timeseries not generated" 
-						   << endl;;
-			}
-		    }
-		  else
-		    {
-		      glog.is(VERBOSE) && glog << "Waiting for info for PINGER"
-					       << endl;
-		    }
+		    if (ok_pinger_info)
+		      {
+			glog.is(VERBOSE) && glog << "\n **** Got info for "
+						 << pinger[indx].id << " ****" 
+						 << endl;
+			if (add_pinger_timeseries(indx))
+			  {
+			    glog.is(VERBOSE) && glog << "\n*** Added PINGER timeseries ***\n" 
+						     << endl;;
+			  }
+			else
+			  {
+			    glog.is(VERBOSE) && glog << "Pinger timeseries not generated" 
+						     << endl;;
+			  }
+		      }
+		    else
+		      {
+			glog.is(VERBOSE) && glog << "Waiting for info for "
+						 << pinger[indx].id << " ****"
+						 << endl;
+		      }
 		    
-		  int cn_num = findAcousticContact(pinger_id);
+		    int cn_num = findAcousticContact(pinger[indx].id);
 		  // Acoustic modeling update
 		  // Get ready for next ping
-		  if (ping_interval > 0 &&
-		      t_now > pingtime + 0.8*ping_interval)
+		  if (pinger[indx].interval > 0 &&
+		      t_now > pinger[indx].pingtime + 0.8*pinger[indx].interval)
 		    {
 		      // Publish node report for target cue
 		      double plat, plon;
 		      m_Geodesy.UTM2LatLong(source_pos_x,
 					    source_pos_y,plat,plon);
 		      std::stringstream pstr;
-		      pstr << "NAME=" << tolower(pinger_id) + "_sim" 
+		      pstr << "NAME=" << tolower(pinger[indx].id) + "_sim" 
 			   << ",TYPE=" << "track"
 			   << ",UTC_TIME=" << t_now
 			   << ",X=" << source_pos_x
@@ -838,12 +835,12 @@ void SimPassiveSonar::loop()
 			   << ",DEPTH=" << source_dep
 			   << ",PITCH=0,ROLL=0" ;		
 		      publish("NODE_REPORT", pstr.str());
-		      pingtime += ping_interval;
-		      // got_pinger_eigenrays = false;
+		      pinger[indx].pingtime += pinger[indx].interval;
 		      acoustic_contacts[cn_num].ready = false;
 		      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
 		    }
 		}
+	      }
 	      
 	      glog.is(VERBOSE) && glog << "Writing data files " << endl;
 	      write_nas_file(timestamp);
@@ -1544,16 +1541,13 @@ void SimPassiveSonar::ray_doppler_vel(double v_S, double a_S,double e_S, double 
 
 //function to create Waveform and replica files
 void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_waveform,
-						double dop_fac)
+						double dop_fac,
+						double source_strength,
+						unsigned int indx)
 {
-      double source_strength = pow(10.0,pinger_db/20.0);
-      glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
   // doppler_fac > 1 diverging src/rcv, < 1 converging
   //--first create time vector
-  if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE
-
-
-      )
+  if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
     {
       // Replica read from file
       // Note that any windowing is assumed to have been applied in file
@@ -1565,7 +1559,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
     }
   else
     {
-      double dop_pulsewidth = dop_fac*ping_pulsewidth;
+      double dop_pulsewidth = dop_fac*pinger[indx].pulsewidth;
       std::vector<double> t_src;
       int num_samples = int(dop_pulsewidth*sampling_frequency);
       t_src.resize(num_samples); 
@@ -1574,11 +1568,11 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 	t_src[k] = k*delta_t;
       
       std::vector<double> source_window;
-      if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_HANN)
+      if (pinger[indx].window == LAMSS_PINGER_COMMAND::WINDOW_HANN)
 	{
 	  source_window = vecUtils.hann(t_src.size());
 	}
-      else if (pinger_command.replica_window() == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
+      else if (pinger[indx].window == LAMSS_PINGER_COMMAND::WINDOW_TUKEY)
 	{
 	  double raised_cosine_ratio = 0;
 	  source_window = vecUtils.tukey(t_src.size(),raised_cosine_ratio);
@@ -1598,10 +1592,10 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
       
       source_waveform.resize(t_src.size());
       
-      double dop_center_frequency = ping_center_frequency/dop_fac;
-      double dop_bandwidth = ping_bandwidth/dop_fac;
+      double dop_center_frequency = pinger[indx].center_frequency/dop_fac;
+      double dop_bandwidth = pinger[indx].bandwidth/dop_fac;
       
-      if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
+      if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
 	{
 	  glog.is(DEBUG2) && glog <<"Generating CW waveform" << endl;
 	  for( int k=0;k<t_src.size(); k++)
@@ -1610,7 +1604,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 		source_strength*source_window[k];
 	    }
 	}
-      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
+      else if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_LFM)
 	{
 	  glog.is(DEBUG2) && glog << "Generating LFM waveform" << endl;
 	  double max_lfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
@@ -1622,7 +1616,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 		source_strength*source_window[k];
 	    }
 	}
-      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_HFM)
+      else if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_HFM)
 	{
 	  double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
 	  double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
@@ -1634,7 +1628,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
 		source_strength*source_window[k];
 	    }
 	}
-      else if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
+      else if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
 	{
 	  double dop_max_hfm_frequency = dop_center_frequency + 0.5* dop_bandwidth;
 	  double dop_min_hfm_frequency = dop_center_frequency - 0.5* dop_bandwidth;
@@ -1776,11 +1770,11 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
   return true;
 }
 
-bool SimPassiveSonar::add_pinger_timeseries()
+bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
 {
-  int cn_num = findAcousticContact(pinger_id);
+  int cn_num = findAcousticContact(pinger[indx].id);
   glog.is(DEBUG1) && glog << "Source id " << cn_num
-			  << ": " << pinger_id
+			  << ": " << pinger[indx].id
 			  << " generating eigenray table " << std::endl;
   if (generate_eigenray_table(cn_num,acoustic_contacts[cn_num]))
     {
@@ -1810,17 +1804,12 @@ bool SimPassiveSonar::add_pinger_timeseries()
 	  max_delay = std::max(max_delay,arr_delays[i_elem][i_ray]);
 	  max_amp = std::max(max_amp,fabs(arr_amplitudes[i_elem][i_ray]));
 	}
-      /*
-      glog.is(DEBUG1) && glog << "pingtime+min_delay-timestamp: "
-			      << pingtime+min_delay-timestamp
-			      << std::endl;
-      glog.is(DEBUG1) && glog << "pingtime+ping_pulsewidth+max_delay-timestamp: "
-			      << pingtime+ping_pulsewidth+max_delay-timestamp
-			      << std::endl;
-      */
-      if ((pingtime + ping_pulsewidth + max_delay >= timestamp) &&
-	  (pingtime + min_delay <= timestamp + file_duration))
+      if ((pinger[indx].pingtime + pinger[indx].pulsewidth + max_delay >=
+	   timestamp) &&
+	  (pinger[indx].pingtime + min_delay <= timestamp + file_duration))
 	{ 
+	  double source_strength = pow(10.0,pinger[indx].db/20.0);
+	  glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
 	  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
 	    {
 	      std::vector<double> ts_hyd = hydrophones[i_elem].timeseries();
@@ -1828,9 +1817,10 @@ bool SimPassiveSonar::add_pinger_timeseries()
 		{
 		  // doppler scaled waveform, sampled at sampling_frequency
 		  generate_doppler_waveform(waveform, 
-					    arr_doppler[i_elem][i_ray]);
+					    arr_doppler[i_elem][i_ray],
+					    source_strength, indx);
 		  // add to sum_timeseries if inside current time frame.
-		  double t1 = pingtime + arr_delays[i_elem][i_ray] - 
+		  double t1 = pinger[indx].pingtime + arr_delays[i_elem][i_ray] - 
 		    timestamp;
 		  int indx_1 = t1*sampling_frequency;
 		  int indx_2 = indx_1 + waveform.size()-1;
@@ -1861,14 +1851,14 @@ bool SimPassiveSonar::add_pinger_timeseries()
 	}
       else  
 	glog.is(DEBUG1) && glog << "\nWaiting for next ping in "
-				<< pingtime-timestamp << " secs"
+				<< pinger[indx].pingtime-timestamp << " secs"
 				<< std::endl;
       return(false);
     }
   else
     {
       glog.is(VERBOSE) && glog << "No raytracing data available for source "
-			       << pinger_id << std::endl;
+			       << pinger[indx].id << std::endl;
       return(false);
     }
 }
@@ -2462,24 +2452,24 @@ int SimPassiveSonar::str2int_vec(string msg, vector<int>& values)
   return(nz);
 }
 
-bool SimPassiveSonar::getPingerInfo()
+bool SimPassiveSonar::getPingerInfo(unsigned int indx)
 {
-  if (pinger_enabled )
+  if (pinger[indx].enabled )
     {
       
       double deg2rad = M_PI/180;
-      double hd_ang = pinger_heading*deg2rad;
+      double hd_ang = pinger[indx].heading*deg2rad;
       double costh = cos(hd_ang);
       double sinth = sin(hd_ang);
-      source_pos_x = pinger_x +
-	pinger_speed*(MOOSTime()-pinger_command.pingtime()) * sinth;
-      source_pos_y = pinger_y +
-	pinger_speed*(MOOSTime()-pinger_command.pingtime()) * costh;
-      source_dep = pinger_depth;
-      source_spd = pinger_speed;
-      source_hdg = pinger_heading;
-      source_bb_amp = pow(10.0,pinger_db/20.0);
-      source_bb_freq = ping_center_frequency;
+      source_pos_x = pinger[indx].x +
+	pinger[indx].speed*(MOOSTime()-pinger[indx].pingtime) * sinth;
+      source_pos_y = pinger[indx].y +
+	pinger[indx].speed*(MOOSTime()-pinger[indx].pingtime) * costh;
+      source_dep = pinger[indx].depth;
+      source_spd = pinger[indx].speed;
+      source_hdg = pinger[indx].heading;
+      source_bb_amp = pow(10.0,pinger[indx].db/20.0);
+      source_bb_freq = pinger[indx].center_frequency;
       got_source_bb_info = true;
       got_source_loc = true;
       source_status = true;
@@ -2802,56 +2792,72 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   std::string serialized_pinger_command = msg.GetString();
   parse_for_moos(serialized_pinger_command,&pinger_command);
 
-  pinger_active = pinger_command.pinger_active();
   glog.is(VERBOSE) && glog << "Received Pinger Command: "
 			   << pinger_command.DebugString() << std::endl;
-  
-  if (pinger_active)
+  // Do we know this pinger?
+  bool found = false;
+  unsigned int indx ;
+  for (unsigned int i=0; i<pinger.size() && !found; i++) 
+    if (pinger[i].number == pinger_command.pinger_number()) {
+      found = true;
+      indx = i;
+    }
+  if (!found) {
+    indx = pinger.size();
+    CPinger new_ping;
+    pinger.push_back(new_ping);
+  }
+  pinger[indx].active = pinger_command.pinger_active();
+  if (pinger[indx].active)
     {
-      pinger_id = "PINGER";
+      std::stringstream cc;
+      cc << "PINGER_" << pinger_command.pinger_number();
+      pinger[indx].id = cc.str();
 #ifndef GEO_COMMAND
-      pinger_x = pinger_command.pinger_x();
-      pinger_y = pinger_command.pinger_y();
-      m_Geodesy.UTM2LatLong(pinger_x,pinger_y,
-			    pinger_lat,pinger_lon); 
+      pinger[indx].x = pinger_command.pinger_x();
+      pinger[indx].y = pinger_command.pinger_y();
+      m_Geodesy.UTM2LatLong(pinger[indx].x,pinger[indx].y,
+			    pinger[indx].lat,pinger[indx].lon); 
 #else
-      pinger_lat = pinger_command.pinger_lat();
-      pinger_lon = pinger_command.pinger_lon();
-      m_Geodesy.LatLong2LocalUTM(pinger_lat,pinger_lon,
-				 pinger_y,pinger_x);
+      pinger[indx].lat = pinger_command.pinger_lat();
+      pinger[indx].lon = pinger_command.pinger_lon();
+      m_Geodesy.LatLong2LocalUTM(pinger[indx].lat,pinger[indx].lon,
+				 pinger[indx].y,pinger[indx].x);
 #endif			    
       
-      pinger_depth = pinger_command.pinger_depth();
-      pinger_speed = pinger_command.pinger_speed();
-      pinger_heading = pinger_command.pinger_heading();
-      pinger_db = pinger_command.pinger_db();
-      ping_interval = pinger_command.ping_interval();
-      ping_center_frequency = pinger_command.center_frequency();
-      ping_bandwidth = pinger_command.bandwidth();
-      ping_pulsewidth = pinger_command.pulsewidth();
+      pinger[indx].depth = pinger_command.pinger_depth();
+      pinger[indx].speed = pinger_command.pinger_speed();
+      pinger[indx].heading = pinger_command.pinger_heading();
+      pinger[indx].db = pinger_command.pinger_db();
+      pinger[indx].interval = pinger_command.ping_interval();
+      pinger[indx].center_frequency = pinger_command.center_frequency();
+      pinger[indx].bandwidth = pinger_command.bandwidth();
+      pinger[indx].pulsewidth = pinger_command.pulsewidth();
+      pinger[indx].waveform = pinger_command.waveform();
+      pinger[indx].window = pinger_command.replica_window();
       CEigenRayTable buffer;
       buffer.clear();
-      putAcousticContact(pinger_id, pinger_x,
-			 pinger_y,
-			 pinger_depth, 
+      putAcousticContact(pinger[indx].id, pinger[indx].x,
+			 pinger[indx].y,
+			 pinger[indx].depth, 
 			 buffer);
-      int cn_num = findAcousticContact(pinger_id);
+      int cn_num = findAcousticContact(pinger[indx].id);
 
       // Publish node report for pinger
       double plat, plon;
-      m_Geodesy.UTM2LatLong(pinger_x,
-			    pinger_y,plat,plon);
+      m_Geodesy.UTM2LatLong(pinger[indx].x,
+			    pinger[indx].y,plat,plon);
       std::stringstream pstr;
-      pstr << "NAME=" << tolower(pinger_id) + "_sim" 
+      pstr << "NAME=" << tolower(pinger[indx].id) + "_sim" 
 	   << ",TYPE=" << "track"
 	   << ",UTC_TIME=" << MOOSTime()
-	   << ",X=" << pinger_x
-	   << ",Y=" << pinger_y
+	   << ",X=" << pinger[indx].x
+	   << ",Y=" << pinger[indx].y
 	   << ",LAT=" << plat
 	   << ",LON=" << plon
-	   << ",SPD=" << pinger_speed
-	   << ",HDG=" << pinger_heading
-	   << ",DEPTH=" << pinger_depth
+	   << ",SPD=" << pinger[indx].speed
+	   << ",HDG=" << pinger[indx].heading
+	   << ",DEPTH=" << pinger[indx].depth
 	   << ",PITCH=0,ROLL=0" ;		
       publish("NODE_REPORT", pstr.str());
       // force fresh raytracing
@@ -2860,29 +2866,29 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 
       glog.is(DEBUG1) && glog << "Pinger " 
 			      << " assigned acoustic contact number "
-			      << findAcousticContact(pinger_id) << std::endl;
-      if (!pinger_enabled && ray_acoustics)
+			      << findAcousticContact(pinger[indx].id) << std::endl;
+      if (!pinger[indx].enabled && ray_acoustics)
 	{
-	  string acoustic_contact = pinger_id 
+	  string acoustic_contact = pinger[indx].id 
 	    +"_SIM";
 	  
 	  std::string var = acoustic_contact + "_ARR_FILE";
 	  subscribe(var, &SimPassiveSonar::handle_pinger_arrival_file, this);    
 	  
 	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
-	  pinger_enabled = true;
+	  pinger[indx].enabled = true;
 	}
     }
 
   if (pinger_command.pingtime() < 1)
-    pingtime = floor(pinger_command._time()) + 1;
+    pinger[indx].pingtime = floor(pinger_command._time()) + 1;
   else
-    pingtime = floor(pinger_command.pingtime());
+    pinger[indx].pingtime = floor(pinger_command.pingtime());
   // read replica if from file
   if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
     replica = read_replica(cfg_.pinger_replica_path());
   // Generate no-doppler replica in case we want to save for MF
-  generate_doppler_waveform(waveform,1.0);
+  // generate_doppler_waveform(waveform,1.0,1.0);
 }
 
 double SimPassiveSonar::getAmbientNoise(double depth, 
