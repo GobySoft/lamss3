@@ -2888,7 +2888,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
     replica = read_replica(cfg_.pinger_replica_path());
   // Generate no-doppler replica in case we want to save for MF
-  // generate_doppler_waveform(waveform,1.0,1.0);
+  generate_doppler_waveform(waveform,1.0,1.0,indx);
 }
 
 double SimPassiveSonar::getAmbientNoise(double depth, 
