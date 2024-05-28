@@ -9,14 +9,15 @@ message LAMSS_PINGER_COMMAND {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PINGER_COMMAND", (dccl.field).static_value="LAMSS_PINGER_COMMAND", (dccl.field).codec="_static"];
-    optional bool pinger_active = 5 [default = true];
-    optional double pingtime = 6 [(dccl.field).codec="dccl.time2", (dccl.field).in_head=false, default=0];
-    optional double pinger_x = 7 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-    optional double pinger_y = 8 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
-    optional double pinger_depth = 9 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
-    optional int32 pinger_heading = 10 [(dccl.field).max=359, (dccl.field).min=0];
-    optional double pinger_speed = 11 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];    
-    optional WaveformEnum waveform = 12 [default=WAVEFORM_LFM];
+    required uint32 pinger_number = 5 [(dccl.field).max=32, (dccl.field).min=1];
+    optional bool pinger_active = 6 [default = true];
+    optional double pingtime = 7 [(dccl.field).codec="dccl.time2", (dccl.field).in_head=false, default=0];
+    optional double pinger_x = 8 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+    optional double pinger_y = 9 [default=0, (dccl.field).max=250000, (dccl.field).min=-100000, (dccl.field).precision=0];
+    optional double pinger_depth = 10 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
+    optional int32 pinger_heading = 11 [(dccl.field).max=359, (dccl.field).min=0];
+    optional double pinger_speed = 12 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];    
+    optional WaveformEnum waveform = 13 [default=WAVEFORM_LFM];
     enum WaveformEnum {
        WAVEFORM_CW = 1;
        WAVEFORM_LFM = 2;
@@ -24,17 +25,17 @@ message LAMSS_PINGER_COMMAND {
        WAVEFORM_IMP = 4;
        WAVEFORM_FILE = 5;
        }
-    optional WindowShading replica_window = 13 [default = WINDOW_TUKEY];
+    optional WindowShading replica_window = 14 [default = WINDOW_TUKEY];
     enum WindowShading {
      WINDOW_TUKEY = 1;
      WINDOW_HANN = 2;
      WINDOW_NONE = 3;
     }
-    optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
-    optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
-    optional double pulsewidth = 16 [(dccl.field).max=4.0, (dccl.field).min=0, (dccl.field).precision=3, default=1.0];
-    optional double pinger_db = 17 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
-    optional uint32 ping_interval = 18 [default=0, (dccl.field).max=180, (dccl.field).min=0];
+    optional double center_frequency = 15 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
+    optional double bandwidth = 16 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
+    optional double pulsewidth = 17 [(dccl.field).max=4.0, (dccl.field).min=0, (dccl.field).precision=3, default=1.0];
+    optional double pinger_db = 18 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
+    optional uint32 ping_interval = 19 [default=0, (dccl.field).max=180, (dccl.field).min=0];
 } 
 
 message LAMSS_PINGER_COMMAND_GEO { 
@@ -45,14 +46,15 @@ message LAMSS_PINGER_COMMAND_GEO {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_PINGER_COMMAND_GEO", (dccl.field).static_value="LAMSS_PINGER_COMMAND_GEO", (dccl.field).codec="_static"];
-    optional bool pinger_active = 5 [default = true];
-    optional double pingtime = 6 [(dccl.field).codec="dccl.time2", (dccl.field).in_head=false, default=0];
-    optional double pinger_lat = 7 [default=0, (dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=5];
-    optional double pinger_lon = 8 [default=0, (dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=5];
-    optional double pinger_depth = 9 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
-    optional int32 pinger_heading = 10 [(dccl.field).max=359, (dccl.field).min=0];
-    optional double pinger_speed = 11 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];    
-    optional WaveformEnum waveform = 12 [default=WAVEFORM_LFM];
+    required uint32 pinger_number = 5  [(dccl.field).max=32, (dccl.field).min=1];
+    optional bool pinger_active = 6 [default = true];
+    optional double pingtime = 7 [(dccl.field).codec="dccl.time2", (dccl.field).in_head=false, default=0];
+    optional double pinger_lat = 8 [default=0, (dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=5];
+    optional double pinger_lon = 9 [default=0, (dccl.field).max=180, (dccl.field).min=-180, (dccl.field).precision=5];
+    optional double pinger_depth = 10 [default=10, (dccl.field).max=6000, (dccl.field).min=0, (dccl.field).precision=1];
+    optional int32 pinger_heading = 11 [(dccl.field).max=359, (dccl.field).min=0];
+    optional double pinger_speed = 12 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];    
+    optional WaveformEnum waveform = 13 [default=WAVEFORM_LFM];
     enum WaveformEnum {
        WAVEFORM_CW = 1;
        WAVEFORM_LFM = 2;
@@ -60,15 +62,18 @@ message LAMSS_PINGER_COMMAND_GEO {
        WAVEFORM_IMP = 4;
        WAVEFORM_FILE = 5;
        }
-    optional WindowShading replica_window = 13 [default = WINDOW_TUKEY];
+    optional WindowShading replica_window = 14 [default = WINDOW_TUKEY];
     enum WindowShading {
      WINDOW_TUKEY = 1;
      WINDOW_HANN = 2;
      WINDOW_NONE = 3;
     }
-    optional double center_frequency = 14 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
-    optional double bandwidth = 15 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
-    optional double pulsewidth = 16 [(dccl.field).max=4, (dccl.field).min=0, (dccl.field).precision=3, default=1];
-    optional double pinger_db = 17 [default=0, (dccl.field).max=180, (dccl.field).min=0, (dccl.field).precision=1];
-    optional uint32 ping_interval = 18 [default=0, (dccl.field).max=250, (dccl.field).min=0];
+    optional double center_frequency = 15 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=1, default=4000];
+    optional double bandwidth = 16 [(dccl.field).max=4000, (dccl.field).min=0, (dccl.field).precision=1, default=2000];
+    optional double pulsewidth = 17 [(dccl.field).max=4.0, (dccl.field).min=0, (dccl.field).precision=3, default=1.0];
+    optional double pinger_db = 18 [default=0, (dccl.field).max=250, (dccl.field).min=0, (dccl.field).precision=1];
+    optional uint32 ping_interval = 19 [default=0, (dccl.field).max=180, (dccl.field).min=0];
 } 
+
+
+
