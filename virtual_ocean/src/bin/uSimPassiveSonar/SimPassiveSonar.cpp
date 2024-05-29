@@ -1826,8 +1826,12 @@ bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
 	  glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
 	  for (int i_elem=0; i_elem < arr_delays.size(); i_elem++)
 	    {
-	      std::vector<double> ts_hyd = hydrophones[i_elem].timeseries();
-	      for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
+	      std::vector<double> ts_hyd;
+	      ts_hyd.assign(num_samples,0);
+	      for(int i_samp=0; i_samp < num_samples; i_samp++)
+		ts_hyd[i_samp] = gsl_matrix_get(sum_of_timeseries, i_elem, i_samp);
+
+	       for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
 		{
 		  // doppler scaled waveform, sampled at sampling_frequency
 		  /*
@@ -1863,7 +1867,9 @@ bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
 				 ts_hyd[i_samp]);
 		}
 	    }
-	  glog.is(DEBUG1) && glog << "\n ***** Added ping to timeseries *****\n"
+	  glog.is(DEBUG1) && glog << "\n ***** Added ping "
+				  << pinger[indx].number
+				  << " signal to timeseries *****\n"
 				  << ",max_signal  = " << max_amp 
 				  << ",max_ping = " << max_ping << "\n" 
 				  << std::endl;
@@ -2812,7 +2818,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   std::string serialized_pinger_command = msg.GetString();
   parse_for_moos(serialized_pinger_command,&pinger_command);
 
-  glog.is(VERBOSE) && glog << "Received Pinger Command: "
+  glog.is(VERBOSE) && glog << "Recseived Pinger Command: "
 			   << pinger_command.DebugString() << std::endl;
   // Do we know this pinger?
   bool found = false;
