@@ -270,6 +270,8 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     }
   sync = (sync_path != "");
   svp_requests.clear();
+
+  pinger.clear();
   slow_loop_period = svp_update_interval/2; 
 
 }
@@ -620,7 +622,7 @@ void SimPassiveSonar::handle_pinger_arrival_file(const CMOOSMsg& msg)
   for (unsigned int indx=0; indx<pinger.size(); indx++) {      
     string arr_file =pinger[indx].id+"_SIM_ARR_FILE";
     
-    if (msg.m_sKey == arr_file)
+    if (msg.m_sKey == arr_file )
       {
 	glog.is(DEBUG1) && glog << "\nOpening arr file for "
 				<< pinger[indx].id << ": "
@@ -782,7 +784,7 @@ void SimPassiveSonar::loop()
 	      // here we add the PINGER timeseries in time domain
 
 	      for (unsigned int indx=0; indx<pinger.size(); indx++) {
-		if (pinger[indx].enabled && pinger[indx].active)
+		if (pinger[indx].active)
 		  {
 		    glog.is(DEBUG1) && glog << "Handling Pinger " << endl;
 	  
@@ -1650,6 +1652,18 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
     }
 }
 
+std::vector<double>
+SimPassiveSonar::doppler_shifted_waveform(double dop_fac,
+					 unsigned int indx)
+{
+  // doppler_fac > 1 diverging src/rcv, < 1 converging
+  std::vector<double> doppler_waveform;
+  // Doppler shifting by resampling
+  vecUtils.resample(dop_fac,pinger[indx].replica,1.0,doppler_waveform);
+
+  return(doppler_waveform);
+}
+
 bool SimPassiveSonar::generate_corr_noise_spectrum()
 {
   int sensors_per_element;
@@ -1816,14 +1830,20 @@ bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
 	      for (int i_ray=0; i_ray < arr_delays[i_elem].size(); i_ray++)
 		{
 		  // doppler scaled waveform, sampled at sampling_frequency
+		  /*
+                  std::vector<double> waveform;
 		  generate_doppler_waveform(waveform, 
 					    arr_doppler[i_elem][i_ray],
 					    source_strength, indx);
+		  */
+		  std::vector<double> waveform =
+		    doppler_shifted_waveform(arr_doppler[i_elem][i_ray],
+					     indx);
 		  // add to sum_timeseries if inside current time frame.
-		  double t1 = pinger[indx].pingtime + arr_delays[i_elem][i_ray] - 
-		    timestamp;
+		  double t1 = pinger[indx].pingtime +
+		    arr_delays[i_elem][i_ray] - timestamp;
 		  int indx_1 = t1*sampling_frequency;
-		  int indx_2 = indx_1 + waveform.size()-1;
+		  int indx_2 = indx_1 + waveform.size() - 1;
 		  if (indx_1 < num_samples && indx_2 >=0)
 		    {
 		      int indx_offset = -indx_1;
@@ -2454,7 +2474,7 @@ int SimPassiveSonar::str2int_vec(string msg, vector<int>& values)
 
 bool SimPassiveSonar::getPingerInfo(unsigned int indx)
 {
-  if (pinger[indx].enabled )
+  if (pinger[indx].enabled)
     {
       
       double deg2rad = M_PI/180;
@@ -2799,13 +2819,19 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
   unsigned int indx ;
   for (unsigned int i=0; i<pinger.size() && !found; i++) 
     if (pinger[i].number == pinger_command.pinger_number()) {
+      glog.is(DEBUG2) && glog << "Pinger " << pinger[i].number
+			      << " exists. Updating"
+			      << std::endl;
       found = true;
       indx = i;
     }
   if (!found) {
     indx = pinger.size();
     CPinger new_ping;
+    new_ping.number = pinger_command.pinger_number();
     pinger.push_back(new_ping);
+    glog.is(DEBUG2) && glog << "New Pinger " << pinger[indx].number
+			    << std::endl;
   }
   pinger[indx].active = pinger_command.pinger_active();
   if (pinger[indx].active)
@@ -2878,17 +2904,25 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 	  glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
 	  pinger[indx].enabled = true;
 	}
-    }
 
-  if (pinger_command.pingtime() < 1)
-    pinger[indx].pingtime = floor(pinger_command._time()) + 1;
-  else
-    pinger[indx].pingtime = floor(pinger_command.pingtime());
-  // read replica if from file
-  if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
-    replica = read_replica(cfg_.pinger_replica_path());
-  // Generate no-doppler replica in case we want to save for MF
-  generate_doppler_waveform(waveform,1.0,1.0,indx);
+      // Set ping times
+      if (pinger_command.pingtime() < 1)
+	pinger[indx].pingtime = floor(pinger_command._time()) + 1;
+      else
+	pinger[indx].pingtime = floor(pinger_command.pingtime());
+      pinger[indx].pingtime = ceil(pinger[indx].pingtime/pinger[indx].interval) * pinger[indx].interval;
+      // read replica if from file
+      if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
+	{
+	  pinger[indx].replica = read_replica(cfg_.pinger_replica_path());
+	  pinger[indx].pulsewidth =
+	    pinger[indx].replica.size()/sampling_frequency;
+	}
+      // Generate no-doppler replica in case for MF and simple doppler resampling
+      double source_strength = pow(10.0,pinger[indx].db/20.0);
+      generate_doppler_waveform(pinger[indx].replica,1.0,
+				source_strength,indx);
+    }
 }
 
 double SimPassiveSonar::getAmbientNoise(double depth, 

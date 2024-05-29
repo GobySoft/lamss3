@@ -70,7 +70,7 @@ class CAcousticContact
 class CPinger
 {
 public:
-  bool active;
+  bool active{false};
   unsigned int number;
   std::string id{"PINGER_xx"};
   bool enabled{false};
@@ -93,7 +93,7 @@ public:
   LAMSS_PINGER_COMMAND_GEO::WaveformEnum waveform;
   LAMSS_PINGER_COMMAND_GEO::WindowShading window;
 #endif
-
+  std::vector<double> replica;
 
   double pingtime; 
   bool got_eigenrays{false};
@@ -192,9 +192,11 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
   bool getPingerInfo(unsigned int i);
   void generate_doppler_waveform(std::vector<double>& source_waveform,
-				 double dop_fac, double source_strength,
+				 double dop_fac,
+				 double source_strength,
 				 unsigned int pinger_indx);
-  std::vector<double> waveform;
+  std::vector<double> doppler_shifted_waveform(double dop_fac,
+					      unsigned int indx);
   // Time stam for each recorded file
   double timestamp;
   // Target control. true= SourceSim, false = prosecute message
