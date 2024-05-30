@@ -2916,7 +2916,9 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 	pinger[indx].pingtime = floor(pinger_command._time()) + 1;
       else
 	pinger[indx].pingtime = floor(pinger_command.pingtime());
-      pinger[indx].pingtime = ceil(pinger[indx].pingtime/pinger[indx].interval) * pinger[indx].interval;
+      if (pinger[indx].interval > 0)
+	pinger[indx].pingtime =
+	  ceil(pinger[indx].pingtime/pinger[indx].interval) * pinger[indx].interval;
       // read replica if from file
       if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
 	{
