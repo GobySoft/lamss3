@@ -2912,13 +2912,14 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 	}
 
       // Set ping times
-      if (pinger_command.pingtime() < 1)
+      if (!pinger_command.has_pingtime() || pinger_command.pingtime() < 1)
 	pinger[indx].pingtime = floor(pinger_command._time()) + 1;
+      else if (pinger[indx].interval > 0) 
+	pinger[indx].pingtime =
+	  ceil(MOOSTime()/pinger[indx].interval) * pinger[indx].interval;
       else
 	pinger[indx].pingtime = floor(pinger_command.pingtime());
-      if (pinger[indx].interval > 0)
-	pinger[indx].pingtime =
-	  ceil(pinger[indx].pingtime/pinger[indx].interval) * pinger[indx].interval;
+      
       // read replica if from file
       if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
 	{
