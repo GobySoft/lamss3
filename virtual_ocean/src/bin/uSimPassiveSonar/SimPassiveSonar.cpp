@@ -2924,7 +2924,11 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
       // read replica if from file
       if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
 	{
-	  pinger[indx].replica = read_replica(cfg_.pinger_replica_path());
+	  std::stringstream rf;
+	  rf << cfg_.replica_path()
+			       << "pinger_" << pinger_command.pinger_number()
+			       << "_replica";
+	  pinger[indx].replica = read_replica(rf.str());
 	  pinger[indx].pulsewidth =
 	    pinger[indx].replica.size()/sampling_frequency;
 	}
