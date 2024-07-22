@@ -1551,6 +1551,17 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
   //--first create time vector
   if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
     {
+
+	  std::vector<double> replica; // Local buffer for the replica
+
+	  std::stringstream rf;
+	  rf << cfg_.replica_path()
+			       << "pinger_" << pinger_command.pinger_number()
+			       << "_replica";
+	  replica = read_replica(rf.str());
+	  pinger[indx].pulsewidth =
+	    pinger[indx].replica.size()/sampling_frequency;
+
       // Replica read from file
       // Note that any windowing is assumed to have been applied in file
       // Doppler shifting by resampling
@@ -2921,17 +2932,6 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
       else
 	pinger[indx].pingtime = pinger_command.pingtime();
       
-      // read replica if from file
-      if (pinger_command.waveform() == LAMSS_PINGER_COMMAND::WAVEFORM_FILE)
-	{
-	  std::stringstream rf;
-	  rf << cfg_.replica_path()
-			       << "pinger_" << pinger_command.pinger_number()
-			       << "_replica";
-	  pinger[indx].replica = read_replica(rf.str());
-	  pinger[indx].pulsewidth =
-	    pinger[indx].replica.size()/sampling_frequency;
-	}
       // Generate no-doppler replica in case for MF and simple doppler resampling
       double source_strength = pow(10.0,pinger[indx].db/20.0);
       generate_doppler_waveform(pinger[indx].replica,1.0,
