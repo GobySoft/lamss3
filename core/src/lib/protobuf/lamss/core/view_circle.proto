@@ -9,24 +9,12 @@ message ViewCircle
     optional string label = 1;
     optional bool active = 2 [default = true];
     
-    optional double center_x = 10 [(dccl.field).units.base_dimensions = "L"];
-    optional double center_y = 11 [(dccl.field).units.base_dimensions = "L"];
-    optional double radius = 12 [(dccl.field).units.base_dimensions = "L"];
-}
-
-message ViewCircle_GEO
-{
-    option (dccl.msg).unit_system = "si";
-
-    optional string label = 1;
-    optional bool active = 2 [default = true];
-    
-    optional double center_x = 10
+    optional double center_lon = 10
     [(dccl.field).max = 180,
      (dccl.field).min = -180,
      (dccl.field).precision = 4
     ];
-    optional double center_y = 11
+    optional double center_lat = 11
     [(dccl.field).max = 90,
      (dccl.field).min = -90,
      (dccl.field).precision = 4
