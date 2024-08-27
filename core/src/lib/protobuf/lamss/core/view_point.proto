@@ -2,7 +2,7 @@ import "dccl/protobuf/option_extensions.proto";
 import "goby/protobuf/option_extensions.proto";
 message VIEW_POINT { 
 	option (dccl.msg).id = 155;
-	option (dccl.msg).max_bytes = 64;
+	option (dccl.msg).max_bytes = 32;
         option (dccl.msg).codec_version = 4;
 	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
 	optional int32 vehicle_name = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
@@ -15,7 +15,7 @@ message VIEW_POINT {
 		 TYPE_ATTRACTOR = 2; 
 		 TYPE_STATION = 3; 
 	} 
-	optional double point_lon = 6 [(dccl.field).max=180.000000, (dccl.field).min=-180.000000, (dccl.field).precision=4];
-	optional double point_lat = 7 [(dccl.field).max=90.000000, (dccl.field).min=-90.000000, (dccl.field).precision=4];
+	optional double point_x = 6 [(dccl.field).max=180.000000, (dccl.field).min=-180.000000, (dccl.field).precision=4];
+	optional double point_y = 7 [(dccl.field).max=90.000000, (dccl.field).min=-90.000000, (dccl.field).precision=4];
 } 
 

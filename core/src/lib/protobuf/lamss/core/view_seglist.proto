@@ -27,13 +27,13 @@ message VIEW_SEGLIST
         MISSION_RETURN = 3;
         MISSION_TRANSIT = 4;
     }
-    repeated double point_lon = 6 [
+    repeated double point_x = 6 [
         (dccl.field).max = -180.000000,
         (dccl.field).min = 180.000000,
         (dccl.field).precision = 4,
         (dccl.field).max_repeat = 6
     ];
-    repeated double point_lat = 7 [
+    repeated double point_y = 7 [
         (dccl.field).max = 90.000000,
         (dccl.field).min = -90.000000,
         (dccl.field).precision = 4,
