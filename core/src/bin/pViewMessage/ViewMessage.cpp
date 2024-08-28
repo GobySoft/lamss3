@@ -414,7 +414,11 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 	// find point with minimum positive bearing change
 	//double vert_x = seeglist.get_vx(min_indx);
 	//double vert_y glist.size(); i++)
-        for (unsigned int i=0; i<seglist.get_vx_size(); i++))
+	double len_max = 0;
+	double delta_min = 2*M_PI;
+	double bearing = 0;
+	min_indx = 0;
+	for (unsigned int i=0; i<seglist.size(); i++)
 	  if (i != curr_indx)
 	    {
 	      double ang = atan2(seglist.get_vx(i)-seglist.get_vx(curr_indx),
