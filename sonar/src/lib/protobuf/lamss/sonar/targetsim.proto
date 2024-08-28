@@ -30,8 +30,6 @@ message LAMSS_SIMULATE_TARGET {
 	      (dccl.field).precision=3];
 	      }
 	optional double tgt_dep = 7 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double tgt_lat = 6 [(dccl.field).max=90, (dccl.field).min=-90, (dccl.field).precision=3];
-	optional double tgt_dep = 7 [(dccl.field).max=6000.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double tgt_hdg = 8 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double tgt_spd = 9 [(dccl.field).max=30.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double tgt_freq = 10 [(dccl.field).max=16000, (dccl.field).min=0, (dccl.field).precision=0];

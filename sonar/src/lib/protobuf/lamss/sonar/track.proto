@@ -13,7 +13,7 @@ message LAMSS_TRACK {
 	      (dccl.field).max=100000,
 	      (dccl.field).min=-100000,
 	      (dccl.field).precision=0];
-	      double nav_lon = 5 [
+	      double nav_lon = 55 [
 	      (dccl.field).max=180,
 	      (dccl.field).min=-180,
 	      (dccl.field).precision=5];
@@ -23,7 +23,7 @@ message LAMSS_TRACK {
 	      (dccl.field).max=100000,
 	      (dccl.field).min=-100000,
 	      (dccl.field).precision=0];
-	      double nav_lat = 6 [
+	      double nav_lat = 56 [
 	      (dccl.field).max=90,
 	      (dccl.field).min=-90,
 	      (dccl.field).precision=5];
