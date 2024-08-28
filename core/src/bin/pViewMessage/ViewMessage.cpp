@@ -160,8 +160,8 @@ void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
       type = "STATION";
 
     double x,y;
-    geodesy_.LatLong2LocalUTM(proto_point.point().lat(),
-			      proto_point.point().lon(),
+    geodesy_.LatLong2LocalUTM(proto_point.point().y(),
+			      proto_point.point().x(),
 			      y,x);
     std::string bl ="false";
     if (proto_point.active())
@@ -203,7 +203,7 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
 {
     glog << "XYSegList:" <<  seglist.get_spec() << std::endl;
     lamss::protobuf::ViewSegList proto_seglist ;
-    int max_pnts = 13;
+    unsigned int max_pnts = 13;
 
     if (seglist.size() > max_pnts)
     {
@@ -341,8 +341,8 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
 
     double lat, lon;
     geodesy_.UTM2LatLong(point.x(),point.y(),lat,lon);
-    out.mutable_point()->set_lon(lon);
-    out.mutable_point()->set_lat(lat);
+    out.mutable_point()->set_x(lon);
+    out.mutable_point()->set_y(lat);
     //endif
 
     out.mutable_point()->set_z(point.z());
@@ -364,7 +364,7 @@ XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
     XYPoint out;
 
     double x,y;
-    geodesy_.LatLong2LocalUTM(point.point().lat(), point.point().lon(),y,x);
+    geodesy_.LatLong2LocalUTM(point.point().y(), point.point().x(),y,x);
     out.set_vertex(x, y, point.point().z());
 
     out.set_active(point.active());
@@ -388,7 +388,7 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
     double min_x = 1e200;
     int min_indx = 0;
 
-    for (int i=0; i< seglist.size(); i++)
+    for (unsigned int i=0; i< seglist.size(); i++)
       if (seglist.get_vx(i) < min_x)
 	{
 	  min_x = seglist.get_vx(i);
@@ -398,8 +398,8 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 
     double lat, lon;
     geodesy_.UTM2LatLong(seglist.get_vx(min_indx),seglist.get_vy(min_indx),lat,lon);
-    point->set_lon(lon);
-    point->set_lat(lat);
+    point->set_x(lon);
+    point->set_y(lat);
 
     point->set_z(seglist.get_vz(min_indx));
     indx.push_back(min_indx);
@@ -410,15 +410,11 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
     bool done = false;
     while (!done)
       {
-	int curr_indx = indx[indx.size()-1];
+	unsigned int curr_indx = indx[indx.size()-1];
 	// find point with minimum positive bearing change
-	double vert_x = seglist.get_vx(min_indx);
-	double vert_y = seglist.get_vy(min_indx);
-	double len_max = 0;
-	double delta_min = 2*M_PI;
-	double bearing = 0;
-	min_indx = 0;
-	for (int i=0; i<seglist.size(); i++)
+	//double vert_x = seeglist.get_vx(min_indx);
+	//double vert_y glist.size(); i++)
+        for (unsigned int i=0; i<seglist.get_vx_size(); i++))
 	  if (i != curr_indx)
 	    {
 	      double ang = atan2(seglist.get_vx(i)-seglist.get_vx(curr_indx),
@@ -464,8 +460,8 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
 	    double lat, lon;
 	    geodesy_.UTM2LatLong(seglist.get_vx(min_indx),seglist.get_vy(min_indx),
 				 lat,lon);
-	    point->set_lon(lon);
-	    point->set_lat(lat);
+	    point->set_x(lon);
+	    point->set_y(lat);
 
 	    point->set_z(seglist.get_vz(min_indx));
 	    indx.push_back(min_indx);
@@ -510,7 +506,7 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     glog << "Seglist size is: " << seglist.size() << std::endl;
     int seglist_inc = 1;
 
-    int max_pnt = 13;
+    unsigned int max_pnt = 13;
 
     if (seglist.size() > max_pnt)
       seglist_inc = int(seglist.size()/(max_pnt+1))+1;
@@ -523,8 +519,8 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
 	  double lat, lon;
 	  geodesy_.UTM2LatLong(seglist.get_vx(i),seglist.get_vy(i),
 			       lat,lon);
-	  point->set_lon(lon);
-	  point->set_lat(lat);
+	  point->set_x(lon);
+	  point->set_y(lat);
 	  point->set_z(seglist.get_vz(i));
 	}
 
@@ -555,12 +551,12 @@ XYSegList CViewMessage::from_protobuf
     {
       glog << "seglist.point(i).x() == NaN" << std::boolalpha << is_nan(seglist.point(i).x()) << std::endl;
       
-      if(!is_nan(seglist.point(i).lon()) &&
-	 !is_nan(seglist.point(i).lat()) &&
+      if(!is_nan(seglist.point(i).x()) &&
+	 !is_nan(seglist.point(i).y()) &&
 	 !is_nan(seglist.point(i).z()))
         {
 	  double x, y;
-	  geodesy_.LatLong2LocalUTM(seglist.point(i).lat(),seglist.point(i).lon(),y,x);
+	  geodesy_.LatLong2LocalUTM(seglist.point(i).y(),seglist.point(i).x(),y,x);
 	  glog << "adding x: " << x << ", y: " << ", z: "
 	       << seglist.point(i).z() << std::endl;      
 	  
