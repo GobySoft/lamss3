@@ -8,51 +8,27 @@ message LAMSS_TRACK {
 	optional int32 node = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_TRACK", (dccl.field).static_value="LAMSS_TRACK", (dccl.field).codec="_static"];
-	oneof east {
-	      double nav_x = 5 [
-	      (dccl.field).max=100000,
-	      (dccl.field).min=-100000,
-	      (dccl.field).precision=0];
-	      double nav_lon = 55 [
+	optional double nav_lon = 5 [
 	      (dccl.field).max=180,
 	      (dccl.field).min=-180,
 	      (dccl.field).precision=5];
-	}
-	oneof north {
-	      double nav_y = 6 [
-	      (dccl.field).max=100000,
-	      (dccl.field).min=-100000,
-	      (dccl.field).precision=0];
-	      double nav_lat = 56 [
+	optional double nav_lat = 6 [
 	      (dccl.field).max=90,
 	      (dccl.field).min=-90,
 	      (dccl.field).precision=5];
-	      }
 	optional double nav_hdg = 7 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double nav_spd = 8 [(dccl.field).max=6.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional double nav_dep = 9 [(dccl.field).max=6400.0, (dccl.field).min=0.0, (dccl.field).precision=1];
 	optional int32 tgt_num = 10 [(dccl.field).max=31, (dccl.field).min=0];
 	optional int32 state = 11 [(dccl.field).max=2, (dccl.field).min=0];
-	oneof trk_east {
-	      double x = 12 [
-	      (dccl.field).max=100000,
-	      (dccl.field).min=-100000,
-	      (dccl.field).precision=0];
-    	      double lon = 52 [
+    	optional double lon = 12 [
               (dccl.field).max = 180,
               (dccl.field).min = -180,
               (dccl.field).precision = 4];
-	      }
-	oneof trk_north {
-	      double y = 13 [
-	      (dccl.field).max=100000,
-	      (dccl.field).min=-100000,
-	      (dccl.field).precision=0];
-    	      double lat = 53 [
+    	optional double lat = 13 [
               (dccl.field).max = 90,
               (dccl.field).min = -90,
               (dccl.field).precision = 4];
-	      }
  
 	optional double heading = 14 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
 	optional double speed = 15 [(dccl.field).max=20.0, (dccl.field).min=-2.0, (dccl.field).precision=1];
