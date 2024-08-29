@@ -389,20 +389,10 @@ void LamssTrackManager::UTM_update()
     {
       last_track_report_ = track_report;
       int track_id = track_report.tgt_num();
-      if (track_report.has_x() && track_report.has_x())
-	{
-	  last_track_x_ = track_report.x();
-	  last_track_y_ = track_report.y();
-	  m_Geodesy.UTM2LatLong(last_track_x_,last_track_y_,
-				last_track_lat_,last_track_lon_);
-	}
-      else
-	{
-	  last_track_lon_ = track_report.lon();
-	  last_track_lat_ = track_report.lat();
-	  m_Geodesy.LatLong2LocalUTM(last_track_lat_,last_track_lon_,
+      last_track_lon_ = track_report.lon();
+      last_track_lat_ = track_report.lat();
+      m_Geodesy.LatLong2LocalUTM(last_track_lat_,last_track_lon_,
 				     last_track_y_,last_track_x_);
-	}
       double track_heading = track_report.heading();
       double track_speed = track_report.speed();
       double track_utc = track_report.time();
