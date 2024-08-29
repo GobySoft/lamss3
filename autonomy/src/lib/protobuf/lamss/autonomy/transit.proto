@@ -16,7 +16,7 @@ message LAMSS_TRANSIT {
 	} 
 	optional double Transit_Depth = 6 [default=5.0, (dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=0];
 	optional double Transit_Speed = 7 [default=1.5, (dccl.field).max=3.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-        repeated TransitWPT wpt = 8 [(dccl.field).max_repeat=5];
+        repeated TransitWPT wpt = 8 [(dccl.field).max_repeat=4];
         message TransitWPT
           {
 	    oneof east {
@@ -25,7 +25,7 @@ message LAMSS_TRANSIT {
 				(dccl.field).precision=-1];
                   double lon = 51 [(dccl.field).max = 180,
                                    (dccl.field).min = -180,
-                                   (dccl.field).precision = 3 ];
+                                   (dccl.field).precision = 4 ];
 	   }
 	   oneof north {
                   double y = 2 [(dccl.field).max=20470.000000,
@@ -33,7 +33,7 @@ message LAMSS_TRANSIT {
 				(dccl.field).precision=-1];
                   double lat = 52 [(dccl.field).max = 90,
                                    (dccl.field).min = -90,
-                                   (dccl.field).precision = 3 ];
+                                   (dccl.field).precision = 4 ];
 				   }
           }
 } 
