@@ -62,11 +62,7 @@ class SimTargets : public goby::moos::GobyMOOSApp
  protected:
 
     void reinitialize_targets();
-#ifndef GEO_COMMAND
     void update_target(LAMSS_SIMULATE_TARGET tgt_msg);
-#else
-    void update_target(LAMSS_SIMULATE_TARGET_GEO tgt_msg);
-#endif
     void updateTargetList();
     void cancelTarget(std::string);
     void postTargetList();

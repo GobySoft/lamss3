@@ -119,11 +119,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
   subscribe("VEHICLE_NAME", &SimPassiveSonar::handle_vehicle_name, this);    
   subscribe("SOUND_SPEED", &SimPassiveSonar::handle_sound_speed, this);    
   subscribe("SOUND_SPEED_GRAM", &SimPassiveSonar::handle_sound_speed, this);    
-#ifndef GEO_COMMAND
   subscribe("LAMSS_PINGER_COMMAND_IN", &SimPassiveSonar::handle_pinger_command, this);    
-#else
-  subscribe("LAMSS_PINGER_COMMAND_GEO_IN", &SimPassiveSonar::handle_pinger_command, this);    
-#endif
   //
   glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
   //
@@ -2856,17 +2852,21 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
       std::stringstream cc;
       cc << "PINGER_" << pinger_command.pinger_number();
       pinger[indx].id = cc.str();
-#ifndef GEO_COMMAND
-      pinger[indx].x = pinger_command.pinger_x();
-      pinger[indx].y = pinger_command.pinger_y();
-      m_Geodesy.UTM2LatLong(pinger[indx].x,pinger[indx].y,
-			    pinger[indx].lat,pinger[indx].lon); 
-#else
-      pinger[indx].lat = pinger_command.pinger_lat();
-      pinger[indx].lon = pinger_command.pinger_lon();
-      m_Geodesy.LatLong2LocalUTM(pinger[indx].lat,pinger[indx].lon,
-				 pinger[indx].y,pinger[indx].x);
-#endif			    
+      if (pinger_command.has_pinger_x() &&
+	  pinger_command.has_pinger_y())
+	{
+	  pinger[indx].x = pinger_command.pinger_x();
+	  pinger[indx].y = pinger_command.pinger_y();
+	  m_Geodesy.UTM2LatLong(pinger[indx].x,pinger[indx].y,
+				pinger[indx].lat,pinger[indx].lon);
+	}
+      else
+	{
+	  pinger[indx].lat = pinger_command.pinger_lat();
+	  pinger[indx].lon = pinger_command.pinger_lon();
+	  m_Geodesy.LatLong2LocalUTM(pinger[indx].lat,pinger[indx].lon,
+				     pinger[indx].y,pinger[indx].x);
+	}
       
       pinger[indx].depth = pinger_command.pinger_depth();
       pinger[indx].speed = pinger_command.pinger_speed();
