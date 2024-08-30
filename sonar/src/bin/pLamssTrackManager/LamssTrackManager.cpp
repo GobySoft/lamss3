@@ -670,8 +670,7 @@ void LamssTrackManager::send_deploy()
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssTrackManagerConfig::STATION)
     {
-      if (last_deploy_cmd_.has_deploy_x() &&
-	  last_deploy_cmd_.has_deploy_y())
+      if (!cfg_.use_geo_commands())
 	{
 	  redeploy.set_deploy_x(last_nav_.local_fix().x());
 	  redeploy.set_deploy_y(last_nav_.local_fix().y());

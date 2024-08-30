@@ -33,5 +33,7 @@ message LamssTrackManagerConfig
   optional double auto_prosecute_array_angle  = 22 [default = 80];
   optional double auto_prosecute_center_frequency  = 23 [default = 900];
   optional double auto_prosecute_bandwidth  = 24 [default = 200];
-}
+
+  optional bool use_geo_commands = 60 [default = false];
+ }
 
