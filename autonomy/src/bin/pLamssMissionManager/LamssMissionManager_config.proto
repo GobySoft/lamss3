@@ -77,6 +77,8 @@ message LamssMissionManagerConfig
 
   repeated GlideParameters glide_parameters = 52;
 
+  optional bool use_geo_commands = 61 [default = false];
+  
 }
 
 

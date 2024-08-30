@@ -529,8 +529,7 @@ void LamssMissionManager::send_deploy()
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssMissionManagerConfig::CURRENT)
     {
-      if (last_deploy_cmd_.has_deploy_x() &&
-	  last_deploy_cmd_.has_deploy_y())
+      if (!cfg_.use_geo_commands())
 	{
 	  redeploy.set_deploy_x(last_nav_.local_fix().x());
 	  redeploy.set_deploy_y(last_nav_.local_fix().y());
@@ -554,8 +553,7 @@ void LamssMissionManager::send_deploy()
 void LamssMissionManager::homing_prosecute()
 {
   LAMSS_PROSECUTE prosecute_cmd;
-  if (last_deploy_cmd_.has_deploy_x() &&
-      last_deploy_cmd_.has_deploy_y())
+  if (!cfg_.use_geo_commands())
     {
       prosecute_cmd.set_target_x(abort_x);
       prosecute_cmd.set_target_y(abort_y);
@@ -656,8 +654,7 @@ void LamssMissionManager::initial_deploy()
       init_deploy_cmd.set_auto_prosecute(false);
       // for auto redeploy, center at current abort location
       // This is important for dynamic scenarios such as in ICEX
-      if (last_deploy_cmd_.has_deploy_x() &&
-	  last_deploy_cmd_.has_deploy_y())
+      if (!cfg_.use_geo_commands())
 	{
 	  init_deploy_cmd.set_deploy_x(abort_x);
 	  init_deploy_cmd.set_deploy_y(abort_y);
@@ -716,8 +713,7 @@ void LamssMissionManager::homing_return()
   homing_cmd.set_auto_prosecute(false);
   // for auto redeploy, center at current abort location
   // This is important for dynamic scenarios such as in ICEX
-  if (last_deploy_cmd_.has_deploy_x() &&
-      last_deploy_cmd_.has_deploy_y())
+  if (!cfg_.use_geo_commands())
     {
       homing_cmd.set_deploy_x(abort_x);
       homing_cmd.set_deploy_y(abort_y);
