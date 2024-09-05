@@ -834,6 +834,7 @@ void SimPassiveSonar::loop()
 			   << ",PITCH=0,ROLL=0" ;		
 		      publish("NODE_REPORT", pstr.str());
 		      pinger[indx].pingtime += pinger[indx].interval;
+		      pinger[indx].counter++;
 		      acoustic_contacts[cn_num].ready = false;
 		      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
 		    }
@@ -2495,9 +2496,9 @@ bool SimPassiveSonar::getPingerInfo(unsigned int indx)
       double costh = cos(hd_ang);
       double sinth = sin(hd_ang);
       source_pos_x = pinger[indx].x +
-	pinger[indx].speed*(MOOSTime()-pinger[indx].pingtime) * sinth;
+	pinger[indx].speed*(pinger[indx].counter*pinger[indx].interval) * sinth;
       source_pos_y = pinger[indx].y +
-	pinger[indx].speed*(MOOSTime()-pinger[indx].pingtime) * costh;
+	pinger[indx].speed*(pinger[indx].counter*pinger[indx].interval) * costh;
       source_dep = pinger[indx].depth;
       source_spd = pinger[indx].speed;
       source_hdg = pinger[indx].heading;
@@ -2878,6 +2879,8 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
       pinger[indx].pulsewidth = pinger_command.pulsewidth();
       pinger[indx].waveform = pinger_command.waveform();
       pinger[indx].window = pinger_command.replica_window();
+      // reset counter
+      pinger[indx].counter = 0;
       CEigenRayTable buffer;
       buffer.clear();
       putAcousticContact(pinger[indx].id, pinger[indx].x,

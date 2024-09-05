@@ -90,7 +90,8 @@ public:
   LAMSS_PINGER_COMMAND::WindowShading window;
   std::vector<double> replica;
 
-  double pingtime; 
+  double pingtime;
+  unsigned int counter{0};
   bool got_eigenrays{false};
 };
 
