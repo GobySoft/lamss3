@@ -95,7 +95,8 @@ public:
 #endif
   std::vector<double> replica;
 
-  double pingtime; 
+  double pingtime;
+  unsigned int counter{0};
   bool got_eigenrays{false};
 };
 
