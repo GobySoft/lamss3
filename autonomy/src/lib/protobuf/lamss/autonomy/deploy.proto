@@ -9,7 +9,6 @@ message LAMSS_DEPLOY {
 	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
 	optional string MessageType = 4 [default="LAMSS_DEPLOY", (dccl.field).static_value="LAMSS_DEPLOY", (dccl.field).codec="_static"];
-	optional Deploy_ModeEnum Deploy_Mode = 5 [default=DEPLOY_MODE_LOITER];
 	enum Deploy_ModeEnum{
 		 DEPLOY_MODE_LOITER = 0;
 		 DEPLOY_MODE_RETURN = 1;
@@ -28,7 +27,7 @@ message LAMSS_DEPLOY {
 		 DEPLOY_MODE_SANDSHARK = 14;
 		 DEPLOY_MODE_LANDING = 15;
 	}
-	optional Depth_ModeEnum Depth_Mode = 6 [default=DEPTH_MODE_SINGLE];
+	optional Deploy_ModeEnum Deploy_Mode = 5 [default=DEPLOY_MODE_LOITER];
 	enum Depth_ModeEnum{
 		 DEPTH_MODE_SINGLE = 0;
 		 DEPTH_MODE_DUAL = 1;
@@ -40,16 +39,17 @@ message LAMSS_DEPLOY {
 		 DEPTH_MODE_BOTTOM_FOLLOWING = 7;
 		 DEPTH_MODE_HELIX = 8;
 	}
-	optional Sonar_ControlEnum Sonar_Control = 7 [default=SONAR_CONTROL_OFF];
 	enum Sonar_ControlEnum{
 		 SONAR_CONTROL_ON = 0;
 		 SONAR_CONTROL_OFF = 1;
 	}
-	optional Sonar_ProcessEnum Sonar_Process = 8 [default=SONAR_PROCESS_OFF];
 	enum Sonar_ProcessEnum{
 		 SONAR_PROCESS_ON = 0;
 		 SONAR_PROCESS_OFF = 1;
 	}
+	optional Depth_ModeEnum Depth_Mode = 6 [default=DEPTH_MODE_SINGLE];
+	optional Sonar_ControlEnum Sonar_Control = 7 [default=SONAR_CONTROL_OFF];
+	optional Sonar_ProcessEnum Sonar_Process = 8 [default=SONAR_PROCESS_OFF];
      oneof east {
 	double Deploy_X = 10 [default=0, (dccl.field).max=125000, (dccl.field).min=-125000, (dccl.field).precision=0];
 	double Deploy_Longitude = 50 [default = 0,
