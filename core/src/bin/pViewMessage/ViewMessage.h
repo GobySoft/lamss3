@@ -71,19 +71,12 @@ private:
 
   void handle_icex_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& selection);
 
-#ifndef GEO_COMMAND
   lamss::protobuf::ViewPoint to_protobuf(const XYPoint &point);
   XYPoint from_protobuf(const lamss::protobuf::ViewPoint &point);
   lamss::protobuf::ViewSegList convex_polygon(const XYSegList &point);
   lamss::protobuf::ViewSegList to_protobuf(const XYSegList &point);
   XYSegList from_protobuf(const lamss::protobuf::ViewSegList &point);
-#else
-  lamss::protobuf::ViewPoint_GEO to_protobuf(const XYPoint &point);
-  XYPoint from_protobuf(const lamss::protobuf::ViewPoint_GEO &point);
-  lamss::protobuf::ViewSegList_GEO convex_polygon(const XYSegList &point);
-  lamss::protobuf::ViewSegList_GEO to_protobuf(const XYSegList &point);
-  XYSegList from_protobuf(const lamss::protobuf::ViewSegList_GEO &point);
-#endif
+
   void handle_lat_origin(const CMOOSMsg& msg);
   void handle_lon_origin(const CMOOSMsg& msg);
   
