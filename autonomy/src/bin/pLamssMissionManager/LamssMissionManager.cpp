@@ -95,7 +95,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     
   subscribe("MODE", &LamssMissionManager::handle_helm_mode, this);
 
-#ifndef GEO_COMMAND
   subscribe("LAMSS_STATUS_IN",
 	    &LamssMissionManager::handle_status, this);
   subscribe("LAMSS_DEPLOY_IN",
@@ -104,18 +103,6 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
 	    &LamssMissionManager::handle_prosecute, this);
   subscribe("LAMSS_TRANSIT_IN",
 	    &LamssMissionManager::handle_transit_route, this);
-#else
-  subscribe("LAMSS_STATUS_GEO_IN",
-	    &LamssMissionManager::handle_status, this);
-  subscribe("LAMSS_DEPLOY_GEO_IN",
-	    &LamssMissionManager::handle_deploy, this);
-  subscribe("LAMSS_PROSECUTE_GEO_IN",
-	    &LamssMissionManager::handle_prosecute, this);
-  subscribe("LAMSS_TRANSIT_GEO_IN",
-	    &LamssMissionManager::handle_transit_route, this);
-#endif
-  subscribe("LAMSS_STOVEPIPE_GEO_IN",
-	    &LamssMissionManager::handle_stovepipe_geo_message, this);    
   subscribe("LAMSS_STOVEPIPE_IN",
 	    &LamssMissionManager::handle_stovepipe_message, this);    
   // Note: stovepipes not yet converted to GEO
@@ -274,12 +261,10 @@ void LamssMissionManager::slow_loop(double curr_time)
   boost::lock_guard<boost::mutex> lock(moos_mutex_);
 
   // Update UTM datum unless on trackline or in survey pattern
-#ifdef GEO_COMMAND
   if (cfg_.dynamic_utm() &&
       //	deploy_mode_active_  && !in_track )
       deploy_mode_active_ && survey_wpt_index < 1  && !in_track )
     update_utm_datum(curr_time);	
-#endif
 
   if (descent_state_active_)
     {
@@ -525,20 +510,6 @@ void LamssMissionManager::UTM_update()
     }
   post_transit_route();
   
-#ifndef GEO_COMMAND
-  // Initial transit route updated for use by return state
-  for (int i=0; i<initial_transit_lat.size(); i++)
-    {
-      double x,y;
-      m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],initial_transit_lon[i],
-				 y,x);
-      initial_transit_x[i] = x;
-      initial_transit_y[i] = y;
-      LAMSS_TRANSIT::TransitWPT * wpt = initial_transit_cmd_.mutable_wpt(i);
-      wpt->set_x(x);
-      wpt->set_y(y);
-    }
-#endif 
 
   // Stovepipes. Invariant lat/long
   for (int i=0; i<Stovepipes.size(); i++)
@@ -549,11 +520,8 @@ void LamssMissionManager::UTM_update()
 
 void LamssMissionManager::send_deploy()
 {
-#ifndef GEO_COMMAND
   LAMSS_DEPLOY redeploy = last_deploy_cmd_;
-#else
-  LAMSS_DEPLOY_GEO redeploy = last_deploy_cmd_;
-#endif
+
   std::string serialized;
   redeploy.set__time(MOOSTime());
   redeploy.set__src_id(vehicle_id_);
@@ -561,41 +529,41 @@ void LamssMissionManager::send_deploy()
   //  if (!MOOSStrCmp(cfg_.deploy_location(),"station"))
   if (cfg_.deploy_location() == LamssMissionManagerConfig::CURRENT)
     {
-#ifndef GEO_COMMAND
-      redeploy.set_deploy_x(last_nav_.local_fix().x());
-      redeploy.set_deploy_y(last_nav_.local_fix().y());
+      if (!cfg_.use_geo_commands())
+	{
+	  redeploy.set_deploy_x(last_nav_.local_fix().x());
+	  redeploy.set_deploy_y(last_nav_.local_fix().y());
+	}
+      else
+	{
+	  redeploy.set_deploy_longitude(last_nav_.global_fix().lon());
+	  redeploy.set_deploy_latitude(last_nav_.global_fix().lat());
+	  // Re-deploy forced to loiter if local
+	}
       // Re-deploy forced to loiter if local
       redeploy.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_LOITER);
       redeploy.set_depth_mode(LAMSS_DEPLOY::DEPTH_MODE_SINGLE);
-#else
-      redeploy.set_deploy_longitude(last_nav_.global_fix().lon());
-      redeploy.set_deploy_latitude(last_nav_.global_fix().lat());
-      // Re-deploy forced to loiter if local
-      redeploy.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER);
-      redeploy.set_depth_mode(LAMSS_DEPLOY_GEO::DEPTH_MODE_SINGLE);
-#endif
     }
   // Auto prosecute only on initial deploy
   redeploy.set_auto_prosecute(false);
   serialize_for_moos(&serialized,redeploy);
-#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_IN", serialized);
-#else
-  publish("LAMSS_DEPLOY_GEO_IN", serialized);
-#endif
 }
 
 void LamssMissionManager::homing_prosecute()
 {
-#ifndef GEO_COMMAND
   LAMSS_PROSECUTE prosecute_cmd;
-  prosecute_cmd.set_target_x(abort_x);
-  prosecute_cmd.set_target_y(abort_y);
-#else
-  LAMSS_PROSECUTE_GEO prosecute_cmd;
-  prosecute_cmd.set_target_longitude(abort_lon);
-  prosecute_cmd.set_target_latitude(abort_lat);
-#endif  
+  if (!cfg_.use_geo_commands())
+    {
+      prosecute_cmd.set_target_x(abort_x);
+      prosecute_cmd.set_target_y(abort_y);
+    }
+  else
+    {
+      prosecute_cmd.set_target_longitude(abort_lon);
+      prosecute_cmd.set_target_latitude(abort_lat);
+    }
+
   prosecute_cmd.set__src_id(vehicle_id_);
   prosecute_cmd.set__rcv_id(vehicle_id_);
   prosecute_cmd.set__time(current_time_);
@@ -616,11 +584,8 @@ void LamssMissionManager::homing_prosecute()
 
   std::string serialized;
   serialize_for_moos(&serialized,prosecute_cmd);
-#ifndef GEO_COMMAND
   publish("LAMSS_PROSECUTE_IN", serialized);
-#else
-  publish("LAMSS_PROSECUTE_GEO_IN", serialized);
-#endif  
+
   glog.is(DEBUG1) && glog << "Homing Prosecute requested"
 			  << std::endl;
 }
@@ -668,21 +633,12 @@ void LamssMissionManager::try_publish()
 void LamssMissionManager::initial_deploy()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
-#ifndef GEO_COMMAND
   LAMSS_DEPLOY init_deploy_cmd;
   if (cfg_.has_initial_deploy())
     init_deploy_cmd = cfg_.initial_deploy();
-  //    init_deploy_cmd.CopyFrom(cfg_.initial_deploy());
   else
     glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
-#else
-  LAMSS_DEPLOY_GEO init_deploy_cmd ;
-  if (cfg_.has_initial_deploy_geo())
-    init_deploy_cmd = cfg_.initial_deploy_geo();
-  //    init_deploy_cmd.CopyFrom(cfg_.initial_deploy_geo());
-  else
-    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
-#endif  
+
   init_deploy_cmd.set__time(MOOSTime());
 
   init_deploy_cmd.set__src_id(vehicle_id_);
@@ -698,22 +654,21 @@ void LamssMissionManager::initial_deploy()
       init_deploy_cmd.set_auto_prosecute(false);
       // for auto redeploy, center at current abort location
       // This is important for dynamic scenarios such as in ICEX
-#ifndef GEO_COMMAND
-      init_deploy_cmd.set_deploy_x(abort_x);
-      init_deploy_cmd.set_deploy_y(abort_y);
+      if (!cfg_.use_geo_commands())
+	{
+	  init_deploy_cmd.set_deploy_x(abort_x);
+	  init_deploy_cmd.set_deploy_y(abort_y);
+	}
+      else
+	{
+	  init_deploy_cmd.set_deploy_longitude(abort_lon);
+	  init_deploy_cmd.set_deploy_latitude(abort_lat);
+	}
       // If adapt depth mode, keep it for survey return
       if (depth_adapting)
 	init_deploy_cmd.set_depth_mode
 	  (LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS);
-#else
-      init_deploy_cmd.set_deploy_longitude(abort_lon);
-      init_deploy_cmd.set_deploy_latitude(abort_lat);
-      // If adapt depth mode, keep it for survey return
-      if (depth_adapting)
-	init_deploy_cmd.set_depth_mode
-	  (LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS);
-#endif      
-
+      
       init_deploy_cmd.set_deploy_upper_depth(cfg_.abort_depth());
       // If stale acomms, continue with current duration timer
       double stale_acomms = MOOSTime() - last_acomms_;
@@ -732,11 +687,7 @@ void LamssMissionManager::initial_deploy()
     }
   std::string serialized;
   serialize_for_moos(&serialized,init_deploy_cmd);
-#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_IN", serialized);
-#else
-  publish("LAMSS_DEPLOY_GEO_IN", serialized);
-#endif  
   // Initial deploy counts as acomms
   last_acomms_ = MOOSTime();
 }
@@ -744,21 +695,13 @@ void LamssMissionManager::initial_deploy()
 void LamssMissionManager::homing_return()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
-#ifndef GEO_COMMAND
   LAMSS_DEPLOY homing_cmd;
   if (cfg_.has_initial_deploy())
     homing_cmd.CopyFrom(cfg_.initial_deploy());
   else
     glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
   homing_cmd.set_deploy_mode(LAMSS_DEPLOY::DEPLOY_MODE_RETURN);
-#else
-  LAMSS_DEPLOY_GEO homing_cmd;
-  if (cfg_.has_initial_deploy_geo())
-    homing_cmd.CopyFrom(cfg_.initial_deploy_geo());
-  else
-    glog.is(VERBOSE) && glog << "Using default initial deploy" << std::endl;
-  homing_cmd.set_deploy_mode(LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN);
-#endif
+
   homing_cmd.set__time(MOOSTime());
 
   homing_cmd.set__rcv_id(vehicle_id_);
@@ -770,42 +713,33 @@ void LamssMissionManager::homing_return()
   homing_cmd.set_auto_prosecute(false);
   // for auto redeploy, center at current abort location
   // This is important for dynamic scenarios such as in ICEX
-#ifndef GEO_COMMAND
-  homing_cmd.set_deploy_x(abort_x);
-  homing_cmd.set_deploy_y(abort_y);
-#else
-  homing_cmd.set_deploy_latitude(abort_lat);
-  homing_cmd.set_deploy_longitude(abort_lon);
-#endif  
+  if (!cfg_.use_geo_commands())
+    {
+      homing_cmd.set_deploy_x(abort_x);
+      homing_cmd.set_deploy_y(abort_y);
+    }
+  else
+    {
+      homing_cmd.set_deploy_latitude(abort_lat);
+      homing_cmd.set_deploy_longitude(abort_lon);
+    }
   homing_cmd.set_homing_enabled(true);
   // Force non abort in case we lost comms
   last_acomms_ = MOOSTime();
   std::string serialized;
   serialize_for_moos(&serialized,homing_cmd);
-#ifndef GEO_COMMAND
   publish("LAMSS_DEPLOY_IN", serialized);
-#else
-  publish("LAMSS_DEPLOY_GEO_IN", serialized);
-#endif
-
 }
 
 void LamssMissionManager::initial_transit()
 {
   // Handles OUTGOING_COMMANDS for ownship, usually Initial Deploy
-#ifndef GEO_COMMAND
   LAMSS_TRANSIT init_transit_cmd;
   if (cfg_.has_initial_transit())
     init_transit_cmd.CopyFrom(cfg_.initial_transit());
   else
     glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
-#else
-  LAMSS_TRANSIT_GEO init_transit_cmd;
-  if (cfg_.has_initial_transit_geo())
-    init_transit_cmd.CopyFrom(cfg_.initial_transit_geo());
-  else
-    glog.is(VERBOSE) && glog << "Using default initial transit" << std::endl;
-#endif
+
   init_transit_cmd.set__time(MOOSTime());
 
   // Note that the initial will have topside origin to allow resetting
@@ -815,11 +749,8 @@ void LamssMissionManager::initial_transit()
 
   std::string serialized;
   serialize_for_moos(&serialized,init_transit_cmd);
-#ifndef GEO_COMMAND
   publish("LAMSS_TRANSIT_IN", serialized);
-#else
-  publish("LAMSS_TRANSIT_GEO_IN", serialized);
-#endif  
+
   int n = initial_transit_cmd_.wpt_size();
   initial_transit_x.resize(n);
   initial_transit_y.resize(n);
@@ -827,22 +758,27 @@ void LamssMissionManager::initial_transit()
   initial_transit_lon.resize(n);
   for (int i=0; i<n; i++)
     {
-#ifndef GEO_COMMAND
-      initial_transit_x[i] = initial_transit_cmd_.wpt(i).x();
-      initial_transit_y[i] = initial_transit_cmd_.wpt(i).y();
-      double lat,lon;
-      m_Geodesy.UTM2LatLong(initial_transit_x[i],initial_transit_y[i],lat,lon);
-      initial_transit_lat[i] = lat;
-      initial_transit_lon[i] = lon;
-#else
-      initial_transit_lat[i] = initial_transit_cmd_.wpt(i).lat();
-      initial_transit_lon[i] = initial_transit_cmd_.wpt(i).lon();
-      double x,y;
-      m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],initial_transit_lon[i],
-				 y,x);
-      initial_transit_x[i] = x;
-      initial_transit_y[i] = y;
-#endif
+      if (initial_transit_cmd_.wpt(i).has_x() &&
+	  initial_transit_cmd_.wpt(i).has_y() ) {
+	initial_transit_x[i] = initial_transit_cmd_.wpt(i).x();
+	initial_transit_y[i] = initial_transit_cmd_.wpt(i).y();
+	double lat,lon;
+	m_Geodesy.UTM2LatLong(initial_transit_x[i],initial_transit_y[i],
+			      lat,lon);
+	initial_transit_lat[i] = lat;
+	initial_transit_lon[i] = lon;
+      }
+      else
+	{
+	  initial_transit_lat[i] = initial_transit_cmd_.wpt(i).lat();
+	  initial_transit_lon[i] = initial_transit_cmd_.wpt(i).lon();
+	  double x,y;
+	  m_Geodesy.LatLong2LocalUTM(initial_transit_lat[i],
+				     initial_transit_lon[i],
+				     y,x);
+	  initial_transit_x[i] = x;
+	  initial_transit_y[i] = y;
+	}
     }
 }
 
@@ -1030,11 +966,8 @@ void LamssMissionManager::handle_hydroman_data(const CMOOSMsg& msg)
 
 void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 {
-#ifndef GEO_COMMAND
   LAMSS_DEPLOY deploy_cmd;
-#else
-  LAMSS_DEPLOY_GEO deploy_cmd;
-#endif
+
   parse_for_moos(msg.GetString(), &deploy_cmd);
   // Only handle messages for me
   if (ownship_modem_ids_.count(deploy_cmd._rcv_id()))
@@ -1056,19 +989,22 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 			    camp_lat_deploy,camp_lon_deploy);
       
       // save x,y and lat/long for fututrre UTM update handling
-#ifndef GEO_COMMAND
       // for standard UTM LAMSS_DEPLOY command
-      last_deploy_x_ = last_deploy_cmd_.deploy_x();
-      last_deploy_y_ = last_deploy_cmd_.deploy_y();
-      m_Geodesy.UTM2LatLong(last_deploy_x_,last_deploy_y_,
-			    last_deploy_lat_,last_deploy_lon_);
-#else
-      // for UTM_LAMSS_GEO command
-      last_deploy_lat_ = last_deploy_cmd_.deploy_latitude();
-      last_deploy_lon_ = last_deploy_cmd_.deploy_longitude();
-      m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
-				 last_deploy_y_,last_deploy_x_);
-#endif      
+      if (last_deploy_cmd_.has_deploy_x() &&
+	  last_deploy_cmd_.has_deploy_y())
+	{
+	  last_deploy_x_ = last_deploy_cmd_.deploy_x();
+	  last_deploy_y_ = last_deploy_cmd_.deploy_y();
+	  m_Geodesy.UTM2LatLong(last_deploy_x_,last_deploy_y_,
+				last_deploy_lat_,last_deploy_lon_);
+	}
+      else
+	{
+	  last_deploy_lat_ = last_deploy_cmd_.deploy_latitude();
+	  last_deploy_lon_ = last_deploy_cmd_.deploy_longitude();
+	  m_Geodesy.LatLong2LocalUTM(last_deploy_lat_,last_deploy_lon_,
+				     last_deploy_y_,last_deploy_x_);
+	}
       post_transit_route();
 
       if (deploy_cmd._src_id() == cfg_.topside_id())
@@ -1093,42 +1029,28 @@ void LamssMissionManager::handle_deploy(const CMOOSMsg& msg)
 	  queue_event<EvTakeOff>();
 	queue_event<EvNewMission>();
       }
-#ifndef GEO_COMMAND
       if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT)
-#else
-	if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT)
-#endif
-	  {
-	    // allow auv to get to abort depth before homing
-	    last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
-	    update_abort_mission();
-	    queue_event<EvStartAbort>();
-	  }
-#ifndef GEO_COMMAND
-	else if (last_deploy_cmd_.deploy_mode() ==
+	{
+	  // allow auv to get to abort depth before homing
+	  last_homing_prosecute_ = current_time_ - 0.5*cfg_.homing_interval();
+	  update_abort_mission();
+	  queue_event<EvStartAbort>();
+	}
+      else if (last_deploy_cmd_.deploy_mode() ==
 		 LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
-#else
-	else if (last_deploy_cmd_.deploy_mode() ==
-		 LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
-#endif
-	  {
-	    queue_event<EvStartDeploy>();
-	    queue_event<EvReturnToBase>();
-	  }
-#ifndef GEO_COMMAND
-	else if (last_deploy_cmd_.deploy_mode() ==
-		 LAMSS_DEPLOY::DEPLOY_MODE_LANDING)
-#else
-	else if (last_deploy_cmd_.deploy_mode() ==
-		 LAMSS_DEPLOY_GEO::DEPLOY_MODE_LANDING)
-#endif
-	  {
-	    queue_event<EvStartDeploy>();
-	    queue_event<EvStartLanding>();
-	  }
-	else
+	{
 	  queue_event<EvStartDeploy>();
-	  
+	  queue_event<EvReturnToBase>();
+	}
+      else if (last_deploy_cmd_.deploy_mode() ==
+	       LAMSS_DEPLOY::DEPLOY_MODE_LANDING)
+	{
+	  queue_event<EvStartDeploy>();
+	  queue_event<EvStartLanding>();
+	}
+      else
+	queue_event<EvStartDeploy>();
+      
     }
 }
 
@@ -1139,7 +1061,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
   // handling that should not be updated.
   
   // Setting state variables
-#ifndef GEO_COMMAND
+
   LAMSS_DEPLOY::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
   std::string deploy_mode_str = LAMSS_DEPLOY::Deploy_ModeEnum_Name(deploy_mode);
   MOOSChomp(deploy_mode_str,"DEPLOY_MODE_");
@@ -1168,38 +1090,6 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
       LAMSS_DEPLOY::ContactEnum collab = last_deploy_cmd_.collaborator();
       collab_str = "contact=" + LAMSS_DEPLOY::ContactEnum_Name(collab);
     }
-#else
-  LAMSS_DEPLOY_GEO::Deploy_ModeEnum deploy_mode = last_deploy_cmd_.deploy_mode();
-  std::string deploy_mode_str = LAMSS_DEPLOY_GEO::Deploy_ModeEnum_Name(deploy_mode);
-  MOOSChomp(deploy_mode_str,"DEPLOY_MODE_");
-  publish("DEPLOY_MISSION",deploy_mode_str);
-
-  std::string depth_mode_str =
-    LAMSS_DEPLOY_GEO::Depth_ModeEnum_Name(last_deploy_cmd_.depth_mode());
-  MOOSChomp(depth_mode_str,"DEPTH_MODE_");
-  publish("DEPTH_MODE",depth_mode_str);
-
-  std::string sonar_control_str =
-    LAMSS_DEPLOY_GEO::Sonar_ControlEnum_Name(last_deploy_cmd_.sonar_control());
-  MOOSChomp(sonar_control_str,"SONAR_CONTROL_");
-  publish("SONAR_CONTROL",sonar_control_str);
-
-  std::string sonar_process_str =
-    LAMSS_DEPLOY_GEO::Sonar_ProcessEnum_Name(last_deploy_cmd_.sonar_process());
-  MOOSChomp(sonar_process_str,"SONAR_PROCESS_");
-  publish("SONAR_PROCESS",sonar_process_str);
-
-  std::string collab_str;
-  if (!last_deploy_cmd_.has_collaborator() ||
-      last_deploy_cmd_.collaborator() == LAMSS_DEPLOY_GEO::DEFAULT)
-    collab_str = "contact=" + collaborator_name;
-  else
-    {
-      LAMSS_DEPLOY_GEO::ContactEnum collab = last_deploy_cmd_.collaborator();
-      collab_str = "contact=" + LAMSS_DEPLOY_GEO::ContactEnum_Name(collab);
-    }
-
-#endif
   
   // Setting behaviour update variables
   
@@ -1344,8 +1234,8 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
   publish("TOGGLE_UPPER_DEPTH",last_deploy_cmd_.deploy_upper_depth());
   publish("TOGGLE_LOWER_DEPTH",last_deploy_cmd_.deploy_lower_depth());
   
-#ifndef GEO_COMMAND
-  // Trail behaviors
+  // Trail behaviors - disabled in this version
+  /*
   std::stringstream stc;
   stc << collab_str
       << "#trail_range=" << last_deploy_cmd_.trail_range()
@@ -1357,35 +1247,25 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
     stc << "#trail_angle_type=absolute";
 
   publish("TRAIL_CONFIG",shg.str());
-#endif
-
+  */
      	
-#ifndef GEO_COMMAND
   if (last_deploy_cmd_.depth_mode() ==
       LAMSS_DEPLOY::DEPTH_MODE_ADAPTIVE_ACOMMS)
-#else
-    if (last_deploy_cmd_.depth_mode() ==
-	LAMSS_DEPLOY_GEO::DEPTH_MODE_ADAPTIVE_ACOMMS)
-#endif    
-      {
-	// Set acomms depth to current depth
-	std::stringstream ss ;
-	ss << "depth=" << last_nav_.global_fix().depth() ;
-	publish("ACOMMS_DEPTH",ss.str());	  
-	depth_adapting = true;
-      }
-    else
-      depth_adapting = false;
-
+    {
+      // Set acomms depth to current depth
+      std::stringstream ss ;
+      ss << "depth=" << last_nav_.global_fix().depth() ;
+      publish("ACOMMS_DEPTH",ss.str());	  
+      depth_adapting = true;
+    }
+  else
+    depth_adapting = false;
+  
   publish("SURVEY_COMPLETED","FALSE");
       
   // USBL homing enabled in DEPLOY/ABORT modes with USBL configured
   if (last_deploy_cmd_.homing_enabled() &&
-#ifndef GEO_COMMAND
       last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN &&
-#else
-      last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN &&
-#endif      
       cfg_.homing_array() == LamssMissionManagerConfig::USBL)
     {
       std::stringstream cent;
@@ -1397,13 +1277,8 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
     }
   // USBL Homing for recovery
   else if (last_deploy_cmd_.homing_enabled() &&
-#ifndef GEO_COMMAND
 	   last_deploy_cmd_.deploy_mode() ==
 	   LAMSS_DEPLOY::DEPLOY_MODE_RECOVERY &&
-#else
-	   last_deploy_cmd_.deploy_mode() ==
-	   LAMSS_DEPLOY_GEO::DEPLOY_MODE_RECOVERY &&
-#endif	   
 	   cfg_.homing_array() == LamssMissionManagerConfig::USBL)
     {
       std::stringstream wpt;
@@ -1415,103 +1290,96 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
       publish("HOMING_STATION",wpt.str());
       publish("USBL_ENABLED","TRUE");
     }
-#ifndef GEO_COMMAND
   else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_ABORT &&
-#else
-  else if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY_GEO::DEPLOY_MODE_ABORT &&
-#endif	   
-    cfg_.homing_array() == LamssMissionManagerConfig::USBL)
-		  publish("USBL_ENABLED","TRUE");
+	   cfg_.homing_array() == LamssMissionManagerConfig::USBL)
+    publish("USBL_ENABLED","TRUE");
   else
     publish("USBL_ENABLED","FALSE");
 
-	   //
-	   // Glider yoyo behavior
-	   //
-	   std::stringstream transit_yoyo;
-	   transit_yoyo << "min_depth=" << last_deploy_cmd_.deploy_upper_depth()
-	   << "#max_depth=" << last_deploy_cmd_.deploy_lower_depth() ;
-	   double period = (2*last_deploy_cmd_.deploy_lower_depth() -
-			    last_deploy_cmd_.deploy_lower_depth())/cos(M_PI/12);
-	   std::stringstream pstr;
-	   pstr << "#period=" << period ;
-	   publish("SMART_YOYO", transit_yoyo.str() + pstr.str());
-	   //
-	   // Dynamic setting of glideslope and speed
-	   //
-	   int npar = cfg_.glide_parameters().size();
-	   std::stringstream glideparameters;
-	   if (npar > 0)
-	     {
-	       double diff_up = 1e6;
-	       int closest_up = -1;
-	       double diff_dn = 1e6;
-	       int closest_dn = -1;
-	       for (int i=0; i<npar; i++)
-		 {
-		   if (cfg_.glide_parameters(i).slope() >0 &&
-		       fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
-		       diff_up)
-		     {
-		       closest_up = i;
-		       diff_up = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
-		     }
-		   else if (cfg_.glide_parameters(i).slope() <= 0 &&
-			    fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
-			    diff_dn)
-		     {
-		       closest_dn = i;
-		       diff_dn = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
-		     }
-		 }
-	       if (closest_up >= 0 && closest_dn >=0)
-		 {
-		   glideparameters << "#glideslopes=";
-		   for (int i=0; i<npar; i++)
-		     {
-		       glideparameters << cfg_.glide_parameters(i).slope();
-		       if (i < npar-1)
-			 glideparameters << ",";
-		     }
-		   glideparameters << "#glidespeeds=";
-		   for (int i=0; i<npar; i++)
-		     {
-		       glideparameters << cfg_.glide_parameters(i).speed();
-		       if (i < npar-1)
-			 glideparameters << ",";
-		     }
-		   glideparameters << "#utilities=";
-		   for (int i=0; i<npar; i++)
-		     {
-		       if (i == closest_up)
-			 glideparameters << cfg_.glide_parameters(i).utility();
-		       else if (i == closest_dn)
-			 glideparameters << cfg_.glide_parameters(i).utility();
-		       else
-			 glideparameters << 0;
-		       if (i < npar-1)
-			 glideparameters << ",";
-		     }
-		 }
-	       else
-		 {
-		   glog.is_die() && glog << "Configuration Error: Both negative and positive valid glidelopes required"
-		     
-					 << std::endl;
-		 }
-	       
-	     }
-	   publish("GLIDER_TRANSIT_YOYO", transit_yoyo.str() + glideparameters.str());
-	   
-	   }
+  //
+  // Glider yoyo behavior
+  //
+  std::stringstream transit_yoyo;
+  transit_yoyo << "min_depth=" << last_deploy_cmd_.deploy_upper_depth()
+	       << "#max_depth=" << last_deploy_cmd_.deploy_lower_depth() ;
+  double period = (2*last_deploy_cmd_.deploy_lower_depth() -
+		   last_deploy_cmd_.deploy_lower_depth())/cos(M_PI/12);
+  std::stringstream pstr;
+  pstr << "#period=" << period ;
+  publish("SMART_YOYO", transit_yoyo.str() + pstr.str());
+  //
+  // Dynamic setting of glideslope and speed
+  //
+  int npar = cfg_.glide_parameters().size();
+  std::stringstream glideparameters;
+  if (npar > 0)
+    {
+      double diff_up = 1e6;
+      int closest_up = -1;
+      double diff_dn = 1e6;
+      int closest_dn = -1;
+      for (int i=0; i<npar; i++)
+	{
+	  if (cfg_.glide_parameters(i).slope() >0 &&
+	      fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
+	      diff_up)
+	    {
+	      closest_up = i;
+	      diff_up = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
+	    }
+	  else if (cfg_.glide_parameters(i).slope() <= 0 &&
+		   fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed()) <=
+		   diff_dn)
+	    {
+	      closest_dn = i;
+	      diff_dn = fabs(last_deploy_cmd_.deploy_speed()-cfg_.glide_parameters(i).speed());
+	    }
+	}
+      if (closest_up >= 0 && closest_dn >=0)
+	{
+	  glideparameters << "#glideslopes=";
+	  for (int i=0; i<npar; i++)
+	    {
+	      glideparameters << cfg_.glide_parameters(i).slope();
+	      if (i < npar-1)
+		glideparameters << ",";
+	    }
+	  glideparameters << "#glidespeeds=";
+	  for (int i=0; i<npar; i++)
+	    {
+	      glideparameters << cfg_.glide_parameters(i).speed();
+	      if (i < npar-1)
+		glideparameters << ",";
+	    }
+	  glideparameters << "#utilities=";
+	  for (int i=0; i<npar; i++)
+	    {
+	      if (i == closest_up)
+		glideparameters << cfg_.glide_parameters(i).utility();
+	      else if (i == closest_dn)
+		glideparameters << cfg_.glide_parameters(i).utility();
+	      else
+		glideparameters << 0;
+	      if (i < npar-1)
+		glideparameters << ",";
+	    }
+	}
+      else
+	{
+	  glog.is_die() && glog << "Configuration Error: Both negative and positive valid glidelopes required"
+	    
+				<< std::endl;
+	}
+      
+    }
+  publish("GLIDER_TRANSIT_YOYO", transit_yoyo.str() + glideparameters.str());
   
-  void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
-  {
-#ifndef GEO_COMMAND
+}
+
+void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
+{
     LAMSS_PROSECUTE prosecute_cmd;
-#else
-    LAMSS_PROSECUTE_GEO prosecute_cmd;
-#endif   
+
     parse_for_moos(msg.GetString(), &prosecute_cmd);
     // Only handle messages for me
     if (ownship_modem_ids_.count(prosecute_cmd._rcv_id()))
@@ -1523,22 +1391,25 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 	  last_acomms_ = MOOSTime();
 
 	// save x,y and lat/long for UTM update handling
-#ifndef GEO_COMMAND
 	// for standard UTM MANTARAY_DEPLOY command
-	last_target_x_ = last_prosecute_cmd_.target_x();
-	last_target_y_ = last_prosecute_cmd_.target_y();
-	m_Geodesy.UTM2LatLong(last_target_x_,last_target_y_,
-			      last_target_lat_,last_target_lon_);
-#else
-	// for UTM_MANTARAY_GEO command
-	last_target_lat_ = last_prosecute_cmd_.target_latitude();
-	last_target_lon_ = last_prosecute_cmd_.target_longitude();
-	m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
-				   last_target_y_,last_target_x_);
-#endif      
-
+	if (last_prosecute_cmd_.has_target_x() &&
+	    last_prosecute_cmd_.has_target_y())
+	  {
+	    last_target_x_ = last_prosecute_cmd_.target_x();
+	    last_target_y_ = last_prosecute_cmd_.target_y();
+	    m_Geodesy.UTM2LatLong(last_target_x_,last_target_y_,
+				  last_target_lat_,last_target_lon_);
+	  }
+	else
+	  {
+	    // for UTM_MANTARAY_GEO command
+	    last_target_lat_ = last_prosecute_cmd_.target_latitude();
+	    last_target_lon_ = last_prosecute_cmd_.target_longitude();
+	    m_Geodesy.LatLong2LocalUTM(last_target_lat_,last_target_lon_,
+				       last_target_y_,last_target_x_);
+	  }
 	prosecute_behavior_updates(true);
-	  
+	
 	// Turn sonar and processing on
      
 	publish("SONAR_CONTROL","ON");
@@ -1573,21 +1444,13 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 
     // Setting state variables
 
-#ifndef GEO_COMMAND
     LAMSS_PROSECUTE::Prosecute_TypeEnum prosecute_type =
       last_prosecute_cmd_.prosecute_type();
     std::string prosecute_type_str =
       LAMSS_PROSECUTE::Prosecute_TypeEnum_Name(prosecute_type);
     std::string angle_mode =
       LAMSS_PROSECUTE::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
-#else
-    LAMSS_PROSECUTE_GEO::Prosecute_TypeEnum prosecute_type =
-      last_prosecute_cmd_.prosecute_type();
-    std::string prosecute_type_str =
-      LAMSS_PROSECUTE_GEO::Prosecute_TypeEnum_Name(prosecute_type);
-    std::string angle_mode =
-      LAMSS_PROSECUTE_GEO::Array_Angle_ModeEnum_Name(last_prosecute_cmd_.array_angle_mode());
-#endif  
+
     MOOSChomp(prosecute_type_str,"PROSECUTE_TYPE_");
     publish("PROSECUTE_MISSION",prosecute_type_str);
 
@@ -1651,11 +1514,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 
   void LamssMissionManager::handle_status(const CMOOSMsg& msg)
   {
-#ifndef GEO_COMMAND
     LAMSS_STATUS status_msg;
-#else
-    LAMSS_STATUS_GEO status_msg;
-#endif
     parse_for_moos(msg.GetString(), &status_msg);
     // If coming from topside count as being connected, 
     // except for ICEXTracker, where only nav updates and commands count
@@ -1783,26 +1642,18 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 
   void LamssMissionManager::handle_transit_route(const CMOOSMsg& msg)
   {
-#ifndef GEO_COMMAND
     LAMSS_TRANSIT transit_cmd;
-#else
-    LAMSS_TRANSIT_GEO transit_cmd;
-#endif
     parse_for_moos(msg.GetString(), &transit_cmd);
     // Only handle messages for me
     if (transit_cmd._rcv_id() == vehicle_id_)
       {
 	configure_transit_route(transit_cmd);
 	post_transit_route();
-#ifndef GEO_COMMAND
 	if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
-#else
-	  if (last_transit_route_.transit_mode() == LAMSS_TRANSIT_GEO::TRANSIT_MODE_ROUTE)
-#endif    
-	    publish("TRANSIT_MODE","ROUTE");
-	  else
-	    publish("TRANSIT_MODE","DIRECT");
-    
+	  publish("TRANSIT_MODE","ROUTE");
+	else
+	  publish("TRANSIT_MODE","DIRECT");
+	
       }
   }
 
@@ -1820,11 +1671,7 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
       }
   }
 
-#ifndef GEO_COMMAND
   void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT transit_cmd)
-#else
-    void LamssMissionManager::configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd)
-#endif  
   {
     last_transit_route_ = transit_cmd;
     int n_wpt = transit_cmd.wpt_size();
@@ -1834,87 +1681,82 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
     transit_lon.resize(n_wpt);
     for (int i=0; i<n_wpt; i++)
       {
-#ifndef GEO_COMMAND
-	transit_x[i] = transit_cmd.wpt(i).x();
-	transit_y[i] = transit_cmd.wpt(i).y();
-	double lat,lon;
-	m_Geodesy.UTM2LatLong(transit_x[i],transit_y[i],lat,lon);
-	transit_lat[i] = lat;
-	transit_lon[i] = lon;
-#else
-	transit_lat[i] = transit_cmd.wpt(i).lat();
-	transit_lon[i] = transit_cmd.wpt(i).lon();
-	double x,y;
-	m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
-	transit_x[i] = x;
-	transit_y[i] = y;
-#endif      
+	if (transit_cmd.wpt(i).has_x() &&
+	    transit_cmd.wpt(i).has_y())
+	  {
+	    transit_x[i] = transit_cmd.wpt(i).x();
+	    transit_y[i] = transit_cmd.wpt(i).y();
+	    double lat,lon;
+	    m_Geodesy.UTM2LatLong(transit_x[i],transit_y[i],lat,lon);
+	    transit_lat[i] = lat;
+	    transit_lon[i] = lon;
+	  }
+	else
+	  {
+	    transit_lat[i] = transit_cmd.wpt(i).lat();
+	    transit_lon[i] = transit_cmd.wpt(i).lon();
+	    double x,y;
+	    m_Geodesy.LatLong2LocalUTM(transit_lat[i],transit_lon[i],y,x);
+	    transit_x[i] = x;
+	    transit_y[i] = y;
+	  }
       }
     transit_wpt_index = 0;
   }
 
   void LamssMissionManager::post_transit_route()
   {
-#ifndef GEO_COMMAND
     if (last_transit_route_.transit_mode() == LAMSS_TRANSIT::TRANSIT_MODE_ROUTE)
-#else
-      if (last_transit_route_.transit_mode() == LAMSS_TRANSIT_GEO::TRANSIT_MODE_ROUTE)
-#endif    
-	{
-	  // remove trailing zero waypoints from transit route
-
-	  std::stringstream transit_route;
-	  std::string hash = "#";
-	  std::string colon = ":";
-	  std::string comma = ",";
-	  int n = transit_x.size();
-	  if (n>0)
-	    {
-	      transit_route << "speed=" << last_transit_route_.transit_speed()
-		//			<< "#capture_line=true"
-			    << "#points=" ;
-	      //			<< last_nav_.local_fix().x() << comma
-	      //			<< last_nav_.local_fix().y() << colon ;
-#ifndef GEO_COMMAND
-	      if (last_deploy_cmd_.deploy_mode() ==
-		  LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
-#else
-		if (last_deploy_cmd_.deploy_mode() ==
-		    LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
-#endif	    
+      {
+	// remove trailing zero waypoints from transit route
+	
+	std::stringstream transit_route;
+	std::string hash = "#";
+	std::string colon = ":";
+	std::string comma = ",";
+	int n = transit_x.size();
+	if (n>0)
+	  {
+	    transit_route << "speed=" << last_transit_route_.transit_speed()
+	      //			<< "#capture_line=true"
+			  << "#points=" ;
+	    //			<< last_nav_.local_fix().x() << comma
+	    //			<< last_nav_.local_fix().y() << colon ;
+	    if (last_deploy_cmd_.deploy_mode() ==
+		LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
+	      {
+		// If RETURN mode publish route in reverse order
+		for (int i=n-1; i>=0; i--)
 		  {
-		    // If RETURN mode publish route in reverse order
-		    for (int i=n-1; i>=0; i--)
-		      {
-			transit_route << transit_x[i] << comma << transit_y[i] ;
-			if (i>0)
-			  transit_route << colon ;
-		      }
+		    transit_route << transit_x[i] << comma << transit_y[i] ;
+		    if (i>0)
+		      transit_route << colon ;
 		  }
-		else
+	      }
+	    else
+	      {
+		for (int i=0; i<n; i++)
 		  {
-		    for (int i=0; i<n; i++)
-		      {
-			transit_route << transit_x[i] << comma << transit_y[i] ;
-			if (i < n-1)
-			  transit_route << colon ;
-		      }
+		    transit_route << transit_x[i] << comma << transit_y[i] ;
+		    if (i < n-1)
+		      transit_route << colon ;
 		  }
-	      //	  transit_route << last_deploy_x_ << comma
-	      //			<< last_deploy_y_ ;
-
-	      std::stringstream td;
-	      td << "depth=" << last_transit_route_.transit_depth();
-	      publish("TRANSIT_DEPTH", td.str());
-	      publish("TRANSIT_ROUTE",transit_route.str());
-	      //publish("TRANSIT_MODE", "ROUTE");
-	    }
-	  else
-	    publish("TRANSIT_MODE", "DIRECT");
-
-	}
-      else
-	publish("TRANSIT_MODE", "DIRECT");
+	      }
+	    //	  transit_route << last_deploy_x_ << comma
+	    //			<< last_deploy_y_ ;
+	    
+	    std::stringstream td;
+	    td << "depth=" << last_transit_route_.transit_depth();
+	    publish("TRANSIT_DEPTH", td.str());
+	    publish("TRANSIT_ROUTE",transit_route.str());
+	    //publish("TRANSIT_MODE", "ROUTE");
+	  }
+	else
+	  publish("TRANSIT_MODE", "DIRECT");
+	
+      }
+    else
+      publish("TRANSIT_MODE", "DIRECT");
   }
 
   void LamssMissionManager::handle_desired_depth(const CMOOSMsg& msg)
@@ -2145,28 +1987,22 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
       { 
 	new_transit_wpt_index = true;
 	// pop last route waypoint in case we have to 
-#ifndef GEO_COMMAND
 	if (transit_state_ && transit_x.size() > 0)
 	  if (last_deploy_cmd_.deploy_mode() ==
 	      LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
-#else
-	    if (transit_state_ && transit_x.size() > 0)
-	      if (last_deploy_cmd_.deploy_mode() ==
-		  LAMSS_DEPLOY_GEO::DEPLOY_MODE_RETURN)
-#endif
-		{
-		  transit_x.pop_back();
-		  transit_y.pop_back();
-		  transit_lat.pop_back();
-		  transit_lon.pop_back();
-		}
-	      else
-		{
-		  transit_x.erase(transit_x.begin());
-		  transit_y.erase(transit_y.begin());
-		  transit_lat.erase(transit_lat.begin());
-		  transit_lon.erase(transit_lon.begin());
-		}
+	    {
+	      transit_x.pop_back();
+	      transit_y.pop_back();
+	      transit_lat.pop_back();
+	      transit_lon.pop_back();
+	    }
+	  else
+	    {
+	      transit_x.erase(transit_x.begin());
+	      transit_y.erase(transit_y.begin());
+	      transit_lat.erase(transit_lat.begin());
+	      transit_lon.erase(transit_lon.begin());
+	    }
 	glog.is(DEBUG1) && glog << "Reached waypoint " << wpt_index
 				<< " Pruning. Remaining waypoints: "
 				<< transit_x.size() << std::endl;
@@ -2226,34 +2062,33 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
     return(output);
   }
 
-  void LamssMissionManager::handle_stovepipe_geo_message(const CMOOSMsg& msg)
-  {
-    LAMSS_STOVEPIPE_GEO stovepipe_geo_msg;
-    parse_for_moos(msg.GetString(),&stovepipe_geo_msg);
-    LAMSS_STOVEPIPE stovepipe_msg;
-    stovepipe_msg.set_stovepipe_id(stovepipe_geo_msg.stovepipe_id());
-    stovepipe_msg.set__time(stovepipe_geo_msg._time());
-    stovepipe_msg.set_depth(stovepipe_geo_msg.depth());
-    stovepipe_msg.set_heading(stovepipe_geo_msg.heading());
-    stovepipe_msg.set_major_axis(stovepipe_geo_msg.major_axis());
-    stovepipe_msg.set_minor_axis(stovepipe_geo_msg.minor_axis());
-    stovepipe_msg.set_verteces(stovepipe_geo_msg.verteces());
-    double x,y;
-    m_Geodesy.LatLong2LocalUTM(stovepipe_geo_msg.stovepipe_latitude(),
-			       stovepipe_geo_msg.stovepipe_longitude(),
-			       y,x);
-    stovepipe_msg.set_stovepipe_x(x);
-    stovepipe_msg.set_stovepipe_y(y);
-    update_stovepipes(stovepipe_msg);
-  }
-
   void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
   {
+    LAMSS_STOVEPIPE stovepipe_msg_in;
     LAMSS_STOVEPIPE stovepipe_msg;
 
-    parse_for_moos(msg.GetString(),&stovepipe_msg);
+    parse_for_moos(msg.GetString(),&stovepipe_msg_in);
     glog.is(DEBUG1) && glog << "Got Stovepipe message, Stovepipe_ID " 
 			    << stovepipe_msg.stovepipe_id() << std::endl;
+    if (stovepipe_msg_in.has_stovepipe_latitude(),
+	stovepipe_msg_in.has_stovepipe_longitude())
+      {
+	stovepipe_msg.set_stovepipe_id(stovepipe_msg_in.stovepipe_id());
+	stovepipe_msg.set__time(stovepipe_msg_in._time());
+	stovepipe_msg.set_depth(stovepipe_msg_in.depth());
+	stovepipe_msg.set_heading(stovepipe_msg_in.heading());
+	stovepipe_msg.set_major_axis(stovepipe_msg_in.major_axis());
+	stovepipe_msg.set_minor_axis(stovepipe_msg_in.minor_axis());
+	stovepipe_msg.set_verteces(stovepipe_msg_in.verteces());
+	double x,y;
+	m_Geodesy.LatLong2LocalUTM(stovepipe_msg_in.stovepipe_latitude(),
+				   stovepipe_msg_in.stovepipe_longitude(),
+				   y,x);
+	stovepipe_msg.set_stovepipe_x(x);
+	stovepipe_msg.set_stovepipe_y(y);
+      }
+    else
+      stovepipe_msg = stovepipe_msg_in;
     update_stovepipes(stovepipe_msg);
     // needs to be done twice to get right name
     // update_stovepipes(stovepipe_msg);
@@ -2300,29 +2135,9 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 	cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.mode,4");
 	break;
 
-        // case lamss::icex::protobuf::TrackingSignalUpdate::TOPSIDE_HOMING:
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.carrier_Hz,8250");
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.period,1");
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.reference_time," + goby::util::as<std::string>(even_reference_time));
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.duration_msx10,200");
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.bandwidth_Hz,1500");
-        //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("nav.trackping.mode,3");
-        //     break;
       }
 
-    // if(msg.has_tx_power_level())
-    // {
-    //     int tx_level = msg.tx_power_level();
-    //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("pwramp.txlevel," + goby::util::as<std::string>(tx_level));
-    // }
-
-    // if(msg.has_mod_header_version())
-    // {
-    //     int hdr_version = msg.mod_header_version();
-    //     cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)->add_nvram_cfg("psk.packet.mod_hdr_version," + goby::util::as<std::string>(hdr_version));
-    // }
-
-    publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
+   publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
 
   }
 
@@ -2368,77 +2183,62 @@ void LamssMissionManager::deploy_behavior_updates(bool new_deploy)
 	
 	}
 
-#ifndef GEO_COMMAND
       if (last_deploy_cmd_.deploy_mode() ==
 	  LAMSS_DEPLOY::DEPLOY_MODE_LOITER )
-#else
-	if (last_deploy_cmd_.deploy_mode() ==
-	    LAMSS_DEPLOY_GEO::DEPLOY_MODE_LOITER )
-#endif
-	  {
-	    // Zamboni Loiters for ice camp ops
-	    std::stringstream cent;
-	    cent << "center_assign="
-		 << last_deploy_x_ + camp_x-camp_x_deploy
-		 << "," << last_deploy_y_ + camp_y-camp_y_deploy;
-	    publish("SENSOR_DEPLOY",cent.str());
-	  }
-    
+	{
+	  // Zamboni Loiters for ice camp ops
+	  std::stringstream cent;
+	  cent << "center_assign="
+	       << last_deploy_x_ + camp_x-camp_x_deploy
+	       << "," << last_deploy_y_ + camp_y-camp_y_deploy;
+	  publish("SENSOR_DEPLOY",cent.str());
+	}
+      
       if (new_wpt_index)
 	{
-#ifndef GEO_COMMAND
 	  if (last_deploy_cmd_.deploy_mode() ==
 	      LAMSS_DEPLOY::DEPLOY_MODE_LAWNMOWER )
-#else
-	    if (last_deploy_cmd_.deploy_mode() ==
-		LAMSS_DEPLOY_GEO::DEPLOY_MODE_LAWNMOWER )
-#endif	  
-	      {
-		//
-		// Save shifted lawnmower config for publication at next waypoint
-		// capture
-		//     format: "points=format=lawnmower,x=%10%,y=%11%,height=%19%,
-		//     width=%20%,lane_width=%21%,rows=east-west,degs=%18%#speed=%12%"
-		std::stringstream clwnm;
-		clwnm <<  "points=format=lawnmower,x="
-		      << last_deploy_x_ + camp_x-camp_x_deploy
-		      << ",y="
-		      << last_deploy_y_ + camp_y-camp_y_deploy
-		      << ",height=" << last_deploy_cmd_.survey_length()
-		      << ",width=" << last_deploy_cmd_.survey_width()
-		      << ",lane_width=" << last_deploy_cmd_.survey_period()
-		      << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
-		      << "#currix=" << survey_wpt_index;
-		//		  << "#capture_line=true";
-		std::string survey_config = clwnm.str();
-		publish("SURVEY_CONFIG",survey_config);
-	      }
-#ifndef GEO_COMMAND
-	    else if (last_deploy_cmd_.deploy_mode() ==
-		     LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG )
-#else
-	    else if (last_deploy_cmd_.deploy_mode() ==
-		     LAMSS_DEPLOY_GEO::DEPLOY_MODE_ZIGZAG )
-#endif	  
-	      {
-		//
-		// same for zigzag
-		//
-		std::stringstream czz;
-		czz <<  "points=zigzag:"
+	    {
+	      //
+	      // Save shifted lawnmower config for publication at next waypoint
+	      // capture
+	      //     format: "points=format=lawnmower,x=%10%,y=%11%,height=%19%,
+	      //     width=%20%,lane_width=%21%,rows=east-west,degs=%18%#speed=%12%"
+	      std::stringstream clwnm;
+	      clwnm <<  "points=format=lawnmower,x="
 		    << last_deploy_x_ + camp_x-camp_x_deploy
-		    << "," << last_deploy_y_ + camp_y-camp_y_deploy
-		    << "," << last_deploy_cmd_.survey_heading()
-		    << "," << last_deploy_cmd_.survey_length()
-		    << "," << last_deploy_cmd_.survey_period()
-		    << "," << last_deploy_cmd_.survey_width()
+		    << ",y="
+		    << last_deploy_y_ + camp_y-camp_y_deploy
+		    << ",height=" << last_deploy_cmd_.survey_length()
+		    << ",width=" << last_deploy_cmd_.survey_width()
+		    << ",lane_width=" << last_deploy_cmd_.survey_period()
+		    << ",rows=east-west,degs=" << last_deploy_cmd_.survey_heading()
 		    << "#currix=" << survey_wpt_index;
-		//		<< "#capture_line=true" ;
-		std::string zigzag_status = czz.str();
-		//	    publish("SURVEY_CONFIG",zigzag_status);
-		publish("ZIGZAG_STATUS",zigzag_status);
-	      }
-	
+		//		  << "#capture_line=true";
+	      std::string survey_config = clwnm.str();
+	      publish("SURVEY_CONFIG",survey_config);
+	    }
+	  else if (last_deploy_cmd_.deploy_mode() ==
+		   LAMSS_DEPLOY::DEPLOY_MODE_ZIGZAG )
+	    {
+	      //
+	      // same for zigzag
+	      //
+	      std::stringstream czz;
+	      czz <<  "points=zigzag:"
+		  << last_deploy_x_ + camp_x-camp_x_deploy
+		  << "," << last_deploy_y_ + camp_y-camp_y_deploy
+		  << "," << last_deploy_cmd_.survey_heading()
+		  << "," << last_deploy_cmd_.survey_length()
+		  << "," << last_deploy_cmd_.survey_period()
+		  << "," << last_deploy_cmd_.survey_width()
+		  << "#currix=" << survey_wpt_index;
+	      //		<< "#capture_line=true" ;
+	      std::string zigzag_status = czz.str();
+	      //	    publish("SURVEY_CONFIG",zigzag_status);
+	      publish("ZIGZAG_STATUS",zigzag_status);
+	    }
+	  
 	  new_wpt_index = false;
 	}
       //

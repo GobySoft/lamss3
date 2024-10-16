@@ -23,9 +23,6 @@
 #include "goby/moos/moos_geodesy.h"
 #include "XYPolygon.h"
 
-// The activation of GEO messages done in CMakeLists.txt"
-//#define GEO_COMMAND
-
 class TrackManagerException : public std::runtime_error
 {
 public:
@@ -67,19 +64,11 @@ private:
   goby::moos::CMOOSGeodesy m_Geodesy;
   XYPolygon opregion, opregion_init;
 
-#ifndef GEO_COMMAND
   LAMSS_TRANSIT last_transit_route_;    
   LAMSS_TRANSIT initial_transit_cmd_;    
   LAMSS_DEPLOY last_deploy_cmd_;    
   LAMSS_PROSECUTE last_prosecute_cmd_;    
   void configure_transit_route(LAMSS_TRANSIT transit_cmd);
-#else
-  LAMSS_TRANSIT_GEO last_transit_route_;    
-  LAMSS_TRANSIT_GEO initial_transit_cmd_;    
-  LAMSS_DEPLOY_GEO last_deploy_cmd_;    
-  LAMSS_PROSECUTE_GEO last_prosecute_cmd_;    
-  void configure_transit_route(LAMSS_TRANSIT_GEO transit_cmd);
-#endif
   // Stovepipe manager
   void update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg);
   // synchronous event
