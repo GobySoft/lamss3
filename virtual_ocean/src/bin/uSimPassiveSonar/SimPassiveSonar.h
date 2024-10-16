@@ -86,16 +86,12 @@ public:
   double center_frequency;
   double bandwidth;
   double pulsewidth;
-#ifndef GEO_COMMAND
   LAMSS_PINGER_COMMAND::WaveformEnum waveform;
   LAMSS_PINGER_COMMAND::WindowShading window;
-#else
-  LAMSS_PINGER_COMMAND_GEO::WaveformEnum waveform;
-  LAMSS_PINGER_COMMAND_GEO::WindowShading window;
-#endif
   std::vector<double> replica;
 
-  double pingtime; 
+  double pingtime;
+  unsigned int counter{0};
   bool got_eigenrays{false};
 };
 
@@ -182,11 +178,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     CRapRays Rap;
  
     //---Declare variables that get their valies directly from the .moos file---
-#ifndef GEO_COMMAND
   LAMSS_PINGER_COMMAND pinger_command;
-#else
-  LAMSS_PINGER_COMMAND_GEO pinger_command;
-#endif
   std::vector<CPinger> pinger;
   std::vector<double> replica;
 
