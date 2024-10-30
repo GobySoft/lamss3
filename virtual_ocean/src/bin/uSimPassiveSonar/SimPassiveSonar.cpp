@@ -773,79 +773,80 @@ void SimPassiveSonar::loop()
 			  m_Comms.Notify("TARGET_YPOS",source_pos_y);
 			}
 		    }
-
+		  write_eigenray_file(Targets[i].target_id());
 		}
 	      save_spectral_timeseries();
 	  
 	      // here we add the PINGER timeseries in time domain
 
-	      for (unsigned int indx=0; indx<pinger.size(); indx++) {
-		if (pinger[indx].active)
-		  {
-		    glog.is(DEBUG1) && glog << "Handling Pinger " << endl;
-	  
-		    bool ok_pinger_info = getPingerInfo(indx) &&
-		      pinger[indx].got_eigenrays;
-	      
-		    if (ok_pinger_info)
-		      {
-			glog.is(VERBOSE) && glog << "\n **** Got info for "
-						 << pinger[indx].id << " ****" 
-						 << endl;
-			if (add_pinger_timeseries(indx))
-			  {
-			    glog.is(VERBOSE) && glog << "\n*** Added PINGER timeseries ***\n" 
-						     << endl;;
-			  }
-			else
-			  {
-			    glog.is(VERBOSE) && glog << "Pinger timeseries not generated" 
-						     << endl;;
-			  }
-		      }
-		    else
-		      {
-			glog.is(VERBOSE) && glog << "Waiting for info for "
-						 << pinger[indx].id << " ****"
-						 << endl;
-		      }
-		    
-		    int cn_num = findAcousticContact(pinger[indx].id);
-		  // Acoustic modeling update
-		  // Get ready for next ping
-		  if (pinger[indx].interval > 0 &&
-		      t_now > pinger[indx].pingtime + 0.8*pinger[indx].interval)
+	      for (unsigned int indx=0; indx<pinger.size(); indx++)
+		{
+		  if (pinger[indx].active)
 		    {
-		      // Publish node report for target cue
-		      double plat, plon;
-		      m_Geodesy.UTM2LatLong(source_pos_x,
-					    source_pos_y,plat,plon);
-		      std::stringstream pstr;
-		      pstr << "NAME=" << tolower(pinger[indx].id) + "_sim" 
-			   << ",TYPE=" << "track"
-			   << ",UTC_TIME=" << t_now
-			   << ",X=" << source_pos_x
-			   << ",Y=" << source_pos_y
-			   << ",LAT=" << plat
-			   << ",LON=" << plon
-			   << ",SPD=" << source_spd
-			   << ",HDG=" << source_hdg
-			   << ",DEPTH=" << source_dep
-			   << ",PITCH=0,ROLL=0" ;		
-		      publish("NODE_REPORT", pstr.str());
-		      pinger[indx].pingtime += pinger[indx].interval;
-		      pinger[indx].counter++;
-		      acoustic_contacts[cn_num].ready = false;
-		      request_eigenrays(cn_num, acoustic_contacts[cn_num]);
+		      glog.is(DEBUG1) && glog << "Handling Pinger " << endl;
+		      
+		      bool ok_pinger_info = getPingerInfo(indx) &&
+			pinger[indx].got_eigenrays;
+		      
+		      if (ok_pinger_info)
+			{
+			  glog.is(VERBOSE) && glog << "\n **** Got info for "
+						   << pinger[indx].id << " ****" 
+						   << endl;
+			  if (add_pinger_timeseries(indx))
+			    {
+			      glog.is(VERBOSE) && glog << "\n*** Added PINGER timeseries ***\n" 
+						       << endl;;
+			    }
+			  else
+			    {
+			      glog.is(VERBOSE) && glog << "Pinger timeseries not generated" 
+						       << endl;;
+			    }
+			}
+		      else
+			{
+			  glog.is(VERBOSE) && glog << "Waiting for info for "
+						   << pinger[indx].id << " ****"
+						   << endl;
+			}
+		      
+		      int cn_num = findAcousticContact(pinger[indx].id);
+		      // Acoustic modeling update
+		      // Get ready for next ping
+		      if (pinger[indx].interval > 0 &&
+			  t_now > pinger[indx].pingtime + 0.8*pinger[indx].interval)
+			{
+			  // Publish node report for target cue
+			  double plat, plon;
+			  m_Geodesy.UTM2LatLong(source_pos_x,
+						source_pos_y,plat,plon);
+			  std::stringstream pstr;
+			  pstr << "NAME=" << tolower(pinger[indx].id) + "_sim" 
+			       << ",TYPE=" << "track"
+			       << ",UTC_TIME=" << t_now
+			       << ",X=" << source_pos_x
+			       << ",Y=" << source_pos_y
+			       << ",LAT=" << plat
+			       << ",LON=" << plon
+			       << ",SPD=" << source_spd
+			       << ",HDG=" << source_hdg
+			       << ",DEPTH=" << source_dep
+			       << ",PITCH=0,ROLL=0" ;		
+			  publish("NODE_REPORT", pstr.str());
+			  pinger[indx].pingtime += pinger[indx].interval;
+			  pinger[indx].counter++;
+			  acoustic_contacts[cn_num].ready = false;
+			  request_eigenrays(cn_num, acoustic_contacts[cn_num]);
+			}
+		      write_eigenray_file(pinger[indx].id);
 		    }
 		}
-	      }
 	      
 	      glog.is(VERBOSE) && glog << "Writing data files " << endl;
 	      write_nas_file(timestamp);
 	      write_nas_file_verbose(timestamp);
 	      write_hyd_file();
-	      write_eigenray_file();
 	      m_Comms.Notify("SONAR_DIR", base_dir_name);
 	      m_Comms.Notify("SONAR_FILE_NUM", double(frame_number));
 	      
@@ -2174,14 +2175,19 @@ bool SimPassiveSonar::write_hyd_file()
   return true;
 }
 
-bool SimPassiveSonar::write_eigenray_file()
+bool SimPassiveSonar::write_eigenray_file(std::string src_id)
 {
   char filename_buff[1000]; 
 
-  std::string filename;
+  std::string filename =
+    ownship + "_" +
+    src_id + "_RAY"
+    
+    ;
   // Sure hope nobody wants a filename longer than 1000 chars
   sprintf(filename_buff,"%s/%s%09d%s",base_dir_name.c_str(),
-	  "RAY",frame_number,
+	  filename.c_str(),
+	  frame_number,
 	  acoustic_filename_suffix.c_str()); 
   
   FILE * data_file;
