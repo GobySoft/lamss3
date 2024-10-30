@@ -430,7 +430,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     bool write_hyd_file();
     bool write_nas_file(double timestamp);
     bool write_nas_file_verbose(double timestamp);
-    bool write_eigenray_file();
+    bool write_eigenray_file(std::string src_id);
     bool read_covmat_file(string covmat_file, double nl_now, double& t_req);
     std::vector<double> read_replica(std::string replica_path);
 
