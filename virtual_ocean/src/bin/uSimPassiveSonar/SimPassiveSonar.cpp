@@ -2180,7 +2180,7 @@ bool SimPassiveSonar::write_eigenray_file(std::string src_id)
   char filename_buff[1000]; 
 
   std::string filename =
-    ownship + "_" +
+    toupper(ownship) + "_" +
     src_id + "_RAY"
     
     ;
