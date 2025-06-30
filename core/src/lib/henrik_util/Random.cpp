@@ -1,5 +1,8 @@
 #include "Random.h"
 
+#include <chrono>
+
+
 using namespace std;
 CRandom::CRandom()
 {
@@ -97,6 +100,7 @@ double CRandom::gauss_real(double mu, double sigma)
   //sigma= variance
 
   std::default_random_engine generator;
+  generator.seed(std::chrono::system_clock::now().time_since_epoch().count());
   std::normal_distribution<double> distribution(0.0,1.0);
 
   double X = mu + sqrt(sigma)*distribution(generator);
