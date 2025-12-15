@@ -849,17 +849,17 @@ bool CSimNoiseCovariance::write_covmat_file(double t_now, double nl_now, int i_f
 	  int num = num_sensors*(num_sensors+1)/2;
 	  for (int i=0; i<num; i++)
 	    {
-	      float rr = float(covmat[i].real()); 
-	      float ri = float(covmat[i].imag()); 
-	      fwrite(&rr, sizeof(float), 1 , cov_data_file);
-	      fwrite(&ri, sizeof(float), 1 , cov_data_file);
+	      double rr = covmat[i].real(); 
+	      double ri = covmat[i].imag(); 
+	      fwrite(&rr, sizeof(double), 1 , cov_data_file);
+	      fwrite(&ri, sizeof(double), 1 , cov_data_file);
 	    }
 	  for (int i=0; i<num; i++)
 	    {
-	      float rr = float(chollow[i].real()); 
-	      float ri = float(chollow[i].imag()); 
-	      fwrite(&rr, sizeof(float), 1 , cov_data_file);
-	      fwrite(&ri, sizeof(float), 1 , cov_data_file);
+	      double rr = chollow[i].real(); 
+	      double ri = chollow[i].imag(); 
+	      fwrite(&rr, sizeof(double), 1 , cov_data_file);
+	      fwrite(&ri, sizeof(double), 1 , cov_data_file);
 	    }
 	}
 

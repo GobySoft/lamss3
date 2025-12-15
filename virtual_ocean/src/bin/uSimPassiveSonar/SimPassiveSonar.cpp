@@ -3284,6 +3284,8 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
       glog.is(DEBUG2) && glog << "Done reading header, i_first=" << i_first
 			      << ", i_last=" << i_last
 			      << ", num-sensors=" << num_sensors<< endl;
+      double min_val = 1e15;
+      double max_val = -1e15;
       for (int f_iter=i_first; f_iter <= i_last; f_iter++)
 	{
 	  
@@ -3296,24 +3298,35 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
 	  int num = num_sensors*(num_sensors+1)/2;
 	  for (int i=0; i<num; i++)
 	    {
-	      float rr,ri;
-	      fread(&rr, sizeof(float), 1 , cov_data_file);
-	      fread(&ri, sizeof(float), 1 , cov_data_file);
-	      covmat.push_back(faccov*complex<double>(double(rr),double(ri)));
+	      double rr,ri;
+	      fread(&rr, sizeof(double), 1 , cov_data_file);
+	      max_val = std::max(max_val,rr);
+	      min_val = std::min(min_val,rr);
+	      fread(&ri, sizeof(double), 1 , cov_data_file);
+	      max_val = std::max(max_val,ri);
+	      min_val = std::min(min_val,ri);
+	      covmat.push_back(faccov*complex<double>(rr,ri));
 	    }
 	  noise_covar[f_iter].putCovLow(num_sensors, f, covmat);
 	  for (int i=0; i<num; i++)
 	    {
-	      float rr,ri;
-	      fread(&rr, sizeof(float), 1 , cov_data_file);
-	      fread(&ri, sizeof(float), 1 , cov_data_file);
-	      chollow.push_back(facamp*complex<double>(double(rr),double(ri)));
+	      double rr,ri;
+	      fread(&rr, sizeof(double), 1 , cov_data_file);
+	      max_val = std::max(max_val,rr);
+	      min_val = std::min(min_val,rr);
+	      fread(&ri, sizeof(double), 1 , cov_data_file);
+	      max_val = std::max(max_val,ri);
+	      min_val = std::min(min_val,ri);
+	      chollow.push_back(facamp*complex<double>(rr,ri));
 	    }
 	  noise_covar[f_iter].putCholLow(num_sensors, f, chollow);
 	}
 
       fclose (cov_data_file);
-      glog.is(VERBOSE) && glog << "Read Covariance file: " << covmat_filename_buff 
+      glog.is(VERBOSE) && glog << "Read Covariance file: "
+			       << covmat_filename_buff 
+			       << ", Max: " << max_val
+			       << ", Min: " << min_val
 			       << endl;
     }
   return(true);  
