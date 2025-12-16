@@ -1693,6 +1693,7 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
   
       // set dc covarince to 0.0
 
+  bool nan_flag = false;
   vector<complex<double> > noise_realization = vecUtils.zzeros(num_sensors,1);
   
   glog.is(VERBOSE) && glog << "Realization generation started, num covars="
@@ -1737,12 +1738,14 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
 	  vec_y.initSpectrum(nfft);
 	  vec_z.initSpectrum(nfft);
 	}
-      
       for (int f_iter=1; f_iter < num_freqs; f_iter++)
 	{
 	  int indx = elem_iter*sensors_per_element + num_sensors * f_iter;
 	  hyd.spectrum[f_iter]        = noise_realization[indx].real();
 	  hyd.spectrum[nfft-f_iter]   = noise_realization[indx].imag();
+	  if ( isnan(hyd.spectrum[f_iter]) ||
+	       isnan(hyd.spectrum[nfft-f_iter]))
+	    nan_flag = true;
 	  if (vsa )
 	    {
 	      // x component
@@ -1790,6 +1793,15 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
 	}
     }
 
+  if (nan_flag)
+    {    
+      string req = "nfft=" + intToString(nfft) + ",sampling_frequency=" + doubleToString(sampling_frequency);   
+      m_Comms.Notify("COVARIANCE_REQUEST",req);
+      
+      glog.is(DEBUG2) && glog << ">>>> NANs: Requesting new noise covariances, i_first="
+			      << i_first << ", i_last=" << i_last << endl;
+    }
+  
   return true;
 }
 
