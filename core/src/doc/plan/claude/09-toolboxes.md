@@ -65,9 +65,11 @@ flowchart LR
 
 - The environment data (890 MB in `missions-lamss/cruise/*/data`) moves to a separate `lamss-environment` repository fetched on demand by `lm m` (`environment.data_url`), with a 1 MB flat-bottom synthetic environment in-tree for tests.
 - `uSimCTD_OceanModel`, `uSimADCP_OceanModel`, `uSVP_OceanModel` share their NetCDF reader; merge into one `lamss_ocean_model` Goby3 app with three output groups when rewritten.
-- Bellhop runs come from netsim (`acousticstoolbox` package); `thirdparty/at` is not carried.
+- Bellhop runs come from netsim: its `acousticstoolbox` library (`environment.proto`, `svp_request_response.proto`, `iBellhop_messages.proto`) and the `iBellhop` app ship in `libnetsim-dev`/`netsim-apps`, and `netsim_core`/`netsim_manager`/`netsim_udp` provide the modem network. `thirdparty/at` is not carried.
+- lamss3's `lib_netsim_processor` is the *processor plugin* netsim needs to simulate propagation (netsim's own docs point at the old `github.mit.edu/lamss` repos for it). Once it lives in `virtual_ocean`, ask GobySoft to update netsim's documentation to point at lamss3.
+- netsim links `libgoby_moos` and MOOS 10 for its `netsim_goby_moos_gateway` plugin, so removing MOOS from lamss3 (M4) does not by itself remove MOOS from a netsim host; that is a netsim decision.
 
-**Risks**: `libnetsim-dev` must exist for noble (GobySoft); NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`.
+**Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`.
 
 ## mit
 

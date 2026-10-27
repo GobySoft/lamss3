@@ -22,7 +22,7 @@ flowchart LR
   src[Source builds<br/>IvPico, HydroMAN 2.0 optional, DM7820 kernel module] --> lamss3
 ```
 
-The old `DEPENDENCIES` Makefile pulled MOOS and MOOS-IvP from `ppa:tes/lamss-moos10` and `packages.gobysoft.org`. The plan assumes GobySoft continues to publish `libmoos10-dev`, `libmoos-ivp-dev`, `moos-ivp-apps` for noble; **verify this first thing in Phase 0** and fall back to a `cmake/BuildMOOSIvP.cmake` `ExternalProject` from the `moos-ivp` 24.8.1 release if not.
+The old `DEPENDENCIES` Makefile pulled MOOS and MOOS-IvP from `ppa:tes/lamss-moos10` and `packages.gobysoft.org`. netsim 1.3.0's CI confirms that `libnetsim-dev`/`netsim-apps` and their Goby3/DCCL dependencies are built for noble. netsim also `find_package(MOOS 10)`s, so `libmoos10-dev` for noble exists on the same repository. `libmoos-ivp-dev`/`moos-ivp-apps` for noble still need checking **first thing in Phase 0** and fall back to a `cmake/BuildMOOSIvP.cmake` `ExternalProject` from the `moos-ivp` 24.8.1 release if not.
 
 ## `DEPENDENCIES` files
 
@@ -45,7 +45,7 @@ Notes:
 
 ## CI
 
-GitHub Actions on the `lamss3` repository (CircleCI is the alternative if the lab prefers; the workflow is the same).
+CircleCI, copying the pattern of [netsim](https://github.com/GobySoft/netsim)'s `.circleci/config.yml`: it already builds Debian packages for jammy, noble and bookworm on amd64, arm64 and armhf inside the `gobysoft/goby3-ubuntu-build-base:24.04.2` images and uploads to `packages.gobysoft.org` (`continuous/` for untagged builds, `release/` for tags). Reusing those images and that upload path means lamss3 packages land next to goby3, dccl and netsim with no new infrastructure. GitHub Actions would work equally well but would need the images and upload step recreated.
 
 ```mermaid
 flowchart LR
@@ -73,7 +73,7 @@ Jobs:
 
 Submodule toolboxes (`mit`, `icex`, `attic`) run their own CI in their own repositories, triggered on `lamss3` tags, and are **not** part of the `lamss3` required checks. `attic` CI is allowed to be red.
 
-Containers: one `ghcr.io/gobysoft/lamss3-ci:<codename>` image per distro, rebuilt weekly from `core/DEPENDENCIES` so dependency drift shows up in the image build and not in every PR.
+Containers: the `gobysoft/goby3-ubuntu-build-*` images already carry Goby3's build dependencies; lamss3 adds a thin layer per distro (`gobysoft/lamss3-build-base:<codename>`) that installs `core/DEPENDENCIES`, rebuilt weekly so dependency drift shows up in the image build and not in every PR. netsim's CI still uses `apt-key adv`; lamss3 should use the keyring/`signed-by` form and offer that change back to netsim.
 
 ## Debian packaging (Phase 5)
 
@@ -89,6 +89,5 @@ Containers: one `ghcr.io/gobysoft/lamss3-ci:<codename>` image per distro, rebuil
 
 ## Open questions for the human plan
 
-- GitHub Actions vs CircleCI: the lab's other projects use which?
-- Who hosts the `.deb`s: `packages.gobysoft.org` alongside Goby3, or GitHub Releases + a small apt repo?
-- arm64 CI needs either GitHub's arm64 runners or QEMU emulation; the latter is slow (hours for the sonar toolbox). Fine for nightly, not for PRs.
+- CircleCI + `packages.gobysoft.org` is assumed because netsim proves the path works for noble on three architectures; confirm GobySoft is willing to host lamss3 packages there.
+- arm64/armhf builds in netsim's CI are cross-builds (`sbuild`, `nocheck`), which is fast enough for PRs; tests run on amd64 only. lamss3 follows that.

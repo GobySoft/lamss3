@@ -171,7 +171,7 @@ Everything not named above. Highlights so nobody goes looking:
 | Goby3 (`libgoby3-dev`, `goby3-moos`, `goby3-gui`) | everything | GobySoft apt repo; 3.6.x current |
 | DCCL 4 | protobuf | GobySoft apt repo |
 | MOOS 10 + MOOS-IvP (`libmoos-ivp-dev`, `moos-ivp-apps/gui`) | everything until M4 | GobySoft apt repo / `ppa:tes/lamss-moos10` today; **verify noble builds exist** |
-| netsim (`libnetsim-dev`, `netsim-apps`, `acousticstoolbox`) | virtual_ocean, sonar, autonomy (pDepthAdapt, behaviors) | GobySoft apt repo; verify noble |
+| netsim 1.3 (`libnetsim-dev`, `netsim-apps`) | virtual_ocean, sonar, autonomy (pDepthAdapt, behaviors) | GobySoft apt repo; noble amd64/arm64/armhf built by netsim's own CI; exports `netsim-config` for `find_package(NETSIM)` |
 | Boost ≥ 1.65 (date_time, thread, system, program_options, filesystem, regex, serialization, statechart) | wide | 1.83 in noble |
 | Protobuf, GSL, NetCDF C/C++4, HDF5, armadillo, FLTK 1.3, libpcap, hidapi/libusb, nlohmann-json | per app | all in noble; `libgsl0-dev` → `libgsl-dev`, `libnetcdf-cxx-legacy-dev` → `libnetcdf-c++4-dev` |
 | OpenCV | `henrik_util` core only (CKalmanFilter dropped for ≥ 3) | drop the dependency by removing/replacing CKalmanFilter |
