@@ -29,7 +29,7 @@ Plan:
    ```
    Files with existing GPLv2+ headers are relicensed to GPL-3.0-or-later (allowed by "or later"); files with no header are assumed MIT-owned work and get the toolbox's default. Authors listed in old headers are kept in an `AUTHORS` file per toolbox rather than per file.
 3. **MIT TLO disclosure** per the [TLO open-source process](https://tlo.mit.edu/researchers-mit-community/protect/software-open-source-protection) before the first public tag. The inventory doc's attic list and the third-party table are the attachments the TLO asks for.
-4. **Blocked content** stays out of `lamss3` until cleared: `iMOOSGateway`/`payload_interface` ("no permission"), anything derived from Bluefin SDK headers (`uMVS_Bluefin` carries Bluefin-era sources; confirm provenance), HydroMAN 2.0 (external, likely not open).
+4. **Blocked content** stays out of `lamss3` until cleared: `iMOOSGateway`/`payload_interface` ("no permission"), anything derived from Bluefin SDK headers (`uMVS_Bluefin` carries Bluefin-era sources; confirm provenance), HydroMAN 3 (its own repository and license; reachable only through the `hydroman` submodule, never copied into lamss3).
 5. **Third-party** code is either an apt dependency (nlohmann-json, Eigen) or lives under `<toolbox>/src/thirdparty/<name>/` with its original license file untouched (newmat, mstiff reader, DM7820 userspace library, which is RTD's and needs its redistribution terms checked).
 6. **MOOS-IvP derived code** (`uTDA`, `uSimMarine_DUTM`, behaviors subclassing IvP classes) is GPL like MOOS-IvP itself; it goes in application directories, never in LGPL libraries.
 

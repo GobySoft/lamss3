@@ -14,7 +14,7 @@ The first end-to-end target from the [core plan](../core.md): "Add the basic Mac
 - **macrura/sensor_sim**: MOOSDB, uSimTargets, uSimTowedArray, uSimPassiveSonar, uSimNoiseCovariance, uSimCTD, uSimAcoBeaconRngBrg, iBellhop.
 - **netsim** (`topside/net_sim`): netsim_manager, netsim_udp, netsim_goby_moos_gateway, uSimModemNetwork.
 
-This is the `macrura-hydroman-durip-mbat.sh` scenario of today **minus** `hydroman_ext` (external HydroMAN), `nav_stub` and the Python display servers (`lamss_dc`, `btr_plot`, `tloss_display`), which become the first M2 variants. Every community also has the health listener, logging and `pLogger` (transition).
+This is the `macrura-hydroman-durip-mbat.sh` scenario of today **minus** `hydroman_ext` (HydroMAN 3, see M2), `nav_stub` and the Python display servers (`lamss_dc`, `btr_plot`, `tloss_display`), which become the first M2 variants. Every community also has the health listener, logging and `pLogger` (transition).
 
 ```mermaid
 flowchart TB
@@ -88,7 +88,7 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 
 | Variant | Adds |
 |---|---|
-| `hydroman` | `iHydroMAN_LAMSS`, `iHydroMAN_PHINS`, `nav` subsystem running external HydroMAN 2.0 (`iHydroMAN_Gateway` + `pHM_*`) |
+| `hydroman` | needs the `hydroman` toolbox active: `iHydroMAN_LAMSS`, `iHydroMAN_PHINS` on main, `nav` subsystem running HydroMAN 3 (`pHM3_BasicModel`, `pHM3_VelProcessor`, `iHydroMAN_Gateway`, `pHM_*`) |
 | `hybrid` | `uSimUnderseaVehicle_Vlamss` + actuator map + control engine, `iLamssFrontSeat`, `pFrontSeatData`, glideslope domain, `BHV_GlideSlopeSpeed` |
 | `hycom` | `uSVP_OceanModel`, `uSimCTD_OceanModel`, `uSimADCP_OceanModel` with the HYCOM environment |
 | `two_auv` | adds `unicorn` (modem 3) to the fleet; MAC slot table grows |
@@ -99,4 +99,4 @@ M2 is done when `irminger` is also expressed as a cruise reusing the same platfo
 
 ## M3: ICEX20
 
-`icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, external HydroMAN 2.0 through the `hydroman` variant (the internal toolbox the 2020 scenario used is not ported), and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise (IRIS modem, Beaufort sim) follows as a variant once icex20 runs.
+`icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, HydroMAN 3 through the `hydroman` toolbox's variant (the internal toolbox the 2020 scenario used is not ported), and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise (IRIS modem, Beaufort sim) follows as a variant once icex20 runs.

@@ -82,8 +82,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `iLamssFrontSeat`, `pFrontSeatData` | lamss | GobyMOOSApp | 443 / 201 | 2023 frontseat bridge to Goby3 `InterfaceData` |
 | `iEmbeddedFrontseat` | lamss-shared | GobyMOOSApp | 441 | |
 | `pControlEngine_Vlamss`, `pActuatorMap_HybridUUV`, `uSimUnderseaVehicle_Vlamss` | lamss-shared (SRToolbox) | AppCasting | 1.3k / 1.6k / 3.1k | Hybrid UUV control and 6-DOF frontseat sim; 2022–24 |
-| `iHydroMAN_LAMSS` | lamss-shared | CMOOSApp | 1.2k | Interface to external HydroMAN 2.0; the only HydroMAN path lamss3 supports |
-| `iHydroMAN_PHINS` | lamss-shared | CMOOSApp | 3.8k | iXblue PHINS INS driver (stdbin, pcap replay); used with external HydroMAN too |
+
 | `pDepthAdapt` | lamss-shared | GobyMOOSApp | 3k | Adaptive depth via Bellhop; uses `$LAMSS_HOME` paths to fix |
 | `pTetraHoming` | lamss-shared (dup in internal) | CMOOSApp | 505 | |
 | `pEnvtGrad` | lamss | CMOOSApp | 1.1k | Thermocline detection for adaptive yoyo |
@@ -95,6 +94,16 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pNMEASender` | lamss-internal | GobyMOOSApp | 126 | |
 | Behaviors: `lib_behaviors-henrik` (lamss: 13; shared: 3; internal: ~8), `-spetillo` (lamss: 1; internal: 6 front-tracking), `-tes` (1), `-don` (5), `-emf43` (5), `-ayaari` (1), `-arthura` (1), `-arjuna` (1) | all | IvP behaviors | ~30k | Only behaviors referenced by live `.bhv` files are ported (see missions survey); one `lamss_behaviors` plugin library, grouped by topic not author. Loaded by pHelmIvP now, IvPico later |
 | `lib_lamss_protobuf` (deploy/status/prosecute/stovepipe/hybrid_uuv/hydroman) | lamss | proto | | [07](07-protobuf-split.md) |
+
+### hydroman (wrapper toolbox around the HydroMAN 3 repository)
+
+| Item | From | Base | Lines | Notes |
+|---|---|---|---|---|
+| HydroMAN 3 repository | external git | MOOS apps: `pHM3_BasicModel`, `pHM3_VelProcessor`, `pHM_SensorFusion`, `pHM_Manager`, `pHM_ModelCalibrator`, `pHM_LBLProcessor`, `pHM_DVLProcessor`, `pHM_TargetSLAM`, `iHydroMAN_Gateway` | n/a | Submodule at `hydroman/upstream`; built by its own CMake; not modified by lamss3 |
+| `iHydroMAN_LAMSS` | lamss-shared | CMOOSApp | 1.2k | Vehicle-side TCP/protobuf client of `iHydroMAN_Gateway` (`hydroman_tcp`, `hydroman_protobuf`) |
+| `iHydroMAN_PHINS` | lamss-shared | CMOOSApp | 3.8k | iXblue PHINS INS driver (stdbin, pcap replay) |
+| `hydroman_command/health/internal.proto` | lamss | proto | | `lamss.hydroman` package |
+| `auv/hydroman_ext` subsystem (`hydroman_ext.def`, `hydroman_ext_plugs/*`) | missions-lamss | templates | | Becomes the `hydroman` mission component and `nav` subsystem |
 
 ### sonar
 
@@ -152,7 +161,7 @@ Everything not named above. Highlights so nobody goes looking:
 | Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iBackSeatServer`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
 | Superseded by Goby/MOOS-IvP stock apps | `iModemSim` (netsim), `zLoggerNG`, `uTPB`, `pMailReader`, `pMOOSLink` (after M4), `pInitializer` |
 | Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker` |
-| Internal HydroMAN 1.x (replaced by external HydroMAN 2.0) | `pHydroMAN_{BasicModel,ModelCalibrator,LBLProcessor,DVLProcessor,SensorFusion,Manager,ModelEstimator}`, `pHydroMAN_ICEXManager` (14k lines, armadillo + embedded Python); the `hydroman`/`hydroman_3` mission flags and `auv/macrura/macrura_plugs/pHydroMAN_BasicModel.plug` |
+| Internal HydroMAN 1.x (replaced by the HydroMAN 3 repository via the `hydroman` toolbox) | `pHydroMAN_{BasicModel,ModelCalibrator,LBLProcessor,DVLProcessor,SensorFusion,Manager,ModelEstimator}`, `pHydroMAN_ICEXManager` (14k lines, armadillo + embedded Python); the `hydroman`/`hydroman_3` mission flags and `auv/macrura/macrura_plugs/pHydroMAN_BasicModel.plug` |
 | Dead science code (hardcoded `/home/<user>` paths, thesis chains) | emf43 scattering chain (8 apps), `pImagePro`, `pROI`, `lib_arjuna_util`, `pRBTracker`, `pMBTracker`, `p1HTracker`, `pTrackManager`, `pTargetTracker`, `pTwostateTracker` (OpenCV < 3), `pActiveRangeTracker`, `pActiveGeoTracker` (OpenCV < 3), `lib_metrics` |
 | Glider | `pHelmToSlocum`, `uSimSlocum`, `glider/` missions |
 | MATLAB / Octave | `lamss-shared/src/matlab` (92k lines, 35 MB), `iMseas` + `lib_readhops` (MCR 2008a), `pOctaverMIT`, `uSimSoundVelocityMSEAS`, `src/octave` |
@@ -178,7 +187,7 @@ Everything not named above. Highlights so nobody goes looking:
 | OpenCV | `henrik_util` core only (CKalmanFilter dropped for ≥ 3) | drop the dependency by removing/replacing CKalmanFilter |
 | Octave, MATLAB MCR, Lua, mysqlclient, Wt | attic / icex liaison | not in core |
 | Python: pymoos, bokeh 2.2.3, websockets, pandas, numpy, scipy, netCDF4, jinja2 | python tools, missions | apt `python3-*`; PEP 668 forbids system `pip install` |
-| HydroMAN 2.0 | `iHydroMAN_LAMSS` (`hydroman_tcp`, `hydroman_protobuf`) | external, the only supported HydroMAN; needs a `find_package(HydroMAN)` config or a pinned include/lib path option; proprietary status to confirm |
+| HydroMAN 3 | `hydroman` wrapper toolbox | git submodule, own CMake build; repository access controls who can activate the toolbox |
 
 ### Engineering debt to fix during the port (not after)
 
@@ -227,14 +236,14 @@ Evaluated across 33 communities (mbat baseline + hybrid, irminger, icex20, arcti
 |---|---|
 | Every community | `pPBNodeReport`, `pLogger`, `pCoroner`, `uXMS`, `pInitializer`, `pEchoVar`, `MOOSDB` |
 | Core / comms / display | `pAcommsHandler`, `pViewMessage`, `pMarineViewer`, `iBellhop`, `pMOOSLink`, `pGateway`, `iMOOS2SQL`, `pEnvtGrad`, `gobyd`, `lamss_goby_moos_gateway`, `goby_coroner`, `goby_logger`, `goby_liaison` |
-| Autonomy | `pLamssMissionManager`, `pLamssTrackManager`, `pBasicContactMgr`, `pHelmIvP`, `iFrontSeat_bluefin`, `pTetraHoming`, `pClusterPriority`, `pDepthAdapt`, `pMarinePID`, `iBackSeatServer`, `uMVS_Bluefin`, `iLamssFrontSeat`, `pFrontSeatData`, `uSimUnderseaVehicle_Vlamss`, `pActuatorMap_HybridUUV`, `pControlEngine_Vlamss`, `iHydroMAN_PHINS`, `iHydroMAN_LAMSS`, `iHydroMAN_Gateway` + `pHM_*` (external HydroMAN 2.0), `pHydroMAN_*` (internal 1.x, icex20 as recorded; replaced by external in lamss3), `nav_stub`, `pLamssMissionScript` |
+| Autonomy | `pLamssMissionManager`, `pLamssTrackManager`, `pBasicContactMgr`, `pHelmIvP`, `iFrontSeat_bluefin`, `pTetraHoming`, `pClusterPriority`, `pDepthAdapt`, `pMarinePID`, `iBackSeatServer`, `uMVS_Bluefin`, `iLamssFrontSeat`, `pFrontSeatData`, `uSimUnderseaVehicle_Vlamss`, `pActuatorMap_HybridUUV`, `pControlEngine_Vlamss`, `iHydroMAN_PHINS`, `iHydroMAN_LAMSS`, `iHydroMAN_Gateway` + `pHM_*`/`pHM3_*` (HydroMAN repo, `hydroman_ext` subsystem), `pHydroMAN_*` (internal 1.x, icex20 as recorded; replaced by HydroMAN 3 in lamss3), `nav_stub`, `pLamssMissionScript` |
 | Passive sonar | `pLamssCBF`, `pLamssBearingTracker`, `pLamssAEL`, `pGeoTracker`, `uSimTowedArray`, `uSimPassiveSonar`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, `iDurip` (runtime) |
 | Virtual ocean | `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSVP_OceanModel`, `uSimCTD_OceanModel`, `uSimADCP_OceanModel`, `uSimModemNetwork`, `uSimModemRange`, `iNetSimManager`, `netsim_manager`, `netsim_udp` |
 | ICEX | `uSimICEXMotion`, `iSerialNMEA` (hydrophones), `pNMEASender`, `iIRISLAMSS`, `lamss_icex_tracker`, `lamss_icex_optimizer`, `goby_liaison_icex`, `lamss_icex_buoy_multiplexer` |
 | Python displays | `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server` |
 | uField (charles only) | `uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare` |
 
-Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*` (external HydroMAN 2.0), `iIRISLAMSS` (IRIS). `BHV_Attractor`, `BHV_RubberBand` and `BHV_MaintainHeading` are used by live plugs but exist in no lamss repo; they are stock MOOS-IvP behaviors from `lib_behaviors-marine` (confirm against the 24.8.1 source when porting). Template references to `$(MISSION_ROOT)/../moos-ivp-local` are stale: that repository is what became `lamss*`, and the references are in cruises older than the plan cares about (`swamsi11`, `cyborg_may12`, `kayak`, old array definitions).
+Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*`/`pHM3_*` (HydroMAN repository), `iIRISLAMSS` (IRIS). `BHV_Attractor`, `BHV_RubberBand` and `BHV_MaintainHeading` are used by live plugs but exist in no lamss repo; they are stock MOOS-IvP behaviors from `lib_behaviors-marine` (confirm against the 24.8.1 source when porting). Template references to `$(MISSION_ROOT)/../moos-ivp-local` are stale: that repository is what became `lamss*`, and the references are in cruises older than the plan cares about (`swamsi11`, `cyborg_may12`, `kayak`, old array definitions).
 
 ### Behaviors used live
 

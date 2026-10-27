@@ -13,7 +13,7 @@ Here are the detailed plans produced by Claude, referenced by the human-written 
 | [06-missions-framework](06-missions-framework.md) | Python concept classes, Jinja2 rendering, supervisord output, variants |
 | [07-protobuf-split](07-protobuf-split.md) | Splitting `lib_lamss_protobuf` by toolbox; DCCL ID ranges |
 | [08-code-style-licensing-maintenance](08-code-style-licensing-maintenance.md) | clang-format, LGPL/GPL, maintainers, docs |
-| [09-toolboxes](09-toolboxes.md) | Per-toolbox plans and decisions |
+| [09-toolboxes](09-toolboxes.md) | Per-toolbox plans and decisions, including the HydroMAN 3 wrapper toolbox |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | M1 definition, port list, acceptance; M2/M3 sketches |
 
 Figures are Mermaid blocks, rendered by GitHub and most Markdown viewers.

@@ -31,6 +31,12 @@ lamss3/
 ├── autonomy/                 # same shape as core
 ├── sonar/
 ├── virtual_ocean/
+├── hydroman/                 # wrapper toolbox: lamss3 glue + HydroMAN 3 repo as submodule
+│   ├── CMakeLists.txt
+│   ├── DEPENDENCIES
+│   ├── upstream/   (submodule) # the HydroMAN repository, untouched
+│   ├── src/                  # iHydroMAN_LAMSS, iHydroMAN_PHINS, lamss.hydroman protos
+│   └── mission/              # hydroman component, nav subsystem templates
 ├── mit/        (submodule)   # cruises and platforms from missions-lamss
 ├── icex/       (submodule)
 ├── attic/      (submodule)
@@ -109,6 +115,9 @@ flowchart BT
   virtual_ocean --> core
   sonar --> core
   sonar -.optional.-> virtual_ocean
+  hydroman --> autonomy
+  hydroman --> upstream[(HydroMAN 3 repo<br/>submodule)]
+  mit -.optional.-> hydroman
   mit --> autonomy
   mit --> virtual_ocean
   mit -.optional.-> sonar
@@ -118,6 +127,23 @@ flowchart BT
 ```
 
 `mit` is a mission-only toolbox (no C++), but it still carries a `CMakeLists.txt` so it can install data files and be listed uniformly.
+
+### Wrapper toolboxes
+
+Some dependencies are git repositories with their own build system that lamss3 must not restructure: HydroMAN 3 is the first. For these, the toolbox directory is in-tree and thin, and the foreign repository sits beneath it as a submodule:
+
+```cmake
+# hydroman/CMakeLists.txt
+lamss_toolbox(NAME hydroman REQUIRES autonomy)
+lamss_toolbox_submodule(upstream)        # fails with "run `lamss toolbox add hydroman`" if not initialised
+add_subdirectory(upstream EXCLUDE_FROM_ALL) # HydroMAN's own CMake, built into build/usr like everything else
+add_subdirectory(src)                    # lamss3 glue that links HydroMAN's targets
+```
+
+- `lamss toolbox add hydroman` initialises the submodule and activates the toolbox; the directory, `CMakeLists.txt`, `DEPENDENCIES` and `mission/` are already in `lamss3`, so a user without access to the HydroMAN repository simply cannot activate it and nothing else breaks.
+- If the foreign project's CMake cannot be used with `add_subdirectory` (clashing cache variables, in-source output directories), the wrapper falls back to `ExternalProject_Add` with `CMAKE_INSTALL_PREFIX=build/usr`. HydroMAN's build is to be checked for this in Phase 0.
+- The wrapper owns everything lamss3-specific: adapter apps, protos, mission component and templates, and the `DEPENDENCIES` line for the foreign project's own needs. Upstream is never patched from lamss3; fixes go to the HydroMAN repository and the submodule pointer is bumped.
+- The same mechanism serves any future foreign dependency that the lab wants selectable as a toolbox (IvPico could be one until it is packaged).
 
 ## Per-toolbox CMake shape
 

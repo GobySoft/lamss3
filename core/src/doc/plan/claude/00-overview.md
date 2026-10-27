@@ -38,7 +38,7 @@ These are the choices the detailed plans assume. Change them here first if you d
 - **pHelmIvP is replaced by [IvPico](https://github.com/GobySoft/IvPico)**, not by a MOOS bridge. Until IvPico's Goby app exists, pHelmIvP runs under `goby_moos_gateway`. The IvPico protobuf interface is the contract the autonomy toolbox codes against.
 - **Protobuf messages are split by toolbox and get a `lamss::<toolbox>` package.** Wire compatibility with old DCCL messages is kept only where a message crosses the acoustic link to a platform that will not be upgraded (none known today).
 - **`attic` is a submodule, not a branch.** Deprecated apps stay buildable in isolation but never block the main build.
-- **HydroMAN is external only.** lamss3 talks to HydroMAN 2.0 through `iHydroMAN_LAMSS` (plus the PHINS driver and the nav sensor simulators). The internal HydroMAN 1.x toolbox (seven `pHydroMAN_*` apps, 14k lines) goes to `attic`; ICEX functionality that lived in `pHydroMAN_ICEXManager` must come from HydroMAN 2.0.
+- **HydroMAN 3 is a wrapper toolbox.** HydroMAN lives in its own git repository and runs as its own process group (`pHM3_BasicModel`, `pHM3_VelProcessor`, `iHydroMAN_Gateway`, `pHM_SensorFusion`, …). lamss3 carries a thin `hydroman/` toolbox that holds that repository as a submodule plus the lamss3-side glue: `iHydroMAN_LAMSS`, `iHydroMAN_PHINS`, the hydroman protos and the `hydroman` mission component ([02](02-repository-layout-and-build.md#wrapper-toolboxes)). The internal HydroMAN 1.x toolbox in lamss-shared (seven `pHydroMAN_*` apps, 14k lines) goes to `attic`; `autonomy` has no HydroMAN dependency.
 - **Nothing is ported without a consumer.** An app moves out of the old repos only when a mission in `mit` or a toolbox test needs it. Everything else goes to `attic` by default.
 
 ## Phases
@@ -92,7 +92,8 @@ Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation
 
 ### Phase 3: remaining toolboxes
 
-- `autonomy`: mission manager, frontseat drivers, HydroMAN interface, behaviors.
+- `autonomy`: mission manager, frontseat drivers, behaviors.
+- `hydroman`: wrapper toolbox around the HydroMAN 3 repository.
 - `virtual_ocean`: ocean model, modem network and sensor simulators.
 - `sonar`: processing chains and sonar simulators actually used by the live missions.
 - MBAT variants (**M2**) and the ICEX20 cruise (**M3**) as the forcing functions.
@@ -176,4 +177,4 @@ gantt
 | Dead code gets ported "just in case" | The "nothing without a consumer" rule; the attic submodule is cheap |
 | Mission framework becomes a second gpp | Framework scope is fixed to the five concepts; templates stay dumb (no logic beyond loops and conditionals) |
 | IvPico not ready when Phase 4 arrives | pHelmIvP under `goby_moos_gateway` is a supported fallback indefinitely |
-| Proprietary/third-party code (HydroMAN, MSEAS, Bluefin SDK) blocks open-sourcing | Inventory flags each; these go to `icex`/`mit` submodules or `attic`, never `core` |
+| Proprietary/third-party code (HydroMAN, MSEAS, Bluefin SDK) blocks open-sourcing | Inventory flags each; HydroMAN is reachable only through its submodule, the rest go to `icex`/`mit` submodules or `attic`, never `core` |

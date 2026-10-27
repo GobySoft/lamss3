@@ -11,7 +11,7 @@ The survey in [01](01-source-inventory.md) found three populations of applicatio
 | Population | Base class | Count (approx.) | Examples |
 |---|---|---|---|
 | **A** GobyMOOSApp | `goby::moos::GobyMOOSApp` (from Goby3's `libgoby_moos`) | ~33 in lamss-shared, more in lamss | pLamssMissionManager, pLamssCBF, uSimPassiveSonar, uSimModemNetwork, uSVP_OceanModel |
-| **B** plain MOOS | `CMOOSApp` / `AppCastingMOOSApp` | ~30 in lamss-shared, most of lamss | pTetraHoming, iHydroMAN_LAMSS, SRToolbox, uSimActiveSonar, uSimTowedArray |
+| **B** plain MOOS | `CMOOSApp` / `AppCastingMOOSApp` | ~30 in lamss-shared, most of lamss | pTetraHoming, iHydroMAN_LAMSS, SRToolbox, uSimActiveSonar, uSimTowedArray; HydroMAN 3 itself (foreign repo) |
 | **C** native Goby3 | `goby::zeromq::MultiThreadApplication` | 3 (icex_*), all currently disabled in the build | lamss_icex_tracker |
 | — | MOOS-IvP itself | pHelmIvP, pMarineViewer, uXMS, pLogger, MOOSDB, pShare, uFld* | |
 
@@ -40,7 +40,7 @@ flowchart LR
   today ==> target
 ```
 
-The end state has no MOOSDB, no `goby_moos_gateway`, and acoustic comms handled by `gobyd`'s intervehicle layer (which already contains the DCCL/MAC/driver stack that `pAcommsHandler` wrapped).
+The end state has no MOOSDB, no `goby_moos_gateway`, and acoustic comms handled by `gobyd`'s intervehicle layer (which already contains the DCCL/MAC/driver stack that `pAcommsHandler` wrapped). One accepted exception: HydroMAN 3 is a foreign MOOS project running in its own `nav` subsystem, so that subsystem keeps a MOOSDB (and the gateway) until HydroMAN itself moves; the vehicle-side `iHydroMAN_LAMSS` talks to it over TCP and is unaffected.
 
 ## Migration levels
 
@@ -178,5 +178,5 @@ IvPico-related work that lamss3 should contribute upstream rather than fork: the
 ## Open questions for the human plan
 
 - Keep `pMarineViewer` (MOOS-only, FLTK) through a reverse bridge, or standardise on Goby Liaison? The former costs a small bridge, the latter a viewer plugin.
-- Should the shim live in `core` or in `attic`? If the aim is to have no Population B apps left after Phase 4, `attic` is the honest place; `core` if some (SRToolbox, `iHydroMAN_LAMSS`) will stay shimmed indefinitely. **Recommendation: `core` until M4, then decide based on what is left.**
+- Should the shim live in `core` or in `attic`? If the aim is to have no Population B apps left after Phase 4, `attic` is the honest place; `core` if some (SRToolbox, `iHydroMAN_LAMSS`, and possibly HydroMAN 3 if its owner wants to adopt the shim) will stay shimmed indefinitely. **Recommendation: `core` until M4, then decide based on what is left.**
 - `goby::moos::GobyMOOSApp` depends on MOOS headers. Removing MOOS entirely means Population A must be fully rewritten, not just shimmed; confirm that is the intent.

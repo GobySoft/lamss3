@@ -38,7 +38,6 @@ flowchart TB
     deploy[deploy.proto<br/>DEPLOY, INITIAL_DEPLOY, SURFACE_DEPLOY, TRANSIT, SURVEY_PATH]
     pros[prosecute.proto, stovepipe.proto]
     fs[frontseat.proto<br/>hybrid_uuv, IXBlue INS]
-    hm[hydroman.proto<br/>only what iHydroMAN_LAMSS needs]
     enums[enumerates.proto]
   end
   subgraph sonar_p [sonar: lamss.sonar]
@@ -52,6 +51,9 @@ flowchart TB
     mp[model_param.proto]
     samp[ctd / adcp samples]
   end
+  subgraph hm_p [hydroman: lamss.hydroman]
+    hm[hydroman.proto<br/>command, health, internal]
+  end
   subgraph icex_p [icex: lamss.icex]
     it[icex_tracking.proto, optimizer_data.proto]
   end
@@ -60,6 +62,7 @@ flowchart TB
   vo_p --> core_p
   icex_p --> core_p
   icex_p --> auton_p
+  hm_p --> core_p
   sonar_p -.-> auton_p
 ```
 
@@ -76,6 +79,7 @@ Rules:
    | sonar | 200–299 |
    | virtual_ocean | 300–399 |
    | icex | 400–499 |
+   | hydroman | 500–599 |
    | user toolboxes | 1000+ |
 
    CI runs `dccl --analyze` over all active toolboxes' DCCL messages and fails on any duplicate ID. The old IDs are kept **only** for messages that must stay wire-compatible with un-upgraded platforms; the human plan should list those (default assumption: none).

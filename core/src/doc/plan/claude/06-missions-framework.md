@@ -135,7 +135,6 @@ autonomy/mission/
 │   └── behaviors/*.bhv.j2
 ├── component/mission_manager/...
 ├── component/frontseat/{bluefin,hybrid,embedded}/...
-├── component/hydroman/hydroman.py         # external HydroMAN 2.0 only
 └── templates/
 
 virtual_ocean/mission/
@@ -147,6 +146,10 @@ virtual_ocean/mission/
 sonar/mission/
 ├── component/sonar/{passive_chain,active_chain,passive_sim,active_sim,durip,tetra}/...
 └── data/arrays/<array>/                  # array geometry (from auv/arrays/*)
+
+hydroman/mission/
+├── component/hydroman/hydroman.py        # iHydroMAN_LAMSS + iHydroMAN_PHINS on main; HM3 apps on the nav subsystem
+└── templates/                            # pHM3_BasicModel, pHM3_VelProcessor, iHydroMAN_Gateway, pHM_* .moos fragments
 
 mit/mission/
 ├── cruise/{mbat,irminger,arctic,icex20}/...
@@ -233,8 +236,8 @@ class MacruraHybrid(Macrura):
 
 @variant("hydroman")
 class MacruraHydroman(Macrura):
-    components = Macrura.components + [Hydroman, PhinsIns]
-    subsystems = Macrura.subsystems + [Subsystem("nav", components=[Hydroman.nav_side])]
+    components = Macrura.components + [Hydroman, PhinsIns]          # from the hydroman toolbox
+    subsystems = Macrura.subsystems + [Subsystem("nav", components=[Hydroman.nav_side])]  # HM3 process group
 ```
 
 Variants compose: `--variant hybrid --variant hydroman` applies both as mixins in order (`type("Macrura+hybrid+hydroman", (MacruraHydroman, MacruraHybrid, Macrura), {})`). Conflicts (two variants replacing the same component differently) are reported, not resolved silently.
@@ -253,7 +256,7 @@ The 143 `flags.txt` entries map to:
 | `frontseatsim`, `sensorsim`, `auv=xx` | Subsystem selection (`--subsystem`) and `--platform` |
 | `quiet`, `screen`, `ums`, `no_pmv`, `generate_only`, `no_debug_logs` | `--generate`, log-level option, viewer component on/off; xterm/screen gone |
 | `geo_msgs`, `goby1` | Removed (GEO messages are the only kind; Goby3 only) |
-| `hydroman`, `hydroman_3`, `auto_model_id` (internal HydroMAN 1.x) | Removed; external HydroMAN 2.0 is the only navigation option beyond the frontseat |
+| `hydroman`, `auto_model_id` (internal HydroMAN 1.x), `hydroman_3` (selects HM3 apps inside `hydroman_ext`) | Removed; the `hydroman` variant always means HydroMAN 3 from the `hydroman` toolbox, and errors if that toolbox is not active |
 
 ## Output
 
