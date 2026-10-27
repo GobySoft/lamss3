@@ -233,11 +233,11 @@ Evaluated across 33 communities (mbat baseline + hybrid, irminger, icex20, arcti
 | Python displays | `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server` |
 | uField (charles only) | `uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare` |
 
-Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*` (external HydroMAN 2.0), `iIRISLAMSS` (IRIS). And **`BHV_Attractor`, `BHV_RubberBand`, `BHV_MaintainHeading`** plus 46 template references to `$(MISSION_ROOT)/../moos-ivp-local`: a fifth source repository that must be found.
+Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*` (external HydroMAN 2.0), `iIRISLAMSS` (IRIS). `BHV_Attractor`, `BHV_RubberBand` and `BHV_MaintainHeading` are used by live plugs but exist in no lamss repo; they are stock MOOS-IvP behaviors from `lib_behaviors-marine` (confirm against the 24.8.1 source when porting). Template references to `$(MISSION_ROOT)/../moos-ivp-local` are stale: that repository is what became `lamss*`, and the references are in cruises older than the plan cares about (`swamsi11`, `cyborg_may12`, `kayak`, old array definitions).
 
 ### Behaviors used live
 
-Stock MOOS-IvP: Waypoint, Loiter, StationKeep, ConstantDepth/Speed/Heading, GoToDepth, Trail, OpRegion, AvoidCollision, AvoidObstacle, MaxDepth, MemoryTurnLimit, PeriodicSurface. LAMSS: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OpRegion_ICEX (lamss); GlideSlopeSpeed, OptAcommsDepth (lamss-shared); SpiralOut, FollowTheLeader, FrontTrack*, Waypoint_modelaided (lamss-internal, variants only). That is ~15 LAMSS behaviors to port out of ~60 in the repos.
+Stock MOOS-IvP: Waypoint, Loiter, StationKeep, ConstantDepth/Speed/Heading, GoToDepth, Trail, OpRegion, AvoidCollision, AvoidObstacle, MaxDepth, MemoryTurnLimit, PeriodicSurface, Attractor, RubberBand, MaintainHeading. LAMSS: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OpRegion_ICEX (lamss); GlideSlopeSpeed, OptAcommsDepth (lamss-shared); SpiralOut, FollowTheLeader, FrontTrack*, Waypoint_modelaided (lamss-internal, variants only). That is ~15 LAMSS behaviors to port out of ~60 in the repos.
 
 ### Data
 

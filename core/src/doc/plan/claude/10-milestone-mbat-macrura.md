@@ -51,7 +51,7 @@ Only these move before M1; everything else waits.
 | Toolbox | Apps / libs | Lines (approx.) |
 |---|---|---|
 | core | `lamss_core_proto` (status, view, header, nav, options), gateway plugin, `pViewMessage`, health listener, `lamss.mission`, templates for gobyd/logger/liaison/coroner/MOOSDB/pLogger/gateway | ~2k C++ + Python |
-| autonomy | `pLamssMissionManager`, `pLamssTrackManager`, Goby3 Bluefin frontseat config, `uMVS_Bluefin`, `pGateway`, `pTetraHoming`, behaviors: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OptAcommsDepth (+ `BHV_Attractor`, `BHV_RubberBand`, `BHV_MaintainHeading` once `moos-ivp-local` is found) | ~15k |
+| autonomy | `pLamssMissionManager`, `pLamssTrackManager`, Goby3 Bluefin frontseat config, `uMVS_Bluefin`, `pGateway`, `pTetraHoming`, behaviors: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OptAcommsDepth | ~15k |
 | sonar | `pLamssCBF`, `pLamssBearingTracker`, `pLamssAEL`, `pGeoTracker` + `lib_track`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, durip array geometry | ~17k |
 | virtual_ocean | `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSimModemNetwork`, `iNetSimManager`, `henrik_util` acoustics subset, MBAT environment (bathy + CTD from `cruise/mbat/data`) | ~8k |
 | mit | `mbat` cruise, `mit_bf21` fleet, `macrura` + `resolution` platforms, `data/acomms` DCCL configs | Python + data |
