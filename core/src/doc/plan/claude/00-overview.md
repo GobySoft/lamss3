@@ -53,7 +53,7 @@ flowchart LR
   P0 --> P1 --> P2 --> P3 --> P4 --> P5
   M1(("M1: MBAT<br/>Macrura sim")):::ms
   M2(("M2: MBAT<br/>variants")):::ms
-  M3(("M3: ICEX<br/>Arctic")):::ms
+  M3(("M3: ICEX20<br/>ice camp")):::ms
   M4(("M4: no<br/>MOOSDB")):::ms
   P2 -.-> M1
   P3 -.-> M2
@@ -94,7 +94,7 @@ Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation
 - `autonomy`: mission manager, frontseat drivers, HydroMAN interface, behaviors.
 - `virtual_ocean`: ocean model, modem network and sensor simulators.
 - `sonar`: processing chains and sonar simulators actually used by the live missions.
-- MBAT variants (**M2**) and the ICEX Arctic cruise (**M3**) as the forcing functions.
+- MBAT variants (**M2**) and the ICEX20 cruise (**M3**) as the forcing functions.
 
 ### Phase 4: middleware shift
 
@@ -126,7 +126,7 @@ flowchart TB
   vo --> m1
   m1 --> sonar[sonar toolbox]
   m1 --> m2[M2 MBAT variants]
-  m2 --> m3[M3 ICEX Arctic]
+  m2 --> m3[M3 ICEX20]
   core --> shim[CMOOSApp shim]
   shim --> mw[Per-app Goby3 rewrite]
   ivpico[IvPico Goby app] --> mw
@@ -157,7 +157,7 @@ gantt
   autonomy + virtual_ocean   :p3a, after p1b, 8w
   sonar                      :p3b, after p3a, 6w
   MBAT variants (M2)         :milestone, m2, after p3a, 0d
-  ICEX Arctic (M3)           :milestone, m3, after p3b, 0d
+  ICEX20 (M3)                :milestone, m3, after p3b, 0d
   section Phase 4
   CMOOSApp shim + rewrites   :p4a, after p3a, 12w
   IvPico integration         :p4b, after p3b, 6w

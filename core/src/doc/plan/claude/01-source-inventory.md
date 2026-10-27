@@ -137,11 +137,11 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `icex_tracking*.proto`, `optimizer_data.proto`, `icex_groups.h` | lamss | |
 | `icex_eeof_lib` (MATLAB), `ICEX_Analysis` | lamss-internal | Field analysis tooling, 2020 |
 | `BHV_OpRegion_ICEX` | lamss | |
-| `cruise/arctic`, `cruise/icex20`, `cruise/preicex`, `topside/icex_sim` | missions-lamss | Mission content |
+| `cruise/icex20` (M3), `cruise/arctic`, `topside/icex_sim` | missions-lamss | Mission content |
 
 ### mit (submodule or in-tree, see [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan))
 
-All of `missions-lamss` that is live: `cruise/mbat`, `cruise/irminger`, `cruise/arctic`, platforms `auv/macrura`, `auv/unicorn`, `auv/sandshark`, `auv/sensor_sim`, `auv/frontseat_sim`, `topside`, `ship`, `mooring/*`, re-expressed in the Python framework of [06](06-missions-framework.md). Details in the missions survey section below.
+All of `missions-lamss` that is live: `cruise/mbat`, `cruise/irminger`, platforms `auv/macrura`, `auv/unicorn`, `auv/sandshark`, `auv/sensor_sim`, `auv/frontseat_sim`, `topside`, `ship`, `mooring/*`, re-expressed in the Python framework of [06](06-missions-framework.md). Details in the missions survey section below.
 
 ### attic (submodule)
 
@@ -197,8 +197,8 @@ Everything not named above. Highlights so nobody goes looking:
 |---|---|---|---|---|
 | `irminger` | pelagia / macrura | Irminger Sea, EEOF sound speed, mission script, 20 sim scripts | 2025-12 | **mit: live, most active** |
 | `mbat` | resolution / macrura, unicorn | Mass Bay AUV Testbed; the baseline | 2025-12 | **mit: live, M1 target** |
-| `arctic` | camp_sargo / macrura | Generic Beaufort ICEX-style sim, IRIS modem | 2023-06 | **icex: M3 target** |
-| `icex20` | sea_dragon / hydrohole, macrura | ICEX 2020 ice camp, 153 MB ocean files | 2021-10 | icex |
+| `icex20` | sea_dragon / hydrohole, macrura | ICEX 2020 ice camp, 153 MB ocean files | 2021-10 | **icex: M3 target** |
+| `arctic` | camp_sargo / macrura | Generic Beaufort ICEX-style sim, IRIS modem | 2023-06 | icex, after icex20 |
 | `preicex`, `charles*`, `ashumet_pond`, `jenkins_pond` | resolution / sandshark, macrura | 2019–2021 shallow tests | ≤2021 | attic (sandshark platform kept in mit if the vehicle still exists) |
 | `bayex14`, `prebayex14`, `bayex_dock`, `goats14`, `swamsi11` | CMRE ships / unicorn | NATO CMRE 2011–2014 | ≤2021 | attic |
 | `mab_sw06`, `sw06_acoust`, `florida_gulf`, `atlantic`, `noise09`, `posydon16`, `sbcex16`, `lab05`, `rap10`, `autec`, `wespac`, `gibraltar_sim`, `cyborg_may12` | various | 2005–2016 | ≤2021 | attic |

@@ -315,7 +315,7 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 | 4 | Topside platform + MBAT environment + `mbat` cruise with topside only: `lm m sim mbat` launches gobyd/liaison/logger |
 | 5 | Port `auv/macrura` baseline: platform chain, ivp, acomms, mission manager, frontseat sim, passive sonar chain, virtual ocean (M1, see [10](10-milestone-mbat-macrura.md)) |
 | 6 | Variants: `hybrid`, `hydroman_ext`, `two_auv`, `smoke`; CI smoke test |
-| 7 | `irminger`, then `arctic`/`icex20` cruises with their environments |
+| 7 | `irminger`, then `icex20` (M3) and `arctic` cruises with their environments |
 | 8 | Port remaining live platforms (unicorn, sandshark, hydrohole mooring, resolution ship) |
 
 Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (`supervisord -c ... -n` dry parse).
@@ -324,4 +324,4 @@ Unit tests: registry discovery over a fixture tree, MRO merge order, variant com
 
 - **Python vs protobuf for the context**: the dict could instead be a `lamss.mission.protobuf.Cruise` message, giving validation and a canonical TextFormat dump. It costs flexibility for user toolboxes. **Recommendation: dict now, with `to_dict` output JSON-schema-validated per concept; revisit after M2.**
 - **One `supervisord` per machine vs per subsystem.** Per machine is simpler to operate; per subsystem matches the old communities one-to-one. The plan assumes per machine with groups.
-- The `sim_scripts` directory encodes ~60 scenario combinations. Most are historical; the plan ports `mbat` baseline/hybrid, `irminger`, `arctic` IRIS and `icex20` hydroman as named variants and leaves the rest to `attic`.
+- The `sim_scripts` directory encodes ~60 scenario combinations. Most are historical; the plan ports `mbat` baseline/hybrid, `irminger`, `icex20` hydroman and `arctic` IRIS as named variants and leaves the rest to `attic`.

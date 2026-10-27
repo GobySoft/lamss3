@@ -59,7 +59,7 @@ flowchart LR
 
 **Contents**: NetCDF ocean models (SVP/CTD/ADCP), bathymetry and sound-speed services (NOAA, MSEAS, GDEM), netsim front ends (`uSimModemNetwork/Range/Signal`, `iNetSimManager`, the netsim processor plugin), simple sensor sims (CTD, GPS, DVL, PHINS, LBL, bathy), ship NMEA sim, beacon sim, `henrik_util` acoustics subset, modem replicas and `lamss.virtual_ocean` protos, environment classes for the mission framework.
 
-**Order of work**: `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS` (M1), netsim front ends (M2), ocean-model trio for the `hycom` variant (M2), MSEAS/GDEM services (M3 Arctic).
+**Order of work**: `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS` (M1), netsim front ends (M2), ocean-model trio for the `hycom` variant (M2), MSEAS/GDEM services (M3 ICEX20).
 
 **Decisions**
 
@@ -79,11 +79,13 @@ flowchart LR
 
 ## icex
 
-**Contents**: ICEX simulators and HydroMAN ICEX manager, the three native Goby3 topside apps and the Liaison plugin, `icex20` and `arctic` cruises, `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling.
+**Contents**: ICEX simulators and HydroMAN ICEX manager, the three native Goby3 topside apps and the Liaison plugin, `icex20` (M3) and `arctic` cruises, `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling.
 
 **Decisions**: the native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is attic.
 
-**Risks**: nobody has run ICEX code since 2021; the `icex20` environment files are 150 MB.
+**Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, the internal HydroMAN toolbox with `pHydroMAN_ICEXManager`, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. `arctic` (IRIS modem, generic Beaufort sim) follows as a variant of the same platforms.
+
+**Risks**: nobody has run ICEX code since 2021; the `icex20` environment files are 150 MB; the internal HydroMAN toolbox (14k lines, CMOOSApp) is on the critical path for M3 unless HydroMAN 2.0 can take its place.
 
 ## attic
 

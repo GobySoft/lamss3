@@ -2,7 +2,7 @@
 
 *This document written by Claude*
 
-The first end-to-end target from the [core plan](../core.md): "Add the basic Macrura mission in MBAT". This document fixes exactly what "basic" means, what has to be ported to get there, and how success is measured. M2 (MBAT variants) and M3 (ICEX Arctic) are sketched at the end.
+The first end-to-end target from the [core plan](../core.md): "Add the basic Macrura mission in MBAT". This document fixes exactly what "basic" means, what has to be ported to get there, and how success is measured. M2 (MBAT variants) and M3 (ICEX20) are sketched at the end.
 
 ## Definition
 
@@ -97,6 +97,6 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 
 M2 is done when `irminger` is also expressed as a cruise reusing the same platform classes.
 
-## M3: ICEX Arctic
+## M3: ICEX20
 
-`arctic` cruise + Beaufort environment + `camp_sargo` topside with the IRIS modem variant, then `icex20` with the hydrohole mooring, ICEX tracker topside apps and internal HydroMAN. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)).
+`icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, internal HydroMAN with `pHydroMAN_ICEXManager`, and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise (IRIS modem, Beaufort sim) follows as a variant once icex20 runs.
