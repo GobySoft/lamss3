@@ -19,7 +19,7 @@ CMake range `3.22...4.2` lets 22.04's CMake configure the tree if someone tries,
 flowchart LR
   apt[Ubuntu archive<br/>boost, protobuf, gsl, netcdf, hdf5, armadillo, fltk, pcap, python3-*] --> lamss3
   goby[packages.gobysoft.org<br/>goby3, dccl4, netsim, acousticstoolbox, moos10, moos-ivp] --> lamss3
-  src[Source builds<br/>IvPico, HydroMAN 2.0 optional, DM7820 kernel module] --> lamss3
+  src[Source builds<br/>IvPico, HydroMAN 2.0, DM7820 kernel module] --> lamss3
 ```
 
 The old `DEPENDENCIES` Makefile pulled MOOS and MOOS-IvP from `ppa:tes/lamss-moos10` and `packages.gobysoft.org`. netsim 1.3.0's CI confirms that `libnetsim-dev`/`netsim-apps` and their Goby3/DCCL dependencies are built for noble. netsim also `find_package(MOOS 10)`s, so `libmoos10-dev` for noble exists on the same repository. `libmoos-ivp-dev`/`moos-ivp-apps` for noble still need checking **first thing in Phase 0** and fall back to a `cmake/BuildMOOSIvP.cmake` `ExternalProject` from the `moos-ivp` 24.8.1 release if not.
@@ -31,7 +31,7 @@ Format defined in [03](03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep).
 | Toolbox | apt packages | Source |
 |---|---|---|
 | core | `build-essential cmake ninja-build git libgoby3-dev libgoby3-moos-dev goby3-apps goby3-moos libdccl4-dev dccl4-compiler libprotobuf-dev protobuf-compiler libboost-all-dev libmoos10-dev moosdb10 moos10-essential libmoos-ivp-dev moos-ivp-apps nlohmann-json3-dev libnetcdf-dev libnetcdf-c++4-dev libgsl-dev python3-jinja2 python3-yaml supervisor` | — |
-| autonomy | `libarmadillo-dev libpcap-dev python3-dev python3-matplotlib libnetsim-dev` | HydroMAN 2.0 (optional) |
+| autonomy | `libpcap-dev libnetsim-dev` | HydroMAN 2.0 (for `iHydroMAN_LAMSS`; `option(LAMSS_WITH_HYDROMAN)` so the toolbox builds without it) |
 | sonar | `libgsl-dev libhdf5-dev libfltk1.3-dev libhidapi-dev libusb-1.0-0-dev libnetsim-dev` | DM7820 DKMS |
 | virtual_ocean | `libnetsim-dev netsim-apps acousticstoolbox libnetcdf-dev python3-netcdf4` | — |
 | icex | `libboost-python-dev libopencv-core-dev libgoby3-gui-dev` | — |

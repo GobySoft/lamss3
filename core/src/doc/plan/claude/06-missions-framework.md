@@ -135,7 +135,7 @@ autonomy/mission/
 │   └── behaviors/*.bhv.j2
 ├── component/mission_manager/...
 ├── component/frontseat/{bluefin,hybrid,embedded}/...
-├── component/hydroman/{internal,external}/...
+├── component/hydroman/hydroman.py         # external HydroMAN 2.0 only
 └── templates/
 
 virtual_ocean/mission/
@@ -194,7 +194,7 @@ sequenceDiagram
   "fleet": {"name": "mit_bf21", "platforms": ["resolution", "macrura", "unicorn"]},
   "platform": {"name": "macrura", "type": "auv", "modem_id": 4, "max_depth": 190, ...},
   "subsystem": {"name": "main", "host": "localhost", "ports": {"gobyd": 9004, "moosdb": 9000}},
-  "component": {"ivp": {...}, "acomms": {"driver": "netsim", ...}, "hydroman": {"kind": "external", "port": 9604}},
+  "component": {"ivp": {...}, "acomms": {"driver": "netsim", ...}, "hydroman": {"host": "localhost", "port": 9604}},
   "environment": {"name": "mass_bay", "bathymetry": "/.../mbat_lg_9840.nc", "sound_speed": ...},
   "paths": {"prefix": "/.../build/usr", "data": {...}, "log": "/.../mission/log/2026-11-03T14-00Z/macrura/main",
             "run": "/.../mission/run/mbat/macrura/main", "proto_libs": ["liblamss_core_proto.so", ...]},
@@ -231,13 +231,13 @@ class MacruraHybrid(Macrura):
     sim_components = [FrontseatSim(UnderseaVehicleVlamss, ActuatorMapXL, ControlEngine)]
     params = dict(glideslope=(-30, 30))
 
-@variant("hydroman_ext")
-class MacruraHydromanExt(Macrura):
-    components = Macrura.components + [HydromanExternal]
-    subsystems = Macrura.subsystems + [Subsystem("nav", components=[HydromanExternal.nav_side])]
+@variant("hydroman")
+class MacruraHydroman(Macrura):
+    components = Macrura.components + [Hydroman, PhinsIns]
+    subsystems = Macrura.subsystems + [Subsystem("nav", components=[Hydroman.nav_side])]
 ```
 
-Variants compose: `--variant hybrid --variant hydroman_ext` applies both as mixins in order (`type("Macrura+hybrid+hydroman_ext", (MacruraHydromanExt, MacruraHybrid, Macrura), {})`). Conflicts (two variants replacing the same component differently) are reported, not resolved silently.
+Variants compose: `--variant hybrid --variant hydroman` applies both as mixins in order (`type("Macrura+hybrid+hydroman", (MacruraHydroman, MacruraHybrid, Macrura), {})`). Conflicts (two variants replacing the same component differently) are reported, not resolved silently.
 
 Cruise and fleet variants work the same way (`@variant("two_auv")` adds `unicorn`; `@variant("smoke")` shrinks the fleet to one AUV + topside for CI).
 
@@ -247,12 +247,13 @@ The 143 `flags.txt` entries map to:
 
 | gpp flag(s) | Becomes |
 |---|---|
-| `hydroman`, `hydroman_ext`, `hydroman_3`, `hybrid_uuv`, `xl_hybrid`, `passive`, `active`, `bearingsim`, `icex_tracker`, `netsim`, `netsim_udp`, `tcp_modem`, `hw_modem`, `iris`, `ufld`, `mseas`, `gdem`, `hycom`, `lamss_dc` | Variants on the platform, fleet or cruise (`--variant`) |
+| `hydroman_ext` (→ `hydroman`), `hybrid_uuv`, `xl_hybrid`, `passive`, `active`, `bearingsim`, `icex_tracker`, `netsim`, `netsim_udp`, `tcp_modem`, `hw_modem`, `iris`, `ufld`, `mseas`, `gdem`, `hycom`, `lamss_dc` | Variants on the platform, fleet or cruise (`--variant`) |
 | `warp=xx`, `run=xx`, `payload_ip=`, `frontseat_ip=`, `topside_ip=`, `bluefin_ip=` | `--set warp=10`, `--set platform.macrura.subsystem.main.host=…` |
 | `simulation`, `runtime` | `sim` vs `run` subcommand |
 | `frontseatsim`, `sensorsim`, `auv=xx` | Subsystem selection (`--subsystem`) and `--platform` |
 | `quiet`, `screen`, `ums`, `no_pmv`, `generate_only`, `no_debug_logs` | `--generate`, log-level option, viewer component on/off; xterm/screen gone |
 | `geo_msgs`, `goby1` | Removed (GEO messages are the only kind; Goby3 only) |
+| `hydroman`, `hydroman_3`, `auto_model_id` (internal HydroMAN 1.x) | Removed; external HydroMAN 2.0 is the only navigation option beyond the frontseat |
 
 ## Output
 
@@ -314,7 +315,7 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 | 3 | `core` components: interprocess (gobyd + MOOSDB + gateway), logging, health, viewer |
 | 4 | Topside platform + MBAT environment + `mbat` cruise with topside only: `lm m sim mbat` launches gobyd/liaison/logger |
 | 5 | Port `auv/macrura` baseline: platform chain, ivp, acomms, mission manager, frontseat sim, passive sonar chain, virtual ocean (M1, see [10](10-milestone-mbat-macrura.md)) |
-| 6 | Variants: `hybrid`, `hydroman_ext`, `two_auv`, `smoke`; CI smoke test |
+| 6 | Variants: `hybrid`, `hydroman`, `two_auv`, `smoke`; CI smoke test |
 | 7 | `irminger`, then `icex20` (M3) and `arctic` cruises with their environments |
 | 8 | Port remaining live platforms (unicorn, sandshark, hydrohole mooring, resolution ship) |
 
@@ -324,4 +325,4 @@ Unit tests: registry discovery over a fixture tree, MRO merge order, variant com
 
 - **Python vs protobuf for the context**: the dict could instead be a `lamss.mission.protobuf.Cruise` message, giving validation and a canonical TextFormat dump. It costs flexibility for user toolboxes. **Recommendation: dict now, with `to_dict` output JSON-schema-validated per concept; revisit after M2.**
 - **One `supervisord` per machine vs per subsystem.** Per machine is simpler to operate; per subsystem matches the old communities one-to-one. The plan assumes per machine with groups.
-- The `sim_scripts` directory encodes ~60 scenario combinations. Most are historical; the plan ports `mbat` baseline/hybrid, `irminger`, `icex20` hydroman and `arctic` IRIS as named variants and leaves the rest to `attic`.
+- The `sim_scripts` directory encodes ~60 scenario combinations. Most are historical; the plan ports `mbat` baseline/hybrid, `irminger`, `icex20` (with external HydroMAN replacing the internal toolbox) and `arctic` IRIS as named variants and leaves the rest to `attic`.

@@ -38,6 +38,7 @@ These are the choices the detailed plans assume. Change them here first if you d
 - **pHelmIvP is replaced by [IvPico](https://github.com/GobySoft/IvPico)**, not by a MOOS bridge. Until IvPico's Goby app exists, pHelmIvP runs under `goby_moos_gateway`. The IvPico protobuf interface is the contract the autonomy toolbox codes against.
 - **Protobuf messages are split by toolbox and get a `lamss::<toolbox>` package.** Wire compatibility with old DCCL messages is kept only where a message crosses the acoustic link to a platform that will not be upgraded (none known today).
 - **`attic` is a submodule, not a branch.** Deprecated apps stay buildable in isolation but never block the main build.
+- **HydroMAN is external only.** lamss3 talks to HydroMAN 2.0 through `iHydroMAN_LAMSS` (plus the PHINS driver and the nav sensor simulators). The internal HydroMAN 1.x toolbox (seven `pHydroMAN_*` apps, 14k lines) goes to `attic`; ICEX functionality that lived in `pHydroMAN_ICEXManager` must come from HydroMAN 2.0.
 - **Nothing is ported without a consumer.** An app moves out of the old repos only when a mission in `mit` or a toolbox test needs it. Everything else goes to `attic` by default.
 
 ## Phases

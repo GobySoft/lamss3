@@ -28,17 +28,17 @@ flowchart LR
 
 **Contents**: mission managers, mission script, track manager, frontseat drivers (Bluefin via Goby3 frontseat, hybrid, embedded), hybrid UUV control stack (SRToolbox), HydroMAN interface, adaptive depth, tetra homing, environmental gradient, gateway/buoy node, mooring/vehicle simulators (`uSimArrayMooring`, `uMVS_Bluefin`, `uSimUnderseaVehicle_Vlamss`, `uSimMarine_DUTM`), IvP behaviors, `lamss.autonomy` protos.
 
-**Order of work**: what M1 needs first (mission manager, Bluefin frontseat, `uMVS_Bluefin`, behaviors used by `mbat`), then the hybrid stack for the `hybrid` variant, then HydroMAN, then the rest.
+**Order of work**: what M1 needs first (mission manager, Bluefin frontseat, `uMVS_Bluefin`, behaviors used by `mbat`), then the hybrid stack for the `hybrid` variant, then `iHydroMAN_LAMSS` + `iHydroMAN_PHINS` for the `hydroman` variant, then the rest.
 
 **Decisions**
 
 - **Behaviors** become one plugin library `lamss_autonomy_behaviors` with one directory per behavior, grouped by function (`depth/`, `survey/`, `tracking/`, `glider/`) instead of by author. Only the ~15 live LAMSS behaviors are ported in Phase 3; the SandShark and front-tracking families wait for a consumer. Each behavior gets a `bhv.j2` template in the mission framework.
-- **HydroMAN**: the internal 1.x toolbox (14k lines, CMOOSApp, armadillo + embedded Python) and the external 2.0 interface both exist. Port `iHydroMAN_LAMSS` + `iHydroMAN_PHINS` first (needed by `mbat` baseline via `hydroman_ext`); the internal toolbox only if ICEX (M3) needs it and HydroMAN 2.0 cannot replace it. **Needs a decision from the HydroMAN owner.**
+- **HydroMAN**: external 2.0 only. `iHydroMAN_LAMSS` (TCP/protobuf to HydroMAN) and `iHydroMAN_PHINS` are ported; the internal 1.x toolbox goes to `attic`. The toolbox builds without HydroMAN installed (`LAMSS_WITH_HYDROMAN=OFF` skips `iHydroMAN_LAMSS`), and the `hydroman` mission variant refuses to generate if the binary is absent. ICEX-specific nav logic (`pHydroMAN_ICEXManager`) has to be provided by HydroMAN 2.0; raise with its owner before M3.
 - **`uSimMarine_DUTM`**: try to upstream dynamic-UTM to `uSimMarine` in MOOS-IvP; fall back to carrying the fork.
 - **IvPico**: the mission manager's behavior-facing outputs are typed as `ivp.interface.Variable`/`Command` from the start ([05](05-middleware-moos-to-goby3.md#phelmivp-to-ivpico)).
 - `pClusterPriority` (2008) and `pMissionMonitor` are attic unless the mission manager owner objects.
 
-**Risks**: `uMVS_Bluefin` carries Bluefin-era source (license); HydroMAN 2.0 availability; `boost::statechart` is header-only and fine on 24.04 but the FSM code is the hardest to shim.
+**Risks**: `uMVS_Bluefin` carries Bluefin-era source (license); HydroMAN 2.0 availability and its ICEX feature set; `boost::statechart` is header-only and fine on 24.04 but the FSM code is the hardest to shim.
 
 ## sonar
 
@@ -79,13 +79,13 @@ flowchart LR
 
 ## icex
 
-**Contents**: ICEX simulators and HydroMAN ICEX manager, the three native Goby3 topside apps and the Liaison plugin, `icex20` (M3) and `arctic` cruises, `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling.
+**Contents**: ICEX simulators, the three native Goby3 topside apps and the Liaison plugin, `icex20` (M3) and `arctic` cruises, `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling.
 
 **Decisions**: the native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is attic.
 
-**Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, the internal HydroMAN toolbox with `pHydroMAN_ICEXManager`, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. `arctic` (IRIS modem, generic Beaufort sim) follows as a variant of the same platforms.
+**Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, external HydroMAN via the `hydroman` variant, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. `arctic` (IRIS modem, generic Beaufort sim) follows as a variant of the same platforms.
 
-**Risks**: nobody has run ICEX code since 2021; the `icex20` environment files are 150 MB; the internal HydroMAN toolbox (14k lines, CMOOSApp) is on the critical path for M3 unless HydroMAN 2.0 can take its place.
+**Risks**: nobody has run ICEX code since 2021; the `icex20` environment files are 150 MB; the recorded icex20 scenario used the internal HydroMAN toolbox (`pHydroMAN_ICEXManager` for under-ice LBL/tracker handling), so M3 depends on HydroMAN 2.0 covering that role.
 
 ## attic
 

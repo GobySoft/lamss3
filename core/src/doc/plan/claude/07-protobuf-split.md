@@ -38,7 +38,7 @@ flowchart TB
     deploy[deploy.proto<br/>DEPLOY, INITIAL_DEPLOY, SURFACE_DEPLOY, TRANSIT, SURVEY_PATH]
     pros[prosecute.proto, stovepipe.proto]
     fs[frontseat.proto<br/>hybrid_uuv, IXBlue INS]
-    hm[hydroman.proto]
+    hm[hydroman.proto<br/>only what iHydroMAN_LAMSS needs]
     enums[enumerates.proto]
   end
   subgraph sonar_p [sonar: lamss.sonar]
