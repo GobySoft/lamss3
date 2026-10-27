@@ -1,0 +1,187 @@
+# Repository layout and build system
+
+*This document written by Claude*
+
+Detail for the "Toolboxes" and "Repository Layout" sections of the [core plan](../core.md).
+
+## Layout
+
+```
+lamss3/
+├── CMakeLists.txt            # top level: reads active toolbox list, add_subdirectory each
+├── bootstrap.sh              # builds the lamss tool only (Phase 0 bootstrap)
+├── cmake/                    # shared CMake modules (LamssToolbox.cmake, FindXXX.cmake)
+├── .lamss/
+│   └── toolboxes             # active toolbox list, one name per line (tracked in git)
+├── build/                    # all build artifacts (git-ignored)
+│   ├── usr/                  # install prefix, mirrors /usr: bin lib include share
+│   └── <toolbox>/            # per-toolbox CMake build tree
+├── core/                     # always active
+│   ├── CMakeLists.txt
+│   ├── DEPENDENCIES
+│   ├── src/
+│   │   ├── bin/              # Goby applications (one dir per app)
+│   │   ├── lib/              # C++ libraries (one dir per lib)
+│   │   ├── proto/            # lamss/core/*.proto
+│   │   ├── python/           # lamss python package(s)
+│   │   ├── sh/               # installed shell scripts
+│   │   ├── test/             # unit + integration tests
+│   │   └── doc/              # documentation incl. plan/
+│   └── mission/              # see 06-missions-framework.md
+├── autonomy/                 # same shape as core
+├── sonar/
+├── virtual_ocean/
+├── mit/        (submodule)   # cruises and platforms from missions-lamss
+├── icex/       (submodule)
+├── attic/      (submodule)
+└── <user toolbox> (submodule)
+```
+
+Each toolbox is a self-contained CMake project (`project(lamss_<name>)`) so it can be built alone in CI, and a `add_subdirectory` target of the top level so it can be built together with the others. The same `CMakeLists.txt` serves both cases.
+
+### Why `build/usr`
+
+Every toolbox installs into `build/usr` (`CMAKE_INSTALL_PREFIX`) and downstream toolboxes find upstream ones there with `find_package(lamss_core)`. This replaces the old `lamss` → `lamss-shared` → `lamss-internal` chain of hard-coded include paths with ordinary CMake package config files, and it is exactly what a Debian package of a toolbox would install to `/usr`. `build/usr/bin` goes on `PATH` and `build/usr/lib` on `LD_LIBRARY_PATH` via `lamss env` (see [03](03-lamss-tool.md)).
+
+```mermaid
+flowchart LR
+  subgraph src [source]
+    core_s[core/]
+    auto_s[autonomy/]
+    vo_s[virtual_ocean/]
+    mit_s[mit/ submodule]
+  end
+  subgraph build [build/]
+    core_b[core build tree]
+    auto_b[autonomy build tree]
+    vo_b[virtual_ocean build tree]
+    usr[(build/usr<br/>bin lib include share)]
+  end
+  core_s --> core_b --> usr
+  auto_s --> auto_b --> usr
+  vo_s --> vo_b --> usr
+  usr -. find_package(lamss_core) .-> auto_b
+  usr -. find_package(lamss_core) .-> vo_b
+  mit_s -. mission search .-> usr
+```
+
+## Toolbox activation
+
+`.lamss/toolboxes` is a plain text list. It is the single source of truth for both CMake and the Python mission search, chosen over YAML/JSON so neither side needs a parser.
+
+```
+# .lamss/toolboxes  (managed by `lamss toolbox`; hand-editable)
+core
+autonomy
+virtual_ocean
+mit
+```
+
+Top-level CMake:
+
+```cmake
+cmake_minimum_required(VERSION 3.22...4.2)   # 3.22 = Ubuntu 22.04, 3.28 = 24.04
+project(lamss3 NONE)
+file(STRINGS "${CMAKE_SOURCE_DIR}/.lamss/toolboxes" LAMSS_TOOLBOXES REGEX "^[^#]")
+list(PREPEND LAMSS_TOOLBOXES core)
+list(REMOVE_DUPLICATES LAMSS_TOOLBOXES)
+foreach(tb IN LISTS LAMSS_TOOLBOXES)
+  if(NOT EXISTS "${CMAKE_SOURCE_DIR}/${tb}/CMakeLists.txt")
+    message(FATAL_ERROR "toolbox '${tb}' is active but missing; run `lamss toolbox add ${tb}`")
+  endif()
+  add_subdirectory(${tb})
+endforeach()
+```
+
+Rules:
+
+- `core` is implicitly active and cannot be deactivated.
+- A toolbox declares its toolbox dependencies in its `CMakeLists.txt` with `lamss_toolbox(NAME sonar REQUIRES core virtual_ocean)`; the helper function in `cmake/LamssToolbox.cmake` checks they are active (joint build) or installed in `build/usr` (standalone build) and emits a clear error otherwise.
+- External toolboxes are git submodules at the top level; `lamss toolbox add <url> [name]` runs `git submodule add` and appends to `.lamss/toolboxes`. Adding activates by default.
+- Deactivating removes the line only; the directory stays. Removing an external toolbox deinits the submodule.
+
+### Toolbox dependency graph
+
+```mermaid
+flowchart BT
+  core
+  autonomy --> core
+  virtual_ocean --> core
+  sonar --> core
+  sonar -.optional.-> virtual_ocean
+  mit --> autonomy
+  mit --> virtual_ocean
+  mit -.optional.-> sonar
+  icex --> autonomy
+  icex --> mit
+  attic --> core
+```
+
+`mit` is a mission-only toolbox (no C++), but it still carries a `CMakeLists.txt` so it can install data files and be listed uniformly.
+
+## Per-toolbox CMake shape
+
+```cmake
+# autonomy/CMakeLists.txt
+cmake_minimum_required(VERSION 3.22...4.2)
+project(lamss_autonomy CXX)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/LamssToolbox.cmake OPTIONAL RESULT_VARIABLE _in_tree)
+if(NOT _in_tree)
+  find_package(lamss_core REQUIRED)   # standalone build: cmake modules come from installed core
+  include(LamssToolbox)
+endif()
+lamss_toolbox(NAME autonomy REQUIRES core)
+
+add_subdirectory(src/proto)
+add_subdirectory(src/lib)
+add_subdirectory(src/bin)
+add_subdirectory(src/python)
+if(BUILD_TESTING)
+  add_subdirectory(src/test)
+endif()
+lamss_toolbox_export()               # writes lamss_autonomyConfig.cmake into build/usr
+```
+
+Helpers provided by `LamssToolbox.cmake`:
+
+| Function | Does |
+|---|---|
+| `lamss_toolbox(NAME REQUIRES...)` | Sets install prefix to `build/usr`, C++17, warning flags, checks required toolboxes |
+| `lamss_add_library(name ...)` | `add_library` + namespaced alias `lamss::<tb>_<name>` + install + export |
+| `lamss_add_app(name ...)` | `add_executable` + install to `bin`; links `goby::goby` by default |
+| `lamss_add_proto(name PROTOS...)` | `protobuf_generate` with `IMPORT_DIRS` covering `build/usr/include` so cross-toolbox imports work; also runs `dccl` validation where messages carry DCCL options |
+| `lamss_add_python(package)` | Installs a Python package to `build/usr/lib/python3/dist-packages` |
+| `lamss_toolbox_export()` | Generates the `<tb>Config.cmake` and version file |
+
+Ninja is the default generator; `lamss build` passes `-G Ninja` unless overridden.
+
+## Source tree conventions inside a toolbox
+
+| Directory | Contents | Naming |
+|---|---|---|
+| `src/bin/<app>/` | One Goby application: `app.cpp`, `config.proto`, `CMakeLists.txt`, `README.md` | Binary named `lamss_<app>` for new Goby3 apps; legacy MOOS names kept until rewritten (e.g. `pLamssMissionManager`) |
+| `src/lib/<lib>/` | Library with public headers under `include/lamss/<tb>/<lib>/` | Target `lamss_<tb>_<lib>` |
+| `src/proto/lamss/<tb>/` | `.proto` files; package `lamss.<tb>` | See [07](07-protobuf-split.md) |
+| `src/python/lamss/<tb>/` | Python package; `lamss.mission` lives in `core` | |
+| `src/sh/` | Scripts installed to `bin` | prefix `lamss_` |
+| `src/test/` | ctest targets; integration tests may launch gobyd | |
+| `mission/` | Mission concept classes and templates | See [06](06-missions-framework.md) |
+
+## Install and runtime environment
+
+- `lamss env` prints `export PATH=.../build/usr/bin:$PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`, `LAMSS_ROOT` for `eval`.
+- Goby3 apps find DCCL/protobuf libraries through `dccl_load_library` entries in generated configs; the mission framework fills these from the active toolbox list, replacing the old `LAMSS_LIB_ROOT`/`LAMSS_SHARED_LIB_ROOT` macros.
+- No source or build path is ever written into installed files; data files are located relative to `build/usr/share/lamss/<tb>/` (or `/usr/share/lamss/<tb>/` when packaged).
+
+## Migration mechanics
+
+History from the old repositories is preserved per app rather than per repo:
+
+1. For each app or library to port, `git filter-repo --path src/moos/<app>` in a scratch clone of the old repo, then `git fetch` + `git merge --allow-unrelated-histories` into `lamss3` under its new path. This keeps `git log --follow` and `git blame` useful.
+2. Apps going to `attic` are moved with the same mechanism into the `attic` submodule repository, not deleted.
+3. The old repositories are archived read-only once `attic` and `mit` are populated.
+
+## Open questions for the human plan
+
+- Should `mit` be a submodule (as in the core plan) or in-tree? It is the test bed for everything in Phase 2 and 3, so an in-tree `mit` would simplify CI until the framework stabilises; it can move out later. **Recommendation: in-tree until M2, then submodule.**
+- Does `virtual_ocean` need `sonar`'s propagation models, or vice versa? Decided by the inventory in [01](01-source-inventory.md); the graph above assumes sonar optionally uses virtual_ocean.
