@@ -1,0 +1,44 @@
+version: 2.1
+
+jobs:
+  format:
+    docker:
+      - image: ubuntu:noble
+    resource_class: small
+    steps:
+      - run:
+          name: Install prerequisites
+          command: |
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              git openssh-client ca-certificates clang-format-18
+      - checkout
+      - run:
+          name: clang-format-18 --dry-run --Werror
+          command: |
+            git ls-files -z -- '*.cpp' '*.cc' '*.h' '*.hpp' '*.proto' \
+              | xargs -0 -r clang-format-18 --dry-run --Werror
+
+  build:
+    docker:
+      - image: ubuntu:noble
+    resource_class: large
+    steps:
+      - run:
+          name: Install prerequisites
+          command: |
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              git openssh-client ca-certificates build-essential cmake ninja-build
+      - checkout
+      - run:
+          name: Build and install the skeleton
+          command: |
+            cmake -S . -B build -G Ninja -DLAMSS_WERROR=ON
+            cmake --build build --target install
+
+workflows:
+  ci:
+    jobs:
+      - format
+      - build
