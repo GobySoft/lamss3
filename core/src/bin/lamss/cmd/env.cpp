@@ -36,21 +36,26 @@ void print_export(const std::string& variable, const std::string& value)
 }
 } // namespace
 
-lamss::tool::EnvTool::EnvTool()
+lamss::tool::Command lamss::tool::env_command()
 {
-    execute(
-        []()
-        {
-            Repo repo(find_root());
-            const auto prefix = repo.prefix();
-            print_export("LAMSS_ROOT", repo.root().string());
-            print_export("LAMSS_PREFIX", prefix.string());
-            print_export("PATH", prepend_path((prefix / "bin").string(), "PATH"));
-            print_export("LD_LIBRARY_PATH",
-                         prepend_path((prefix / "lib").string(), "LD_LIBRARY_PATH"));
-            print_export("PYTHONPATH",
-                         prepend_path((prefix / "lib" / "python3" / "dist-packages").string(),
-                                      "PYTHONPATH"));
-            return 0;
-        });
+    return {"env",
+            {},
+            "Print shell exports for using the build: eval \"$(lamss env)\"",
+            {},
+            {},
+            {},
+            [](const Args&)
+            {
+                Repo repo(find_root());
+                const auto prefix = repo.prefix();
+                print_export("LAMSS_ROOT", repo.root().string());
+                print_export("LAMSS_PREFIX", prefix.string());
+                print_export("PATH", prepend_path((prefix / "bin").string(), "PATH"));
+                print_export("LD_LIBRARY_PATH",
+                             prepend_path((prefix / "lib").string(), "LD_LIBRARY_PATH"));
+                print_export("PYTHONPATH",
+                             prepend_path((prefix / "lib" / "python3" / "dist-packages").string(),
+                                          "PYTHONPATH"));
+                return 0;
+            }};
 }

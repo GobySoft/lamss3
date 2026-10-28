@@ -123,171 +123,140 @@ std::string url_basename(std::string url)
     strip_suffix(name, ".git");
     return name;
 }
-} // namespace
 
-lamss::tool::ToolboxTool::ToolboxTool()
+int run_list(const Args&)
 {
-    using protobuf::ToolboxToolConfig;
-    auto helper = tool_helper();
+    Repo repo(find_root());
+    auto list = repo.toolbox_list();
+    const auto root_describe = git_describe(repo.root());
 
-    if (!helper.perform_action(app_cfg().action()))
+    const int name_width = 16, kind_width = 11, active_width = 8;
+    std::cout << std::left << std::setw(name_width) << "NAME" << std::setw(kind_width) << "KIND"
+              << std::setw(active_width) << "ACTIVE" << std::setw(name_width) << "PATH" << "VERSION"
+              << std::endl;
+
+    for (const auto& name : repo.known_toolboxes())
     {
-        switch (app_cfg().action())
-        {
-            case ToolboxToolConfig::help:
-                int action_for_help;
-                if (!helper.help(&action_for_help))
-                {
-                    switch (action_for_help)
-                    {
-                        case ToolboxToolConfig::list:
-                            help<ToolboxListTool>(helper, action_for_help);
-                            break;
-                        case ToolboxToolConfig::add:
-                            help<ToolboxAddTool>(helper, action_for_help);
-                            break;
-                        case ToolboxToolConfig::remove:
-                            help<ToolboxRemoveTool>(helper, action_for_help);
-                            break;
-                        case ToolboxToolConfig::activate:
-                            help<ToolboxActivateTool>(helper, action_for_help);
-                            break;
-                        case ToolboxToolConfig::deactivate:
-                            help<ToolboxDeactivateTool>(helper, action_for_help);
-                            break;
-                        default: unhandled_action();
-                    }
-                }
-                break;
+        const bool present = repo.has_toolbox(name);
+        const bool submodule = repo.is_submodule(name);
+        std::string kind = !present ? "missing" : submodule ? "submodule" : "in-tree";
+        std::string version = !present    ? "-"
+                              : submodule ? git_describe(repo.root() / name)
+                                          : root_describe;
+        std::cout << std::setw(name_width) << name << std::setw(kind_width) << kind
+                  << std::setw(active_width) << (list.is_active(name) ? "yes" : "no")
+                  << std::setw(name_width) << name + "/" << version << std::endl;
+    }
+    return 0;
+}
 
-            case ToolboxToolConfig::list: run_subtool<ToolboxListTool>(helper); break;
-            case ToolboxToolConfig::add: run_subtool<ToolboxAddTool>(helper); break;
-            case ToolboxToolConfig::remove: run_subtool<ToolboxRemoveTool>(helper); break;
-            case ToolboxToolConfig::activate: run_subtool<ToolboxActivateTool>(helper); break;
-            case ToolboxToolConfig::deactivate: run_subtool<ToolboxDeactivateTool>(helper); break;
-            default: unhandled_action();
+int run_add(const Args& args)
+{
+    Repo repo(find_root());
+    const auto root = repo.root().string();
+    const auto source = *args.value("source");
+    const auto given_name = args.value("name");
+
+    if (source.find_first_of("/:") == std::string::npos)
+    {
+        validate_toolbox_name(source);
+        if (given_name && *given_name != source)
+            throw Error("a name can only be given with a git URL");
+        auto submodules = repo.submodule_paths();
+        bool has_submodules =
+            std::any_of(submodules.begin(), submodules.end(), [&](const std::string& path)
+                        { return path == source || path.rfind(source + "/", 0) == 0; });
+        if (has_submodules)
+        {
+            if (int status = run_process({"git", "-C", root, "submodule", "update", "--init",
+                                          "--recursive", "--", source}))
+                return status;
         }
+        return activate(repo, {source});
     }
 
-    quit(exit_status());
+    const auto name = given_name ? *given_name : url_basename(source);
+    validate_toolbox_name(name);
+    if (fs::exists(repo.root() / name))
+        throw Error((repo.root() / name).string() + " already exists");
+    if (int status = run_process({"git", "-C", root, "submodule", "add", "--", source, name}))
+        return status;
+    if (!repo.has_toolbox(name))
+        throw Error("added submodule '" + name +
+                    "', but it has no CMakeLists.txt so it was not activated");
+    return activate(repo, {name});
 }
 
-lamss::tool::ToolboxListTool::ToolboxListTool()
+int run_remove(const Args& args)
 {
-    execute(
-        []()
-        {
-            Repo repo(find_root());
-            auto list = repo.toolbox_list();
-            const auto root_describe = git_describe(repo.root());
+    Repo repo(find_root());
+    const auto name = *args.value("name");
+    validate_toolbox_name(name);
+    if (!repo.is_submodule(name))
+        throw Error("'" + name + "' is not a submodule toolbox; use `lamss toolbox " +
+                    "deactivate " + name + "` for in-tree toolboxes");
 
-            const int name_width = 16, kind_width = 11, active_width = 8;
-            std::cout << std::left << std::setw(name_width) << "NAME" << std::setw(kind_width)
-                      << "KIND" << std::setw(active_width) << "ACTIVE" << std::setw(name_width)
-                      << "PATH" << "VERSION" << std::endl;
+    deactivate(repo, {name}, args.flag("force"));
 
-            for (const auto& name : repo.known_toolboxes())
-            {
-                const bool present = repo.has_toolbox(name);
-                const bool submodule = repo.is_submodule(name);
-                std::string kind = !present ? "missing" : submodule ? "submodule" : "in-tree";
-                std::string version = !present    ? "-"
-                                      : submodule ? git_describe(repo.root() / name)
-                                                  : root_describe;
-                std::cout << std::setw(name_width) << name << std::setw(kind_width) << kind
-                          << std::setw(active_width) << (list.is_active(name) ? "yes" : "no")
-                          << std::setw(name_width) << name + "/" << version << std::endl;
-            }
-            return 0;
-        });
+    const auto root = repo.root().string();
+    if (int status = run_process({"git", "-C", root, "submodule", "deinit", "-f", "--", name}))
+        return status;
+    return run_process({"git", "-C", root, "rm", "-f", "--", name});
 }
 
-lamss::tool::ToolboxAddTool::ToolboxAddTool()
+int run_activate(const Args& args) { return activate(Repo(find_root()), args.values("name")); }
+
+int run_deactivate(const Args& args)
 {
-    execute(
-        [this]()
-        {
-            const auto& cfg = app_cfg();
-            Repo repo(find_root());
-            const auto root = repo.root().string();
-            const auto& source = cfg.source();
-
-            if (source.find_first_of("/:") == std::string::npos)
-            {
-                validate_toolbox_name(source);
-                if (cfg.has_name() && cfg.name() != source)
-                    throw Error("a name can only be given with a git URL");
-                auto submodules = repo.submodule_paths();
-                bool has_submodules =
-                    std::any_of(submodules.begin(), submodules.end(), [&](const std::string& path)
-                                { return path == source || path.rfind(source + "/", 0) == 0; });
-                if (has_submodules)
-                {
-                    if (int status = run_process({"git", "-C", root, "submodule", "update",
-                                                  "--init", "--recursive", "--", source}))
-                        return status;
-                }
-                return activate(repo, {source});
-            }
-
-            const auto name = cfg.has_name() ? cfg.name() : url_basename(source);
-            validate_toolbox_name(name);
-            if (fs::exists(repo.root() / name))
-                throw Error((repo.root() / name).string() + " already exists");
-            if (int status =
-                    run_process({"git", "-C", root, "submodule", "add", "--", source, name}))
-                return status;
-            if (!repo.has_toolbox(name))
-                throw Error("added submodule '" + name +
-                            "', but it has no CMakeLists.txt so it was not activated");
-            return activate(repo, {name});
-        });
+    deactivate(Repo(find_root()), args.values("name"), args.flag("force"));
+    return 0;
 }
+} // namespace
 
-lamss::tool::ToolboxRemoveTool::ToolboxRemoveTool()
+lamss::tool::Command lamss::tool::toolbox_command()
 {
-    execute(
-        [this]()
-        {
-            const auto& cfg = app_cfg();
-            Repo repo(find_root());
-            const auto& name = cfg.name();
-            validate_toolbox_name(name);
-            if (!repo.is_submodule(name))
-                throw Error("'" + name + "' is not a submodule toolbox; use `lamss toolbox " +
-                            "deactivate " + name + "` for in-tree toolboxes");
-
-            deactivate(repo, {name}, cfg.force());
-
-            const auto root = repo.root().string();
-            if (int status =
-                    run_process({"git", "-C", root, "submodule", "deinit", "-f", "--", name}))
-                return status;
-            return run_process({"git", "-C", root, "rm", "-f", "--", name});
-        });
-}
-
-lamss::tool::ToolboxActivateTool::ToolboxActivateTool()
-{
-    execute(
-        [this]()
-        {
-            const auto& names = app_cfg().name();
-            if (names.empty())
-                throw Error("no toolbox given; see `lamss toolbox activate --help`");
-            return activate(Repo(find_root()), {names.begin(), names.end()});
-        });
-}
-
-lamss::tool::ToolboxDeactivateTool::ToolboxDeactivateTool()
-{
-    execute(
-        [this]()
-        {
-            const auto& cfg = app_cfg();
-            if (cfg.name().empty())
-                throw Error("no toolbox given; see `lamss toolbox deactivate --help`");
-            deactivate(Repo(find_root()), {cfg.name().begin(), cfg.name().end()}, cfg.force());
-            return 0;
-        });
+    const Positional names{"name", "Toolboxes", true, true};
+    return {
+        "toolbox",
+        {"tb"},
+        "List, add, remove, activate and deactivate toolboxes",
+        {},
+        {},
+        {{"list",
+          {},
+          "List known toolboxes: kind, active, path and git describe",
+          {},
+          {},
+          {},
+          run_list},
+         {"add",
+          {},
+          "Add an external toolbox as a git submodule (or an in-tree one by name) and "
+          "activate it",
+          {},
+          {{"source", "Git URL of an external toolbox, or the name of an in-tree toolbox", true},
+           {"name", "Directory (and toolbox) name for a git URL (default: the repository name)"}},
+          {},
+          run_add},
+         {"remove",
+          {},
+          "Deactivate an external toolbox and remove its submodule",
+          {{"force", 0, "", "Also deactivate active toolboxes that require it"}},
+          {{"name", "Submodule toolbox to remove", true}},
+          {},
+          run_remove},
+         {"activate",
+          {},
+          "Activate toolboxes and the toolboxes they require",
+          {},
+          {names},
+          {},
+          run_activate},
+         {"deactivate",
+          {},
+          "Deactivate toolboxes",
+          {{"force", 0, "", "Also deactivate active toolboxes that require these"}},
+          {names},
+          {},
+          run_deactivate}}};
 }

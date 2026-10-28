@@ -39,17 +39,25 @@ void collect(const fs::path& dir, const std::set<fs::path>& keep, std::vector<fs
 }
 } // namespace
 
-lamss::tool::CleanTool::CleanTool()
+lamss::tool::Command lamss::tool::clean_command()
 {
-    execute(
-        [this]()
+    return {
+        "clean",
+        {},
+        "Remove build products (keeps the lamss tool unless --all)",
+        {{"yes", 'y', "", "Do not ask for confirmation"},
+         {"all", 0, "",
+          "Remove all of build/, including the lamss tool itself (re-run ./init.sh "
+          "afterwards)"}},
+        {},
+        {},
+        [](const Args& args)
         {
-            const auto& cfg = app_cfg();
             Repo repo(find_root());
             const auto build_dir = repo.build_dir();
 
             std::set<fs::path> keep;
-            if (!cfg.all())
+            if (!args.flag("all"))
             {
                 keep.insert(repo.prefix() / "bin" / "lamss");
                 keep.insert(build_dir / "lamss-tool");
@@ -62,7 +70,7 @@ lamss::tool::CleanTool::CleanTool()
             std::vector<fs::path> remove;
             if (fs::exists(build_dir))
             {
-                if (cfg.all())
+                if (args.flag("all"))
                     remove.push_back(build_dir);
                 else
                     collect(build_dir, keep, remove);
@@ -78,7 +86,7 @@ lamss::tool::CleanTool::CleanTool()
             for (const auto& path : remove)
                 std::cout << "  " << path.lexically_relative(repo.root()).string() << std::endl;
 
-            if (!cfg.yes())
+            if (!args.flag("yes"))
             {
                 std::cout << "Proceed? [y/N] " << std::flush;
                 std::string answer;
@@ -93,9 +101,9 @@ lamss::tool::CleanTool::CleanTool()
 
             for (const auto& path : remove) fs::remove_all(path);
 
-            if (cfg.all())
+            if (args.flag("all"))
                 std::cout << "Removed the lamss tool too; run ./init.sh --no-deps to rebuild it."
                           << std::endl;
             return 0;
-        });
+        }};
 }

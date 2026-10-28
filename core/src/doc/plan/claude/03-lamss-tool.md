@@ -7,13 +7,13 @@ Detail for the "LAMSS Tool" section of the [core plan](../core.md).
 ## Requirements recap
 
 - Modern subcommand CLI, `lamss <command> [<subcommand>] [options]`, with `lm` as a shell alias when free.
-- Written in C++ on the Goby3 tool framework (`goby::middleware::ToolHelper`, protobuf-configured subcommands, the same conventions as the `goby` tool), which needs a bootstrap step because the tool is what builds the project.
+- Written in C++17 with no dependencies beyond the standard library and yaml-cpp, so it builds before anything else is installed; it is the tool that installs the rest (Goby3 included). An earlier draft used the Goby3 tool framework, which forced `init.sh` to install Goby3 before the tool could exist.
 - Implicit help when a subcommand is required; `--help` everywhere.
 - Subcommands: `build`, `dependencies`, `toolbox`, `mission`, plus `env` (added here).
 
 ## Bootstrap
 
-The tool lives in `core/src/bin/lamss/` and is built on Goby3's tool framework, so its subcommands, help and configuration follow the `goby` tool's conventions and it gets protobuf-defined options for free. The price is that `libgoby3-dev` must be installed before the tool can be built; `init.sh` therefore installs the `core` apt dependencies (adding the GobySoft repository if needed) before building the tool. The dependency parsing for that first step is a few lines of shell reading `core/dependencies.yml`.
+The tool lives in `core/src/bin/lamss/`, which is also a CMake project of its own. `init.sh` installs only what that project needs from the Ubuntu archive (a compiler, CMake, Ninja, yaml-cpp, gpg), builds the tool, and then runs `lamss dependencies install`, which adds the GobySoft repository and installs the active toolboxes' packages. There is one `dependencies.yml` parser, in the tool.
 
 ```mermaid
 sequenceDiagram
@@ -22,16 +22,18 @@ sequenceDiagram
   participant C as cmake
   participant L as lamss (built)
   U->>B: ./init.sh
-  B->>B: apt install core deps from core/dependencies.yml (GobySoft repo)
-  B->>C: cmake -S core -B build/lamss-tool -G Ninja, build and install only the lamss target
+  B->>B: apt install build-essential cmake ninja-build libyaml-cpp-dev gpg (Ubuntu archive)
+  B->>C: cmake -S core/src/bin/lamss -B build/lamss-tool -G Ninja, build, install
   C-->>B: build/usr/bin/lamss
-  B-->>U: symlink ~/.local/bin/lamss (and lm), eval $(lamss env) hint
-  U->>L: lamss dependencies install
+  B->>B: symlink ~/.local/bin/lamss (and lm)
+  B->>L: lamss dependencies install
+  L->>L: add GobySoft repo, apt install active toolboxes' packages
+  B-->>U: eval $(lamss env) hint
   U->>L: lamss build
   L->>C: cmake -S . -B build -G Ninja && cmake --build build --target install
 ```
 
-`init.sh` is a short POSIX shell script: add the GobySoft apt repository, install the `core` apt dependencies, build the tool, install symlinks `~/.local/bin/lamss` and `~/.local/bin/lm` (if `lm` is free), and print the `eval "$(lamss env)"` hint. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
+`init.sh` is a short POSIX shell script: install the tool's build packages, build the tool, install symlinks `~/.local/bin/lamss` and `~/.local/bin/lm` (if `lm` is free), run `lamss dependencies install`, and print the `eval "$(lamss env)"` hint. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
 
 Rebuilding the tool is part of `lamss build` (the tool's own CMake project is also added at top level), so a changed tool source takes effect on the next build.
 
@@ -138,14 +140,14 @@ The tool walks up from the current directory looking for `.lamss/`, like `git` l
 
 ## Alias installation
 
-`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; re-running `./init.sh --no-deps` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own subcommand table (protobuf enum aliases), not shell aliases.
+`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; re-running `./init.sh --no-deps` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own command table, not shell aliases.
 
 ## Implementation notes
 
-- Goby3 tool framework: one `lamss.proto` config with a message per subcommand, one translation unit per subcommand under `core/src/bin/lamss/cmd/`, plus `repo.cpp` (root discovery, toolbox list I/O) and `process.cpp` (fork/exec with streamed output; no `system()` with string concatenation).
+- `cli.cpp`: a small command table (subcommands, aliases, options, positionals, generated help, exit status 2 on usage errors). One translation unit per subcommand under `core/src/bin/lamss/cmd/`, plus `repo.cpp` (root discovery, toolbox list I/O) and `process.cpp` (fork/exec with streamed output; no `system()` with string concatenation).
 - All subprocess invocations are logged at `-v` so the user can reproduce by hand.
 - Unit tests for toolbox list editing and `dependencies.yml` parsing (plain ctest, no framework needed beyond `assert`).
-- Shell completion as provided by the Goby3 tool framework.
+- Shell completion is not provided yet; it can be generated from the command table.
 
 ## Open questions for the human plan
 

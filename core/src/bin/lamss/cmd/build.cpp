@@ -8,18 +8,59 @@
 #include "process.h"
 #include "repo.h"
 
-lamss::tool::BuildTool::BuildTool()
+namespace
 {
-    execute(
-        [this]()
+int parse_jobs(const std::string& text)
+{
+    try
+    {
+        std::size_t used = 0;
+        int jobs = std::stoi(text, &used);
+        if (used == text.size() && jobs > 0)
+            return jobs;
+    }
+    catch (const std::exception&)
+    {
+    }
+    throw lamss::tool::UsageError("--jobs must be a positive integer");
+}
+} // namespace
+
+lamss::tool::Command lamss::tool::build_command()
+{
+    return {
+        "build",
+        {"b"},
+        "Configure (if needed), build and install the active toolboxes",
+        {{"configure", 0, "",
+          "Force CMake to reconfigure (automatic when .lamss/toolboxes is newer than "
+          "build/CMakeCache.txt)"},
+         {"toolbox", 0, "TOOLBOX", "Build and install only this toolbox"},
+         {"type",
+          0,
+          "TYPE",
+          "CMAKE_BUILD_TYPE; RelWithDebInfo on first configure, then remembered in build/",
+          {"Debug", "Release", "RelWithDebInfo", "MinSizeRel"}},
+         {"jobs", 'j', "N", "Parallel build jobs (default: number of processors)"},
+         {"test", 0, "", "Run ctest after building"},
+         {"define",
+          'D',
+          "KEY=VALUE",
+          "Passed to CMake as -DKEY=VALUE (forces a reconfigure)",
+          {},
+          true}},
+        {},
+        {},
+        [](const Args& args)
         {
-            const auto& cfg = app_cfg();
             Repo repo(find_root());
+            const auto type = args.value("type");
+            const auto defines = args.values("define");
             const auto build_dir = repo.build_dir();
             const auto cache = build_dir / "CMakeCache.txt";
             const bool cached = fs::exists(cache);
 
-            bool configure = cfg.configure() || !cached || cfg.has_type() || cfg.define_size() > 0;
+            bool configure = args.flag("configure") || !cached || type || !defines.empty();
             if (!configure && fs::exists(repo.toolboxes_file()))
                 configure = fs::last_write_time(repo.toolboxes_file()) > fs::last_write_time(cache);
 
@@ -30,26 +71,26 @@ lamss::tool::BuildTool::BuildTool()
                 {
                     cmake.insert(cmake.end(), {"-G", "Ninja"});
                 }
-                if (cfg.has_type())
-                    cmake.push_back("-DCMAKE_BUILD_TYPE=" +
-                                    protobuf::BuildToolConfig::BuildType_Name(cfg.type()));
+                if (type)
+                    cmake.push_back("-DCMAKE_BUILD_TYPE=" + *type);
                 else if (!cached)
                     cmake.push_back("-DCMAKE_BUILD_TYPE=RelWithDebInfo");
-                for (const auto& define : cfg.define()) cmake.push_back("-D" + define);
+                for (const auto& define : defines) cmake.push_back("-D" + define);
 
                 if (int status = run_process(cmake))
                     return status;
             }
 
             const int jobs =
-                cfg.has_jobs() ? cfg.jobs()
-                               : std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+                args.value("jobs")
+                    ? parse_jobs(*args.value("jobs"))
+                    : std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
             const auto jobs_str = std::to_string(jobs);
 
             fs::path test_dir = build_dir;
-            if (cfg.has_toolbox())
+            if (auto toolbox = args.value("toolbox"))
             {
-                const auto& tb = cfg.toolbox();
+                const auto& tb = *toolbox;
                 validate_toolbox_name(tb);
                 if (!repo.toolbox_list().is_active(tb))
                     throw Error("toolbox '" + tb + "' is not active; run `lamss toolbox activate " +
@@ -68,12 +109,12 @@ lamss::tool::BuildTool::BuildTool()
                     return status;
             }
 
-            if (cfg.test())
+            if (args.flag("test"))
             {
                 RunOptions in_test_dir;
                 in_test_dir.cwd = test_dir;
                 return run_process({"ctest", "--output-on-failure", "-j", jobs_str}, in_test_dir);
             }
             return 0;
-        });
+        }};
 }

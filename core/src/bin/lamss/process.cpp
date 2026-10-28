@@ -10,8 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "goby/util/debug_logger.h"
-
+#include "cli.h"
 #include "process.h"
 #include "repo.h"
 
@@ -95,12 +94,12 @@ int wait_child(pid_t pid)
 
 void log_command(const Argv& command, const RunOptions& options)
 {
-    goby::glog.is_verbose() &&
-        goby::glog << "running: "
-                   << (options.cwd.empty()
-                           ? ""
-                           : "(cd " + format_command({options.cwd.string()}) + " && ")
-                   << format_command(command) << (options.cwd.empty() ? "" : ")") << std::endl;
+    if (!verbose())
+        return;
+    std::cerr << "running: ";
+    if (!options.cwd.empty())
+        std::cerr << "(cd " << format_command({options.cwd.string()}) << " && ";
+    std::cerr << format_command(command) << (options.cwd.empty() ? "" : ")") << std::endl;
 }
 } // namespace
 
