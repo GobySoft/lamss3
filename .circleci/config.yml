@@ -1,17 +1,77 @@
 version: 2.1
 
-jobs:
-  format:
+environment-common: &environment-common
+  DEBIAN_FRONTEND: "noninteractive"
+  DEBIAN_PRIORITY: "critical"
+  DEBCONF_NOWARNINGS: "yes"
+
+executors:
+  ubuntu:
+    parameters:
+      codename:
+        type: enum
+        enum: [jammy, noble, resolute]
+        default: noble
+      resource_class:
+        type: string
+        default: large
     docker:
-      - image: ubuntu:noble
-    resource_class: small
+      - image: ubuntu:<< parameters.codename >>
+    resource_class: << parameters.resource_class >>
+    working_directory: /root/lamss3
+    environment:
+      <<: *environment-common
+
+commands:
+  install-prerequisites:
+    description: Install what checkout and init.sh need on a stock Ubuntu image
+    parameters:
+      extra:
+        type: string
+        default: ""
     steps:
       - run:
           name: Install prerequisites
           command: |
             apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              git openssh-client ca-certificates clang-format-18
+            apt-get install -y --no-install-recommends \
+              git openssh-client ca-certificates curl gpg lsb-release sudo << parameters.extra >>
+
+  init:
+    description: Run init.sh and put the lamss tool on PATH
+    steps:
+      - run:
+          name: ./init.sh --yes
+          command: ./init.sh --yes
+      - run:
+          name: Add ~/.local/bin to PATH
+          command: |
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+            . "$BASH_ENV"
+            command -v lamss lm
+
+  cmake-build:
+    description: Configure, build, install and test one toolbox as its own CMake project
+    parameters:
+      toolbox:
+        type: string
+    steps:
+      - run:
+          name: Build << parameters.toolbox >> standalone
+          # not build/<tb>, which is where `lm b` builds each toolbox
+          command: |
+            cmake -S << parameters.toolbox >> -B build/standalone/<< parameters.toolbox >> -G Ninja -DLAMSS_WERROR=ON
+            cmake --build build/standalone/<< parameters.toolbox >> --target install
+            ctest --test-dir build/standalone/<< parameters.toolbox >> --output-on-failure
+
+jobs:
+  format:
+    executor:
+      name: ubuntu
+      resource_class: small
+    steps:
+      - install-prerequisites:
+          extra: clang-format-18
       - checkout
       - run:
           name: clang-format-18 --dry-run --Werror
@@ -19,27 +79,77 @@ jobs:
             git ls-files -z -- '*.cpp' '*.cc' '*.h' '*.hpp' '*.proto' \
               | xargs -0 -r clang-format-18 --dry-run --Werror
 
-  build:
-    docker:
-      - image: ubuntu:noble
-    resource_class: large
+  build-all:
+    parameters:
+      codename:
+        type: enum
+        enum: [jammy, noble, resolute]
+      resource_class:
+        type: string
+    executor:
+      name: ubuntu
+      codename: << parameters.codename >>
+      resource_class: << parameters.resource_class >>
     steps:
-      - run:
-          name: Install prerequisites
-          command: |
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              git openssh-client ca-certificates
+      - install-prerequisites
       - checkout
+      - init
       - run:
-          name: ./init.sh --yes
-          command: ./init.sh --yes
+          name: Activate every in-tree toolbox
+          command: lm tb activate autonomy sonar virtual_ocean
+      - run:
+          name: lm dep install --yes
+          command: lm dep install --yes
       - run:
           name: lm b --test -D LAMSS_WERROR=ON
-          command: ~/.local/bin/lm b --test -D LAMSS_WERROR=ON
+          command: lm b --test -D LAMSS_WERROR=ON
+
+  build-standalone:
+    parameters:
+      toolbox:
+        type: enum
+        enum: [core, autonomy, sonar, virtual_ocean]
+    executor: ubuntu
+    steps:
+      - install-prerequisites
+      - checkout
+      - init
+      - unless:
+          condition:
+            equal: [core, << parameters.toolbox >>]
+          steps:
+            - run:
+                name: Install << parameters.toolbox >> dependencies only
+                command: |
+                  lm tb activate << parameters.toolbox >>
+                  lm dep install --yes
+      - cmake-build:
+          toolbox: core
+      - unless:
+          condition:
+            equal: [core, << parameters.toolbox >>]
+          steps:
+            - cmake-build:
+                toolbox: << parameters.toolbox >>
 
 workflows:
   ci:
     jobs:
       - format
-      - build
+      - build-standalone:
+          name: build-<< matrix.toolbox >>-standalone
+          matrix:
+            parameters:
+              toolbox: [core, autonomy, sonar, virtual_ocean]
+      - build-all:
+          name: build-all-<< matrix.codename >>-amd64
+          resource_class: large
+          matrix:
+            parameters:
+              codename: [jammy, noble, resolute]
+      - build-all:
+          name: build-all-<< matrix.codename >>-arm64
+          resource_class: arm.large
+          matrix:
+            parameters:
+              codename: [jammy, noble, resolute]

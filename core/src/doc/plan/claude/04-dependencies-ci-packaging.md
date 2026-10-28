@@ -66,16 +66,16 @@ Jobs:
 
 | Job | Does |
 |---|---|
-| `format` | `clang-format --dry-run --Werror` over changed files |
-| `build-<tb>-standalone` | Container with deps from `<tb>/dependencies.yml` + installed `.deb`s of required toolboxes from the previous stage; `cmake -S <tb>`; proves the toolbox is self-contained |
-| `build-all` | `lm dep install && lm b --test` with every in-tree toolbox active |
+| `format` | `clang-format-18 --dry-run --Werror` over every tracked C++ and `.proto` file |
+| `build-<tb>-standalone` | Container with deps from `core` and `<tb>/dependencies.yml` only; builds and installs the required toolboxes into `build/usr` (their `.deb`s once Phase 5 packages exist), then `cmake -S <tb>`; proves the toolbox is self-contained. noble amd64 only: distro and architecture coverage comes from `build-all` |
+| `build-all` | From a stock `ubuntu:<codename>` image: `./init.sh`, `lm dep install && lm b --test` with every in-tree toolbox active, over jammy, noble, resolute × amd64, arm64 |
 | `mission-smoke` | `lm m sim mbat --variant smoke --execute` for 5 simulated minutes under `warp`; asserts supervisord shows all processes `RUNNING` and the mission manager reached `DEPLOY` |
 | `package` | `cpack -G DEB` per toolbox; `lintian` |
 | `docs` | Renders the mermaid figures and the Markdown docs into a static site (mkdocs-material) |
 
 Submodule toolboxes (`mit`, `icex`, `attic`) run their own CI in their own repositories, triggered on `lamss3` tags, and are **not** part of the `lamss3` required checks. `attic` is never built in CI (or anywhere by default). The `hydroman` wrapper is not built in `lamss3` CI at all: it depends on a private repository, and its own CI lives with that repository.
 
-Containers: the `gobysoft/goby3-ubuntu-build-*` images already carry Goby3's build dependencies; lamss3 adds a thin layer per distro (`gobysoft/lamss3-build-base:<codename>`) that installs `core/dependencies.yml`, rebuilt weekly so dependency drift shows up in the image build and not in every PR. netsim's CI still uses `apt-key adv`; lamss3 should use the keyring/`signed-by` form and offer that change back to netsim.
+Containers: CI starts from stock `ubuntu:<codename>` images, so every run proves `init.sh` on a clean system; a prebuilt image is an optimisation for when dependency installation dominates the run time. The `gobysoft/goby3-ubuntu-build-*` images already carry Goby3's build dependencies; lamss3 could add a thin layer per distro (`gobysoft/lamss3-build-base:<codename>`) that installs `core/dependencies.yml`, rebuilt weekly so dependency drift shows up in the image build and not in every PR. netsim's CI still uses `apt-key adv`; lamss3 should use the keyring/`signed-by` form and offer that change back to netsim.
 
 ## Debian packaging (Phase 5)
 
