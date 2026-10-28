@@ -1,3 +1,6 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # LamssToolbox.cmake - helpers shared by every lamss3 toolbox
 #
 #   lamss_toolbox(NAME <tb> [REQUIRES <tb>...])

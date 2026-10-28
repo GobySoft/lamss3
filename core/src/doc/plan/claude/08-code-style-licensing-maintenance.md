@@ -27,6 +27,7 @@ Plan:
    // Copyright 2011-2026 Massachusetts Institute of Technology
    // SPDX-License-Identifier: LGPL-3.0-or-later
    ```
+   That example is for files ported from the old repositories. Files written new for lamss3 are `Copyright <year> GobySoft, LLC` with the same SPDX line.
    Files with existing GPLv2+ headers are relicensed to GPL-3.0-or-later (allowed by "or later"); files with no header are assumed MIT-owned work and get the toolbox's default. Authors listed in old headers are kept in an `AUTHORS` file per toolbox rather than per file.
 3. **MIT TLO disclosure** per the [TLO open-source process](https://tlo.mit.edu/researchers-mit-community/protect/software-open-source-protection) before the first public tag. The inventory doc's attic list and the third-party table are the attachments the TLO asks for.
 4. **Blocked content** stays out of `lamss3` until cleared: `iMOOSGateway`/`payload_interface` ("no permission"), anything derived from Bluefin SDK headers (`uMVS_Bluefin` carries Bluefin-era sources; confirm provenance), HydroMAN 3 (its own repository and license; reachable only through the `hydroman` submodule, never copied into lamss3).
