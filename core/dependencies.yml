@@ -1,5 +1,7 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
 # apt.all applies to every distribution; apt.<codename> adds to it.
+# init.sh reads this file with a few lines of awk before any YAML parser is installed, so keep it to
+# block lists of plain package names ("    - pkg  # comment") under apt.all and apt.<codename>.
 apt:
   all:
     - build-essential

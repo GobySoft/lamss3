@@ -23,7 +23,7 @@ sequenceDiagram
   participant L as lamss (built)
   U->>B: ./init.sh
   B->>B: apt install core deps from core/dependencies.yml (GobySoft repo)
-  B->>C: cmake -S core/src/bin/lamss -B build/lamss-tool -G Ninja
+  B->>C: cmake -S core -B build/lamss-tool -G Ninja, build and install only the lamss target
   C-->>B: build/usr/bin/lamss
   B-->>U: symlink ~/.local/bin/lamss (and lm), eval $(lamss env) hint
   U->>L: lamss dependencies install
@@ -64,7 +64,7 @@ flowchart LR
 |---|---|
 | (none) | Configure if needed, then `cmake --build build --target install` |
 | `--configure` | Force reconfigure (e.g. after editing `.lamss/toolboxes`; the tool does this automatically when the file is newer than `build/CMakeCache.txt`) |
-| `--toolbox <tb>` | Build only that toolbox's targets (`--target lamss_<tb>_all`) |
+| `--toolbox <tb>` | Build only that toolbox's targets (`--target lamss_<tb>_all`) and install them (`cmake --install build/<tb>`) |
 | `--type Debug|Release|RelWithDebInfo` | `CMAKE_BUILD_TYPE`; default `RelWithDebInfo`, remembered in `build/` |
 | `-j N` | Parallelism; default `nproc` |
 | `--test` | Also run `ctest` |
@@ -130,7 +130,7 @@ Prints shell exports for `PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`, `LAMSS_ROOT` (
 
 ### `lamss clean`
 
-Removes `build/<toolbox>` trees and `build/usr`; `--all` removes `build/` except the tool itself. Asks for confirmation unless `--yes`.
+Removes `build/<toolbox>` trees, the top-level CMake files and `build/usr`, but keeps the tool (`build/usr/bin/lamss` and its bootstrap tree `build/lamss-tool`); `--all` removes all of `build/` including the tool, after which `./init.sh --no-deps` rebuilds it. Asks for confirmation unless `--yes`.
 
 ## Finding the repository root
 
@@ -138,7 +138,7 @@ The tool walks up from the current directory looking for `.lamss/`, like `git` l
 
 ## Alias installation
 
-`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; `lamss alias install` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own subcommand table, not shell aliases.
+`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; re-running `./init.sh --no-deps` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own subcommand table (protobuf enum aliases), not shell aliases.
 
 ## Implementation notes
 

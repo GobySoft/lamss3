@@ -8,6 +8,7 @@
 #   lamss_add_proto(<name> PROTOS <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY])
 #   lamss_add_python(<package_dir>)
+#   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
 #
 # See core/src/doc/plan/claude/02-repository-layout-and-build.md.
@@ -234,6 +235,16 @@ function(lamss_add_python package_dir)
   install(DIRECTORY "${package_dir}"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/python3/dist-packages
     PATTERN "__pycache__" EXCLUDE)
+endfunction()
+
+# Test executables are part of lamss_<tb>_all so `lamss build --toolbox <tb> --test` builds them.
+function(lamss_add_test name)
+  _lamss_require_toolbox(lamss_add_test)
+  cmake_parse_arguments(_A "" "" "SOURCES;LINK_LIBRARIES" ${ARGN})
+  add_executable(${name} ${_A_SOURCES})
+  target_link_libraries(${name} PRIVATE ${_A_LINK_LIBRARIES})
+  add_test(NAME ${name} COMMAND ${name})
+  add_dependencies(lamss_${LAMSS_TOOLBOX}_all ${name})
 endfunction()
 
 function(lamss_toolbox_export)
