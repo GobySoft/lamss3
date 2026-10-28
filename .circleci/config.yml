@@ -29,13 +29,14 @@ jobs:
           command: |
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              git openssh-client ca-certificates build-essential cmake ninja-build
+              git openssh-client ca-certificates
       - checkout
       - run:
-          name: Build and install the skeleton
-          command: |
-            cmake -S . -B build -G Ninja -DLAMSS_WERROR=ON
-            cmake --build build --target install
+          name: ./init.sh --yes
+          command: ./init.sh --yes
+      - run:
+          name: lm b --test -D LAMSS_WERROR=ON
+          command: ~/.local/bin/lm b --test -D LAMSS_WERROR=ON
 
 workflows:
   ci:
