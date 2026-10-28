@@ -63,9 +63,9 @@ Recorded in a root `MAINTAINERS.md` and `CODEOWNERS` so GitHub requests reviews 
 ### Process
 
 - **Branches and PR titles** per `AGENTS.md` (`feature/x`, `bug/x`, `minor/x`).
-- **Required checks** on `main`: format, build-all, each in-tree toolbox standalone, mission smoke.
-- **Releases**: tag `vMAJOR.MINOR.PATCH` on `main` quarterly or before a cruise; packages built by CI ([04](04-dependencies-ci-packaging.md)). A cruise pins a tag in its cruise class (`lamss_version = "3.2"`), and `lm m` warns if the checkout differs.
-- **Dependency bumps** (Goby3, MOOS-IvP, netsim, Ubuntu) are PRs that update `DEPENDENCIES` and the CI image together.
+- **Required checks** on the `3.y` development branch: format, build-all, each in-tree toolbox standalone, mission smoke.
+- **Releases**: tag `3.y.z` on the `3.y` branch quarterly or before a cruise; packages built by CI ([04](04-dependencies-ci-packaging.md)). A cruise pins a tag in its cruise class (`lamss_version = "3.2"`), and `lm m` warns if the checkout differs.
+- **Dependency bumps** (Goby3, MOOS-IvP, netsim, Ubuntu) are PRs that update `dependencies.yml` and the CI image together.
 - **Issue triage**: labels per toolbox; a monthly 30-minute triage.
 
 ### Documentation

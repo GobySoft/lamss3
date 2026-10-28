@@ -7,7 +7,7 @@ Here are the detailed plans produced by Claude, referenced by the human-written 
 | [00-overview](00-overview.md) | Goals, guiding decisions, phases, milestones, schedule, risks |
 | [01-source-inventory](01-source-inventory.md) | Survey of `lamss`, `lamss-shared`, `lamss-internal`, `missions-lamss`; what goes to which toolbox |
 | [02-repository-layout-and-build](02-repository-layout-and-build.md) | Directory layout, CMake toolbox mechanism, activation file, `build/usr` |
-| [03-lamss-tool](03-lamss-tool.md) | The `lamss`/`lm` C++ CLI: bootstrap and subcommands |
+| [03-lamss-tool](03-lamss-tool.md) | The `lamss`/`lm` C++ CLI: init and subcommands |
 | [04-dependencies-ci-packaging](04-dependencies-ci-packaging.md) | Ubuntu 24.04 dependencies, CI matrix, Debian packaging |
 | [05-middleware-moos-to-goby3](05-middleware-moos-to-goby3.md) | MOOS to Goby3 migration, CMOOSApp shim, pHelmIvP to IvPico |
 | [06-missions-framework](06-missions-framework.md) | Python concept classes, Jinja2 rendering, supervisord output, variants |

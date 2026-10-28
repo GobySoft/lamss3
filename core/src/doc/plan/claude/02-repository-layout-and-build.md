@@ -9,7 +9,7 @@ Detail for the "Toolboxes" and "Repository Layout" sections of the [core plan](.
 ```
 lamss3/
 ├── CMakeLists.txt            # top level: reads active toolbox list, add_subdirectory each
-├── bootstrap.sh              # builds the lamss tool only (Phase 0 bootstrap)
+├── init.sh                   # installs core deps, builds the lamss tool, installs the symlink (Phase 0 bootstrap)
 ├── cmake/                    # shared CMake modules (LamssToolbox.cmake, FindXXX.cmake)
 ├── .lamss/
 │   └── toolboxes             # active toolbox list, one name per line (tracked in git)
@@ -18,25 +18,25 @@ lamss3/
 │   └── <toolbox>/            # per-toolbox CMake build tree
 ├── core/                     # always active
 │   ├── CMakeLists.txt
-│   ├── DEPENDENCIES
+│   ├── dependencies.yml
 │   ├── src/
 │   │   ├── bin/              # Goby applications (one dir per app)
 │   │   ├── lib/              # C++ libraries (one dir per lib)
-│   │   ├── proto/            # lamss/core/*.proto
+│   │   │   └── protobuf/     # lamss/core/*.proto -> liblamss_core_protobuf.so
 │   │   ├── python/           # lamss python package(s)
 │   │   ├── sh/               # installed shell scripts
 │   │   ├── test/             # unit + integration tests
 │   │   └── doc/              # documentation incl. plan/
-│   └── mission/              # see 06-missions-framework.md
+│   └── missions/             # see 06-missions-framework.md
 ├── autonomy/                 # same shape as core
 ├── sonar/
 ├── virtual_ocean/
 ├── hydroman/                 # wrapper toolbox: lamss3 glue + HydroMAN 3 repo as submodule
 │   ├── CMakeLists.txt
-│   ├── DEPENDENCIES
+│   ├── dependencies.yml
 │   ├── upstream/   (submodule) # the HydroMAN repository, untouched
 │   ├── src/                  # iHydroMAN_LAMSS, iHydroMAN_PHINS, lamss.hydroman protos
-│   └── mission/              # hydroman component, nav subsystem templates
+│   └── missions/             # hydroman component, nav subsystem templates
 ├── mit/        (submodule)   # cruises and platforms from missions-lamss
 ├── icex/       (submodule)
 ├── attic/      (submodule)
@@ -68,7 +68,7 @@ flowchart LR
   vo_s --> vo_b --> usr
   usr -. find_package(lamss_core) .-> auto_b
   usr -. find_package(lamss_core) .-> vo_b
-  mit_s -. mission search .-> usr
+  mit_s -. missions search .-> usr
 ```
 
 ## Toolbox activation
@@ -86,7 +86,7 @@ mit
 Top-level CMake:
 
 ```cmake
-cmake_minimum_required(VERSION 3.22...4.2)   # 3.22 = Ubuntu 22.04, 3.28 = 24.04
+cmake_minimum_required(VERSION 3.22...4.2)   # 3.22 = Ubuntu 22.04 (oldest supported LTS)
 project(lamss3 NONE)
 file(STRINGS "${CMAKE_SOURCE_DIR}/.lamss/toolboxes" LAMSS_TOOLBOXES REGEX "^[^#]")
 list(PREPEND LAMSS_TOOLBOXES core)
@@ -114,7 +114,7 @@ flowchart BT
   autonomy --> core
   virtual_ocean --> core
   sonar --> core
-  sonar -.optional.-> virtual_ocean
+  sonar -.tests only.-> virtual_ocean
   hydroman --> autonomy
   hydroman --> upstream[(HydroMAN 3 repo<br/>submodule)]
   mit -.optional.-> hydroman
@@ -123,7 +123,7 @@ flowchart BT
   mit -.optional.-> sonar
   icex --> autonomy
   icex --> mit
-  attic --> core
+  attic -.not built.-> core
 ```
 
 `mit` is a mission-only toolbox (no C++), but it still carries a `CMakeLists.txt` so it can install data files and be listed uniformly.
@@ -140,9 +140,9 @@ add_subdirectory(upstream EXCLUDE_FROM_ALL) # HydroMAN's own CMake, built into b
 add_subdirectory(src)                    # lamss3 glue that links HydroMAN's targets
 ```
 
-- `lamss toolbox add hydroman` initialises the submodule and activates the toolbox; the directory, `CMakeLists.txt`, `DEPENDENCIES` and `mission/` are already in `lamss3`, so a user without access to the HydroMAN repository simply cannot activate it and nothing else breaks.
+- `lamss toolbox add hydroman` initialises the submodule and activates the toolbox; the directory, `CMakeLists.txt`, `dependencies.yml` and `missions/` are already in `lamss3`, so a user without access to the HydroMAN repository simply cannot activate it and nothing else breaks.
 - If the foreign project's CMake cannot be used with `add_subdirectory` (clashing cache variables, in-source output directories), the wrapper falls back to `ExternalProject_Add` with `CMAKE_INSTALL_PREFIX=build/usr`. HydroMAN's build is to be checked for this in Phase 0.
-- The wrapper owns everything lamss3-specific: adapter apps, protos, mission component and templates, and the `DEPENDENCIES` line for the foreign project's own needs. Upstream is never patched from lamss3; fixes go to the HydroMAN repository and the submodule pointer is bumped.
+- The wrapper owns everything lamss3-specific: adapter apps, protos, mission component and templates, and the `dependencies.yml` entries for the foreign project's own needs. Upstream is never patched from lamss3; fixes go to the HydroMAN repository and the submodule pointer is bumped.
 - The same mechanism serves any future foreign dependency that the lab wants selectable as a toolbox (IvPico could be one until it is packaged).
 
 ## Per-toolbox CMake shape
@@ -158,8 +158,7 @@ if(NOT _in_tree)
 endif()
 lamss_toolbox(NAME autonomy REQUIRES core)
 
-add_subdirectory(src/proto)
-add_subdirectory(src/lib)
+add_subdirectory(src/lib)        # includes src/lib/protobuf
 add_subdirectory(src/bin)
 add_subdirectory(src/python)
 if(BUILD_TESTING)
@@ -187,11 +186,11 @@ Ninja is the default generator; `lamss build` passes `-G Ninja` unless overridde
 |---|---|---|
 | `src/bin/<app>/` | One Goby application: `app.cpp`, `config.proto`, `CMakeLists.txt`, `README.md` | Binary named `lamss_<app>` for new Goby3 apps; legacy MOOS names kept until rewritten (e.g. `pLamssMissionManager`) |
 | `src/lib/<lib>/` | Library with public headers under `include/lamss/<tb>/<lib>/` | Target `lamss_<tb>_<lib>` |
-| `src/proto/lamss/<tb>/` | `.proto` files; package `lamss.<tb>` | See [07](07-protobuf-split.md) |
+| `src/lib/protobuf/lamss/<tb>/` | `.proto` files; package `lamss.<tb>`; library `lamss_<tb>_protobuf` | See [07](07-protobuf-split.md) |
 | `src/python/lamss/<tb>/` | Python package; `lamss.mission` lives in `core` | |
 | `src/sh/` | Scripts installed to `bin` | prefix `lamss_` |
 | `src/test/` | ctest targets; integration tests may launch gobyd | |
-| `mission/` | Mission concept classes and templates | See [06](06-missions-framework.md) |
+| `missions/` | Mission concept classes and templates | See [06](06-missions-framework.md) |
 
 ## Install and runtime environment
 
@@ -209,5 +208,5 @@ History from the old repositories is preserved per app rather than per repo:
 
 ## Open questions for the human plan
 
-- Should `mit` be a submodule (as in the core plan) or in-tree? It is the test bed for everything in Phase 2 and 3, so an in-tree `mit` would simplify CI until the framework stabilises; it can move out later. **Recommendation: in-tree until M2, then submodule.**
-- Does `virtual_ocean` need `sonar`'s propagation models, or vice versa? Decided by the inventory in [01](01-source-inventory.md); the graph above assumes sonar optionally uses virtual_ocean.
+- `mit` is in-tree until M2, then a submodule (agreed).
+- Boundary between `virtual_ocean` and `sonar` (decided): `virtual_ocean` is propagation and ocean models, including every sonar, array, noise and target simulator; `sonar` is hardware drivers, processing and tracking. `sonar` therefore depends on `virtual_ocean` only for tests.

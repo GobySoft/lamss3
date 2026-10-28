@@ -161,7 +161,7 @@ Plan:
 2. **Autonomy toolbox codes to the IvPico interface now.** The behavior-facing messages that `pLamssMissionManager` and `pLamssTrackManager` produce (`LAMSS_DEPLOY_*`, updates to behaviors, `MODE`/flag variables) are expressed as `ivp.interface.Variable`/`Command`, and a thin adapter publishes them to MOOS for pHelmIvP in the interim. This way the autonomy apps do not need to change again when IvPico lands.
 3. **LAMSS behaviors** (`lib_behaviors-henrik`: `BHV_OptAcoustDepth`, `BHV_OptAcommsDepth`, `BHV_GlideSlopeSpeed`, plus whatever `lamss` carries) are kept as IvP behavior plugins, which IvPico loads the same way pHelmIvP does. Their MOOS-variable I/O goes through IvPico's `Variable`/`Posting` path; any direct MOOS use inside a behavior is removed.
 4. **Nav input**: `openocean.Navigation` becomes the canonical nav message in `core` (replacing `NAV_X/Y/...` and `NODE_REPORT` strings). The frontseat driver and HydroMAN interface publish it; a `lamss_node_report` adapter keeps `NODE_REPORT` alive for pMarineViewer while it is still used.
-5. **Phase 4**: swap the mission template from `pHelmIvP` + gateway to the IvPico Goby app. pMarineViewer, if still wanted, is fed by a `lamss_moos_viewer_bridge` (gateway in the other direction) or replaced by `goby_liaison` + geoview plugin.
+5. **Phase 4**: swap the mission template from `pHelmIvP` + gateway to the IvPico Goby app. Visualisation is Goby Liaison and GEOV (via `goby_geov_gateway`); OpenCPN support is added as a third viewer. pMarineViewer is not carried past the transition.
 
 IvPico-related work that lamss3 should contribute upstream rather than fork: the Goby app itself, a `Visualization` to Liaison plugin, and any `openocean` message fields LAMSS nav needs (e.g. altitude, DVL validity).
 
@@ -177,6 +177,6 @@ IvPico-related work that lamss3 should contribute upstream rather than fork: the
 
 ## Open questions for the human plan
 
-- Keep `pMarineViewer` (MOOS-only, FLTK) through a reverse bridge, or standardise on Goby Liaison? The former costs a small bridge, the latter a viewer plugin.
-- Should the shim live in `core` or in `attic`? If the aim is to have no Population B apps left after Phase 4, `attic` is the honest place; `core` if some (SRToolbox, `iHydroMAN_LAMSS`, and possibly HydroMAN 3 if its owner wants to adopt the shim) will stay shimmed indefinitely. **Recommendation: `core` until M4, then decide based on what is left.**
-- `goby::moos::GobyMOOSApp` depends on MOOS headers. Removing MOOS entirely means Population A must be fully rewritten, not just shimmed; confirm that is the intent.
+- Viewers (decided): Goby Liaison and GEOV for now, plus OpenCPN support to be added; pMarineViewer is dropped.
+- The shim lives in `core` until M4, then its fate is decided by what is left (decided).
+- Removing MOOS entirely means Population A is fully rewritten, not just shimmed: confirmed as the goal.

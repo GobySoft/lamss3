@@ -6,7 +6,7 @@ What each toolbox contains at the end of Phase 3, what it needs from the old rep
 
 ## core
 
-**Contents**: `lamss` tool, CMake helpers, `lamss.core` protos and groups, `lamss.mission` Python package, the MOOS shim ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)), generic I/O apps, health and viewer glue, `henrik_util` math subset, `supun_util` coordinate helpers, newmat (thirdparty, transitional).
+**Contents**: `lamss` tool, CMake helpers, `lamss.core` protos and groups, `lamss.mission` Python package, the MOOS shim ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)), generic I/O apps, health and viewer glue (Liaison plugins, `goby_geov_gateway` configuration, OpenCPN support, the LAMSS Display Center), `henrik_util` math subset, `supun_util` coordinate helpers, newmat (thirdparty, transitional).
 
 **Order of work**
 
@@ -20,7 +20,7 @@ flowchart LR
 - `pCoroner` is not ported as an app. Its job (watch processes, publish a health summary) is done by a supervisord event listener in Python (`lamss_health_listener`) that publishes `lamss.core.ProcessHealth` through a tiny Goby3 publisher, plus `goby_coroner` for the Goby side.
 - `pPBNodeReport`, `uTopsideSetup` and the `NODE_REPORT` string handling collapse into one `lamss_node_report` Goby3 app that converts between `openocean.Navigation`, Goby `NodeStatus`, and the `NODE_REPORT` string for pMarineViewer.
 - `henrik_util` is split by a header-dependency walk: `CVectorUtils`, `CMeasAvg`, `CCovMat`, `CKalmanFilter` (rewritten without OpenCV), `Random` → `core`; `CAcousticModel`, `CRapRays`, `CEigenRays`, `CLamssNetcdf` → `virtual_ocean`; `CTarget`, `CTrack`, `CNoiseCovariance`, `Multistatic_SonarUtils` → `sonar`.
-- `iMOOS2SQL` and GEOV: ask the lab whether GEOV is still used; default is attic.
+- GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_gateway`, configured by the viewer component.
 
 **Tests**: proto build, DCCL ID uniqueness, group catalogue export, mission registry/render tests, shim round-trip test.
 
@@ -48,13 +48,13 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  a[Check HydroMAN CMake works under add_subdirectory;<br/>else ExternalProject] --> b[Wrapper CMake + DEPENDENCIES] --> c[iHydroMAN_LAMSS, iHydroMAN_PHINS] --> d[hydroman mission component<br/>+ nav subsystem templates] --> e[mbat hydroman variant M2] --> f[icex20 M3]
+  a[Check HydroMAN CMake works under add_subdirectory;<br/>else ExternalProject] --> b[Wrapper CMake + dependencies.yml] --> c[iHydroMAN_LAMSS, iHydroMAN_PHINS] --> d[hydroman mission component<br/>+ nav subsystem templates] --> e[mbat hydroman variant M2] --> f[icex20 M3]
 ```
 
 **Decisions**
 
 - HydroMAN 3 is the only version lamss3 configures; `pHM_BasicModel` (2.x) templates are not carried.
-- The hydrodynamic coefficient blocks (hundreds of `add_param_*` lines per vehicle and mode in `pHM3_BasicModel.plug`) become per-platform data files (`hydroman/mission/data/models/<platform>_<mode>.cfg`) included by the template, not Jinja2 logic.
+- The hydrodynamic coefficient blocks (hundreds of `add_param_*` lines per vehicle and mode in `pHM3_BasicModel.plug`) become per-platform data files (`hydroman/missions/data/models/<platform>_<mode>.cfg`) included by the template, not Jinja2 logic.
 - The `nav` subsystem runs HydroMAN's MOOS apps under supervisord with its own MOOSDB, exactly as `hydroman_ext` does today; this is the one subsystem allowed to keep MOOSDB after M4 ([05](05-middleware-moos-to-goby3.md)).
 - ICEX needs: `pHydroMAN_ICEXManager` (internal 1.x) handled under-ice LBL/tracker inputs. Confirm with the HydroMAN owner which HM3 app covers that before M3.
 
@@ -62,54 +62,52 @@ flowchart LR
 
 ## sonar
 
-**Contents**: passive chain (CBF, AEL, bearing tracker, geo tracker, ping control), passive and active simulators, array sims (towed array, noise covariance, self noise, source array, targets, bearings, track DVL), hardware drivers (`iDurip` + DM7820, `iMCC1608FS`), `uTDA`, array geometry data, `lamss.sonar` protos.
+**Contents**: hardware drivers (`iDurip` + DM7820, `iMCC1608FS`), processing and tracking (CBF, AEL, bearing tracker, geo tracker, ping control, active chain), array geometry data, `lamss.sonar` protos. All sonar, array, noise and target simulators are in `virtual_ocean`.
 
-**Order of work**: passive chain + `uSimPassiveSonar` + `uSimTowedArray` + `uSimNoiseCovariance` (M1 baseline uses them), then `iDurip` for runtime, then active sonar, then the rest.
+**Order of work**: passive chain (M1 baseline uses it), then `iDurip` for runtime, then the active chain.
 
 **Decisions**
 
 - **DM7820 kernel driver**: packaged as `rtd-dm7820-dkms`, built in CI against the 24.04 HWE kernel headers. If RTD's license forbids redistribution, document the manual install and keep the module out of the tree.
 - `pActiveSonarProcessor`, `pBearingTracker`, `pActiveRangeTracker`, `pActiveGeoTracker` are attic (superseded or OpenCV < 3).
-- `uTDA` (FLTK viewer): attic unless `pDepthAdapt` users still run it; the data it shows can go to a Liaison plugin later.
-- Towed-array and passive sonar sims depend on netsim's Bellhop; they can be exercised in CI with a tiny array and a flat environment (the `smoke` variant).
-
-**Risks**: `uSimPassiveSonar` (4k lines) is the lab's most actively edited app; port it early and in one piece to avoid merge pain with ongoing work in `lamss-shared`.
+- `uTDA` (FLTK viewer): attic.
+- The processing chain is tested in CI against `virtual_ocean`'s simulators with a tiny array and a flat environment (the `smoke` variant).
 
 ## virtual_ocean
 
-**Contents**: NetCDF ocean models (SVP/CTD/ADCP), bathymetry and sound-speed services (NOAA, MSEAS, GDEM), netsim front ends (`uSimModemNetwork/Range/Signal`, `iNetSimManager`, the netsim processor plugin), simple sensor sims (CTD, GPS, DVL, PHINS, LBL, bathy), ship NMEA sim, beacon sim, `henrik_util` acoustics subset, modem replicas and `lamss.virtual_ocean` protos, environment classes for the mission framework.
+**Contents**: propagation and ocean models: NetCDF ocean models (SVP/CTD/ADCP), bathymetry and sound-speed services (NOAA, MSEAS, GDEM), netsim front ends (`uSimModemNetwork/Range/Signal`, `iNetSimManager`, the netsim processor plugin), sensor sims (CTD, GPS, DVL, PHINS, LBL, bathy), ship NMEA sim, beacon sim, the sonar and array simulators (`uSimPassiveSonar`, `uSimActiveSonar`, `uSimActiveContacts`, `uSimAEL`, `uSimTowedArray`, `uSimTargetBearings`, `uSimNoiseCovariance`, `uSimSelfNoise`, `uSimSourceArray`, `uSimTargets`, `uSimTrackDVL`), `henrik_util` acoustics subset, modem replicas and `lamss.virtual_ocean` protos, the Environment-side component base classes for the mission framework.
 
-**Order of work**: `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS` (M1), netsim front ends (M2), ocean-model trio for the `hycom` variant (M2), MSEAS/GDEM services (M3 ICEX20).
+**Order of work**: `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets` (M1), netsim front ends (M2), ocean-model trio for the `hycom` variant (M2), active sonar sims, MSEAS/GDEM services (M3 ICEX20).
 
 **Decisions**
 
-- The environment data (890 MB in `missions-lamss/cruise/*/data`) moves to a separate `lamss-environment` repository fetched on demand by `lm m` (`environment.data_url`), with a 1 MB flat-bottom synthetic environment in-tree for tests.
+- The environment data (890 MB in `missions-lamss/cruise/*/data`) moves to an AWS S3 bucket fetched on demand by `lm m` (`environment.data_url`, cached under `missions/data/cache`), with a 1 MB flat-bottom synthetic environment in-tree for tests.
 - `uSimCTD_OceanModel`, `uSimADCP_OceanModel`, `uSVP_OceanModel` share their NetCDF reader; merge into one `lamss_ocean_model` Goby3 app with three output groups when rewritten.
 - Bellhop runs come from netsim: its `acousticstoolbox` library (`environment.proto`, `svp_request_response.proto`, `iBellhop_messages.proto`) and the `iBellhop` app ship in `libnetsim-dev`/`netsim-apps`, and `netsim_core`/`netsim_manager`/`netsim_udp` provide the modem network. `thirdparty/at` is not carried.
 - lamss3's `lib_netsim_processor` is the *processor plugin* netsim needs to simulate propagation (netsim's own docs point at the old `github.mit.edu/lamss` repos for it). Once it lives in `virtual_ocean`, ask GobySoft to update netsim's documentation to point at lamss3.
 - netsim links `libgoby_moos` and MOOS 10 for its `netsim_goby_moos_gateway` plugin, so removing MOOS from lamss3 (M4) does not by itself remove MOOS from a netsim host; that is a netsim decision.
 
-**Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`.
+**Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`; `uSimPassiveSonar` (4k lines) is the lab's most actively edited app, so port it early and in one piece to avoid merge pain with ongoing work in `lamss-shared`.
 
 ## mit
 
-**Contents**: cruises (`mbat`, `irminger`, `arctic` shared bits), fleets, platforms (`macrura`, `unicorn`, `resolution`, `sandshark`?), cruise-specific templates and data (DCCL acomms configs, modem ID lookup, op regions).
+**Contents**: cruises (`mbat`, `irminger`), fleets, platforms (`macrura`, `unicorn`, `resolution`), concrete environments, cruise-specific templates and data (DCCL acomms configs, modem ID lookup, op regions).
 
 **Decisions**: in-tree until M2 per [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan); no C++; CI runs `lm m generate` for every cruise and the smoke sim for `mbat`.
 
 ## icex
 
-**Contents**: ICEX simulators, the three native Goby3 topside apps and the Liaison plugin, `icex20` (M3) and `arctic` cruises, `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling.
+**Contents**: ICEX simulators, the three native Goby3 topside apps and the Liaison plugin, the `icex20` cruise (M3), `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling, `iICEXTracker` (kept in the tree but not built).
 
-**Decisions**: the native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is attic.
+**Decisions**: the native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is kept but not built.
 
-**Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, HydroMAN 3 via the `hydroman` toolbox's variant, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. `arctic` (IRIS modem, generic Beaufort sim) follows as a variant of the same platforms.
+**Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, HydroMAN 3 via the `hydroman` toolbox's variant, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. The `arctic` cruise is not ported (IRIS modem is dropped); it goes to attic.
 
 **Risks**: nobody has run ICEX code since 2021; the `icex20` environment files are 150 MB; the recorded icex20 scenario used the internal HydroMAN toolbox (`pHydroMAN_ICEXManager` for under-ice LBL/tracker handling), so M3 depends on HydroMAN 3 covering that role.
 
 ## attic
 
-**Contents**: everything in [01](01-source-inventory.md#attic-submodule). Structure mirrors the toolbox layout so an item can be promoted by moving a directory. Builds with `lamss_toolbox(NAME attic REQUIRES core)` but every app is behind an `option(ATTIC_BUILD_<app> OFF)`, so `attic` active + default options builds nothing and never breaks anyone. The MOOS shim makes some of it runnable later without further work; nobody commits to that.
+**Contents**: everything in [01](01-source-inventory.md#attic-submodule). Structure mirrors the toolbox layout so an item can be promoted by moving a directory. It is **never built**: there is no CMake entry point, no CI, and `lamss toolbox activate attic` is refused. Promoting something out of attic means moving it into a real toolbox and making it build there.
 
 ## Cross-toolbox: the group catalogue
 

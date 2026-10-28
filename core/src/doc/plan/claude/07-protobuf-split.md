@@ -68,21 +68,9 @@ flowchart TB
 
 Rules:
 
-1. **Package per toolbox**: `package lamss.<toolbox>;` and files under `src/proto/lamss/<toolbox>/`. Generated headers are `lamss/<toolbox>/<file>.pb.h`. Imports across toolboxes use the installed path (`import "lamss/core/header.proto";`), which `lamss_add_proto` resolves through `build/usr/include`.
-2. **One generated library per toolbox**, `lamss_<tb>_proto`, linking only `protobuf` and `dccl` (and `goby` only where a message imports a Goby proto, which is `nav`, `status` and `modem_sim`). `netsim_messages` is linked by `virtual_ocean` only.
-3. **DCCL IDs are allocated from a table** kept in `core/src/proto/lamss/DCCL_IDS.md`, one range per toolbox:
-
-   | Toolbox | DCCL ID range |
-   |---|---|
-   | core | 1–99 |
-   | autonomy | 100–199 |
-   | sonar | 200–299 |
-   | virtual_ocean | 300–399 |
-   | icex | 400–499 |
-   | hydroman | 500–599 |
-   | user toolboxes | 1000+ |
-
-   CI runs `dccl --analyze` over all active toolboxes' DCCL messages and fails on any duplicate ID. The old IDs are kept **only** for messages that must stay wire-compatible with un-upgraded platforms; the human plan should list those (default assumption: none).
+1. **Package per toolbox**: `package lamss.<toolbox>;` and files under `src/lib/protobuf/lamss/<toolbox>/`. Generated headers are `lamss/<toolbox>/<file>.pb.h`. Imports across toolboxes use the installed path (`import "lamss/core/header.proto";`), which `lamss_add_proto` resolves through `build/usr/include`.
+2. **One generated library per toolbox**, `lamss_<tb>_protobuf` (`liblamss_<tb>_protobuf.so`), linking only `protobuf` and `dccl` (and `goby` only where a message imports a Goby proto, which is `nav`, `status` and `modem_sim`). `netsim_messages` is linked by `virtual_ocean` only.
+3. **DCCL IDs are public IDs** allocated from the DCCL public ID registry that GobySoft maintains, not from private per-toolbox ranges, so lamss3 messages can coexist on a link with any other DCCL user. The allocation is recorded in `core/src/lib/protobuf/lamss/DCCL_IDS.md` (message, ID, toolbox). CI runs `dccl --analyze` over all active toolboxes' DCCL messages and fails on any duplicate ID. None of the old IDs are kept: no fielded platform needs wire compatibility.
 4. **Variants go to attic**: `ooi_*`, `minimal_status`, `node_status` legacy variants, `mstiff_image`, `status_fillin` unless a live mission uses them.
 5. **Nav converges on `openocean.Navigation`** (the type IvPico and goby3 frontseat expect). `LegacyNodeReport`/`NODE_REPORT` strings survive only in the pMarineViewer bridge.
 6. **Custom options**: `option_extensions.proto` becomes `lamss/core/options.proto` with extension numbers registered against the in-house range (50000–99999, avoiding IvPico's 57400 and DCCL/Goby numbers).
@@ -94,15 +82,15 @@ Each app's `*_config.proto` moves with the app. For `GobyMOOSApp` apps it keeps 
 
 ## Runtime loading
 
-Today `pAcommsHandler.plug` lists `dccl_load_library: "$(LAMSS_LIB_ROOT)/liblamss_protobuf.so"`. The mission framework's acomms component emits one `dccl_load_library` line per active toolbox proto library it needs (`liblamss_core_proto.so`, `liblamss_autonomy_proto.so`, …), using the install prefix from `lamss env`. The Goby2 `goby_dccl_load()` hook and `lib_comms_state` are deleted.
+Today `pAcommsHandler.plug` lists `dccl_load_library: "$(LAMSS_LIB_ROOT)/liblamss_protobuf.so"`. The mission framework's acomms component emits one `dccl_load_library` line per active toolbox proto library it needs (`liblamss_core_protobuf.so`, `liblamss_autonomy_protobuf.so`, …), using the install prefix from `lamss env`. The Goby2 `goby_dccl_load()` hook and `lib_comms_state` are deleted.
 
 ## Migration steps
 
 ```mermaid
 flowchart LR
-  a[Copy all 60 protos into core/src/proto staging] --> b[Add package + move file per table above]
-  b --> c[Rewrite imports; build lamss_core_proto alone]
-  c --> d[Renumber DCCL IDs per range; dccl --analyze in CI]
+  a[Copy all 60 protos into core/src/lib/protobuf staging] --> b[Add package + move file per table above]
+  b --> c[Rewrite imports; build lamss_core_protobuf alone]
+  c --> d[Assign public DCCL IDs; dccl --analyze in CI]
   d --> e[Build autonomy/sonar/vo/icex proto libs]
   e --> f[Port compile-time consumers: gateway plugin, pViewMessage, henrik_util]
   f --> g[Regenerate pAcommsHandler/gobyd templates with new library names]
@@ -113,5 +101,5 @@ Each step is one PR. Step `c` is the Phase 1 exit criterion for protobuf.
 
 ## Open questions for the human plan
 
-- Are any platforms in the field running old DCCL IDs that must keep talking to lamss3 nodes? If yes, list the message names here and they keep their IDs.
-- `lamss_status.proto` (183 lines) mixes nav, health and mission state. Split it into `nav` + `health` + `autonomy.MissionState`, or keep it monolithic for acomms efficiency? **Recommendation: keep one DCCL message for the acoustic link but build it from the split in-memory types.**
+- No fielded platform needs the old DCCL IDs (decided).
+- `lamss_status.proto` stays one DCCL message for the acoustic link, built from split in-memory types (decided).

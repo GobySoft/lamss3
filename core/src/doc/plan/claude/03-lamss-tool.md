@@ -7,30 +7,31 @@ Detail for the "LAMSS Tool" section of the [core plan](../core.md).
 ## Requirements recap
 
 - Modern subcommand CLI, `lamss <command> [<subcommand>] [options]`, with `lm` as a shell alias when free.
-- Written in C++ (preferred), which needs a bootstrap step because the tool is what builds the project.
+- Written in C++ on the Goby3 tool framework (`goby::middleware::ToolHelper`, protobuf-configured subcommands, the same conventions as the `goby` tool), which needs a bootstrap step because the tool is what builds the project.
 - Implicit help when a subcommand is required; `--help` everywhere.
 - Subcommands: `build`, `dependencies`, `toolbox`, `mission`, plus `env` (added here).
 
 ## Bootstrap
 
-The tool lives in `core/src/bin/lamss/` and depends only on a C++17 compiler, CMake and two vendored header-only libraries ([CLI11](https://github.com/CLIUtils/CLI11) for parsing, [nlohmann/json](https://github.com/nlohmann/json) for the small amount of structured state). It does **not** link Goby, Protobuf or Boost, so it builds on a bare system before `lamss dependencies install` has run.
+The tool lives in `core/src/bin/lamss/` and is built on Goby3's tool framework, so its subcommands, help and configuration follow the `goby` tool's conventions and it gets protobuf-defined options for free. The price is that `libgoby3-dev` must be installed before the tool can be built; `init.sh` therefore installs the `core` apt dependencies (adding the GobySoft repository if needed) before building the tool. The dependency parsing for that first step is a few lines of shell reading `core/dependencies.yml`.
 
 ```mermaid
 sequenceDiagram
   participant U as user
-  participant B as bootstrap.sh
+  participant B as init.sh
   participant C as cmake
   participant L as lamss (built)
-  U->>B: ./bootstrap.sh
+  U->>B: ./init.sh
+  B->>B: apt install core deps from core/dependencies.yml (GobySoft repo)
   B->>C: cmake -S core/src/bin/lamss -B build/lamss-tool -G Ninja
   C-->>B: build/usr/bin/lamss
-  B-->>U: "add build/usr/bin to PATH (eval $(lamss env))"
+  B-->>U: symlink ~/.local/bin/lamss (and lm), eval $(lamss env) hint
   U->>L: lamss dependencies install
   U->>L: lamss build
   L->>C: cmake -S . -B build -G Ninja && cmake --build build --target install
 ```
 
-`bootstrap.sh` is ~20 lines of POSIX shell: check for `cmake`, `ninja`/`make`, `c++`; build the tool; offer to append the `lm` alias and `eval "$(lamss env)"` to the user's shell rc. On systems where the tool is installed from a Debian package (Phase 5) bootstrap is unnecessary.
+`init.sh` is a short POSIX shell script: add the GobySoft apt repository, install the `core` apt dependencies, build the tool, install symlinks `~/.local/bin/lamss` and `~/.local/bin/lm` (if `lm` is free), and print the `eval "$(lamss env)"` hint. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
 
 Rebuilding the tool is part of `lamss build` (the tool's own CMake project is also added at top level), so a changed tool source takes effect on the next build.
 
@@ -73,24 +74,26 @@ Exit status is CMake's. Output is streamed, not captured, so Ninja's progress an
 
 ### `lamss dependencies list|install` / `lm dep`
 
-Each toolbox has a `DEPENDENCIES` file. The old repos' format (one apt package per line) is kept but gains optional distro qualifiers and a comment syntax:
+Each toolbox has a `dependencies.yml` file, replacing the old `DEPENDENCIES` Makefile:
 
-```
-# core/DEPENDENCIES
-# <package> [codename[,codename...]]   (no codename = all)
-libgoby3-dev
-libdccl4-dev
-libprotobuf-dev
-libboost-all-dev
-moos-ivp              # built from source: see cmake/FindMOOSIvP.cmake
-libnetcdf-c++4-dev    noble,resolute
-libnetcdf-cxx-legacy-dev jammy
-python3-jinja2
-supervisor
+```yaml
+# core/dependencies.yml
+apt:
+  all: [libgoby3-dev, libdccl5-dev, libprotobuf-dev, libboost-all-dev, libmoos-ivp-dev, python3-jinja2, supervisor]
+  jammy: [libnetcdf-cxx-legacy-dev]
+  noble: [libnetcdf-c++4-dev]
+  resolute: [libnetcdf-c++4-dev]
+apt_repositories:
+  - name: gobysoft
+    url: http://packages.gobysoft.org/ubuntu/release/
+    key: cmake/keys/gobysoft.asc
+source:
+  - name: rtd-dm7820-dkms
+    script: src/sh/lamss_install_dm7820.sh
 ```
 
-- `list` prints the union over active toolboxes (or `--toolbox <tb>`), filtered by `lsb_release -cs`, with a `--all-distros` and `--format apt|json` option. Non-apt lines (`moos-ivp`) are listed under a separate "source builds" heading with the script that installs them (`core/src/sh/lamss_install_moos_ivp.sh`).
-- `install` runs `sudo apt-get install` on the apt list, adds the GobySoft apt repository if `libgoby3-dev` is listed and absent, and runs the source-build scripts unless `--apt-only`. `--dry-run` prints the commands.
+- `list` prints the union over active toolboxes (or `--toolbox <tb>`), filtered by `lsb_release -cs`, with a `--all-distros` and `--format apt|yaml` option. `source` entries are listed under a separate heading with the script that installs them.
+- `install` adds any listed apt repositories that are absent (keyring file under `/etc/apt/keyrings/`), runs `sudo apt-get install` on the apt list, and runs the source-build scripts unless `--apt-only`. `--dry-run` prints the commands.
 
 This is the only part of the tool that shells out to `sudo`; it prints the exact command first.
 
@@ -111,13 +114,15 @@ A changed list marks the build as needing reconfigure.
 ### `lamss mission run|sim|list|generate` / `lm m`
 
 ```
-lamss mission sim  <cruise> [--generate] [--execute] [--platform P] [--subsystem S] [--variant V]... [--set key=value]...
-lamss mission run  <cruise>  --platform P [--subsystem S] [--generate] [--execute] ...
+lamss mission sim  <cruise> [variant] [--generate] [--execute] [--platform P] [--subsystem S] [--set key=value]...
+lamss mission run  <cruise> [variant] --platform P [--subsystem S] [--generate] [--execute] ...
 lamss mission list [cruise]
-lamss mission generate <cruise> ...        # alias for --generate only
+lamss mission generate <cruise> [variant] ...   # alias for --generate only
 ```
 
-The tool does not implement mission logic. It locates the active toolboxes' `mission/` directories, sets `PYTHONPATH`, and execs `python3 -m lamss.mission` with the same arguments (see [06](06-missions-framework.md)). Keeping the mission engine in Python avoids a C++ ↔ Python boundary for the one subcommand that is inherently Python. `run` requires `--platform` and refuses to run in simulation mode; `sim` defaults to all platforms of the cruise's fleet.
+`variant` is an optional second positional argument naming one variant class; combinations of variants are themselves defined as named variants in Python, never composed on the command line ([06](06-missions-framework.md#variants)).
+
+The tool does not implement mission logic. It locates the active toolboxes' `missions/` directories, sets `PYTHONPATH`, and execs `python3 -m lamss.mission` with the same arguments (see [06](06-missions-framework.md)). Keeping the mission engine in Python avoids a C++ ↔ Python boundary for the one subcommand that is inherently Python. `run` requires `--platform` and refuses to run in simulation mode; `sim` defaults to all platforms of the cruise's fleet.
 
 ### `lamss env`
 
@@ -129,20 +134,20 @@ Removes `build/<toolbox>` trees and `build/usr`; `--all` removes `build/` except
 
 ## Finding the repository root
 
-The tool walks up from the current directory looking for `.lamss/`, like `git` looks for `.git/`. `LAMSS_ROOT` overrides. Mission commands additionally accept being run from inside a toolbox's `mission/` tree.
+The tool walks up from the current directory looking for `.lamss/`, like `git` looks for `.git/`. `LAMSS_ROOT` overrides. Mission commands additionally accept being run from inside a toolbox's `missions/` tree.
 
 ## Alias installation
 
-On first run (or `lamss alias install`), if `type lm` fails in the user's shell, the tool offers to append `alias lm=lamss` to `~/.bashrc`/`~/.zshrc`. It never writes without a yes. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are CLI11 aliases, not shell aliases.
+`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; `lamss alias install` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own subcommand table, not shell aliases.
 
 ## Implementation notes
 
-- Single translation unit per subcommand under `core/src/bin/lamss/cmd/`, plus `repo.cpp` (root discovery, toolbox list I/O) and `process.cpp` (fork/exec with streamed output; no `system()` with string concatenation).
+- Goby3 tool framework: one `lamss.proto` config with a message per subcommand, one translation unit per subcommand under `core/src/bin/lamss/cmd/`, plus `repo.cpp` (root discovery, toolbox list I/O) and `process.cpp` (fork/exec with streamed output; no `system()` with string concatenation).
 - All subprocess invocations are logged at `-v` so the user can reproduce by hand.
-- Unit tests for toolbox list editing and `DEPENDENCIES` parsing (plain ctest, no framework needed beyond `assert`).
-- Shell completion generated from the CLI11 tree (`lamss completion bash`).
+- Unit tests for toolbox list editing and `dependencies.yml` parsing (plain ctest, no framework needed beyond `assert`).
+- Shell completion as provided by the Goby3 tool framework.
 
 ## Open questions for the human plan
 
-- Should `lamss build` also run `clang-format --dry-run` or is that CI-only? **Recommendation: CI-only, with `lamss format` as a convenience.**
-- Is `lamss env` acceptable or should bootstrap install a symlink into `~/.local/bin`? Both can coexist.
+- `lamss build` does not run clang-format; CI checks it and `lamss format` exists as a convenience (decided).
+- `init.sh` installs the `~/.local/bin` symlinks; `lamss env` remains for `LD_LIBRARY_PATH`/`PYTHONPATH` (decided).

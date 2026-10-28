@@ -12,7 +12,7 @@ The first end-to-end target from the [core plan](../core.md): "Add the basic Mac
 - **macrura/main**: MOOSDB, pLamssMissionManager, pLamssTrackManager, pBasicContactMgr, pHelmIvP + LAMSS behaviors, pAcommsHandler, iFrontSeat_bluefin (Goby3 Bluefin frontseat driver in sim mode), pViewMessage, iBellhop, pTetraHoming, the passive chain (pLamssCBF, pLamssBearingTracker, pLamssAEL, pGeoTracker), pMOOSLink to the sim subsystems (transition).
 - **macrura/frontseat_sim**: MOOSDB, uMVS_Bluefin, pMarinePID, uSimGPS, uSimDVL, uSimPhinsINS, iBackSeatServer, iNoaaBathy.
 - **macrura/sensor_sim**: MOOSDB, uSimTargets, uSimTowedArray, uSimPassiveSonar, uSimNoiseCovariance, uSimCTD, uSimAcoBeaconRngBrg, iBellhop.
-- **netsim** (`topside/net_sim`): netsim_manager, netsim_udp, netsim_goby_moos_gateway, uSimModemNetwork.
+- **netsim** (`topside/net_sim`, optional for M1): netsim_manager, netsim_udp, netsim_goby_moos_gateway, uSimModemNetwork. Without it, the acomms step uses Goby3's UDP driver directly between the two `pAcommsHandler`s.
 
 This is the `macrura-hydroman-durip-mbat.sh` scenario of today **minus** `hydroman_ext` (HydroMAN 3, see M2), `nav_stub` and the Python display servers (`lamss_dc`, `btr_plot`, `tloss_display`), which become the first M2 variants. Every community also has the health listener, logging and `pLogger` (transition).
 
@@ -50,10 +50,11 @@ Only these move before M1; everything else waits.
 
 | Toolbox | Apps / libs | Lines (approx.) |
 |---|---|---|
-| core | `lamss_core_proto` (status, view, header, nav, options), gateway plugin, `pViewMessage`, health listener, `lamss.mission`, templates for gobyd/logger/liaison/coroner/MOOSDB/pLogger/gateway | ~2k C++ + Python |
+| core | `lamss_core_protobuf` (status, view, header, nav, options), gateway plugin, `pViewMessage`, health listener, `lamss.mission`, templates for gobyd/logger/liaison/coroner/MOOSDB/pLogger/gateway | ~2k C++ + Python |
 | autonomy | `pLamssMissionManager`, `pLamssTrackManager`, Goby3 Bluefin frontseat config, `uMVS_Bluefin`, `pGateway`, `pTetraHoming`, behaviors: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OptAcommsDepth | ~15k |
-| sonar | `pLamssCBF`, `pLamssBearingTracker`, `pLamssAEL`, `pGeoTracker` + `lib_track`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, durip array geometry | ~17k |
-| virtual_ocean | `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSimModemNetwork`, `iNetSimManager`, `henrik_util` acoustics subset, MBAT environment (bathy + CTD from `cruise/mbat/data`) | ~8k |
+| sonar | `pLamssCBF`, `pLamssBearingTracker`, `pLamssAEL`, `pGeoTracker` + `lib_track`, durip array geometry | ~6k |
+| virtual_ocean | `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, `uSimModemNetwork`, `iNetSimManager`, `henrik_util` acoustics subset | ~19k |
+| mit | MBAT environment (bathy + CTD from `cruise/mbat/data`, served from S3) | data |
 | mit | `mbat` cruise, `mit_bf21` fleet, `macrura` + `resolution` platforms, `data/acomms` DCCL configs | Python + data |
 
 Stock MOOS-IvP (`pHelmIvP`, `pMarinePID`, `pBasicContactMgr`, `pMarineViewer`, `pLogger`, `uXMS`, `MOOSDB`) and Goby3/netsim apps come from packages.
@@ -76,7 +77,7 @@ flowchart LR
 | Check | How |
 |---|---|
 | All processes `RUNNING` after 60 s | `supervisorctl status` |
-| Vehicle follows the deploy command | NAV track inside op box, depth within ±2 m of 15 m after settling |
+| Vehicle follows the deploy command (automated) | A ctest-registered script replays the `.goby` log and asserts that Macrura reaches the first loiter waypoints in order and holds depth within ±2 m of the commanded 15 m after settling; this is the M1 gate |
 | Acoustic link works both ways | `goby_logger` shows ≥1 `LAMSS_DEPLOY` received on macrura and ≥1 `LAMSS_STATUS` on topside |
 | Sonar chain produces a track | `pLamssTrackManager` publishes a track with bearing within 10° of truth |
 | Reproducible | `lm m generate mbat` output is byte-identical across two runs (no timestamps in configs) |
@@ -92,11 +93,12 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 | `hybrid` | `uSimUnderseaVehicle_Vlamss` + actuator map + control engine, `iLamssFrontSeat`, `pFrontSeatData`, glideslope domain, `BHV_GlideSlopeSpeed` |
 | `hycom` | `uSVP_OceanModel`, `uSimCTD_OceanModel`, `uSimADCP_OceanModel` with the HYCOM environment |
 | `two_auv` | adds `unicorn` (modem 3) to the fleet; MAC slot table grows |
-| `displays` | `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis` (Python, Bokeh) or their Liaison replacements |
+| `displays` | LAMSS Display Center with `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis` fed from Goby3 groups |
+| `hybrid_hydroman` | the combination of `hybrid` and `hydroman`, defined as its own variant file |
 | `runtime` (not a variant, `lm m run`) | `hw_modem` serial ports, `iFrontSeat_bluefin` against the real vehicle, `iDurip` |
 
 M2 is done when `irminger` is also expressed as a cruise reusing the same platform classes.
 
 ## M3: ICEX20
 
-`icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, HydroMAN 3 through the `hydroman` toolbox's variant (the internal toolbox the 2020 scenario used is not ported), and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise (IRIS modem, Beaufort sim) follows as a variant once icex20 runs.
+`icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, HydroMAN 3 through the `hydroman` toolbox's variant (the internal toolbox the 2020 scenario used is not ported), and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise is not ported.

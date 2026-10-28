@@ -6,7 +6,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 
 ## Goals
 
-1. **Builds on a fresh Ubuntu 24.04 (and 26.04) install** with `apt` dependencies only, plus MOOS-IvP and Goby3 from their upstream packages.
+1. **Builds on a fresh Ubuntu 22.04, 24.04 or 26.04 install** (every LTS until its end of life) with `apt` dependencies only, plus MOOS-IvP and Goby3 from their upstream packages.
 2. **One repository, many toolboxes.** `core` is always on; `autonomy`, `sonar`, `virtual_ocean` ship in-tree but opt-in; `mit`, `icex`, `attic` and user toolboxes are git submodules.
 3. **One CLI**, `lamss` (alias `lm`), for building, dependencies, toolbox management and running missions.
 4. **A mission framework** that keeps the object-oriented cruise/fleet/platform/component model of `missions-lamss` but uses Python 3 + Jinja2 and launches with `supervisord`.
@@ -19,7 +19,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 |---|---|
 | [01-source-inventory](01-source-inventory.md) | What exists in the old repos and where each piece lands (toolbox or attic) |
 | [02-repository-layout-and-build](02-repository-layout-and-build.md) | Directory layout, CMake toolbox mechanism, activation, `build/usr` |
-| [03-lamss-tool](03-lamss-tool.md) | The `lamss` C++ CLI: bootstrap, subcommands, state files |
+| [03-lamss-tool](03-lamss-tool.md) | The `lamss` C++ CLI on the Goby3 tool framework: init, subcommands, state files |
 | [04-dependencies-ci-packaging](04-dependencies-ci-packaging.md) | Ubuntu 24.04 dependency set, CI matrix, Debian packaging |
 | [05-middleware-moos-to-goby3](05-middleware-moos-to-goby3.md) | Migration levels, CMOOSApp shim, pHelmIvP to IvPico |
 | [06-missions-framework](06-missions-framework.md) | Python class model, Jinja2 rendering, supervisord output |
@@ -36,7 +36,7 @@ These are the choices the detailed plans assume. Change them here first if you d
 - **The mission framework is built before the middleware shift.** It generates whatever files the apps need today (`.moos`, `.bhv`, `.pb.cfg`) and swaps templates as apps migrate. It is also the test harness for the migration.
 - **`pAntler` is replaced by `supervisord` from day one** of the mission framework. There is no reason to generate the `ProcessConfig = ANTLER` block when every process will be launched from a `supervisord.conf` anyway.
 - **pHelmIvP is replaced by [IvPico](https://github.com/GobySoft/IvPico)**, not by a MOOS bridge. Until IvPico's Goby app exists, pHelmIvP runs under `goby_moos_gateway`. The IvPico protobuf interface is the contract the autonomy toolbox codes against.
-- **Protobuf messages are split by toolbox and get a `lamss::<toolbox>` package.** Wire compatibility with old DCCL messages is kept only where a message crosses the acoustic link to a platform that will not be upgraded (none known today).
+- **Protobuf messages are split by toolbox and get a `lamss::<toolbox>` package.** No wire compatibility with the old DCCL messages is kept: no platform in the field needs it.
 - **`attic` is a submodule, not a branch.** Deprecated apps stay buildable in isolation but never block the main build.
 - **HydroMAN 3 is a wrapper toolbox.** HydroMAN lives in its own git repository and runs as its own process group (`pHM3_BasicModel`, `pHM3_VelProcessor`, `iHydroMAN_Gateway`, `pHM_SensorFusion`, …). lamss3 carries a thin `hydroman/` toolbox that holds that repository as a submodule plus the lamss3-side glue: `iHydroMAN_LAMSS`, `iHydroMAN_PHINS`, the hydroman protos and the `hydroman` mission component ([02](02-repository-layout-and-build.md#wrapper-toolboxes)). The internal HydroMAN 1.x toolbox in lamss-shared (seven `pHydroMAN_*` apps, 14k lines) goes to `attic`; `autonomy` has no HydroMAN dependency.
 - **Nothing is ported without a consumer.** An app moves out of the old repos only when a mission in `mit` or a toolbox test needs it. Everything else goes to `attic` by default.
@@ -66,17 +66,17 @@ flowchart LR
 ### Phase 0: skeleton
 
 - Create the directory layout and top-level CMake with the toolbox activation mechanism ([02](02-repository-layout-and-build.md)).
-- Write the `lamss` tool with `build`, `toolbox` and `dependencies` subcommands ([03](03-lamss-tool.md)). `mission` comes in Phase 2.
+- Write the `lamss` tool on the Goby3 tool framework with `build`, `toolbox` and `dependencies` subcommands ([03](03-lamss-tool.md)). `mission` comes in Phase 2.
 - CI: build each toolbox alone and all together on Ubuntu 24.04 ([04](04-dependencies-ci-packaging.md)).
-- Adopt `.clang-format`, license headers and the `DEPENDENCIES` format ([08](08-code-style-licensing-maintenance.md)).
+- Adopt `.clang-format`, license headers and the `dependencies.yml` format ([08](08-code-style-licensing-maintenance.md)).
 
-Exit criterion: `git clone && ./bootstrap.sh && lm b` builds an empty `core` on 24.04 in CI.
+Exit criterion: `git clone && ./init.sh && lm b` builds an empty `core` on 22.04, 24.04 and 26.04 in CI.
 
 ### Phase 1: core toolbox builds
 
 - Split `lib_lamss_protobuf` ([07](07-protobuf-split.md)); only the `core` portion is needed first.
-- Port the core apps (`pCoroner`, `pMOOSLink`, `pViewMessage`, `pInitializer`, `iMOOS2SQL` and the shared libraries) with `git mv`-style history preservation ([09](09-toolboxes.md#core)).
-- Compile against Goby3 3.6, DCCL 4, Protobuf from 24.04, MOOS-IvP 24.8.1, C++17.
+- Port the core apps (`pCoroner`, `pMOOSLink`, `pViewMessage`, `pInitializer` and the shared libraries) with `git mv`-style history preservation ([09](09-toolboxes.md#core)); `iMOOS2SQL` is replaced by `goby_geov_gateway`.
+- Compile against Goby3 3.6, DCCL 5, Protobuf from the distribution, MOOS-IvP 24.8.1, C++17.
 - Run `clang-format` once over the ported tree.
 
 Exit criterion: `core` apps run under `goby_moos_gateway` + MOOSDB in a hand-written test configuration; CI green.
@@ -88,7 +88,7 @@ Exit criterion: `core` apps run under `goby_moos_gateway` + MOOSDB in a hand-wri
 - `lamss mission run|sim`.
 - Port `cruise/mbat` + `auv/macrura` as the first cruise ([10](10-milestone-mbat-macrura.md)); this pulls the minimum autonomy and virtual_ocean apps along with it.
 
-Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation on one machine.
+Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation on one machine, and an automated test confirms Macrura reaches its first waypoints on the loiter at the commanded depth ([10](10-milestone-mbat-macrura.md#acceptance)).
 
 ### Phase 3: remaining toolboxes
 
@@ -96,6 +96,7 @@ Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation
 - `hydroman`: wrapper toolbox around the HydroMAN 3 repository.
 - `virtual_ocean`: ocean model, modem network and sensor simulators.
 - `sonar`: processing chains and sonar simulators actually used by the live missions.
+- `icex` toolbox populated: needed for M3.
 - MBAT variants (**M2**) and the ICEX20 cruise (**M3**) as the forcing functions.
 
 ### Phase 4: middleware shift
@@ -108,7 +109,7 @@ Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation
 ### Phase 5: maintain
 
 - Debian packages per toolbox, release CI, documentation site, training topics (acomms sim, sonar sim, autonomy missions).
-- `icex` and `attic` submodules populated; old repositories archived with a pointer to `lamss3`.
+- `attic` submodule populated; old repositories archived with a pointer to `lamss3`.
 
 ## Dependency graph between work items
 
@@ -128,7 +129,9 @@ flowchart TB
   vo --> m1
   m1 --> sonar[sonar toolbox]
   m1 --> m2[M2 MBAT variants]
+  core --> icex[icex toolbox]
   m2 --> m3[M3 ICEX20]
+  icex --> m3
   core --> shim[CMOOSApp shim]
   shim --> mw[Per-app Goby3 rewrite]
   ivpico[IvPico Goby app] --> mw
@@ -139,7 +142,7 @@ flowchart TB
 
 ## Rough schedule
 
-Durations assume one primary developer with review from the lab. They are deliberately coarse; the milestones matter more than the dates.
+Durations assume one primary developer working with AI coding agents, with review from the lab; the agents compress the mechanical porting work (history-preserving moves, CMake, formatting, template conversion) considerably. The schedule is deliberately coarse; the milestones matter more than the dates.
 
 ```mermaid
 gantt
@@ -147,25 +150,25 @@ gantt
   dateFormat YYYY-MM-DD
   axisFormat %b
   section Phase 0
-  Layout, CMake, CI          :p0a, 2026-11-01, 3w
-  lamss tool                 :p0b, after p0a, 3w
+  Layout, CMake, CI          :p0a, 2026-11-01, 2w
+  lamss tool                 :p0b, after p0a, 2w
   section Phase 1
-  Protobuf split             :p1a, after p0a, 3w
-  Core apps port             :p1b, after p1a, 4w
+  Protobuf split             :p1a, after p0a, 1w
+  Core apps port             :p1b, after p1a, 2w
   section Phase 2
-  Mission framework          :p2a, after p0b, 6w
+  Mission framework          :p2a, after p0b, 4w
   MBAT Macrura (M1)          :milestone, m1, after p2a, 0d
   section Phase 3
-  autonomy + virtual_ocean   :p3a, after p1b, 8w
-  sonar                      :p3b, after p3a, 6w
+  autonomy + virtual_ocean   :p3a, after p1b, 4w
+  sonar + icex               :p3b, after p3a, 4w
   MBAT variants (M2)         :milestone, m2, after p3a, 0d
   ICEX20 (M3)                :milestone, m3, after p3b, 0d
   section Phase 4
-  CMOOSApp shim + rewrites   :p4a, after p3a, 12w
-  IvPico integration         :p4b, after p3b, 6w
+  CMOOSApp shim + rewrites   :p4a, after p3a, 8w
+  IvPico integration         :p4b, after p3b, 4w
   MOOSDB removed (M4)        :milestone, m4, after p4a, 0d
   section Phase 5
-  Packaging, docs, archive   :p5, after p4a, 6w
+  Packaging, docs, archive   :p5, after p4a, 3w
 ```
 
 ## Risks
@@ -173,7 +176,7 @@ gantt
 | Risk | Mitigation |
 |---|---|
 | Old apps depend on Goby2-era APIs that Goby3's `libgoby_moos` dropped | Phase 1 is sized to find these early; the survey in [01](01-source-inventory.md) flags known API users |
-| MOOS-IvP 24.8 changed behaviour/library APIs since the ~2016 era the code targets | Behaviors are rebuilt first and alone; IvP behaviors have the most stable API in MOOS-IvP |
+| MOOS-IvP 24.8 changed behaviour/library APIs since the ~2016 era the code targets | Expected to be minimal; behaviors are rebuilt first and alone to confirm |
 | Dead code gets ported "just in case" | The "nothing without a consumer" rule; the attic submodule is cheap |
 | Mission framework becomes a second gpp | Framework scope is fixed to the five concepts; templates stay dumb (no logic beyond loops and conditionals) |
 | IvPico not ready when Phase 4 arrives | pHelmIvP under `goby_moos_gateway` is a supported fallback indefinitely |

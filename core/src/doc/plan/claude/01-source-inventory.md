@@ -57,18 +57,19 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 
 | Item | From | Base | Lines | Notes |
 |---|---|---|---|---|
-| `lib_lamss_protobuf` (core subset) | lamss | proto | 3.7k total | Split per [07](07-protobuf-split.md) |
+| `lib_lamss_protobuf` (core subset) | lamss | proto | 3.7k total | Split per [07](07-protobuf-split.md) into `src/lib/protobuf/`, library `lamss_core_protobuf` |
 | `lib_goby3_lamss_gateway` | lamss | Goby3 gateway plugin | 426 | Native Goby3 already; seed for `core` groups |
-| `lib_henrik_util` | lamss | lib | 11.9k | Acoustic model, ray tracing, Kalman, NetCDF. Split: generic math stays in core, acoustics to virtual_ocean/sonar |
-| `lib_supun_util` | lamss | header-only | 23k (22.9k is vendored `json.h`) | Replace vendored json with `nlohmann-json3-dev`; keep the UTM/coordinate helpers |
+| `lib_henrik_util` → `henrik_util` | lamss | lib | 11.9k | Acoustic model, ray tracing, Kalman, NetCDF. Split: generic math stays in core, acoustics to virtual_ocean/sonar |
+| `lib_supun_util` → `supun_util` | lamss | header-only | 23k (22.9k is vendored `json.h`) | Replace vendored json with `nlohmann-json3-dev`; keep the UTM/coordinate helpers |
 | `pCoroner` | lamss | CMOOSApp | 393 | Process watchdog; becomes a supervisord event listener + Goby health publisher |
 | `pViewMessage` | lamss | GobyMOOSApp | 724 | VIEW_* ↔ compact protobuf for acomms; active 2024 |
 | `iSerialNMEA`, `iLineBasedComms` | lamss | GobyMOOSApp | 795 / 240 | Generic serial/TCP line I/O; Goby3 has `io::SerialThreadLineBased`, so these shrink to config |
 | `pPBNodeReport`, `uTopsideSetup` | lamss-shared | GobyMOOSApp | 256 / 255 | Node report conversions |
 | `pInitializer` | lamss | GobyMOOSApp | 55 | Duplicate of Goby's; drop once missions use Goby3 config |
 | `pMOOSLink` | lamss | CMOOSApp | 316 | Bridges two MOOSDBs; needed only until M4, then attic |
-| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; **attic candidate**, keep only if GEOV is still used |
+| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; replaced by Goby3's `goby_geov_gateway`, so attic |
 | `lib_pylamss`, `lib_pybellhop` | lamss-shared | python3 | ~2k | Log tools, Bellhop readers |
+| `display-center` (LAMSS Display Center) | lamss-shared | web (Bokeh, websockets) | ~10k | Kept; fed from Goby3 groups instead of pymoos |
 | `scripts/km`, `.bash_lamss` | lamss | sh | | Replaced by `lamss env` and `lamss mission stop` |
 
 ### autonomy
@@ -92,7 +93,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `uSimMarine_DUTM` | lamss | AppCasting | 3k | uSimMarine fork with dynamic UTM; try to upstream to moos-ivp first |
 | `pMissionMonitor` | lamss | CMOOSApp | 501 | |
 | `pNMEASender` | lamss-internal | GobyMOOSApp | 126 | |
-| Behaviors: `lib_behaviors-henrik` (lamss: 13; shared: 3; internal: ~8), `-spetillo` (lamss: 1; internal: 6 front-tracking), `-tes` (1), `-don` (5), `-emf43` (5), `-ayaari` (1), `-arthura` (1), `-arjuna` (1) | all | IvP behaviors | ~30k | Only behaviors referenced by live `.bhv` files are ported (see missions survey); one `lamss_behaviors` plugin library, grouped by topic not author. Loaded by pHelmIvP now, IvPico later |
+| Behaviors: `lib_behaviors-henrik` (lamss: 13; shared: 3; internal: ~8), `-spetillo` (lamss: 1; internal: 6 front-tracking), `-tes` (1), `-don` (5), `-emf43` (5), `-ayaari` (1), `-arthura` (1), `-arjuna` (1) | all | IvP behaviors | ~30k | Only behaviors referenced by live `.bhv` files are ported (see missions survey; confirmed); one `lamss_behaviors` plugin library, grouped by topic not author. Loaded by pHelmIvP now, IvPico later |
 | `lib_lamss_protobuf` (deploy/status/prosecute/stovepipe/hybrid_uuv/hydroman) | lamss | proto | | [07](07-protobuf-split.md) |
 
 ### hydroman (wrapper toolbox around the HydroMAN 3 repository)
@@ -112,14 +113,10 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pLamssCBF`, `pLamssAEL`, `pLamssBearingTracker` | lamss-shared | GobyMOOSApp | 2.6k / 411 / 1.8k | Passive chain |
 | `pGeoTracker` (+ `lib_track`) | lamss-shared | CMOOSApp | 2.2k + 576 | |
 | `pSonarPingControl` | lamss-shared | CMOOSApp | 1.1k | |
-| `uSimPassiveSonar` | lamss-shared | GobyMOOSApp | 4k | Most active app in the lab (2024–25) |
-| `uSimActiveSonar`, `uSimActiveContacts`, `uSimAEL`, `uSimTowedArray`, `uSimTargetBearings` | lamss-shared | CMOOSApp | 5.2k / 1.1k / 292 / 5k / 953 | |
-| `uSimNoiseCovariance`, `uSimSelfNoise`, `uSimSourceArray`, `uSimTargets`, `uSimTrackDVL` | lamss-shared | mixed | 1k / 287 / 262 / 631 / 567 | Array-centric sims; Dec 2025 commits |
-| `uTDA` | lamss-shared | CMOOSApp + FLTK | 3.4k | MOOS-IvP derived GPL viewer; keep only if used |
 | `iDurip` + `lib_durip` + DM7820 userspace lib + kernel driver | lamss-internal | GobyMOOSApp | 337 + 1.1k + 6k + 4k | The one live hardware driver; kernel module needs DKMS packaging for 6.x kernels |
 | `iMCC1608FS` | lamss-internal | CMOOSApp | 2.7k | Tetra-array DAQ; keep if tetra array is still used |
 | `pPostFile` | lamss-internal | CMOOSApp | 404 | Referenced 2024 |
-| `lib_lamss_protobuf` (sonarcontrol/contacts/tracks/btr/targetsim/pinger/ArrayNavigation/BeamformingVars) | lamss | proto | | |
+| `lib_lamss_protobuf` (sonarcontrol/contacts/tracks/btr/pinger/ArrayNavigation/BeamformingVars) | lamss | proto | | `src/lib/protobuf/`, library `lamss_sonar_protobuf` |
 
 ### virtual_ocean
 
@@ -130,23 +127,26 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `iNoaaBathy`, `iMseasBathy`, `iGdemSoundSpeed` | lamss | CMOOSApp | 416 / 425 / 379 | Bathy/SSP request services |
 | `iCTD_OceanModel`, `iADCP_OceanModel`, `uSimBathy`, `uSimCTD`, `uSimGPS`, `uFldOceanEnvSensor` | lamss | CMOOSApp | 861 / 823 / 536 / 406 / 277 / 968 | Simple sensor sims |
 | `uSimShipNMEA`, `uSimAcoBeaconRngBrg` | lamss-shared | mixed | 323 / 672 | |
+| `uSimPassiveSonar` | lamss-shared | GobyMOOSApp | 4k | Passive sonar time-series simulator; most active app in the lab (2024–25) |
+| `uSimActiveSonar`, `uSimActiveContacts`, `uSimAEL`, `uSimTowedArray`, `uSimTargetBearings` | lamss-shared | CMOOSApp | 5.2k / 1.1k / 292 / 5k / 953 | Sonar and array simulators |
+| `uSimNoiseCovariance`, `uSimSelfNoise`, `uSimSourceArray`, `uSimTargets`, `uSimTrackDVL` | lamss-shared | mixed | 1k / 287 / 262 / 631 / 567 | Noise, target and array sims; Dec 2025 commits |
 | HydroMANSimUtilities: `uSimDVL`, `uSimLBL`, `uSimPhinsINS`, `uSimReplayPCAP` | lamss-shared | CMOOSApp | 2.3k | Nav sensor sims |
 | `uSimBearingRange` | lamss-internal | CMOOSApp | 285 | Referenced 2021 |
 | `lib_netsim_processor` | lamss | Goby3 netsim plugin | 539 | |
 | `lib_henrik_util` acoustics subset | lamss | lib | | CAcousticModel, CRapRays, CEigenRays, CLamssNetcdf |
-| `lib_lamss_protobuf` (modem_sim, model_param, environment_update, adcp/ctd) | lamss | proto | | |
+| `lib_lamss_protobuf` (modem_sim, model_param, environment_update, adcp/ctd, targetsim) | lamss | proto | | `src/lib/protobuf/`, library `lamss_virtual_ocean_protobuf` |
 
 ### icex (submodule)
 
 | Item | From | Notes |
 |---|---|---|
 | `uSimHydroholeNav`, `uSimICEXMotion`, `uSimICEXTracker` | lamss-shared | GobyMOOSApp |
-| `iICEXTracker` | lamss-shared | Not built (Octave pre-4.4 API); attic unless rewritten |
+| `iICEXTracker` | lamss-shared | Kept in `icex` but not built (Octave pre-4.4 API) |
 | `lamss_icex_tracker`, `icex_buoy_multiplexer`, `icex_optimizer`, `lib_liaison-icex` | lamss-shared `src/goby` | **Native Goby3 `MultiThreadApplication`** but disabled in the build; Boost.Python + OpenCV deps |
 | `icex_tracking*.proto`, `optimizer_data.proto`, `icex_groups.h` | lamss | |
 | `icex_eeof_lib` (MATLAB), `ICEX_Analysis` | lamss-internal | Field analysis tooling, 2020 |
 | `BHV_OpRegion_ICEX` | lamss | |
-| `cruise/icex20` (M3), `cruise/arctic`, `topside/icex_sim` | missions-lamss | Mission content |
+| `cruise/icex20` (M3), `topside/icex_sim` | missions-lamss | Mission content (`cruise/arctic` goes to attic) |
 
 ### mit (submodule or in-tree, see [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan))
 
@@ -160,13 +160,14 @@ Everything not named above. Highlights so nobody goes looking:
 |---|---|
 | Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iBackSeatServer`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
 | Superseded by Goby/MOOS-IvP stock apps | `iModemSim` (netsim), `zLoggerNG`, `uTPB`, `pMailReader`, `pMOOSLink` (after M4), `pInitializer` |
-| Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker` |
+| Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker`; `uTDA` |
+| Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_gateway`); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
 | Internal HydroMAN 1.x (replaced by the HydroMAN 3 repository via the `hydroman` toolbox) | `pHydroMAN_{BasicModel,ModelCalibrator,LBLProcessor,DVLProcessor,SensorFusion,Manager,ModelEstimator}`, `pHydroMAN_ICEXManager` (14k lines, armadillo + embedded Python); the `hydroman`/`hydroman_3` mission flags and `auv/macrura/macrura_plugs/pHydroMAN_BasicModel.plug` |
 | Dead science code (hardcoded `/home/<user>` paths, thesis chains) | emf43 scattering chain (8 apps), `pImagePro`, `pROI`, `lib_arjuna_util`, `pRBTracker`, `pMBTracker`, `p1HTracker`, `pTrackManager`, `pTargetTracker`, `pTwostateTracker` (OpenCV < 3), `pActiveRangeTracker`, `pActiveGeoTracker` (OpenCV < 3), `lib_metrics` |
 | Glider | `pHelmToSlocum`, `uSimSlocum`, `glider/` missions |
 | MATLAB / Octave | `lamss-shared/src/matlab` (92k lines, 35 MB), `iMseas` + `lib_readhops` (MCR 2008a), `pOctaverMIT`, `uSimSoundVelocityMSEAS`, `src/octave` |
 | Lua | `iChauffeur`, `iLivery`, `pLuaScript`, `lib_lua` |
-| Web | `display-center` (Bokeh 2.2 dashboard), `uPlot` servers; revisit against Goby Liaison |
+| Web (kept, see core) | `uPlot` servers; the LAMSS Display Center (`display-center`) itself is wanted and stays in `core` |
 | Thirdparty | `at`/`at_2010` Acoustics Toolbox (netsim's package covers Bellhop), QccPack, svm_light, `Macrura_piUSBL_ICEX`, `octoport` (Python 2), `python-moos` |
 | Docs | 413 MB of PDFs/PPTX in `lamss/src/doc`, 31 MB in lamss-shared; move to a `lamss-docs` archive, not a submodule anyone builds |
 | Licensing conflicts | `iMOOSGateway`, `payload_interface` ("no permission granted") until the authors clear them |
@@ -179,8 +180,8 @@ Everything not named above. Highlights so nobody goes looking:
 | Dep | Used by | 24.04 status |
 |---|---|---|
 | Goby3 (`libgoby3-dev`, `goby3-moos`, `goby3-gui`) | everything | GobySoft apt repo; 3.6.x current |
-| DCCL 4 | protobuf | GobySoft apt repo |
-| MOOS 10 + MOOS-IvP (`libmoos-ivp-dev`, `moos-ivp-apps/gui`) | everything until M4 | GobySoft apt repo / `ppa:tes/lamss-moos10` today; **verify noble builds exist** |
+| DCCL 5 | protobuf | GobySoft apt repo |
+| MOOS 10 + MOOS-IvP (`libmoos-ivp-dev`, `moos-ivp-apps/gui`) | everything until M4 | GobySoft apt repo; noble builds exist |
 | netsim 1.3 (`libnetsim-dev`, `netsim-apps`) | virtual_ocean, sonar, autonomy (pDepthAdapt, behaviors) | GobySoft apt repo; noble amd64/arm64/armhf built by netsim's own CI; exports `netsim-config` for `find_package(NETSIM)` |
 | Boost ≥ 1.65 (date_time, thread, system, program_options, filesystem, regex, serialization, statechart) | wide | 1.83 in noble |
 | Protobuf, GSL, NetCDF C/C++4, HDF5, armadillo, FLTK 1.3, libpcap, hidapi/libusb, nlohmann-json | per app | all in noble; `libgsl0-dev` → `libgsl-dev`, `libnetcdf-cxx-legacy-dev` → `libnetcdf-c++4-dev` |
@@ -208,7 +209,7 @@ Everything not named above. Highlights so nobody goes looking:
 | `irminger` | pelagia / macrura | Irminger Sea, EEOF sound speed, mission script, 20 sim scripts | 2025-12 | **mit: live, most active** |
 | `mbat` | resolution / macrura, unicorn | Mass Bay AUV Testbed; the baseline | 2025-12 | **mit: live, M1 target** |
 | `icex20` | sea_dragon / hydrohole, macrura | ICEX 2020 ice camp, 153 MB ocean files | 2021-10 | **icex: M3 target** |
-| `arctic` | camp_sargo / macrura | Generic Beaufort ICEX-style sim, IRIS modem | 2023-06 | icex, after icex20 |
+| `arctic` | camp_sargo / macrura | Generic Beaufort ICEX-style sim, IRIS modem | 2023-06 | attic |
 | `preicex`, `charles*`, `ashumet_pond`, `jenkins_pond` | resolution / sandshark, macrura | 2019–2021 shallow tests | ≤2021 | attic (sandshark platform kept in mit if the vehicle still exists) |
 | `bayex14`, `prebayex14`, `bayex_dock`, `goats14`, `swamsi11` | CMRE ships / unicorn | NATO CMRE 2011–2014 | ≤2021 | attic |
 | `mab_sw06`, `sw06_acoust`, `florida_gulf`, `atlantic`, `noise09`, `posydon16`, `sbcex16`, `lab05`, `rap10`, `autec`, `wespac`, `gibraltar_sim`, `cyborg_may12` | various | 2005–2016 | ≤2021 | attic |
@@ -219,10 +220,10 @@ Everything not named above. Highlights so nobody goes looking:
 |---|---|
 | `auv/macrura` (+ `frontseat_sim`, `sensor_sim`, `hydroman_ext`, `secondary_payload_nano`) | mit; the reference platform |
 | `auv/unicorn` | mit |
-| `auv/sandshark` | mit if the vehicle is still operated, else attic |
+| `auv/sandshark` | attic |
 | `auv/neptune`, `auv/discovery`, `auv/spermwhale`, `auv/remus_sim` | attic |
-| `auv/arrays/*` (38 array payload definitions) | `durip`, `tetra` and whatever irminger/mbat use → sonar `mission/data/arrays`; rest attic |
-| `topside`, `topside/net_sim` | mit (core topside platform + virtual_ocean netsim component) |
+| `auv/arrays/*` (38 array payload definitions) | `durip`, `tetra` and whatever irminger/mbat use → sonar `missions/data/arrays`; rest attic |
+| `topside`, `topside/net_sim` | mit (core topside platform + virtual_ocean netsim component); the topside will also need a `sensor_sim` subsystem in simulation |
 | `topside/icex_sim` | icex |
 | `ship/resolution` (2024, incomplete: includes a missing `ship/ship.def`) | mit, finish during port |
 | `mooring/hydrohole` | icex; other moorings attic |
@@ -243,7 +244,7 @@ Evaluated across 33 communities (mbat baseline + hybrid, irminger, icex20, arcti
 | Python displays | `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server` |
 | uField (charles only) | `uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare` |
 
-Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*`/`pHM3_*` (HydroMAN repository), `iIRISLAMSS` (IRIS). `BHV_Attractor`, `BHV_RubberBand` and `BHV_MaintainHeading` are used by live plugs but exist in no lamss repo; they are stock MOOS-IvP behaviors from `lib_behaviors-marine` (confirm against the 24.8.1 source when porting). Template references to `$(MISSION_ROOT)/../moos-ivp-local` are stale: that repository is what became `lamss*`, and the references are in cruises older than the plan cares about (`swamsi11`, `cyborg_may12`, `kayak`, old array definitions).
+Not in any lamss repo but referenced live: `iBellhop`, `netsim_*` (netsim package), `pMarinePID`, `pBasicContactMgr`, `pEchoVar`, `uFld*` (MOOS-IvP), `iHydroMAN_Gateway`/`pHM_*`/`pHM3_*` (HydroMAN repository), `iIRISLAMSS` (IRIS, dropped). The uField set and IRIS are not carried forward. `BHV_Attractor`, `BHV_RubberBand` and `BHV_MaintainHeading` are used by live plugs but exist in no lamss repo; they are stock MOOS-IvP behaviors from `lib_behaviors-marine` (confirm against the 24.8.1 source when porting). Template references to `$(MISSION_ROOT)/../moos-ivp-local` are stale: that repository is what became `lamss*`, and the references are in cruises older than the plan cares about (`swamsi11`, `cyborg_may12`, `kayak`, old array definitions).
 
 ### Behaviors used live
 
@@ -251,4 +252,4 @@ Stock MOOS-IvP: Waypoint, Loiter, StationKeep, ConstantDepth/Speed/Heading, GoTo
 
 ### Data
 
-`data/acomms/*.pb.cfg` (42 DCCL message configs, edited 2024) → the owning toolbox's `mission/data/acomms`. `data/replicas` (modem/sonar waveforms) → virtual_ocean. `cruise/*/data` environment files: `mbat_lg_9840.xyz` is duplicated in 11 cruises (15 MB each); the 890 MB of NetCDF/bathy goes to a `lamss-environment` data repository or Git LFS in `mit`, never into the main tree.
+`data/acomms/*.pb.cfg` (42 DCCL message configs, edited 2024) → the owning toolbox's `missions/data/acomms`. `data/replicas` (modem/sonar waveforms) → virtual_ocean. `cruise/*/data` environment files: `mbat_lg_9840.xyz` is duplicated in 11 cruises (15 MB each); the 890 MB of NetCDF/bathy goes to an AWS S3 bucket, downloaded by `lm m` as a mission needs it, never into the main tree.
