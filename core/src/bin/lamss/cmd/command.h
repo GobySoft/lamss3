@@ -12,6 +12,7 @@ namespace tool
 {
 Command build_command();
 Command toolbox_command();
+Command dependencies_command();
 Command env_command();
 Command clean_command();
 } // namespace tool

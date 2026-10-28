@@ -13,6 +13,7 @@ apt:
     - dccl5-compiler
     - libprotobuf-dev
     - protobuf-compiler
+    - libyaml-cpp-dev
 apt_repositories:
   - name: gobysoft
     url: http://packages.gobysoft.org/ubuntu/release/

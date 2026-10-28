@@ -94,8 +94,8 @@ source:
     script: src/sh/lamss_install_dm7820.sh
 ```
 
-- `list` prints the union over active toolboxes (or `--toolbox <tb>`), filtered by `lsb_release -cs`, with a `--all-distros` and `--format apt|yaml` option. `source` entries are listed under a separate heading with the script that installs them.
-- `install` adds any listed apt repositories that are absent (keyring file under `/etc/apt/keyrings/`), runs `sudo apt-get install` on the apt list, and runs the source-build scripts unless `--apt-only`. `--dry-run` prints the commands.
+- `list` prints the union over active toolboxes (or `--toolbox <tb>` and the toolboxes it requires), filtered by `lsb_release -cs`, with a `--all-distros` and `--format apt|yaml` option. `source` entries are listed under a separate heading with the script that installs them.
+- `install` adds any listed apt repositories that are absent (keyring file under `/etc/apt/keyrings/`; an entry without `components` is a flat repository, suite `<codename>/`, like packages.gobysoft.org), runs `sudo apt-get install` on the apt list, and runs the source-build scripts unless `--apt-only`. `--dry-run` prints the commands.
 
 This is the only part of the tool that shells out to `sudo`; it prints the exact command first.
 

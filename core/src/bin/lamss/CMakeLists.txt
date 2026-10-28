@@ -10,14 +10,24 @@ if(PROJECT_IS_TOP_LEVEL)
   add_compile_options(-Wall -Wextra)
 endif()
 
-add_library(lamss_tool_common STATIC cli.cpp repo.cpp process.cpp)
+find_package(yaml-cpp REQUIRED)
+# yaml-cpp 0.8 exports yaml-cpp::yaml-cpp; 0.7 (Ubuntu 22.04) only yaml-cpp
+if(TARGET yaml-cpp::yaml-cpp)
+  set(LAMSS_YAML_CPP yaml-cpp::yaml-cpp)
+else()
+  set(LAMSS_YAML_CPP yaml-cpp)
+endif()
+
+add_library(lamss_tool_common STATIC cli.cpp repo.cpp process.cpp deps.cpp)
 target_compile_features(lamss_tool_common PUBLIC cxx_std_17)
 target_include_directories(lamss_tool_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(lamss_tool_common PUBLIC ${LAMSS_YAML_CPP})
 
 add_executable(lamss
   lamss.cpp
   cmd/build.cpp
   cmd/clean.cpp
+  cmd/dependencies.cpp
   cmd/env.cpp
   cmd/toolbox.cpp)
 target_link_libraries(lamss PRIVATE lamss_tool_common)

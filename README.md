@@ -8,11 +8,12 @@ LAMSS: Autonomous Marine Sensing Systems version 3
 On Ubuntu 22.04, 24.04 or 26.04:
 
 ```sh
-./init.sh                  # builds the lamss tool, links ~/.local/bin/lamss and lm
+./init.sh                  # builds the lamss tool, links ~/.local/bin/lamss and lm, installs dependencies (via sudo)
 eval "$(lamss env)"        # PATH, LD_LIBRARY_PATH, PYTHONPATH, LAMSS_ROOT; add to ~/.bashrc
 lm b                       # lamss build: configure, build and install the active toolboxes into build/usr
 lm tb activate autonomy    # lamss toolbox activate: add a toolbox (and what it requires) to the build
+lm dep install             # lamss dependencies install: its packages
 lm b
 ```
 
-`lamss --help` lists the commands, and every command takes `--help`. `./init.sh --yes` runs without prompts (CI); `./init.sh --no-deps` installs no packages.
+`lamss --help` lists the commands, and every command takes `--help`. `./init.sh --yes` runs without prompts (CI); `./init.sh --no-deps` installs no packages; `lm dep install` installs what newly activated toolboxes need.

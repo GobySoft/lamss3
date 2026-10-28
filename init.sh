@@ -2,8 +2,8 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Bootstraps a lamss3 checkout: builds the lamss tool into build/usr and links it into ~/.local/bin.
-# Safe to re-run.
+# Bootstraps a lamss3 checkout: builds the lamss tool into build/usr, links it into ~/.local/bin,
+# then has it install the active toolboxes' dependencies. Safe to re-run.
 
 set -eu
 
@@ -12,7 +12,7 @@ usage() {
 Usage: ./init.sh [--yes] [--no-deps]
 
   --yes      Do not ask before installing packages (apt-get -y)
-  --no-deps  Only build and link the tool; install no packages
+  --no-deps  Only build and link the tool; install nothing
 USAGE
 }
 
@@ -36,7 +36,8 @@ done
 
 root=$(cd "$(dirname "$0")" && pwd -P)
 tool="$root/build/usr/bin/lamss"
-tool_packages="build-essential cmake ninja-build"
+# from the Ubuntu archive; everything else comes from `lamss dependencies install`
+tool_packages="build-essential cmake ninja-build libyaml-cpp-dev gpg"
 
 run() {
     printf '+ %s\n' "$*"
@@ -100,6 +101,13 @@ if [ "$install_deps" -eq 1 ]; then
 fi
 build_tool
 link_tool
+if [ "$install_deps" -eq 1 ]; then
+    if [ "$assume_yes" -eq 1 ]; then
+        run "$tool" dependencies install --yes
+    else
+        run "$tool" dependencies install
+    fi
+fi
 
 echo
 echo "Done. Set up your shell (add to ~/.bashrc to make it permanent):"
