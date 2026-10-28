@@ -1,0 +1,19 @@
+# Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
+# apt.all applies to every distribution; apt.<codename> adds to it.
+apt:
+  all:
+    - build-essential
+    - cmake
+    - ninja-build
+    - git
+    - libgoby3-dev
+    - libais-dev  # libgoby3-dev 3.6.1 links libais.so without depending on it: GobySoft/goby3#427
+    - goby3-apps
+    - libdccl5-dev
+    - dccl5-compiler
+    - libprotobuf-dev
+    - protobuf-compiler
+apt_repositories:
+  - name: gobysoft
+    url: http://packages.gobysoft.org/ubuntu/release/
+    key: cmake/keys/gobysoft.asc

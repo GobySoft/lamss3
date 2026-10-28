@@ -171,10 +171,10 @@ Helpers provided by `LamssToolbox.cmake`:
 
 | Function | Does |
 |---|---|
-| `lamss_toolbox(NAME REQUIRES...)` | Sets install prefix to `build/usr`, C++17, warning flags, checks required toolboxes |
+| `lamss_toolbox(NAME REQUIRES...)` | Sets install prefix to `build/usr`, C++17, warning flags (`-DLAMSS_WERROR=ON` adds `-Werror`), `$ORIGIN` rpath, a `lamss_<tb>_all` target; checks required toolboxes are active (joint build) or installed (standalone) |
 | `lamss_add_library(name ...)` | `add_library` + namespaced alias `lamss::<tb>_<name>` + install + export |
-| `lamss_add_app(name ...)` | `add_executable` + install to `bin`; links `goby::goby` by default |
-| `lamss_add_proto(name PROTOS...)` | `protobuf_generate` with `IMPORT_DIRS` covering `build/usr/include` so cross-toolbox imports work; also runs `dccl` validation where messages carry DCCL options |
+| `lamss_add_app(name ...)` | `add_executable` + install to `bin`; links Goby3's `goby` target unless `NO_GOBY`; optional `PROTOS` for the app's config |
+| `lamss_add_proto(name PROTOS...)` | Called from the proto import root (`src/lib/protobuf`); runs `protoc` and the DCCL plugin keeping paths (`lamss/<tb>/x.pb.h`), with import dirs covering every active toolbox's proto root and installed toolboxes' `include/`, so cross-toolbox imports work in joint and standalone builds |
 | `lamss_add_python(package)` | Installs a Python package to `build/usr/lib/python3/dist-packages` |
 | `lamss_toolbox_export()` | Generates the `<tb>Config.cmake` and version file |
 

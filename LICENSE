@@ -1,0 +1,11 @@
+lamss3 is distributed under two licenses:
+
+| Code                                                | License                    | Text           |
+|-----------------------------------------------------|----------------------------|----------------|
+| Libraries (`<toolbox>/src/lib/`)                    | LGPL-3.0-or-later          | COPYING.LESSER |
+| Applications, scripts, missions, everything else    | GPL-3.0-or-later           | COPYING        |
+| Third-party code (`<toolbox>/src/thirdparty/<name>`)| as stated in that directory| (its own file) |
+
+Each source file carries an SPDX-License-Identifier header naming its license.
+Submodule toolboxes (mit, icex, attic, hydroman/upstream, user toolboxes)
+carry their own license terms.

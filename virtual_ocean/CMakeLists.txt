@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.22...4.2)
+project(lamss_virtual_ocean CXX)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/LamssToolbox.cmake OPTIONAL RESULT_VARIABLE _in_tree)
+if(NOT _in_tree)
+  find_package(lamss_core REQUIRED)
+  include(LamssToolbox)
+endif()
+lamss_toolbox(NAME virtual_ocean REQUIRES core)
+
+lamss_toolbox_export()
