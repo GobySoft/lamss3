@@ -1,4 +1,4 @@
-// Copyright 2026 Massachusetts Institute of Technology
+// Copyright 2026 GobySoft, LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Tests parsing lamss_toolbox(NAME ... REQUIRES ...) from a toolbox CMakeLists.txt and the

@@ -1,4 +1,4 @@
-// Copyright 2026 Massachusetts Institute of Technology
+// Copyright 2026 GobySoft, LLC
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // Tests editing of .lamss/toolboxes: comments and unrelated lines survive, core is implicit and
