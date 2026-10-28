@@ -20,7 +20,8 @@ message LamssToolConfig
 
     enum Action
     {
-        // short names are protobuf enum aliases: the Goby3 tool framework looks actions up by name
+        // short names are protobuf enum aliases: the Goby3 tool framework looks
+        // actions up by name
         option allow_alias = true;
 
         help = 0 [(goby.ev).cfg = {
@@ -41,9 +42,7 @@ message LamssToolConfig
         env = 3 [(goby.ev).cfg = {
             short_help_msg: "Print shell exports for using the build: eval \"$(lamss env)\""
         }];
-        clean = 4 [(goby.ev).cfg = {
-            short_help_msg: "Remove build products"
-        }];
+        clean = 4 [(goby.ev).cfg = { short_help_msg: "Remove build products" }];
     }
     optional Action action = 2 [
         default = help,
@@ -133,9 +132,8 @@ message ToolboxToolConfig
         activate = 4 [(goby.ev).cfg = {
             short_help_msg: "Activate toolboxes and the toolboxes they require"
         }];
-        deactivate = 5 [(goby.ev).cfg = {
-            short_help_msg: "Deactivate toolboxes"
-        }];
+        deactivate = 5
+            [(goby.ev).cfg = { short_help_msg: "Deactivate toolboxes" }];
     }
     optional Action action = 2 [
         default = help,
