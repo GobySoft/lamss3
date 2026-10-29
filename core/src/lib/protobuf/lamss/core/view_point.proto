@@ -9,7 +9,7 @@ package lamss.core;
 
 message VIEW_POINT
 {
-    option (dccl.msg).id = 155;
+    option (dccl.msg).id = 5120;
     option (dccl.msg).max_bytes = 16;
     option (dccl.msg).codec_version = 4;
     optional double _time = 1
