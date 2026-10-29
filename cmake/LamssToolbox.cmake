@@ -133,7 +133,8 @@ function(_lamss_generate_protos out_var out_dir)
       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}
       ${_goby_inc}
       ${LAMSS_DCCL_PROTO_DIR})
-    if(_dir AND NOT _dir MATCHES "NOTFOUND$" AND NOT _dir MATCHES "^\\$<")
+    # an installed include directory only exists once an upstream toolbox has been installed
+    if(_dir AND NOT _dir MATCHES "^\\$<" AND IS_DIRECTORY "${_dir}")
       list(APPEND _import_flags "-I${_dir}")
     endif()
   endforeach()
