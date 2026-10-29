@@ -1,3 +1,5 @@
 # Formatting-only commits, skipped by `git blame` (git config blame.ignoreRevsFile .git-blame-ignore-revs)
 # Format the lamss.core protos with clang-format
 04ee9246c2ebc4438d0ac3c7a4d44cd3ed5ce1a8
+# Format the gateway plugin and groups with clang-format
+9e83a5afb0256f055ca42eab31718746de37499f

@@ -14,3 +14,6 @@ lamss_add_proto(protobuf
     lamss/core/view_point.proto
     lamss/core/view_polygon.proto
     lamss/core/view_seglist.proto)
+
+target_include_directories(lamss_core_protobuf PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+install(FILES lamss/core/groups.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lamss/core)
