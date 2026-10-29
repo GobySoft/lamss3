@@ -7,5 +7,7 @@ lamss3 is distributed under two licenses:
 | Third-party code (`<toolbox>/src/thirdparty/<name>`)| as stated in that directory| (its own file) |
 
 Each source file carries an SPDX-License-Identifier header naming its license.
+Where that header differs from the table, the header wins: a library that links
+GPL code (such as MOOS-IvP) is GPL-3.0-or-later.
 Submodule toolboxes (mit, icex, attic, hydroman/upstream, user toolboxes)
 carry their own license terms.
