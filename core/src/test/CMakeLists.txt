@@ -3,3 +3,4 @@
 
 add_subdirectory(lamss_tool)
 add_subdirectory(protobuf)
+add_subdirectory(moos_gateway_plugin)

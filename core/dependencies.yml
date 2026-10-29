@@ -10,6 +10,7 @@ apt:
     - libais-dev  # libgoby3-dev 3.6.1 links libais.so without depending on it: GobySoft/goby3#427
     - goby3-apps
     - libgoby3-moos-dev
+    - goby3-moos
     - libmoos10-dev
     - libmoos-ivp-dev
     - libdccl5-dev
