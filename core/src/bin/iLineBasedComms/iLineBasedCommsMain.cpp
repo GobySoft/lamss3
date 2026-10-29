@@ -2,8 +2,8 @@
 // ocean engineering graduate student - mit / whoi joint program
 // massachusetts institute of technology (mit)
 // laboratory for autonomous marine sensing systems (lamss)
-// 
-// this is iLineBasedCommsMain.cpp 
+//
+// this is iLineBasedCommsMain.cpp
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -22,8 +22,5 @@
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "iLineBasedComms.h"
- 
-int main(int argc, char * argv[])
-{
-    return goby::moos::run<CiLineBasedComms>(argc, argv);
-}
+
+int main(int argc, char* argv[]) { return goby::moos::run<CiLineBasedComms>(argc, argv); }

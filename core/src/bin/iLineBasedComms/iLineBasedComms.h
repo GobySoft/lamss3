@@ -25,10 +25,10 @@
 #include <string>
 
 #include "goby/version.h"
-#if GOBY_VERSION_MAJOR >= 2 
- #include "goby/moos/goby_moos_app.h"
+#if GOBY_VERSION_MAJOR >= 2
+#include "goby/moos/goby_moos_app.h"
 #else
- #include "goby/moos/libmoos_util/tes_moos_app.h"
+#include "goby/moos/libmoos_util/tes_moos_app.h"
 #endif
 
 #include "goby/util/linebasedcomms.h"
@@ -37,22 +37,24 @@
 
 class CiLineBasedComms :
 #if GOBY_VERSION_MAJOR < 2
-   public TesMoosApp {
+    public TesMoosApp
+{
     typedef TesMoosApp goby::moos::GobyMOOSApp;
 #else
-   public goby::moos::GobyMOOSApp  {       
+    public goby::moos::GobyMOOSApp
+{
 #endif
   public:
     static CiLineBasedComms* get_instance();
-    
+
   private:
     CiLineBasedComms();
-    ~CiLineBasedComms() { }
-    
+    ~CiLineBasedComms() {}
+
     void loop();
     void handle_out(const CMOOSMsg& msg);
     void handle_bridge(const CMOOSMsg& msg);
-    
+
     goby::util::LineBasedInterface* modem_;
 
     typedef std::string LocalVar;
@@ -61,7 +63,6 @@ class CiLineBasedComms :
 
     static iLineBasedCommsConfig cfg_;
     static CiLineBasedComms* inst_;
-    
 };
 
-#endif 
+#endif
