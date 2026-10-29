@@ -12,6 +12,8 @@ apt:
     - libgoby3-moos-dev
     - goby3-moos
     - libmoos10-dev
+    - moosdb10
+    - netbase  # MOOS sockets need /etc/protocols, which moosdb10 and libmoos10 do not depend on
     - libmoos-ivp-dev
     - libdccl5-dev
     - dccl5-compiler
