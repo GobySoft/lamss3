@@ -1,23 +1,5 @@
-// t. schneider tes@mit.edu 10.1.07
-// laboratory for autonomous marine sensing systems
-// massachusetts institute of technology
-//
-// this is iSerialNMEA.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <iomanip>
 #include <sstream>
@@ -28,13 +10,12 @@
 
 #include "goby/util/debug_logger.h"
 using namespace goby::util::logger;
-#include "goby/time/legacy.h"
-using goby::common::ptime2unix_double;
+#include "goby/time/convert.h"
 using goby::util::Colors;
 
 using goby::util::glogger;
 
-iSerialNMEAConfig CiSerialNMEA::cfg_;
+lamss::core::iSerialNMEAConfig CiSerialNMEA::cfg_;
 CiSerialNMEA* CiSerialNMEA::inst_ = 0;
 
 CiSerialNMEA* CiSerialNMEA::get_instance()
@@ -117,26 +98,26 @@ void CiSerialNMEA::handleNMEA(const std::string& s)
 
 void CiSerialNMEA::read_configuration()
 {
-    if (cfg_.input() == iSerialNMEAConfig::INPUT_MOOSDB)
+    if (cfg_.input() == lamss::core::iSerialNMEAConfig::INPUT_MOOSDB)
         m_read_db = true;
-    else if (cfg_.input() == iSerialNMEAConfig::INPUT_PORT)
+    else if (cfg_.input() == lamss::core::iSerialNMEAConfig::INPUT_PORT)
         m_read_port = true;
 
     if (m_read_port)
     {
-        if (cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_SERIAL)
+        if (cfg_.connection_type() == lamss::core::iSerialNMEAConfig::CONNECTION_SERIAL)
         {
             serial_ = new goby::util::SerialClient(cfg_.serial_port(), cfg_.serial_baud());
             goby::glog.is(VERBOSE) && goby::glog << "opening serial port " << cfg_.serial_port()
                                                  << " @ " << cfg_.serial_baud() << std::endl;
         }
-        else if (cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_TCP_AS_CLIENT)
+        else if (cfg_.connection_type() == lamss::core::iSerialNMEAConfig::CONNECTION_TCP_AS_CLIENT)
         {
             goby::glog.is(VERBOSE) && goby::glog << "opening tcp client: " << cfg_.tcp_server()
                                                  << ":" << cfg_.tcp_port() << std::endl;
             serial_ = new goby::util::TCPClient(cfg_.tcp_server(), cfg_.tcp_port());
         }
-        else if (cfg_.connection_type() == iSerialNMEAConfig::CONNECTION_TCP_AS_SERVER)
+        else if (cfg_.connection_type() == lamss::core::iSerialNMEAConfig::CONNECTION_TCP_AS_SERVER)
         {
             goby::glog.is(VERBOSE) && goby::glog << "opening tcp server: " << cfg_.tcp_port()
                                                  << std::endl;
@@ -180,11 +161,8 @@ void CiSerialNMEA::do_subscriptions()
 
     if (cfg_.has_depth_updates_var())
     {
-        goby::moos::GobyMOOSApp::subscribe(cfg_.depth_updates_var(),
-                                           [](const CMOOSMsg& msg)
-                                           {
-                                               cfg_.set_fixed_depth(msg.GetDouble());
-                                           });
+        goby::moos::GobyMOOSApp::subscribe(cfg_.depth_updates_var(), [](const CMOOSMsg& msg)
+                                           { cfg_.set_fixed_depth(msg.GetDouble()); });
     }
 }
 
@@ -333,7 +311,7 @@ bool CiSerialNMEA::processGGA(const goby::util::NMEASentence& nmea)
     if (nmea.size() < 6)
         return false;
 
-    m_best_time = ptime2unix_double(GPStime2ptime(nmea[1]));
+    m_best_time = goby::time::convert<goby::time::SITime>(GPStime2ptime(nmea[1])).value();
 
     std::string lat_deg;
     std::string lat_min;
@@ -385,7 +363,7 @@ bool CiSerialNMEA::processRMC(const goby::util::NMEASentence& nmea)
     if (nmea.size() < 6)
         return false;
 
-    m_best_time = ptime2unix_double(GPStime2ptime(nmea[1]));
+    m_best_time = goby::time::convert<goby::time::SITime>(GPStime2ptime(nmea[1])).value();
 
     std::string lat_deg;
     std::string lat_min;

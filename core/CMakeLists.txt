@@ -10,6 +10,7 @@ install(FILES ${LAMSS_CMAKE_DIR}/LamssToolbox.cmake DESTINATION ${CMAKE_INSTALL_
 
 add_subdirectory(src/lib/protobuf)
 add_subdirectory(src/lib/henrik_util)
+add_subdirectory(src/bin/iSerialNMEA)
 add_subdirectory(src/bin/lamss)
 add_subdirectory(src/bin/pMOOSLink)
 add_subdirectory(src/bin/pViewMessage)

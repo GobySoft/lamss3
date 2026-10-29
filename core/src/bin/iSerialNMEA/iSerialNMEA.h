@@ -1,24 +1,5 @@
-// t. schneider tes@mit.edu 10.1.07
-// laboratory for autonomous marine sensing systems
-// massachusetts institute of technology
-//
-// this is iSerialNMEA.h
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef ISERIALNMEAH
 #define ISERIALNMEAH
@@ -40,7 +21,7 @@
 #include "goby/util/linebasedcomms.h"
 
 #include "iSerialNMEA_config.pb.h"
-#include "lamss/lib_henrik_util/CMeasAvg.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
 
 #include "goby/moos/moos_geodesy.h"
 
@@ -119,15 +100,15 @@ class CiSerialNMEA :
 
     goby::util::LineBasedInterface* serial_;
 
-    static iSerialNMEAConfig cfg_;
+    static lamss::core::iSerialNMEAConfig cfg_;
     static CiSerialNMEA* inst_;
 
     // GPS filters
-    CMeasAvg m_gps_x_filt;
-    CMeasAvg m_gps_y_filt;
+    lamss::core::CMeasAvg m_gps_x_filt;
+    lamss::core::CMeasAvg m_gps_y_filt;
     // Mooring speed filters
-    CMeasAvg m_x_spd_filt;
-    CMeasAvg m_y_spd_filt;
+    lamss::core::CMeasAvg m_x_spd_filt;
+    lamss::core::CMeasAvg m_y_spd_filt;
 };
 
 #endif

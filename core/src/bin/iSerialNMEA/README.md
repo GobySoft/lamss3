@@ -1,26 +1,33 @@
-t. schneider tes@mit.edu 10.1.07
-laboratory for autonomous marine sensing systems
-massachusetts institute of technology 
+# iSerialNMEA
 
-readme for iSerialNMEA:
+t. schneider tes@mit.edu 10.1.07  
+laboratory for autonomous marine sensing systems  
+massachusetts institute of technology
 
 this process is a program running under the MOOS robotic control
 software system developed by paul newman:
 http://www.robots.ox.ac.uk/%7Epnewman/TheMOOS/index.html
 
-> compilation:
+## compilation
+
 make
 
-> usage: (must be root or have permissions to open the serial port)
+## usage
+
+(must be root or have permissions to open the serial port)
+
+```
 iSerialNMEA file.moos [name to register with moos]
+```
 
 an example .moos configuration file (with comments) is provided
 in this directory.
 
 this process may also be launched by pAntler.
 
-> purpose: 
-takes NMEA data streaming into the serial port specified in 
+## purpose
+
+takes NMEA data streaming into the serial port specified in
 the configuration block of the .moos file and attempts to parse
 out position, heading, speed information to publish as AIS_REPORT
 
@@ -30,5 +37,6 @@ exercises. With modification, it may be useful for other serial
 NMEA streams.
 
 currently supports the following NMEA strings:
-GPGGA (lat, long, extrapolated speed)
-PASHR (heading)
+
+- GPGGA (lat, long, extrapolated speed)
+- PASHR (heading)

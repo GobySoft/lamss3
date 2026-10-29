@@ -1,20 +1,7 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                     iSerialNMEA
-# Author(s):                                 t. schneider
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS})
-
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(iSerialNMEA ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
-      
-TARGET_LINK_LIBRARIES(iSerialNMEA
-  ${MOOS_LIBRARIES}
-  ${IVP_MBUTIL_LIBRARY}
-  ${GOBY_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${PROTOBUF_LIBRARIES}
-  henrik_util 
-)
+lamss_add_app(iSerialNMEA MOOS
+  SOURCES iSerialNMEAMain.cpp iSerialNMEA.cpp
+  PROTOS iSerialNMEA_config.proto
+  LINK_LIBRARIES lamss::core_henrik_util)
