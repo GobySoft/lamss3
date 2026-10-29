@@ -28,15 +28,14 @@
 
 bool on_connect_to_server(void* mooslink);
 
-class CpMOOSLink : public CMOOSApp  
+class CpMOOSLink : public CMOOSApp
 {
   public:
- CpMOOSLink(): config_read_(false), local_client_(m_Comms) { }    
-    ~CpMOOSLink() { }
-    
+    CpMOOSLink() : config_read_(false), local_client_(m_Comms) {}
+    ~CpMOOSLink() {}
 
   private:
-    bool OnNewMail(MOOSMSG_LIST &NewMail);
+    bool OnNewMail(MOOSMSG_LIST& NewMail);
     bool Iterate();
     bool OnConnectToServer();
     bool OnRemoteConnectToServer();
@@ -47,8 +46,12 @@ class CpMOOSLink : public CMOOSApp
     typedef std::string MOOSVar;
     void parse_request(const std::string& value, std::pair<MOOSVar, MOOSVar>* request);
 
-    enum Direction { IN, OUT };
-        
+    enum Direction
+    {
+        IN,
+        OUT
+    };
+
     void repost(MOOSMSG_LIST& mail, Direction dir);
 
     friend bool on_connect_to_server(void* mooslink);
@@ -61,7 +64,6 @@ class CpMOOSLink : public CMOOSApp
 
     std::multimap<MOOSVar, MOOSVar> out_map_;
     std::multimap<MOOSVar, MOOSVar> in_map_;
-    
 };
 
-#endif 
+#endif

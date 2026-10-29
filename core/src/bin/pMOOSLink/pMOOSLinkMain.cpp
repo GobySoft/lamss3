@@ -2,7 +2,7 @@
 // ocean engineering graduate student - mit / whoi joint program
 // massachusetts institute of technology (mit)
 // laboratory for autonomous marine sensing systems (lamss)
-// 
+//
 // copyright 2011 MIT & t. schneider
 //
 // see the readme file within this directory for information
@@ -22,16 +22,16 @@
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "pMOOSLink.h"
- 
-int main(int argc, char * argv[])
+
+int main(int argc, char* argv[])
 {
     // default parameters file
-    const char * sMissionFile = "pMOOSLink.moos";
-        
+    const char* sMissionFile = "pMOOSLink.moos";
+
     // under what name should the application register with the MOOSDB?
-    const char * sMOOSName = "pMOOSLink";
-  
-    switch(argc)
+    const char* sMOOSName = "pMOOSLink";
+
+    switch (argc)
     {
         case 3:
             // command line says don't register with default name
@@ -40,12 +40,12 @@ int main(int argc, char * argv[])
             // command line says don't use default config file
             sMissionFile = argv[1];
     }
-  
+
     // make an application
     CpMOOSLink pMOOSLinkApp;
-    
+
     // run it
-    pMOOSLinkApp.Run(sMOOSName,sMissionFile);
+    pMOOSLinkApp.Run(sMOOSName, sMissionFile);
 
     return 0;
 }
