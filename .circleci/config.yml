@@ -97,7 +97,7 @@ jobs:
       - init
       - run:
           name: Activate every in-tree toolbox
-          command: lamss toolbox activate autonomy sonar virtual_ocean
+          command: lamss toolbox activate autonomy sonar virtual_ocean gui
       - run:
           name: lamss dependencies install --yes
           command: lamss dependencies install --yes
@@ -109,7 +109,7 @@ jobs:
     parameters:
       toolbox:
         type: enum
-        enum: [core, autonomy, sonar, virtual_ocean]
+        enum: [core, autonomy, sonar, virtual_ocean, gui]
     executor: ubuntu
     steps:
       - install-prerequisites
@@ -162,7 +162,7 @@ workflows:
           name: build-<< matrix.toolbox >>-standalone
           matrix:
             parameters:
-              toolbox: [core, autonomy, sonar, virtual_ocean]
+              toolbox: [core, autonomy, sonar, virtual_ocean, gui]
       - build-all:
           name: build-all-<< matrix.codename >>-amd64
           resource_class: large
