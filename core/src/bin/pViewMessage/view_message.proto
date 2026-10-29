@@ -1,0 +1,108 @@
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package lamss.protobuf;
+
+message Point
+{
+  required double x = 1;
+  required double y = 2;
+  optional double z = 3 [default = 0];
+}
+
+
+message ViewPoint
+{
+  required string vehicle_name = 1;
+  required Point point = 2;
+  optional bool active = 3 [default = false];
+  enum PointType
+  {
+    UNKNOWN = 0;
+    WAYPOINT = 1;
+    TRAILPOINT = 2;
+    ATTRACTOR = 3;
+    STATION = 4;
+  }
+  optional PointType type = 4 [default = UNKNOWN];
+  required int32 destination = 5;
+}
+
+message ViewSegList
+{
+  required string vehicle_name = 1;
+  enum MissionType
+  {
+    UNKNOWN = 0;
+    DEPLOY = 1;
+    PROSECUTE = 2;
+    RETURN = 3;
+    TRANSIT = 4;
+  }
+  optional MissionType mission = 2 [default = UNKNOWN];
+  repeated Point point = 3;
+  optional bool active = 4 [default = false];
+  required int32 destination = 5;
+
+  enum PolyType
+  {
+      NORMAL = 0;
+      OPBOX = 1;
+      OBSTACLE = 2;
+  }
+  required PolyType polytype = 11;
+}
+
+message ViewPoint_GEO
+{
+  required string vehicle_name = 1;
+  required Point point = 2;
+  optional bool active = 3 [default = false];
+  enum PointType
+  {
+    UNKNOWN = 0;
+    WAYPOINT = 1;
+    TRAILPOINT = 2;
+    ATTRACTOR = 3;
+    STATION = 4;
+  }
+  optional PointType type = 4 [default = UNKNOWN];
+  required int32 destination = 5;
+}
+
+message ViewSegList_GEO
+{
+  required string vehicle_name = 1;
+  enum MissionType
+  {
+    UNKNOWN = 0;
+    DEPLOY = 1;
+    PROSECUTE = 2;
+    RETURN = 3;
+    TRANSIT = 4;
+  }
+  optional MissionType mission = 2 [default = UNKNOWN];
+  repeated Point point = 3;
+  optional bool active = 4 [default = false];
+  required int32 destination = 5;
+
+  enum PolyType
+  {
+      NORMAL = 0;
+      OPBOX = 1;
+      OBSTACLE = 2;
+  }
+  required PolyType polytype = 11;
+}
+
+message ViewMessageConfig
+{
+  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see tes_moos_app.proto
+
+    optional bool generate_view_objects = 10 [default = true];
+
+    optional int32 destination = 20 [default = 1];
+
+    optional int32 icex_25khz_id = 30 [default =16];
+    
+}
