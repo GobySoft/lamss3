@@ -156,22 +156,12 @@ else
     hooked=0
 fi
 
-if [ "$install_deps" -eq 1 ]; then
-    title="Install the active toolboxes' dependencies"
-    dry_run=$("$tool" dependencies install --dry-run --yes)
-    plan=$(printf '%s\n' "$dry_run" | sed -n 's/^+ //p')
-    if [ -z "$plan" ]; then
-        already_done "$title"
+if [ "$install_deps" -eq 1 ] &&
+    step "Install the active toolboxes' dependencies" "lamss dependencies install"; then
+    if [ "$assume_yes" -eq 1 ]; then
+        run "$tool" dependencies install --yes
     else
-        old_ifs=$IFS
-        IFS='
-'
-        # shellcheck disable=SC2086 # one argument per planned command
-        set -- $plan
-        IFS=$old_ifs
-        if step "$title" "$@"; then
-            run "$tool" dependencies install --yes
-        fi
+        run "$tool" dependencies install
     fi
 fi
 
