@@ -1,8 +1,8 @@
 // t. schneider tes@mit.edu 10.1.07
 // laboratory for autonomous marine sensing systems
-// massachusetts institute of technology 
-// 
-// this is iSerialNMEA.h 
+// massachusetts institute of technology
+//
+// this is iSerialNMEA.h
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -23,18 +23,18 @@
 #ifndef ISERIALNMEAH
 #define ISERIALNMEAH
 
-#include <string>
 #include <cmath>
 #include <iostream>
 #include <iterator>
+#include <string>
 
 #include <boost/date_time.hpp>
 
 #include "goby/version.h"
-#if GOBY_VERSION_MAJOR >= 2 
- #include "goby/moos/goby_moos_app.h"
+#if GOBY_VERSION_MAJOR >= 2
+#include "goby/moos/goby_moos_app.h"
 #else
- #include "goby/moos/libmoos_util/tes_moos_app.h"
+#include "goby/moos/libmoos_util/tes_moos_app.h"
 #endif
 
 #include "goby/util/linebasedcomms.h"
@@ -49,37 +49,32 @@
 
 class CiSerialNMEA :
 #if GOBY_VERSION_MAJOR < 2
-   public TesMoosApp {
+    public TesMoosApp
+{
     typedef TesMoosApp goby::moos::GobyMOOSApp;
 #else
-   public goby::moos::GobyMOOSApp  {       
+    public goby::moos::GobyMOOSApp
+{
 #endif
   public:
     static CiSerialNMEA* get_instance();
-    
-  private: 
-   CiSerialNMEA();
+
+  private:
+    CiSerialNMEA();
     void inbox(const CMOOSMsg& msg);
     void loop();
     void read_configuration();
-    void do_subscriptions();    
+    void do_subscriptions();
 
     void subscribe(const std::string& var)
-    { goby::moos::GobyMOOSApp::subscribe(var, &CiSerialNMEA::inbox, this); }
+    {
+        goby::moos::GobyMOOSApp::subscribe(var, &CiSerialNMEA::inbox, this);
+    }
 
-    
-    std::string assembleAIS(std::string name,
-                            std::string type,
-                            double db_time,
-                            double utc_time,
-                            double x,
-                            double y,
-                            double lat,
-                            double lon,
-                            double spd,
-                            double hdg,
+    std::string assembleAIS(std::string name, std::string type, double db_time, double utc_time,
+                            double x, double y, double lat, double lon, double spd, double hdg,
                             double depth);
-    
+
     void handleNMEA(const std::string&);
     bool parseNMEA(const goby::util::NMEASentence&);
 
@@ -95,7 +90,7 @@ class CiSerialNMEA :
     bool estimateHeading();
 
     boost::posix_time::ptime GPStime2ptime(const std::string& mt);
-    
+
     double m_nav_x;
     double m_nav_y;
     double m_lat;
@@ -104,20 +99,18 @@ class CiSerialNMEA :
     double m_nav_speed;
     double m_nav_heading;
     double m_last_post_time;
-    
+
     bool m_read_db;
     bool m_read_port;
     bool m_first_nav;
-    
+
     // newest timestamp available from the serial stream
     double m_best_time;
-    
-    
+
     double m_last_x;
     double m_last_y;
     double m_last_time;
-    
-    
+
     int m_i;
 
     //    double m_speed[SPEED_POINTS];
@@ -125,9 +118,9 @@ class CiSerialNMEA :
     goby::moos::CMOOSGeodesy m_geodesy;
 
     goby::util::LineBasedInterface* serial_;
-    
+
     static iSerialNMEAConfig cfg_;
-    static CiSerialNMEA* inst_;    
+    static CiSerialNMEA* inst_;
 
     // GPS filters
     CMeasAvg m_gps_x_filt;
@@ -135,7 +128,6 @@ class CiSerialNMEA :
     // Mooring speed filters
     CMeasAvg m_x_spd_filt;
     CMeasAvg m_y_spd_filt;
-
 };
 
-#endif 
+#endif

@@ -1,8 +1,8 @@
 // t. schneider tes@mit.edu 10.1.07
 // laboratory for autonomous marine sensing systems
-// massachusetts institute of technology 
-// 
-// this is iSerialNMEAMain.cpp 
+// massachusetts institute of technology
+//
+// this is iSerialNMEAMain.cpp
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -20,10 +20,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <string>
 #include "iSerialNMEA.h"
- 
-int main(int argc, char * argv[])
-{
-    return goby::moos::run<CiSerialNMEA>(argc, argv);
-}
+#include <string>
+
+int main(int argc, char* argv[]) { return goby::moos::run<CiSerialNMEA>(argc, argv); }
