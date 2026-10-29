@@ -1,0 +1,18 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+// `iLineBasedComms -e` lists every field. Without write_to_var, incoming lines are hex-encoded
+// MOOS messages; each bridge sends a local variable the same way.
+ProcessConfig = iLineBasedComms
+{
+  write_to_var: "LINE_IN"
+  read_from_var: "LINE_OUT"
+  connection_type: CONNECTION_TCP_AS_SERVER
+  tcp_port: 50010
+}

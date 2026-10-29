@@ -29,6 +29,15 @@ flowchart LR
 
 **Tests**: proto build, DCCL ID uniqueness, group catalogue export, mission registry/render tests, shim round-trip test.
 
+**Phase 1 status (MOOS apps)**
+
+*This section written by Claude*
+
+- `pViewMessage`, `pMOOSLink`, `iSerialNMEA` and `iLineBasedComms` are in `core/src/bin/` with their history and still MOOS apps. `lamss_add_app(... MOOS)` links Goby3's `goby_moos` (or only `MOOS::MOOS` with `NO_GOBY`); `lamss_find_moos()` and `lamss_find_ivp(<lib>...)` in `LamssToolbox.cmake` make the MOOS, Goby MOOS and MOOS-IvP targets available to other toolboxes.
+- `henrik_util` so far holds only `CMeasAvg` (used by `iSerialNMEA`), in `lamss::core`; the rest of the core subset comes with its first consumer.
+- `pViewMessage`'s ICEX 25 kHz destination switch (`ICEX_VEHICLE_TRANSMIT_SELECTION_IN`, `icex_25khz_id`) is removed from core and belongs to the `icex` toolbox.
+- The apps' config protos are private to each app, in `package lamss.core`.
+
 ## autonomy
 
 **Contents**: mission managers, mission script, track manager, frontseat drivers (Bluefin via Goby3 frontseat, hybrid, embedded), hybrid UUV control stack (SRToolbox), adaptive depth, tetra homing, environmental gradient, gateway/buoy node, mooring/vehicle simulators (`uSimArrayMooring`, `uMVS_Bluefin`, `uSimUnderseaVehicle_Vlamss`, `uSimMarine_DUTM`), IvP behaviors, `lamss.autonomy` protos.
