@@ -1,28 +1,29 @@
-t. schneider tes@mit.edu 08.12.10
-ocean engineering graduate student - mit / whoi joint program
-massachusetts institute of technology (mit)
-laboratory for autonomous marine sensing systems (lamss)
+# iLineBasedComms
 
-readme for iLineBasedComms:
+t. schneider tes@mit.edu 08.12.10  
+ocean engineering graduate student - mit / whoi joint program  
+massachusetts institute of technology (mit)  
+laboratory for autonomous marine sensing systems (lamss)
 
 this process is a program running under the MOOS robotic control
 software system developed by paul newman:
 http://www.robots.ox.ac.uk/%7Epnewman/TheMOOS/index.html
 
-> compilation:
+## compilation
 
+## usage
 
-> usage:
+```
 iLineBasedComms file.moos [name_to_register_with_moos]
+```
 
 an example .moos configuration file (with comments) is provided
 in this directory.
 
 this process may also be launched by pAntler.
 
-> purpose:
+## purpose
 
-> example:
+## example
 
-> history:
-
+## history
