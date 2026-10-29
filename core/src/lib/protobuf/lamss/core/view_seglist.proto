@@ -9,7 +9,7 @@ package lamss.core;
 
 message VIEW_SEGLIST
 {
-    option (dccl.msg).id = 57;
+    option (dccl.msg).id = 5122;
     option (dccl.msg).max_bytes = 96;
     option (dccl.msg).codec_version = 4;
     optional double _time = 1

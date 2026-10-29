@@ -9,7 +9,7 @@ package lamss.core;
 
 message LAMSS_ENVIRONMENT_UPDATE
 {
-    option (dccl.msg).id = 58;
+    option (dccl.msg).id = 5123;
     option (dccl.msg).max_bytes = 64;
     option (dccl.msg).codec_version = 4;
     optional double _time = 1
