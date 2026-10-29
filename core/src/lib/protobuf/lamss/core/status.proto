@@ -5,12 +5,12 @@ message LAMSS_STATUS
     option (dccl.msg).id = 20;
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).unit_system = "si";
-        option (dccl.msg).codec_version = 4;
+    option (dccl.msg).codec_version = 4;
 
     optional double timestamp = 1 [
         (dccl.field).codec = "_time",
         (dccl.field).in_head = true,
-        (dccl.field).units = {base_dimensions: "T"}
+        (dccl.field).units = { base_dimensions: "T" }
     ];
 
     optional int32 node = 2 [
@@ -32,49 +32,49 @@ message LAMSS_STATUS
         (dccl.field).max = 180,
         (dccl.field).min = -180,
         (dccl.field).precision = 5,
-        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+        (dccl.field).units = { system: "angle::degree" base_dimensions: "A" }
     ];
     optional double nav_lat = 6 [
         (dccl.field).max = 90,
         (dccl.field).min = -90,
         (dccl.field).precision = 5,
-        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+        (dccl.field).units = { system: "angle::degree" base_dimensions: "A" }
     ];
     optional double speed = 7 [
         (dccl.field).max = 20.0,
         (dccl.field).min = -2.0,
         (dccl.field).precision = 1,
-        (dccl.field).units = {base_dimensions: "LT^-1"}
+        (dccl.field).units = { base_dimensions: "LT^-1" }
     ];
     optional double heading = 8 [
         (dccl.field).max = 360.00,
         (dccl.field).min = 0.00,
         (dccl.field).precision = 0,
-        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+        (dccl.field).units = { system: "angle::degree" base_dimensions: "A" }
     ];
     optional double depth = 9 [
         (dccl.field).max = 6400.0,
         (dccl.field).min = 0.0,
         (dccl.field).precision = 1,
-        (dccl.field).units = {base_dimensions: "L"}
+        (dccl.field).units = { base_dimensions: "L" }
     ];
     optional double altitude = 10 [
         (dccl.field).max = 500.0,
         (dccl.field).min = -10.0,
         (dccl.field).precision = 1,
-        (dccl.field).units = {base_dimensions: "L"}
+        (dccl.field).units = { base_dimensions: "L" }
     ];
     optional double pitch = 11 [
         (dccl.field).max = 1.57,
         (dccl.field).min = -1.57,
         (dccl.field).precision = 2,
-        (dccl.field).units = {base_dimensions: "A"}
+        (dccl.field).units = { base_dimensions: "A" }
     ];
     optional double roll = 12 [
         (dccl.field).max = 1.57,
         (dccl.field).min = -1.57,
         (dccl.field).precision = 2,
-        (dccl.field).units = {base_dimensions: "A"}
+        (dccl.field).units = { base_dimensions: "A" }
     ];
     optional Mission_StateEnum mission_state = 13;
     optional Deploy_ModeEnum deploy_mode = 14;
@@ -124,7 +124,7 @@ message LAMSS_STATUS
         (dccl.field).max = 5110.000000,
         (dccl.field).min = -5120.000000,
         (dccl.field).precision = -1,
-        (dccl.field).units = {base_dimensions: "T"}
+        (dccl.field).units = { base_dimensions: "T" }
     ];
     //	optional int32 Max_Cline_Depth = 20 [(dccl.field).max=255,
     //(dccl.field).min=0]; 	optional int32 Min_Cline_Depth = 21
@@ -134,7 +134,7 @@ message LAMSS_STATUS
         (dccl.field).max = 5110.000000,
         (dccl.field).min = -5120.000000,
         (dccl.field).precision = -1,
-        (dccl.field).units = {base_dimensions: "T"}
+        (dccl.field).units = { base_dimensions: "T" }
 
     ];
 
@@ -143,18 +143,19 @@ message LAMSS_STATUS
         (dccl.field).max = 1000,
         (dccl.field).min = 0,
         (dccl.field).precision = 1,
-        default = nan];
+        default = nan
+    ];
     optional double homing_x = 25 [
         (dccl.field).max = 100000,
         (dccl.field).min = -100000,
         (dccl.field).precision = 0,
-        (dccl.field).units = {base_dimensions: "L"}
+        (dccl.field).units = { base_dimensions: "L" }
     ];
     optional double homing_y = 26 [
         (dccl.field).max = 100000,
         (dccl.field).min = -100000,
         (dccl.field).precision = 0,
-        (dccl.field).units = {base_dimensions: "L"}
+        (dccl.field).units = { base_dimensions: "L" }
     ];
     optional bool homing_lock = 27 [default = false];
 }

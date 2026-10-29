@@ -4,7 +4,7 @@ message VIEW_SEGLIST
 {
     option (dccl.msg).id = 57;
     option (dccl.msg).max_bytes = 96;
-        option (dccl.msg).codec_version = 4;
+    option (dccl.msg).codec_version = 4;
     optional double _time = 1
         [(dccl.field).codec = "_time", (dccl.field).in_head = true];
     optional int32 vehicle_name = 2 [
@@ -50,4 +50,3 @@ message VIEW_SEGLIST
     }
     optional PolyType polytype = 11;
 }
-

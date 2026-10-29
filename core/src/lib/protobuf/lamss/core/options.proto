@@ -2,27 +2,22 @@ import "google/protobuf/descriptor.proto";
 
 package lamss;
 
-
 extend .google.protobuf.FieldOptions
 {
-  optional LamssFieldOptions field = 50042; 
+    optional LamssFieldOptions field = 50042;
 }
 
 extend .google.protobuf.MessageOptions
-{  
-  optional LamssMessageOptions msg = 50042;
+{
+    optional LamssMessageOptions msg = 50042;
 }
-
 
 message LamssFieldOptions
 {
-  optional string description = 100;
-  optional string example = 101;
+    optional string description = 100;
+    optional string example = 101;
 
-  optional string units = 102;
-
+    optional string units = 102;
 }
 
-message LamssMessageOptions
-{
-}
+message LamssMessageOptions {}
