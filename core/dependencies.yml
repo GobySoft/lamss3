@@ -12,6 +12,7 @@ apt:
     - libgoby3-moos-dev
     - goby3-moos
     - libmoos10-dev
+    - moosdb10
     - libmoos-ivp-dev
     - libdccl5-dev
     - dccl5-compiler
