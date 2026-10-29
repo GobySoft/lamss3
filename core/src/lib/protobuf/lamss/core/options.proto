@@ -1,6 +1,11 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
 import "google/protobuf/descriptor.proto";
 
-package lamss;
+package lamss.core;
 
 extend .google.protobuf.FieldOptions
 {

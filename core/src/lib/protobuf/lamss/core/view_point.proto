@@ -1,5 +1,12 @@
-import "dccl/protobuf/option_extensions.proto";
-import "goby/protobuf/option_extensions.proto";
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.core;
+
 message VIEW_POINT
 {
     option (dccl.msg).id = 155;

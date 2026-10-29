@@ -8,6 +8,7 @@ lamss_toolbox(NAME core)
 
 install(FILES ${LAMSS_CMAKE_DIR}/LamssToolbox.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lamss_core)
 
+add_subdirectory(src/lib/protobuf)
 add_subdirectory(src/bin/lamss)
 if(BUILD_TESTING)
   add_subdirectory(src/test)

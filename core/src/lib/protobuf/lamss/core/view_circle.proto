@@ -1,6 +1,11 @@
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
 import "dccl/option_extensions.proto";
 
-package lamss.protobuf;
+package lamss.core;
 
 message ViewCircle
 {
