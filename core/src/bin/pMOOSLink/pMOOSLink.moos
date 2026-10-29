@@ -1,0 +1,21 @@
+//------------------------------------------------------------------
+// pMOOSLink configuration  block
+
+ProcessConfig = pMOOSLink
+{
+  // available to all moos processes.
+  AppTick    = 4
+  CommsTick  = 4
+  
+  remote_server = 10.0.1.51
+  remote_port = 9000
+
+  out = A:B // post local var "A" as remote var "B"
+  out = C // post local var "C" as remote var "C"
+  
+  in = D:E // post remote var "D" as local var "E"
+  in = F // post remote var "F" as local var "F"
+  
+  in = 
+
+}
