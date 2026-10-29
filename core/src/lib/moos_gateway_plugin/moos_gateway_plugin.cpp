@@ -1,3 +1,6 @@
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 #include <ivp/XYCircle.h>
 #include <ivp/XYSegList.h>
 
@@ -10,20 +13,20 @@
 
 #include "goby/zeromq/application/multi_thread.h"
 
-#include "lamss/lib_goby3_lamss_gateway/groups.h"
+#include "lamss/core/groups.h"
+#include "lamss/core/node_status.pb.h"
+#include "lamss/core/status.pb.h"
+#include "lamss/core/tagged_acomms.pb.h"
+#include "lamss/core/view_circle.pb.h"
+#include "lamss/core/view_seglist.pb.h"
 
-#include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
-#include "lamss/lib_lamss_protobuf/node_status.pb.h"
-#include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
-#include "lamss/lib_lamss_protobuf/view_circle.pb.h"
-#include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
+#include "moos_gateway_plugin_config.pb.h"
 
 using goby::glog;
 using namespace goby::util::logger;
 
-// ensure that liblamss_protobuf is linked in
-LAMSS_STATUS unused;
+// ensure that liblamss_core_protobuf is linked in
+lamss::core::LAMSS_STATUS unused;
 
 class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
 {
@@ -31,12 +34,11 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
     pAcommsHandlerMultiplexTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-        for (int i = 0, n = cfg.GetExtension(lamss::protobuf::goby_gateway_config)
-                                .load_shared_library_size();
+        for (int i = 0,
+                 n = cfg.GetExtension(lamss::core::goby_gateway_config).load_shared_library_size();
              i < n; ++i)
         {
-            auto lib =
-                cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library(i);
+            auto lib = cfg.GetExtension(lamss::core::goby_gateway_config).load_shared_library(i);
             void* handle = dccl::DynamicProtobufManager::load_from_shared_lib(lib);
 
             if (!handle)
@@ -49,16 +51,17 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
 
         this->goby()
             .interprocess()
-            .subscribe_type_regex<lamss::groups::pAcommsHandler_multiplex,
+            .subscribe_type_regex<lamss::core::groups::pAcommsHandler_multiplex,
                                   google::protobuf::Message>(
-                [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type)
+                [&](std::shared_ptr<const google::protobuf::Message> msg,
+                    const std::string& /*type*/)
                 {
                     glog.is_debug2() && glog << "To MOOS: " << msg->ShortDebugString() << std::endl;
 
                     std::string serialized;
                     bool is_binary = serialize_for_moos(&serialized, *msg);
                     CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
-                        cfg.GetExtension(lamss::protobuf::goby_gateway_config).multiplex_moos_var(),
+                        cfg.GetExtension(lamss::core::goby_gateway_config).multiplex_moos_var(),
                         serialized, is_binary, goby::moos::moos_technique,
                         msg->GetDescriptor()->full_name());
                     moos().comms().Post(moos_msg);
@@ -75,7 +78,8 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                         goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
                     return;
                 }
-                this->goby().interprocess().publish<lamss::groups::acomms_ack_original>(pb_msg);
+                this->goby().interprocess().publish<lamss::core::groups::acomms_ack_original>(
+                    pb_msg);
             });
 
         this->moos().add_trigger(
@@ -89,7 +93,7 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                         goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
                     return;
                 }
-                this->goby().interprocess().publish<lamss::groups::acomms_expire>(pb_msg);
+                this->goby().interprocess().publish<lamss::core::groups::acomms_expire>(pb_msg);
             });
 
         this->moos().add_trigger(
@@ -103,7 +107,8 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                         goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
                     return;
                 }
-                this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
+                this->goby().interprocess().publish<lamss::core::groups::acomms_mac_slot_start>(
+                    pb_msg);
             });
 
         this->moos().add_trigger(
@@ -117,13 +122,13 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                         goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
                     return;
                 }
-                this->goby().interprocess().publish<lamss::groups::hydroman_health>(pb_msg);
+                this->goby().interprocess().publish<lamss::core::groups::hydroman_health>(pb_msg);
             });
 
         this->goby()
             .interprocess()
-            .subscribe<lamss::groups::acomms_raw_in, lamss::protobuf::NamedModemRaw>(
-                [this](const lamss::protobuf::NamedModemRaw& message)
+            .subscribe<lamss::core::groups::acomms_raw_in, lamss::core::NamedModemRaw>(
+                [this](const lamss::core::NamedModemRaw& message)
                 {
                     // post GPS for iSerialNMEA
                     // $GPRMC
@@ -159,7 +164,7 @@ class NavStatusTranslation : public goby::moos::Translator
                         goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
                     return;
                 }
-                this->goby().interprocess().publish<lamss::groups::lamss_status_in>(pb_msg);
+                this->goby().interprocess().publish<lamss::core::groups::lamss_status_in>(pb_msg);
             });
     }
 };
@@ -172,7 +177,7 @@ class NodeReportTranslation : public goby::moos::Translator
     {
         {
             goby::moos::protobuf::TranslatorEntry entry;
-            entry.set_protobuf_name(lamss::protobuf::LegacyNodeReport::descriptor()->full_name());
+            entry.set_protobuf_name(lamss::core::LegacyNodeReport::descriptor()->full_name());
             auto& create = *entry.add_create();
             create.set_technique(goby::moos::protobuf::TranslatorEntry::
                                      TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS);
@@ -191,21 +196,21 @@ class NodeReportTranslation : public goby::moos::Translator
                 std::map<std::string, CMOOSMsg> moos_msgs = {{moos_msg.GetKey(), moos_msg}};
                 auto pb_msg =
                     translator_.moos_to_protobuf<std::shared_ptr<google::protobuf::Message>>(
-                        moos_msgs, "lamss.protobuf.LegacyNodeReport");
+                        moos_msgs, lamss::core::LegacyNodeReport::descriptor()->full_name());
 
-                auto nr = std::dynamic_pointer_cast<lamss::protobuf::LegacyNodeReport>(pb_msg);
+                auto nr = std::dynamic_pointer_cast<lamss::core::LegacyNodeReport>(pb_msg);
                 if (nr->has_time() && !nr->has_utc_time())
                     nr->set_utc_time(nr->time());
                 else if (nr->has_utc_time() && !nr->has_time())
                     nr->set_time(nr->utc_time());
 
-                this->goby().interprocess().publish<lamss::groups::node_report>(nr);
+                this->goby().interprocess().publish<lamss::core::groups::node_report>(nr);
             });
 
         this->goby()
             .interprocess()
-            .subscribe<lamss::groups::node_report_out, lamss::protobuf::LegacyNodeReport>(
-                [this](const lamss::protobuf::LegacyNodeReport& nr)
+            .subscribe<lamss::core::groups::node_report_out, lamss::core::LegacyNodeReport>(
+                [this](const lamss::core::LegacyNodeReport& nr)
                 {
                     std::multimap<std::string, CMOOSMsg> moos_msgs =
                         translator_.protobuf_to_moos(nr);
@@ -225,8 +230,8 @@ class ViewGeometryTranslation : public goby::moos::Translator
     {
         this->goby()
             .interprocess()
-            .subscribe<lamss::groups::view_geometry, lamss::protobuf::ViewCircle>(
-                [this](const lamss::protobuf::ViewCircle& circle)
+            .subscribe<lamss::core::groups::view_geometry, lamss::core::ViewCircle>(
+                [this](const lamss::core::ViewCircle& circle)
                 {
                     XYCircle ivp_circle(circle.center_x(), circle.center_y(), circle.radius());
                     ivp_circle.set_active(circle.active());
@@ -238,9 +243,9 @@ class ViewGeometryTranslation : public goby::moos::Translator
 
         this->goby()
             .interprocess()
-            .subscribe<lamss::groups::view_geometry, VIEW_SEGLIST,
+            .subscribe<lamss::core::groups::view_geometry, lamss::core::VIEW_SEGLIST,
                        goby::middleware::MarshallingScheme::PROTOBUF>(
-                [this](const VIEW_SEGLIST& seglist)
+                [this](const lamss::core::VIEW_SEGLIST& seglist)
                 {
                     XYSegList ivp_seglist;
                     ivp_seglist.set_color("edge", "darkred");

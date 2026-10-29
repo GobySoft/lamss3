@@ -22,6 +22,11 @@ flowchart LR
 - `henrik_util` is split by a header-dependency walk: `CVectorUtils`, `CMeasAvg`, `CCovMat`, `CKalmanFilter` (rewritten without OpenCV), `Random` → `core`; `CAcousticModel`, `CRapRays`, `CEigenRays`, `CLamssNetcdf` → `virtual_ocean`; `CTarget`, `CTrack`, `CNoiseCovariance`, `Multistatic_SonarUtils` → `sonar`.
 - GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_interface`, configured by `gui`'s viewer component. The interface itself is headless and ships in `goby3-apps`, so it needs nothing from `gui` at run time.
 
+*This section written by Claude*
+
+- The Goby3 gateway plugin is `core/src/lib/moos_gateway_plugin` (`liblamss_core_moos_gateway_plugin.so`, launched by `lamss_goby_moos_gateway`, which sets `GOBY_MOOS_GATEWAY_PLUGINS`). It keeps the acomms, `LAMSS_STATUS`, `NODE_REPORT`, view geometry and `HYDROMAN_HEALTH_IN` translations; the netsim performance and group-velocity translations go to a `virtual_ocean` gateway plugin and the ICEX ones to an `icex` plugin, so `core` needs neither netsim nor ICEX protos. Its config extension (`[lamss.core.goby_gateway_config]`, field 1000 of `GobyMOOSGatewayConfig`) is private to the plugin.
+- Groups live in `lamss/core/groups.h` (namespace `lamss::core::groups`), installed with `lamss_core_protobuf`; the group names are unchanged so old and new processes interoperate.
+
 **Tests**: proto build, DCCL ID uniqueness, group catalogue export, mission registry/render tests, shim round-trip test.
 
 ## autonomy

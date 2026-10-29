@@ -1,9 +1,14 @@
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+#ifndef LAMSS_CORE_GROUPS_H
+#define LAMSS_CORE_GROUPS_H
+
 #include "goby/middleware/group.h"
 
-#ifndef GROUPS_20190710H
-#define GROUPS_20190710H
-
 namespace lamss
+{
+namespace core
 {
 namespace groups
 {
@@ -25,6 +30,7 @@ constexpr goby::middleware::Group acomms_raw_out{"lamss::moos::acomms_raw_out"};
 constexpr goby::middleware::Group hydroman_health{"lamss::groups::hydroman_health"};
 
 } // namespace groups
+} // namespace core
 } // namespace lamss
 
 #endif

@@ -1,3 +1,6 @@
 #!/bin/bash
+# Copyright 2019-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
-LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:@project_LIB_DIR@:@GOBY_INCLUDE_DIR@/../lib GOBY_MOOS_GATEWAY_PLUGINS=liblamss_goby3_gateway_plugin.so.@PROJECT_SOVERSION@:libgoby_coroner_moos_gateway_plugin.so.30 exec goby_moos_gateway $@
+lib_dir="$(cd "$(dirname "$(readlink -f "$0")")/@LAMSS_BIN_TO_LIB_DIR@" && pwd)"
+GOBY_MOOS_GATEWAY_PLUGINS=${lib_dir}/@LAMSS_GATEWAY_PLUGIN_SONAME@:@LAMSS_CORONER_PLUGIN_SONAME@ exec goby_moos_gateway "$@"

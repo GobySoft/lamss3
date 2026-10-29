@@ -4,7 +4,8 @@
 # LamssToolbox.cmake - helpers shared by every lamss3 toolbox
 #
 #   lamss_toolbox(NAME <tb> [REQUIRES <tb>...])
-#   lamss_add_library(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
+#   lamss_add_library(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...]
+#                     [NO_EXPORT])
 #   lamss_add_proto(<name> PROTOS <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY])
 #   lamss_add_python(<package_dir>)
@@ -169,9 +170,17 @@ endfunction()
 
 function(lamss_add_library name)
   _lamss_require_toolbox(lamss_add_library)
-  cmake_parse_arguments(_A "" "" "SOURCES;LINK_LIBRARIES" ${ARGN})
+  cmake_parse_arguments(_A "NO_EXPORT" "" "SOURCES;PROTOS;LINK_LIBRARIES" ${ARGN})
   set(_target lamss_${LAMSS_TOOLBOX}_${name})
-  add_library(${_target} SHARED ${_A_SOURCES})
+  set(_srcs ${_A_SOURCES})
+  if(_A_PROTOS)
+    _lamss_generate_protos(_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}" ${_A_PROTOS})
+    list(APPEND _srcs ${_proto_srcs})
+  endif()
+  add_library(${_target} SHARED ${_srcs})
+  if(_A_PROTOS)
+    target_include_directories(${_target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
   add_library(lamss::${LAMSS_TOOLBOX}_${name} ALIAS ${_target})
   string(REPLACE "." ";" _v "${LAMSS_VERSION}")
   list(GET _v 0 _major)
@@ -187,11 +196,16 @@ function(lamss_add_library name)
   endif()
   target_include_directories(${_target} INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   target_link_libraries(${_target} PUBLIC ${_A_LINK_LIBRARIES})
-  install(TARGETS ${_target} EXPORT lamss_${LAMSS_TOOLBOX}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-  set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORTED ${_target})
+  # NO_EXPORT: only ever loaded with dlopen, so nothing downstream links it
+  if(_A_NO_EXPORT)
+    install(TARGETS ${_target} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  else()
+    install(TARGETS ${_target} EXPORT lamss_${LAMSS_TOOLBOX}Targets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORTED ${_target})
+  endif()
   add_dependencies(lamss_${LAMSS_TOOLBOX}_all ${_target})
 endfunction()
 
