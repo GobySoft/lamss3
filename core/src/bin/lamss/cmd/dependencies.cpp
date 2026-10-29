@@ -13,6 +13,7 @@
 #include "deps.h"
 #include "process.h"
 #include "repo.h"
+#include "style.h"
 
 namespace
 {
@@ -208,7 +209,7 @@ class Installer
 
     int step(const Argv& command, const RunOptions& options = {}) const
     {
-        std::cout << "+ " << format_command(command) << std::endl;
+        std::cout << style::command("+ " + format_command(command)) << std::endl;
         return dry_run_ ? 0 : run_process(command, options);
     }
 
@@ -228,7 +229,8 @@ class Installer
 
     void write(const fs::path& file, const std::string& contents) const
     {
-        std::cout << "+ echo " << format_command({trim(contents)}) << " > " << file.string()
+        std::cout << style::command("+ echo " + format_command({trim(contents)}) + " > " +
+                                    file.string())
                   << std::endl;
         if (!dry_run_)
             write_file(file, contents);
@@ -330,8 +332,9 @@ int run_install(const Args& args)
     }
     if (missing.empty())
     {
-        std::cout << "All " << packages.size() << " apt packages for " << codename
-                  << " are installed." << std::endl;
+        std::cout << style::good("All " + std::to_string(packages.size()) + " apt packages for " +
+                                 codename + " are installed.")
+                  << std::endl;
     }
     else
     {

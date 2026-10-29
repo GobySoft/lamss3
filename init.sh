@@ -42,36 +42,55 @@ env_sh="${XDG_CONFIG_HOME:-$HOME/.config}/lamss/env.sh"
 sudo=""
 [ "$(id -u)" -eq 0 ] || sudo="sudo "
 
+# Same meanings as the lamss tool's output: bold heading, cyan command, green done, yellow needs
+# attention, red error, dim note. Plain text unless writing to a terminal.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != dumb ]; then
+    esc=$(printf '\033')
+    heading="${esc}[1m" command="${esc}[36m" good="${esc}[32m" attention="${esc}[33m"
+    error="${esc}[1;31m" note="${esc}[2m" plain="${esc}[0m"
+else
+    heading="" command="" good="" attention="" error="" note="" plain=""
+fi
+
+fail() {
+    printf 'init.sh: %serror:%s %s\n' "$error" "$plain" "$1" >&2
+    exit 1
+}
+
 step_number=0
 step_count=3
 [ "$install_deps" -eq 1 ] && step_count=5
 
 step_title() {
     step_number=$((step_number + 1))
-    printf '\nStep %d/%d  %s\n' "$step_number" "$step_count" "$1"
+    printf '\n%sStep %d/%d  %s%s\n' "$heading" "$step_number" "$step_count" "$1" "$plain"
 }
 
 # Prints the remaining arguments as the step's details and asks; returns 1 to skip the step.
 step() {
     step_title "$1"
     shift
-    for line in "$@"; do printf '          %s\n' "$line"; done
+    for line in "$@"; do
+        case "$line" in
+            "("*) printf '          %s%s%s\n' "$note" "$line" "$plain" ;;
+            *) printf '          %s%s%s\n' "$command" "$line" "$plain" ;;
+        esac
+    done
     [ "$assume_yes" -eq 1 ] && return 0
     while :; do
-        printf '          Proceed? [Y/n/q] '
+        printf '          %sProceed? [Y/n/q]%s ' "$heading" "$plain"
         if ! read -r answer; then
             echo
-            echo "init.sh: no answer; use --yes to run without asking" >&2
-            exit 1
+            fail "no answer; use --yes to run without asking"
         fi
         case "$answer" in
             "" | y | Y | yes) return 0 ;;
             n | N | no)
-                echo "          Skipped."
+                printf '          %sSkipped.%s\n' "$attention" "$plain"
                 return 1
                 ;;
             q | Q | quit)
-                echo "Stopped."
+                printf '%sStopped.%s\n' "$attention" "$plain"
                 exit 1
                 ;;
         esac
@@ -80,11 +99,11 @@ step() {
 
 already_done() {
     step_title "$1"
-    printf '          Already done.\n'
+    printf '          %sAlready done.%s\n' "$good" "$plain"
 }
 
 run() {
-    printf '+ %s\n' "$*"
+    printf '%s+ %s%s\n' "$command" "$*" "$plain"
     "$@"
 }
 
@@ -122,8 +141,7 @@ if step "Build the lamss tool into build/usr" \
 fi
 
 if [ ! -x "$tool" ]; then
-    echo "init.sh: $tool was not built; the remaining steps need it" >&2
-    exit 1
+    fail "$tool was not built; the remaining steps need it"
 fi
 
 title="Make this the active lamss3 checkout (writes $env_sh)"
@@ -166,13 +184,13 @@ if [ "$install_deps" -eq 1 ] &&
 fi
 
 echo
-echo "Done."
+printf '%sDone.%s\n' "$heading$good" "$plain"
 if [ "${LAMSS_ROOT:-}" != "$root" ]; then
     if [ "$hooked" -eq 1 ]; then
         echo "Open a new shell to use lamss3, or load it into this one now:"
     else
         echo "New shells will not load lamss3 by themselves (run \`lamss env hook\` to change that); load it with:"
     fi
-    echo "  . $env_sh"
+    printf '  %s. %s%s\n' "$command" "$env_sh" "$plain"
 fi
-echo "Then build with: lamss build (or lm b)"
+printf 'Then build with: %slamss build%s (or %slm b%s)\n' "$command" "$plain" "$command" "$plain"

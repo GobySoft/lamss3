@@ -168,6 +168,7 @@ The tool walks up from the current directory looking for `.lamss/`, like `git` l
 
 - `cli.cpp`: a small command table (subcommands, aliases, options, positionals, generated help, exit status 2 on usage errors). One translation unit per subcommand under `core/src/bin/lamss/cmd/`, plus `repo.cpp` (root discovery, toolbox list I/O) and `process.cpp` (fork/exec with streamed output; no `system()` with string concatenation).
 - All subprocess invocations are logged at `-v` so the user can reproduce by hand.
+- Colour is for clarity, with one meaning per style shared by the tool and `init.sh` (`style.h`): bold for headings and prompts, cyan for a command (to be run, or `+ command` when it runs), green for done or active, yellow for skipped or needing attention, red for errors, dim for notes. It is used only when writing to a terminal and `NO_COLOR` is unset, so logs and pipes stay plain.
 - Unit tests for toolbox list editing and `dependencies.yml` parsing (plain ctest, no framework needed beyond `assert`).
 - Shell completion is not provided yet; it can be generated from the command table.
 

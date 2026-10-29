@@ -13,6 +13,7 @@
 #include "cli.h"
 #include "process.h"
 #include "repo.h"
+#include "style.h"
 
 namespace lamss
 {
@@ -60,8 +61,8 @@ class IgnoreInterrupts
 
     if (!options.cwd.empty() && chdir(options.cwd.c_str()) != 0)
     {
-        std::cerr << "lamss: cannot change directory to " << options.cwd.string() << ": "
-                  << std::strerror(errno) << std::endl;
+        std::cerr << "lamss: " << style::error("error:") << " cannot change directory to "
+                  << options.cwd.string() << ": " << std::strerror(errno) << std::endl;
         _exit(127);
     }
     if (options.discard_stderr)
@@ -76,8 +77,8 @@ class IgnoreInterrupts
     argv.push_back(nullptr);
     execvp(argv[0], argv.data());
     if (!options.discard_stderr)
-        std::cerr << "lamss: cannot run " << command[0] << ": " << std::strerror(errno)
-                  << std::endl;
+        std::cerr << "lamss: " << style::error("error:") << " cannot run " << command[0] << ": "
+                  << std::strerror(errno) << std::endl;
     _exit(127);
 }
 
@@ -96,10 +97,11 @@ void log_command(const Argv& command, const RunOptions& options)
 {
     if (!verbose())
         return;
-    std::cerr << "running: ";
+    std::string line = "running: ";
     if (!options.cwd.empty())
-        std::cerr << "(cd " << format_command({options.cwd.string()}) << " && ";
-    std::cerr << format_command(command) << (options.cwd.empty() ? "" : ")") << std::endl;
+        line += "(cd " + format_command({options.cwd.string()}) + " && ";
+    line += format_command(command) + (options.cwd.empty() ? "" : ")");
+    std::cerr << style::note(line, style::Stream::err) << std::endl;
 }
 } // namespace
 

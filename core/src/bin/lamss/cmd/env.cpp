@@ -10,6 +10,7 @@
 #include "envfile.h"
 #include "process.h"
 #include "repo.h"
+#include "style.h"
 
 namespace
 {
@@ -78,7 +79,11 @@ int run_list(const Args&)
         std::string state = !fs::is_directory(root / ".lamss") ? "missing"
                             : is_built(root)                   ? "built"
                                                                : "not built";
-        std::cout << (active && *active == root ? "* " : "  ") << root.string() << " (" << state
+        const bool is_active = active && *active == root;
+        const std::string shown_state = state == "missing" ? style::error(state, style::Stream::out)
+                                        : state == "not built" ? style::attention(state)
+                                                               : state;
+        std::cout << (is_active ? style::good("* ") : "  ") << root.string() << " (" << shown_state
                   << ")" << std::endl;
     }
     return 0;
@@ -122,9 +127,9 @@ int run_switch(const Args& args)
     }
     write_file(env_sh_path(), render_env_sh(root, env_sh_path()));
 
-    std::cout << "Active lamss3 checkout: " << root.string() << std::endl;
+    std::cout << style::good("Active lamss3 checkout: " + root.string()) << std::endl;
     if (!is_built(root))
-        std::cout << "It is not built yet: run ./init.sh in it." << std::endl;
+        std::cout << style::attention("It is not built yet: run ./init.sh in it.") << std::endl;
     std::cout << "New shells use it; to update a shell that did not load " << env_sh_path().string()
               << ", run: . " << format_command({env_sh_path().string()}) << std::endl;
     return 0;
@@ -159,8 +164,10 @@ int run_hook(const Args& args)
             continue;
         }
         write_file(rc, after);
-        std::cout << (remove ? "Removed the lamss block from " : "Added the lamss block to ")
-                  << rc.string() << std::endl;
+        std::cout << style::good(std::string(remove ? "Removed the lamss block from "
+                                                    : "Added the lamss block to ") +
+                                 rc.string())
+                  << std::endl;
     }
     return 0;
 }

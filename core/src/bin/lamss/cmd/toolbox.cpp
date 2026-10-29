@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
-#include <iomanip>
 #include <iostream>
 
 #include "command.h"
 #include "process.h"
 #include "repo.h"
+#include "style.h"
 
 namespace
 {
@@ -58,9 +58,9 @@ int activate(const Repo& repo, const std::vector<std::string>& names)
         if (list.activate(step.name))
         {
             changed = true;
-            std::cout << "activated " << step.name;
+            std::cout << style::good("activated " + step.name);
             if (!step.required_by.empty())
-                std::cout << " (note: required by " << step.required_by << ")";
+                std::cout << style::note(" (required by " + step.required_by + ")");
             std::cout << std::endl;
         }
         else if (step.required_by.empty())
@@ -96,7 +96,7 @@ void deactivate(const Repo& repo, const std::vector<std::string>& names, bool fo
         list.deactivate(name);
         std::cout << "deactivated " << name;
         if (std::find(requested.begin(), requested.end(), name) == requested.end())
-            std::cout << " (note: it requires a deactivated toolbox)";
+            std::cout << style::note(" (it requires a deactivated toolbox)");
         std::cout << std::endl;
     }
     if (!plan.empty())
@@ -130,9 +130,12 @@ int run_list(const Args&)
     auto list = repo.toolbox_list();
     const auto root_describe = git_describe(repo.root());
 
-    const int name_width = 16, kind_width = 11, active_width = 8;
-    std::cout << std::left << std::setw(name_width) << "NAME" << std::setw(kind_width) << "KIND"
-              << std::setw(active_width) << "ACTIVE" << std::setw(name_width) << "PATH" << "VERSION"
+    const std::size_t name_width = 16, kind_width = 11, active_width = 8;
+    // padded before styling: escape codes would otherwise count towards the column width
+    auto pad = [](const std::string& s, std::size_t width)
+    { return s.size() < width ? s + std::string(width - s.size(), ' ') : s; };
+    std::cout << style::heading(pad("NAME", name_width) + pad("KIND", kind_width) +
+                                pad("ACTIVE", active_width) + pad("PATH", name_width) + "VERSION")
               << std::endl;
 
     for (const auto& name : repo.known_toolboxes())
@@ -143,9 +146,12 @@ int run_list(const Args&)
         std::string version = !present    ? "-"
                               : submodule ? git_describe(repo.root() / name)
                                           : root_describe;
-        std::cout << std::setw(name_width) << name << std::setw(kind_width) << kind
-                  << std::setw(active_width) << (list.is_active(name) ? "yes" : "no")
-                  << std::setw(name_width) << name + "/" << version << std::endl;
+        const bool is_active = list.is_active(name);
+        std::cout << pad(name, name_width)
+                  << (present ? pad(kind, kind_width)
+                              : style::error(pad(kind, kind_width), style::Stream::out))
+                  << (is_active ? style::good(pad("yes", active_width)) : pad("no", active_width))
+                  << pad(name + "/", name_width) << version << std::endl;
     }
     return 0;
 }

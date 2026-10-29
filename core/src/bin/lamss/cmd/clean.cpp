@@ -7,6 +7,7 @@
 
 #include "command.h"
 #include "repo.h"
+#include "style.h"
 
 namespace
 {
@@ -82,19 +83,19 @@ lamss::tool::Command lamss::tool::clean_command()
                 return 0;
             }
 
-            std::cout << "Removing:" << std::endl;
+            std::cout << style::heading("Removing:") << std::endl;
             for (const auto& path : remove)
                 std::cout << "  " << path.lexically_relative(repo.root()).string() << std::endl;
 
             if (!args.flag("yes"))
             {
-                std::cout << "Proceed? [y/N] " << std::flush;
+                std::cout << style::heading("Proceed? [y/N]") << " " << std::flush;
                 std::string answer;
                 std::getline(std::cin, answer);
                 answer = trim(answer);
                 if (answer != "y" && answer != "Y" && answer != "yes")
                 {
-                    std::cout << "Aborted." << std::endl;
+                    std::cout << style::attention("Aborted.") << std::endl;
                     return 1;
                 }
             }

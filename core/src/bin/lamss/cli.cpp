@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "cli.h"
+#include "style.h"
 
 namespace lamss
 {
@@ -52,7 +53,7 @@ std::string option_help(const Option& o)
 
 void print_help(const Command& cmd, const std::string& path)
 {
-    std::cout << "Usage: " << path;
+    std::cout << style::heading("Usage:") << " " << path;
     if (!cmd.subcommands.empty())
         std::cout << " <command> [options]";
     else
@@ -74,7 +75,7 @@ void print_help(const Command& cmd, const std::string& path)
             names.insert(names.end(), sub.aliases.begin(), sub.aliases.end());
             rows.emplace_back(join(names, ", "), sub.summary);
         }
-        std::cout << "\nCommands:\n";
+        std::cout << "\n" << style::heading("Commands:") << "\n";
         print_table(rows);
     }
 
@@ -82,7 +83,7 @@ void print_help(const Command& cmd, const std::string& path)
     {
         std::vector<std::pair<std::string, std::string>> rows;
         for (const auto& p : cmd.positionals) rows.emplace_back(p.name, p.help);
-        std::cout << "\nArguments:\n";
+        std::cout << "\n" << style::heading("Arguments:") << "\n";
         print_table(rows);
     }
 
@@ -90,7 +91,7 @@ void print_help(const Command& cmd, const std::string& path)
     for (const auto& o : cmd.options) rows.emplace_back(option_label(o), option_help(o));
     for (const auto& o : {help_option, verbose_option})
         rows.emplace_back(option_label(o), option_help(o));
-    std::cout << "\nOptions:\n";
+    std::cout << "\n" << style::heading("Options:") << "\n";
     print_table(rows);
 
     if (!cmd.subcommands.empty())
@@ -291,13 +292,13 @@ int dispatch(const Command& root, int argc, char* argv[])
     }
     catch (const UsageError& e)
     {
-        std::cerr << path << ": error: " << e.what() << "\nRun \"" << path << " --help\" for usage."
-                  << std::endl;
+        std::cerr << path << ": " << style::error("error:") << " " << e.what() << "\nRun \"" << path
+                  << " --help\" for usage." << std::endl;
         return usage_error;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "lamss: error: " << e.what() << std::endl;
+        std::cerr << "lamss: " << style::error("error:") << " " << e.what() << std::endl;
         return 1;
     }
 }
