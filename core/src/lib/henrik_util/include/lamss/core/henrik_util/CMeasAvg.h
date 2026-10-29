@@ -1,3 +1,6 @@
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 #include <deque>
 #include <math.h>
 #include <string.h>
@@ -6,6 +9,10 @@
 #ifndef _CMEASAVG_HEADER
 #define _CMEASAVG_HEADER
 
+namespace lamss
+{
+namespace core
+{
 class CMeasAvg
 {
   public:
@@ -55,5 +62,8 @@ class CRadianAvg
     std::deque<double> svals;
     std::deque<double> cvals;
 };
+
+} // namespace core
+} // namespace lamss
 
 #endif /* _CMEASAVG_HEADER */
