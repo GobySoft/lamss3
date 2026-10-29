@@ -1,14 +1,8 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-find_package(MOOS 10 REQUIRED)
-# goby-config.cmake reads GOBY_FIND_COMPONENTS, so the components need the upper-case name
-find_package(GOBY 3.6 REQUIRED COMPONENTS moos)
-
-# libmoos-ivp-dev ships static archives and no CMake config
-find_path(LAMSS_IVP_INCLUDE_DIR ivp/XYCircle.h REQUIRED)
-find_library(LAMSS_IVP_GEOMETRY_LIBRARY NAMES geometry REQUIRED)
-find_library(LAMSS_IVP_MBUTIL_LIBRARY NAMES mbutil REQUIRED)
+lamss_find_moos()
+lamss_find_ivp(geometry mbutil)
 
 lamss_add_library(moos_gateway_plugin
   NO_EXPORT
@@ -19,9 +13,8 @@ lamss_add_library(moos_gateway_plugin
     goby_zeromq
     goby_moos
     lamss::core_protobuf
-    ${LAMSS_IVP_GEOMETRY_LIBRARY}
-    ${LAMSS_IVP_MBUTIL_LIBRARY})
-target_include_directories(lamss_core_moos_gateway_plugin PRIVATE ${LAMSS_IVP_INCLUDE_DIR})
+    IvP::geometry
+    IvP::mbutil)
 
 file(RELATIVE_PATH LAMSS_BIN_TO_LIB_DIR
   "${CMAKE_INSTALL_FULL_BINDIR}" "${CMAKE_INSTALL_FULL_LIBDIR}")
