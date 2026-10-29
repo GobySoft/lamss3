@@ -14,11 +14,11 @@
 
 #include "lamss/lib_lamss_protobuf/lamss_goby3_gateway_plugin.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
-#include "netsim/messages/netsim.pb.h"
 #include "lamss/lib_lamss_protobuf/node_status.pb.h"
 #include "lamss/lib_lamss_protobuf/tagged_acomms.pb.h"
 #include "lamss/lib_lamss_protobuf/view_circle.pb.h"
 #include "lamss/lib_lamss_protobuf/view_seglist.pb.h"
+#include "netsim/messages/netsim.pb.h"
 
 #include "lamss/lib_lamss_protobuf/icex_groups.h"
 #include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
@@ -35,26 +35,28 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
     pAcommsHandlerMultiplexTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-
-        for (int i = 0, n = cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library_size(); i < n; ++i)
+        for (int i = 0, n = cfg.GetExtension(lamss::protobuf::goby_gateway_config)
+                                .load_shared_library_size();
+             i < n; ++i)
         {
-            auto lib = cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library(i);
-            void* handle =
-                dccl::DynamicProtobufManager::load_from_shared_lib(lib);
+            auto lib =
+                cfg.GetExtension(lamss::protobuf::goby_gateway_config).load_shared_library(i);
+            void* handle = dccl::DynamicProtobufManager::load_from_shared_lib(lib);
 
             if (!handle)
             {
-                glog.is(DIE) && glog << "Failed to load library " << lib << ", check path provided or add to /etc/ld.so.conf "
+                glog.is(DIE) && glog << "Failed to load library " << lib
+                                     << ", check path provided or add to /etc/ld.so.conf "
                                      << "or LD_LIBRARY_PATH" << std::endl;
             }
         }
 
-        
         this->goby()
             .interprocess()
             .subscribe_type_regex<lamss::groups::pAcommsHandler_multiplex,
                                   google::protobuf::Message>(
-                [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type) {
+                [&](std::shared_ptr<const google::protobuf::Message> msg, const std::string& type)
+                {
                     glog.is_debug2() && glog << "To MOOS: " << msg->ShortDebugString() << std::endl;
 
                     std::string serialized;
@@ -66,54 +68,67 @@ class pAcommsHandlerMultiplexTranslation : public goby::moos::Translator
                     moos().comms().Post(moos_msg);
                 });
 
-        this->moos().add_trigger("ACOMMS_ACK_ORIGINAL", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "ACOMMS_ACK_ORIGINAL",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::acomms_ack_original>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::acomms_ack_original>(pb_msg);
+            });
 
-        this->moos().add_trigger("ACOMMS_EXPIRE", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "ACOMMS_EXPIRE",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::acomms_expire>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::acomms_expire>(pb_msg);
+            });
 
-        this->moos().add_trigger("ACOMMS_MAC_SLOT_START", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "ACOMMS_MAC_SLOT_START",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::acomms_mac_slot_start>(pb_msg);
+            });
 
-        this->moos().add_trigger("HYDROMAN_HEALTH_IN", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "HYDROMAN_HEALTH_IN",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::hydroman_health>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::hydroman_health>(pb_msg);
+            });
 
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::acomms_raw_in, lamss::protobuf::NamedModemRaw>(
-                [this](const lamss::protobuf::NamedModemRaw& message) {
+                [this](const lamss::protobuf::NamedModemRaw& message)
+                {
                     // post GPS for iSerialNMEA
                     // $GPRMC
                     //    |
@@ -137,16 +152,19 @@ class NavStatusTranslation : public goby::moos::Translator
     NavStatusTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-        this->moos().add_trigger("LAMSS_STATUS_IN", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "LAMSS_STATUS_IN",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::lamss_status_in>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::lamss_status_in>(pb_msg);
+            });
     }
 };
 
@@ -170,24 +188,29 @@ class NodeReportTranslation : public goby::moos::Translator
             translator_.add_entry(entry);
         }
 
-        this->moos().add_trigger("NODE_REPORT", [&](const CMOOSMsg& moos_msg) {
-            std::map<std::string, CMOOSMsg> moos_msgs = {{moos_msg.GetKey(), moos_msg}};
-            auto pb_msg = translator_.moos_to_protobuf<std::shared_ptr<google::protobuf::Message>>(
-                moos_msgs, "lamss.protobuf.LegacyNodeReport");
+        this->moos().add_trigger(
+            "NODE_REPORT",
+            [&](const CMOOSMsg& moos_msg)
+            {
+                std::map<std::string, CMOOSMsg> moos_msgs = {{moos_msg.GetKey(), moos_msg}};
+                auto pb_msg =
+                    translator_.moos_to_protobuf<std::shared_ptr<google::protobuf::Message>>(
+                        moos_msgs, "lamss.protobuf.LegacyNodeReport");
 
-            auto nr = std::dynamic_pointer_cast<lamss::protobuf::LegacyNodeReport>(pb_msg);
-            if (nr->has_time() && !nr->has_utc_time())
-                nr->set_utc_time(nr->time());
-            else if (nr->has_utc_time() && !nr->has_time())
-                nr->set_time(nr->utc_time());
+                auto nr = std::dynamic_pointer_cast<lamss::protobuf::LegacyNodeReport>(pb_msg);
+                if (nr->has_time() && !nr->has_utc_time())
+                    nr->set_utc_time(nr->time());
+                else if (nr->has_utc_time() && !nr->has_time())
+                    nr->set_time(nr->utc_time());
 
-            this->goby().interprocess().publish<lamss::groups::node_report>(nr);
-        });
+                this->goby().interprocess().publish<lamss::groups::node_report>(nr);
+            });
 
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::node_report_out, lamss::protobuf::LegacyNodeReport>(
-                [this](const lamss::protobuf::LegacyNodeReport& nr) {
+                [this](const lamss::protobuf::LegacyNodeReport& nr)
+                {
                     std::multimap<std::string, CMOOSMsg> moos_msgs =
                         translator_.protobuf_to_moos(nr);
                     for (auto moos_msg_p : moos_msgs) this->moos().comms().Post(moos_msg_p.second);
@@ -207,7 +230,8 @@ class ViewGeometryTranslation : public goby::moos::Translator
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::view_geometry, lamss::protobuf::ViewCircle>(
-                [this](const lamss::protobuf::ViewCircle& circle) {
+                [this](const lamss::protobuf::ViewCircle& circle)
+                {
                     XYCircle ivp_circle(circle.center_x(), circle.center_y(), circle.radius());
                     ivp_circle.set_active(circle.active());
 
@@ -220,7 +244,8 @@ class ViewGeometryTranslation : public goby::moos::Translator
             .interprocess()
             .subscribe<lamss::groups::view_geometry, VIEW_SEGLIST,
                        goby::middleware::MarshallingScheme::PROTOBUF>(
-                [this](const VIEW_SEGLIST& seglist) {
+                [this](const VIEW_SEGLIST& seglist)
+                {
                     XYSegList ivp_seglist;
                     ivp_seglist.set_color("edge", "darkred");
                     ivp_seglist.set_color("vertex", "darkred");
@@ -254,37 +279,46 @@ class NetSimTranslation : public goby::moos::Translator
     NetSimTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
         : goby::moos::Translator(cfg)
     {
-        this->moos().add_trigger("TRANSMISSION_GRP_VEL", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "TRANSMISSION_GRP_VEL",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::transmission_grp_vel>(pb_msg);
-        });
-
-        this->goby().interprocess().subscribe<lamss::groups::objfunc_request, netsim::protobuf::ObjFuncRequest>(
-            [this](const netsim::protobuf::ObjFuncRequest& request) {
-                std::string serialized;
-                bool is_binary = serialize_for_moos(&serialized, request);
-                CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
-                    "PERFORMANCE_REQUEST", serialized, is_binary, goby::moos::moos_technique,
-                    request.GetDescriptor()->full_name());
-                moos().comms().Post(moos_msg);
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::transmission_grp_vel>(pb_msg);
             });
 
-        this->moos().add_trigger("PERFORMANCE_RESPONSE", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->goby()
+            .interprocess()
+            .subscribe<lamss::groups::objfunc_request, netsim::protobuf::ObjFuncRequest>(
+                [this](const netsim::protobuf::ObjFuncRequest& request)
+                {
+                    std::string serialized;
+                    bool is_binary = serialize_for_moos(&serialized, request);
+                    CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
+                        "PERFORMANCE_REQUEST", serialized, is_binary, goby::moos::moos_technique,
+                        request.GetDescriptor()->full_name());
+                    moos().comms().Post(moos_msg);
+                });
+
+        this->moos().add_trigger(
+            "PERFORMANCE_RESPONSE",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::objfunc_response>(pb_msg);
-        });
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::objfunc_response>(pb_msg);
+            });
     }
 };
 
@@ -298,7 +332,8 @@ class ICEXTranslation : public goby::moos::Translator
             .interprocess()
             .subscribe<lamss::groups::icex_transmit_change_notification,
                        lamss::icex::protobuf::TransmitChangeNotification>(
-                [this](const lamss::icex::protobuf::TransmitChangeNotification& notification) {
+                [this](const lamss::icex::protobuf::TransmitChangeNotification& notification)
+                {
                     // publish values for iSerialNMEA, skipping hydrohole (0)
                     for (int i = 1, n = notification.receive_size(); i < n; ++i)
                     {
@@ -309,14 +344,14 @@ class ICEXTranslation : public goby::moos::Translator
                 });
 
         this->goby().interprocess().subscribe<lamss::groups::acomms_config_request, std::string>(
-            [this](const std::string& request) {
-                this->moos().comms().Notify("ACOMMS_CONFIG_REQUEST", request);
-            });
+            [this](const std::string& request)
+            { this->moos().comms().Notify("ACOMMS_CONFIG_REQUEST", request); });
 
         this->goby()
             .interprocess()
             .subscribe<lamss::groups::acomms_queue_flush, goby::acomms::protobuf::QueueFlush>(
-                [this](const goby::acomms::protobuf::QueueFlush& flush) {
+                [this](const goby::acomms::protobuf::QueueFlush& flush)
+                {
                     std::string serialized;
                     bool is_binary = serialize_for_moos(&serialized, flush);
                     CMOOSMsg moos_msg = goby::moos::MOOSTranslator::make_moos_msg(
@@ -325,41 +360,56 @@ class ICEXTranslation : public goby::moos::Translator
                     moos().comms().Post(moos_msg);
                 });
 
-        this->moos().add_trigger("ACOMMS_CONFIG", [&](const CMOOSMsg& msg) {
-            goby::apps::moos::protobuf::pAcommsHandlerConfig acomms_config;
-            acomms_config.ParseFromString(dccl::b64_decode(msg.GetString()));
-            this->goby().interprocess().publish<lamss::groups::acomms_config_response>(
-                acomms_config);
-        });
-
-        this->moos().add_trigger("ACOMMS_QSIZE", [&](const CMOOSMsg& msg) {
-            goby::acomms::protobuf::QueueSize qsize;
-            parse_for_moos(msg.GetString(), &qsize);
-            this->goby().interprocess().publish<lamss::groups::acomms_queue_size>(qsize);
-        });
-
-        this->moos().add_trigger("ACOMMS_QUEUE_RECEIVE", [&](const CMOOSMsg& msg) {
-            auto pb_msg = dynamic_parse_for_moos(msg.GetString());
-            if (!pb_msg)
+        this->moos().add_trigger(
+            "ACOMMS_CONFIG",
+            [&](const CMOOSMsg& msg)
             {
-                goby::glog.is_warn() && goby::glog << "Failed to parse message: " << msg.GetString()
-                                                   << std::endl;
-                return;
-            }
-            this->goby().interprocess().publish<lamss::groups::acomms_queue_receive>(pb_msg);
-        });
+                goby::apps::moos::protobuf::pAcommsHandlerConfig acomms_config;
+                acomms_config.ParseFromString(dccl::b64_decode(msg.GetString()));
+                this->goby().interprocess().publish<lamss::groups::acomms_config_response>(
+                    acomms_config);
+            });
 
-        this->moos().add_trigger("ACOMMS_MODEM_TRANSMIT", [&](const CMOOSMsg& msg) {
-            goby::acomms::protobuf::ModemTransmission tx_msg;
-            parse_for_moos(msg.GetString(), &tx_msg);
-            this->goby().interprocess().publish<lamss::groups::acomms_modem_transmit>(tx_msg);
-        });
+        this->moos().add_trigger(
+            "ACOMMS_QSIZE",
+            [&](const CMOOSMsg& msg)
+            {
+                goby::acomms::protobuf::QueueSize qsize;
+                parse_for_moos(msg.GetString(), &qsize);
+                this->goby().interprocess().publish<lamss::groups::acomms_queue_size>(qsize);
+            });
 
-        this->moos().add_trigger("ACOMMS_MODEM_RECEIVE", [&](const CMOOSMsg& msg) {
-            goby::acomms::protobuf::ModemTransmission rx_msg;
-            parse_for_moos(msg.GetString(), &rx_msg);
-            this->goby().interprocess().publish<lamss::groups::acomms_modem_receive>(rx_msg);
-        });
+        this->moos().add_trigger(
+            "ACOMMS_QUEUE_RECEIVE",
+            [&](const CMOOSMsg& msg)
+            {
+                auto pb_msg = dynamic_parse_for_moos(msg.GetString());
+                if (!pb_msg)
+                {
+                    goby::glog.is_warn() &&
+                        goby::glog << "Failed to parse message: " << msg.GetString() << std::endl;
+                    return;
+                }
+                this->goby().interprocess().publish<lamss::groups::acomms_queue_receive>(pb_msg);
+            });
+
+        this->moos().add_trigger(
+            "ACOMMS_MODEM_TRANSMIT",
+            [&](const CMOOSMsg& msg)
+            {
+                goby::acomms::protobuf::ModemTransmission tx_msg;
+                parse_for_moos(msg.GetString(), &tx_msg);
+                this->goby().interprocess().publish<lamss::groups::acomms_modem_transmit>(tx_msg);
+            });
+
+        this->moos().add_trigger(
+            "ACOMMS_MODEM_RECEIVE",
+            [&](const CMOOSMsg& msg)
+            {
+                goby::acomms::protobuf::ModemTransmission rx_msg;
+                parse_for_moos(msg.GetString(), &rx_msg);
+                this->goby().interprocess().publish<lamss::groups::acomms_modem_receive>(rx_msg);
+            });
     }
 };
 
