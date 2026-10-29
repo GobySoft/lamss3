@@ -1,27 +1,9 @@
-/*****************************************************************/
-/*    NAME: Henrik Schmidt, Toby Schneider                       */
-/*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: ViewMessage.cpp                                      */
-/*    DATE: Aug. 2, 2008                                         */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ViewMessage.h"
 #include "goby/util/debug_logger.h"
+#include <cmath>
 #include <limits>
 #include <sstream>
 
@@ -33,7 +15,7 @@ const std::string CViewMessage::TYPE_FIELD_NAME = "type";
 const std::string CViewMessage::MISSION_FIELD_NAME = "mission";
 
 CViewMessage* CViewMessage::inst_ = 0;
-lamss::protobuf::ViewMessageConfig CViewMessage::cfg_;
+lamss::core::ViewMessageConfig CViewMessage::cfg_;
 
 CViewMessage* CViewMessage::get_instance()
 {
@@ -64,9 +46,6 @@ CViewMessage::CViewMessage()
     subscribe("IN_VIEW_POLYGON", &CViewMessage::handle_in_view_polygon, this);
     subscribe("IN_VIEW_POINT", &CViewMessage::handle_in_view_point, this);
 
-    subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN",
-                 &CViewMessage::handle_icex_transmit_selection, this);
-
     subscribe("LAT_ORIGIN", &CViewMessage::handle_lat_origin, this);
     subscribe("LONG_ORIGIN", &CViewMessage::handle_lon_origin, this);
 
@@ -87,7 +66,7 @@ void CViewMessage::loop()
 void CViewMessage::handle_lat_origin(const CMOOSMsg& msg)
 {
     double new_lat = msg.GetDouble();
-    if (!isnan(new_lat))
+    if (!std::isnan(new_lat))
     {
         lat_origin_ = new_lat;
         new_origin_ = true;
@@ -97,7 +76,7 @@ void CViewMessage::handle_lat_origin(const CMOOSMsg& msg)
 void CViewMessage::handle_lon_origin(const CMOOSMsg& msg)
 {
     double new_lon = msg.GetDouble();
-    if (!isnan(new_lon))
+    if (!std::isnan(new_lon))
     {
         lon_origin_ = new_lon;
         new_origin_ = true;
@@ -117,7 +96,7 @@ void CViewMessage::handle_view_point(const CMOOSMsg& msg)
         return;
 
     glog << "XYPoint:" << point.get_spec() << std::endl;
-    lamss::protobuf::ViewPoint proto_point = to_protobuf(point);
+    lamss::core::ViewPoint proto_point = to_protobuf(point);
 
     glog << "lamss.protobuf.ViewPoint: " << proto_point.ShortDebugString() << std::endl;
     std::string goby1_moos_str;
@@ -134,7 +113,7 @@ void CViewMessage::handle_view_point(const CMOOSMsg& msg)
 
 void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
 {
-    lamss::protobuf::ViewPoint proto_point;
+    lamss::core::ViewPoint proto_point;
 
     from_moos_string(msg.GetString(), &proto_point);
     glog << "back to proto: " << proto_point.ShortDebugString() << std::endl;
@@ -147,13 +126,13 @@ void CViewMessage::handle_in_view_point(const CMOOSMsg& msg)
 
     std::stringstream cc;
     std::string type = "UNKNOWN";
-    if (proto_point.type() == lamss::protobuf::ViewPoint::WAYPOINT)
+    if (proto_point.type() == lamss::core::ViewPoint::WAYPOINT)
         type = "WAYPOINT";
-    else if (proto_point.type() == lamss::protobuf::ViewPoint::TRAILPOINT)
+    else if (proto_point.type() == lamss::core::ViewPoint::TRAILPOINT)
         type = "TRAILPOINT";
-    else if (proto_point.type() == lamss::protobuf::ViewPoint::ATTRACTOR)
+    else if (proto_point.type() == lamss::core::ViewPoint::ATTRACTOR)
         type = "ATTRACTOR";
-    else if (proto_point.type() == lamss::protobuf::ViewPoint::STATION)
+    else if (proto_point.type() == lamss::core::ViewPoint::STATION)
         type = "STATION";
 
     double x, y;
@@ -194,7 +173,7 @@ void CViewMessage::handle_view_seglist(const CMOOSMsg& msg)
 void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
 {
     glog << "XYSegList:" << seglist.get_spec() << std::endl;
-    lamss::protobuf::ViewSegList proto_seglist;
+    lamss::core::ViewSegList proto_seglist;
     unsigned int max_pnts = 13;
 
     if (seglist.size() > max_pnts)
@@ -210,15 +189,15 @@ void CViewMessage::process_seglist(const XYSegList& seglist, bool is_polygon)
 
     if (seglist.get_label() == "OpRegion")
     {
-        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::OPBOX);
+        proto_seglist.set_polytype(lamss::core::ViewSegList::OPBOX);
     }
     else if (seglist.get_label().find("stvp") != std::string::npos)
     {
-        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::OBSTACLE);
+        proto_seglist.set_polytype(lamss::core::ViewSegList::OBSTACLE);
     }
     else
     {
-        proto_seglist.set_polytype(lamss::protobuf::ViewSegList::NORMAL);
+        proto_seglist.set_polytype(lamss::core::ViewSegList::NORMAL);
     }
 
     glog << "lamss.protobuf.ViewSegList: " << proto_seglist.ShortDebugString() << std::endl;
@@ -245,7 +224,7 @@ void CViewMessage::handle_in_view_polygon(const CMOOSMsg& msg)
 
 void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_polygon)
 {
-    lamss::protobuf::ViewSegList proto_seglist;
+    lamss::core::ViewSegList proto_seglist;
     from_moos_string(goby1_str, &proto_seglist);
 
     glog << "back to proto: " << proto_seglist.ShortDebugString() << std::endl;
@@ -257,19 +236,19 @@ void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_poly
 
     std::stringstream cc;
     std::string mission = "UNKNOWN";
-    if (proto_seglist.mission() == lamss::protobuf::ViewSegList::DEPLOY)
+    if (proto_seglist.mission() == lamss::core::ViewSegList::DEPLOY)
         mission = "DEPLOY";
-    else if (proto_seglist.mission() == lamss::protobuf::ViewSegList::PROSECUTE)
+    else if (proto_seglist.mission() == lamss::core::ViewSegList::PROSECUTE)
         mission = "PROSECUTE";
-    else if (proto_seglist.mission() == lamss::protobuf::ViewSegList::RETURN)
+    else if (proto_seglist.mission() == lamss::core::ViewSegList::RETURN)
         mission = "RETURN";
-    else if (proto_seglist.mission() == lamss::protobuf::ViewSegList::TRANSIT)
+    else if (proto_seglist.mission() == lamss::core::ViewSegList::TRANSIT)
         mission = "TRANSIT";
 
     std::string polytype = "NORMAL";
-    if (proto_seglist.polytype() == lamss::protobuf::ViewSegList::OPBOX)
+    if (proto_seglist.polytype() == lamss::core::ViewSegList::OPBOX)
         polytype = "OPBOX";
-    else if (proto_seglist.polytype() == lamss::protobuf::ViewSegList::OBSTACLE)
+    else if (proto_seglist.polytype() == lamss::core::ViewSegList::OBSTACLE)
         polytype = "OBSTACLE";
 
     std::string bl = "false";
@@ -279,14 +258,15 @@ void CViewMessage::process_in_seglist(const std::string& goby1_str, bool is_poly
        << "-" << polytype << ":" << "edge_size,0" << ":" << "vertex_size,0";
     for (int i = 0; i < proto_seglist.point_size(); i++)
     {
-        if (!isnan(proto_seglist.point(i).x()) && !isnan(proto_seglist.point(i).y()))
+        if (!std::isnan(proto_seglist.point(i).x()) && !std::isnan(proto_seglist.point(i).y()))
         {
             double x, y;
             geodesy_.LatLong2LocalUTM(proto_seglist.point(i).y(), proto_seglist.point(i).x(), y, x);
             cc << ":" << x << "," << y;
         }
     }
-    if (is_polygon && !isnan(proto_seglist.point(0).x()) && !isnan(proto_seglist.point(0).y()))
+    if (is_polygon && !std::isnan(proto_seglist.point(0).x()) &&
+        !std::isnan(proto_seglist.point(0).y()))
     {
         double x, y;
         geodesy_.LatLong2LocalUTM(proto_seglist.point(0).y(), proto_seglist.point(0).x(), y, x);
@@ -303,9 +283,9 @@ void CViewMessage::handle_vehicle_name(const CMOOSMsg& msg)
 
 void CViewMessage::handle_mission_state(const CMOOSMsg& msg) { mission_state_ = msg.GetString(); }
 
-lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
+lamss::core::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
 {
-    lamss::protobuf::ViewPoint out;
+    lamss::core::ViewPoint out;
 
     out.set_vehicle_name(ownship_);
     out.set_destination(destination_);
@@ -321,7 +301,7 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
     out.mutable_point()->set_z(point.z());
 
     const google::protobuf::EnumDescriptor* enum_desc =
-        lamss::protobuf::ViewPoint::PointType_descriptor();
+        lamss::core::ViewPoint::PointType_descriptor();
 
     const google::protobuf::EnumValueDescriptor* enum_value =
         enum_desc->FindValueByName(boost::to_upper_copy(point.get_type()));
@@ -334,7 +314,7 @@ lamss::protobuf::ViewPoint CViewMessage::to_protobuf(const XYPoint& point)
     return out;
 }
 
-XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
+XYPoint CViewMessage::from_protobuf(const lamss::core::ViewPoint& point)
 {
     XYPoint out;
 
@@ -350,9 +330,9 @@ XYPoint CViewMessage::from_protobuf(const lamss::protobuf::ViewPoint& point)
     return out;
 }
 
-lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& seglist)
+lamss::core::ViewSegList CViewMessage::convex_polygon(const XYSegList& seglist)
 {
-    lamss::protobuf::ViewSegList out;
+    lamss::core::ViewSegList out;
 
     out.set_vehicle_name(ownship_);
 
@@ -371,7 +351,7 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
             min_x = seglist.get_vx(i);
             min_indx = i;
         }
-    lamss::protobuf::Point* point = out.add_point();
+    lamss::core::Point* point = out.add_point();
 
     double lat, lon;
     geodesy_.UTM2LatLong(seglist.get_vx(min_indx), seglist.get_vy(min_indx), lat, lon);
@@ -447,7 +427,7 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
     }
 
     const google::protobuf::EnumDescriptor* enum_desc =
-        lamss::protobuf::ViewSegList::MissionType_descriptor();
+        lamss::core::ViewSegList::MissionType_descriptor();
 
     //std::string::size_type start_vehicle_name = seglist.get_label().find(boost::to_lower_copy(ownship_));
     // std::string mission_state = (start_vehicle_name == std::string::npos) ?
@@ -469,9 +449,9 @@ lamss::protobuf::ViewSegList CViewMessage::convex_polygon(const XYSegList& segli
     return (out);
 }
 
-lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
+lamss::core::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
 {
-    lamss::protobuf::ViewSegList out;
+    lamss::core::ViewSegList out;
 
     out.set_vehicle_name(ownship_);
 
@@ -488,7 +468,7 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     for (unsigned i = 0, n = seglist.size(); i < n; ++i)
         if (i % seglist_inc == 0)
         {
-            lamss::protobuf::Point* point = out.add_point();
+            lamss::core::Point* point = out.add_point();
 
             double lat, lon;
             geodesy_.UTM2LatLong(seglist.get_vx(i), seglist.get_vy(i), lat, lon);
@@ -498,7 +478,7 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
         }
 
     const google::protobuf::EnumDescriptor* enum_desc =
-        lamss::protobuf::ViewSegList::MissionType_descriptor();
+        lamss::core::ViewSegList::MissionType_descriptor();
 
     boost::to_upper(mission_state_);
 
@@ -515,7 +495,7 @@ lamss::protobuf::ViewSegList CViewMessage::to_protobuf(const XYSegList& seglist)
     return out;
 }
 
-XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglist)
+XYSegList CViewMessage::from_protobuf(const lamss::core::ViewSegList& seglist)
 {
     XYSegList out;
 
@@ -543,18 +523,4 @@ XYSegList CViewMessage::from_protobuf(const lamss::protobuf::ViewSegList& seglis
             ->name());
     out.set_edge_size(1);
     return out;
-}
-
-void CViewMessage::handle_icex_transmit_selection(
-    const lamss::icex::protobuf::VehicleTransmitSelection& selection)
-{
-    switch (selection.modem())
-    {
-        case lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_10KHZ:
-            destination_ = cfg_.destination();
-            break;
-        case lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_25KHZ:
-            destination_ = cfg_.icex_25khz_id();
-            break;
-    }
 }

@@ -1,7 +1,12 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
+
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
 
-package lamss.protobuf;
+package lamss.core;
 
 message Point
 {
@@ -104,6 +109,4 @@ message ViewMessageConfig
     optional bool generate_view_objects = 10 [default = true];
 
     optional int32 destination = 20 [default = 1];
-
-    optional int32 icex_25khz_id = 30 [default = 16];
 }

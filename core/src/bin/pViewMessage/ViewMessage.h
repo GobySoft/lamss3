@@ -1,24 +1,5 @@
-/*****************************************************************/
-/*    NAME: Henrik Schmidt, Toby Schneider                       */
-/*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: ViewMessage.h                                        */
-/*    DATE: Aug. 2, 2008                                         */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef VIEWMESSAGE_HEADER
 #define VIEWMESSAGE_HEADER
@@ -37,7 +18,6 @@
 
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
 
 #include "view_message.pb.h"
 
@@ -68,14 +48,11 @@ class CViewMessage : public goby::moos::GobyMOOSApp
     void handle_vehicle_name(const CMOOSMsg& msg);
     void handle_mission_state(const CMOOSMsg& msg);
 
-    void handle_icex_transmit_selection(
-        const lamss::icex::protobuf::VehicleTransmitSelection& selection);
-
-    lamss::protobuf::ViewPoint to_protobuf(const XYPoint& point);
-    XYPoint from_protobuf(const lamss::protobuf::ViewPoint& point);
-    lamss::protobuf::ViewSegList convex_polygon(const XYSegList& point);
-    lamss::protobuf::ViewSegList to_protobuf(const XYSegList& point);
-    XYSegList from_protobuf(const lamss::protobuf::ViewSegList& point);
+    lamss::core::ViewPoint to_protobuf(const XYPoint& point);
+    XYPoint from_protobuf(const lamss::core::ViewPoint& point);
+    lamss::core::ViewSegList convex_polygon(const XYSegList& point);
+    lamss::core::ViewSegList to_protobuf(const XYSegList& point);
+    XYSegList from_protobuf(const lamss::core::ViewSegList& point);
 
     void handle_lat_origin(const CMOOSMsg& msg);
     void handle_lon_origin(const CMOOSMsg& msg);
@@ -113,7 +90,7 @@ class CViewMessage : public goby::moos::GobyMOOSApp
     static const std::string TYPE_FIELD_NAME;
     static const std::string MISSION_FIELD_NAME;
 
-    static lamss::protobuf::ViewMessageConfig cfg_;
+    static lamss::core::ViewMessageConfig cfg_;
     static CViewMessage* inst_;
 
     int destination_;

@@ -11,6 +11,7 @@ install(FILES ${LAMSS_CMAKE_DIR}/LamssToolbox.cmake DESTINATION ${CMAKE_INSTALL_
 add_subdirectory(src/lib/protobuf)
 add_subdirectory(src/lib/henrik_util)
 add_subdirectory(src/bin/lamss)
+add_subdirectory(src/bin/pViewMessage)
 if(BUILD_TESTING)
   add_subdirectory(src/test)
 endif()

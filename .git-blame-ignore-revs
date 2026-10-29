@@ -3,3 +3,5 @@
 04ee9246c2ebc4438d0ac3c7a4d44cd3ed5ce1a8
 # Format henrik_util's CMeasAvg with clang-format
 c57e6d7af35bd18255036492bffd439209079c48
+# Format pViewMessage with clang-format
+109b5c16794163de5c5d8ffc9f521d19f11e43fc
