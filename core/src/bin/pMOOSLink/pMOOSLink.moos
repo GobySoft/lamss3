@@ -1,24 +1,24 @@
 // Copyright 2013-2026 Massachusetts Institute of Technology
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//------------------------------------------------------------------
-// pMOOSLink configuration  block
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
 ProcessConfig = pMOOSLink
 {
-  // available to all moos processes.
   AppTick    = 4
   CommsTick  = 4
-  
-  remote_server = 10.0.1.51
-  remote_port = 9000
+
+  // a second MOOSDB, e.g. `MOOSDB --moos_port=9001`
+  remote_server = localhost
+  remote_port = 9001
 
   out = A:B // post local var "A" as remote var "B"
   out = C // post local var "C" as remote var "C"
-  
+
   in = D:E // post remote var "D" as local var "E"
   in = F // post remote var "F" as local var "F"
-  
-  in = 
-
 }
