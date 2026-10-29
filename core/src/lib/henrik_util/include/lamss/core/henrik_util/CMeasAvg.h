@@ -1,65 +1,59 @@
+#include <deque>
 #include <math.h>
 #include <string.h>
 #include <string>
-#include <deque>
- 
+
 #ifndef _CMEASAVG_HEADER
 #define _CMEASAVG_HEADER
 
 class CMeasAvg
 {
-	public:
+  public:
+    void configAvg(int length);
 
-		void configAvg(int length);
+    double getAvg();
+    void setVal(double);
 
-		double getAvg();
-		void setVal(double);
+  protected:
+    int len;
+    int num_measurements;
+    double avg;
 
-	protected:
-
-		int len;
-		int num_measurements;
-		double avg;
-
-		std::deque<double>  vals;
+    std::deque<double> vals;
 };
 
 class CAngleAvg
 {
-	public:
+  public:
+    void configAvg(int length);
 
-		void configAvg(int length);
+    double getAvg();
+    void setVal(double);
 
-		double getAvg();
-		void setVal(double);
+  protected:
+    int len;
+    int num_measurements;
+    double avg;
 
-	protected:
-
-		int len;
-		int num_measurements;
-		double avg;
-
-		std::deque<double>  svals;
-		std::deque<double>  cvals;
+    std::deque<double> svals;
+    std::deque<double> cvals;
 };
 
 class CRadianAvg
 {
-	public:
+  public:
+    void configAvg(int length);
 
-		void configAvg(int length);
+    double getAvg();
+    void setVal(double);
 
-		double getAvg();
-		void setVal(double);
+  protected:
+    int len;
+    int num_measurements;
+    double avg;
 
-	protected:
-
-		int len;
-		int num_measurements;
-		double avg;
-
-		std::deque<double>  svals;
-		std::deque<double>  cvals;
+    std::deque<double> svals;
+    std::deque<double> cvals;
 };
 
 #endif /* _CMEASAVG_HEADER */
