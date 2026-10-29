@@ -1,11 +1,4 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                 pMOOSLink
-# Author(s):                                 t. schneider
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(pMOOSLink ${SRC})
-      
-TARGET_LINK_LIBRARIES(pMOOSLink
-  ${MOOS_LIBRARIES})
+lamss_add_app(pMOOSLink MOOS NO_GOBY SOURCES pMOOSLinkMain.cpp pMOOSLink.cpp)
