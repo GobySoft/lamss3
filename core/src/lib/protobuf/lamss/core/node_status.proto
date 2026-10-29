@@ -1,0 +1,82 @@
+import "option_extensions.proto";
+import "dccl/protobuf/option_extensions.proto";
+import "dccl/arithmetic/protobuf/arithmetic_extensions.proto";
+
+package lamss.protobuf;
+
+message LegacyNodeReport
+{
+    // "NAME=%1%,type=%2%,UTC_TIME=%4%,X=%5%,Y=%6%,LAT=%7%,LON=%8%,SPD=%9%,HDG=%10%,DEPTH=%11%";
+    option (dccl.msg).unit_system = "si";
+
+    optional string name = 1;
+    optional string type = 2;
+    optional double moosdb_time = 3
+        [(dccl.field).units = {base_dimensions: "T"}];
+    optional double utc_time = 4 [(dccl.field).units = {base_dimensions: "T"}];
+    optional double x = 5 [(dccl.field).units = {base_dimensions: "L"}];
+    optional double y = 6 [(dccl.field).units = {base_dimensions: "L"}];
+    optional double lat = 7
+        [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
+    optional double lon = 8
+        [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
+    optional double spd = 9 [(dccl.field).units = {base_dimensions: "LT^-1"}];
+    optional double hdg = 10
+        [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
+    optional double depth = 11 [(dccl.field).units = {base_dimensions: "L"}];
+    optional double time = 12 [(dccl.field).units = {base_dimensions: "T"}];
+}
+
+message MinimalNodeStatus
+{
+    option (dccl.msg).id = 21;
+    option (dccl.msg).max_bytes = 32;
+
+    required int32 t = 1
+        [(dccl.field).max = 2000000000, (dccl.field).min = 1000000000];
+
+    required int32 x = 2 [
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.horizontal"
+    ];
+    //(dccl.field).(arithmetic).debug_assert = true];
+    required int32 y = 3 [
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.horizontal"
+    ];
+    //(dccl.field).(arithmetic).debug_assert = true];
+    required int32 z = 4 [
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.vertical"
+    ];
+    //(dccl.field).(arithmetic).debug_assert = true];
+
+    optional double u = 5 [default = nan, (dccl.field).omit = true];
+    optional double v = 6 [default = nan, (dccl.field).omit = true];
+    optional double w = 7 [default = nan, (dccl.field).omit = true];
+}
+
+message MinimalNodeStatusDifference
+{
+    option (dccl.msg).id = 22;
+    option (dccl.msg).max_bytes = 60;
+
+    repeated int32 dx = 1 [
+        (dccl.field).max_repeat = 15,
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal"
+    ];
+    //                         (dccl.field).(arithmetic).debug_assert = true];
+    repeated int32 dy = 2 [
+        (dccl.field).max_repeat = 15,
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.diff.horizontal"
+    ];
+    //                         (dccl.field).(arithmetic).debug_assert = true];
+    repeated int32 dz = 3 [
+        (dccl.field).max_repeat = 15,
+        (dccl.field).codec = "_arithmetic",
+        (dccl.field).(arithmetic).model = "lamss.dist.diff.vertical"
+    ];
+    //                         (dccl.field).(arithmetic).debug_assert = true];
+}

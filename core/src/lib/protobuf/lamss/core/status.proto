@@ -1,0 +1,183 @@
+import "dccl/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
+message LAMSS_STATUS
+{
+    option (dccl.msg).id = 20;
+    option (dccl.msg).max_bytes = 32;
+    option (dccl.msg).unit_system = "si";
+        option (dccl.msg).codec_version = 4;
+
+    optional double timestamp = 1 [
+        (dccl.field).codec = "_time",
+        (dccl.field).in_head = true,
+        (dccl.field).units = {base_dimensions: "T"}
+    ];
+
+    optional int32 node = 2 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional int32 _dest_id = 3 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional string messagetype = 4 [
+        default = "LAMSS_STATUS",
+        (dccl.field).static_value = "LAMSS_STATUS",
+        (dccl.field).codec = "_static"
+    ];
+    optional double nav_long = 5 [
+        (dccl.field).max = 180,
+        (dccl.field).min = -180,
+        (dccl.field).precision = 5,
+        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+    ];
+    optional double nav_lat = 6 [
+        (dccl.field).max = 90,
+        (dccl.field).min = -90,
+        (dccl.field).precision = 5,
+        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+    ];
+    optional double speed = 7 [
+        (dccl.field).max = 20.0,
+        (dccl.field).min = -2.0,
+        (dccl.field).precision = 1,
+        (dccl.field).units = {base_dimensions: "LT^-1"}
+    ];
+    optional double heading = 8 [
+        (dccl.field).max = 360.00,
+        (dccl.field).min = 0.00,
+        (dccl.field).precision = 0,
+        (dccl.field).units = {system: "angle::degree" base_dimensions: "A"}
+    ];
+    optional double depth = 9 [
+        (dccl.field).max = 6400.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional double altitude = 10 [
+        (dccl.field).max = 500.0,
+        (dccl.field).min = -10.0,
+        (dccl.field).precision = 1,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional double pitch = 11 [
+        (dccl.field).max = 1.57,
+        (dccl.field).min = -1.57,
+        (dccl.field).precision = 2,
+        (dccl.field).units = {base_dimensions: "A"}
+    ];
+    optional double roll = 12 [
+        (dccl.field).max = 1.57,
+        (dccl.field).min = -1.57,
+        (dccl.field).precision = 2,
+        (dccl.field).units = {base_dimensions: "A"}
+    ];
+    optional Mission_StateEnum mission_state = 13;
+    optional Deploy_ModeEnum deploy_mode = 14;
+    enum Deploy_ModeEnum
+    {
+        DEPLOY_MODE_LOITER = 0;
+        DEPLOY_MODE_RETURN = 1;
+        DEPLOY_MODE_RACETRACK = 2;
+        DEPLOY_MODE_ZIGZAG = 3;
+        DEPLOY_MODE_LAWNMOWER = 4;
+        DEPLOY_MODE_TRAIL = 5;
+        DEPLOY_MODE_STATION_KEEP = 6;
+        DEPLOY_ABORT = 7;
+    }
+    optional Depth_ModeEnum depth_mode = 15;
+    enum Depth_ModeEnum
+    {
+        DEPTH_MODE_SINGLE = 0;
+        DEPTH_MODE_DUAL = 1;
+        DEPTH_MODE_YOYO = 2;
+        DEPTH_MODE_ADAPTIVE_YOYO = 3;
+        DEPTH_MODE_ADAPTIVE_ACOMMS = 4;
+        DEPTH_MODE_BOTTOM_FOLLOWING = 5;
+    }
+    optional Prosecute_TypeEnum prosecute_type = 16;
+    enum Prosecute_TypeEnum
+    {
+        PROSECUTE_TYPE_ADAPTIVE = 0;
+        PROSECUTE_TYPE_TMA_ZIGZAG = 1;
+        PROSECUTE_TYPE_POLYGON = 2;
+        PROSECUTE_TYPE_unknown = 3;
+    }
+    optional Collaboration_ModeEnum collaboration_mode = 17;
+    enum Collaboration_ModeEnum
+    {
+        COLLABORATION_MODE_OFF = 0;
+        COLLABORATION_MODE_SYNCH = 1;
+        COLLABORATION_MODE_COLLABORATING = 2;
+    }
+    optional Sonar_ControlEnum sonar_control = 18;
+    enum Sonar_ControlEnum
+    {
+        SONAR_CONTROL_ON = 0;
+        SONAR_CONTROL_OFF = 1;
+    }
+    optional double secs_to_gps = 19 [
+        (dccl.field).max = 5110.000000,
+        (dccl.field).min = -5120.000000,
+        (dccl.field).precision = -1,
+        (dccl.field).units = {base_dimensions: "T"}
+    ];
+    //	optional int32 Max_Cline_Depth = 20 [(dccl.field).max=255,
+    //(dccl.field).min=0]; 	optional int32 Min_Cline_Depth = 21
+    //[(dccl.field).max=255, (dccl.field).min=0]; 	optional int32
+    // Ctr_Cline_Depth = 22 [(dccl.field).max=255, (dccl.field).min=0];
+    optional double secs_to_abort = 23 [
+        (dccl.field).max = 5110.000000,
+        (dccl.field).min = -5120.000000,
+        (dccl.field).precision = -1,
+        (dccl.field).units = {base_dimensions: "T"}
+
+    ];
+
+    // temp until we have a dedicated status message
+    optional double hydroman_status_fused = 24 [
+        (dccl.field).max = 1000,
+        (dccl.field).min = 0,
+        (dccl.field).precision = 1,
+        default = nan];
+    optional double homing_x = 25 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional double homing_y = 26 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0,
+        (dccl.field).units = {base_dimensions: "L"}
+    ];
+    optional bool homing_lock = 27 [default = false];
+}
+
+enum Mission_StateEnum
+{
+    MISSION_STATE_ALLSTOP = 0;
+    MISSION_STATE_IDLE = 1;
+    MISSION_STATE_MISSION = 2;
+    MISSION_STATE_DIVING = 3;
+    MISSION_STATE_DEPLOY = 4;
+    MISSION_STATE_PROSECUTE = 5;
+    MISSION_STATE_ABORT = 6;
+    MISSION_STATE_DRIFTING = 7;
+    MISSION_STATE_SURFACING = 8;
+}
+
+enum BearingTrackEnum
+{
+    TRACKING_IDLE = 0;
+    TRACKING_DCLT = 1;
+    TRACKING_NO_TRACK = 2;
+    TRACKING_AMBIGUOUS = 3;
+    TRACKING_TRACKING = 4;
+    TRACKING_CLASSIFYING = 5;
+}
