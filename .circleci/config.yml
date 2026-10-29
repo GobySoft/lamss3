@@ -38,17 +38,18 @@ commands:
               git openssh-client ca-certificates curl gpg lsb-release sudo << parameters.extra >>
 
   init:
-    description: Run init.sh and put the lamss tool on PATH
+    description: Run init.sh and load the active checkout's environment in later steps
     steps:
       - run:
           name: ./init.sh --yes
           command: ./init.sh --yes
       - run:
-          name: Add ~/.local/bin to PATH
+          name: Load the lamss environment
           command: |
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+            echo '. "$HOME/.config/lamss/env.sh"' >> "$BASH_ENV"
             . "$BASH_ENV"
-            command -v lamss lm
+            command -v lamss
+            lamss env list
 
   cmake-build:
     description: Configure, build, install and test one toolbox as its own CMake project
@@ -58,7 +59,7 @@ commands:
     steps:
       - run:
           name: Build << parameters.toolbox >> standalone
-          # not build/<tb>, which is where `lm b` builds each toolbox
+          # not build/<tb>, which is where `lamss build` builds each toolbox
           command: |
             cmake -S << parameters.toolbox >> -B build/standalone/<< parameters.toolbox >> -G Ninja -DLAMSS_WERROR=ON
             cmake --build build/standalone/<< parameters.toolbox >> --target install
@@ -96,13 +97,13 @@ jobs:
       - init
       - run:
           name: Activate every in-tree toolbox
-          command: lm tb activate autonomy sonar virtual_ocean
+          command: lamss toolbox activate autonomy sonar virtual_ocean
       - run:
-          name: lm dep install --yes
-          command: lm dep install --yes
+          name: lamss dependencies install --yes
+          command: lamss dependencies install --yes
       - run:
-          name: lm b --test -D LAMSS_WERROR=ON
-          command: lm b --test -D LAMSS_WERROR=ON
+          name: lamss build --test -D LAMSS_WERROR=ON
+          command: lamss build --test -D LAMSS_WERROR=ON
 
   build-standalone:
     parameters:
@@ -121,8 +122,8 @@ jobs:
             - run:
                 name: Install << parameters.toolbox >> dependencies only
                 command: |
-                  lm tb activate << parameters.toolbox >>
-                  lm dep install --yes
+                  lamss toolbox activate << parameters.toolbox >>
+                  lamss dependencies install --yes
       - cmake-build:
           toolbox: core
       - unless:
@@ -132,10 +133,31 @@ jobs:
             - cmake-build:
                 toolbox: << parameters.toolbox >>
 
+  env-switch:
+    executor: ubuntu
+    steps:
+      - install-prerequisites
+      - checkout
+      - init
+      - run:
+          name: Set up a second checkout and switch between the two
+          command: |
+            git clone --quiet "$PWD" /root/second
+            /root/second/init.sh --yes --no-deps
+            . "$HOME/.config/lamss/env.sh"
+            test "$LAMSS_ROOT" = /root/second
+            lamss env list
+            lamss env switch lamss3
+            test "$LAMSS_ROOT" = /root/lamss3
+            test "$(type -P lamss)" = /root/lamss3/build/usr/bin/lamss
+            if echo "$PATH:$LD_LIBRARY_PATH:$PYTHONPATH" | grep -q /root/second; then exit 1; fi
+            grep -qF '# >>> lamss >>>' "$HOME/.bashrc"
+
 workflows:
   ci:
     jobs:
       - format
+      - env-switch
       - build-standalone:
           name: build-<< matrix.toolbox >>-standalone
           matrix:

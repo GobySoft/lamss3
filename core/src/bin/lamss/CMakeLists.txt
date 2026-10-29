@@ -18,7 +18,7 @@ else()
   set(LAMSS_YAML_CPP yaml-cpp)
 endif()
 
-add_library(lamss_tool_common STATIC cli.cpp repo.cpp process.cpp deps.cpp)
+add_library(lamss_tool_common STATIC cli.cpp repo.cpp process.cpp deps.cpp envfile.cpp)
 target_compile_features(lamss_tool_common PUBLIC cxx_std_17)
 target_include_directories(lamss_tool_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lamss_tool_common PUBLIC ${LAMSS_YAML_CPP})

@@ -25,15 +25,16 @@ sequenceDiagram
   B->>B: apt install build-essential cmake ninja-build libyaml-cpp-dev gpg (Ubuntu archive)
   B->>C: cmake -S core/src/bin/lamss -B build/lamss-tool -G Ninja, build, install
   C-->>B: build/usr/bin/lamss
-  B->>B: symlink ~/.local/bin/lamss (and lm)
+  B->>L: lamss env switch (writes ~/.config/lamss/env.sh)
+  B->>L: lamss env hook (sources env.sh from ~/.bashrc)
   B->>L: lamss dependencies install
   L->>L: add GobySoft repo, apt install active toolboxes' packages
-  B-->>U: eval $(lamss env) hint
+  B-->>U: open a new shell (or . ~/.config/lamss/env.sh)
   U->>L: lamss build
   L->>C: cmake -S . -B build -G Ninja && cmake --build build --target install
 ```
 
-`init.sh` is a short POSIX shell script: install the tool's build packages, build the tool, install symlinks `~/.local/bin/lamss` and `~/.local/bin/lm` (if `lm` is free), run `lamss dependencies install`, and print the `eval "$(lamss env)"` hint. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
+`init.sh` is a short POSIX shell script that runs these as numbered steps (install the tool's build packages, build the tool, make this the active checkout, add the shell hook, install the dependencies). Each step prints exactly what it will run and asks `[Y/n/q]`; a step that is already satisfied says so and does not ask, and `--yes` accepts every step. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
 
 Rebuilding the tool is part of `lamss build` (the tool's own CMake project is also added at top level), so a changed tool source takes effect on the next build.
 
@@ -57,6 +58,10 @@ flowchart LR
   m --> ml[list]
   m --> mg[generate]
   lamss --> env
+  env --> es[show]
+  env --> el[list]
+  env --> esw[switch]
+  env --> eh[hook]
   lamss --> clean
 ```
 
@@ -126,9 +131,26 @@ lamss mission generate <cruise> [variant] ...   # alias for --generate only
 
 The tool does not implement mission logic. It locates the active toolboxes' `missions/` directories, sets `PYTHONPATH`, and execs `python3 -m lamss.mission` with the same arguments (see [06](06-missions-framework.md)). Keeping the mission engine in Python avoids a C++ ↔ Python boundary for the one subcommand that is inherently Python. `run` requires `--platform` and refuses to run in simulation mode; `sim` defaults to all platforms of the cruise's fleet.
 
-### `lamss env`
+### `lamss env show|list|switch|hook`
 
-Prints shell exports for `PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`, `LAMSS_ROOT` (repo root) and `LAMSS_PREFIX` (`build/usr`), for `eval "$(lamss env)"`. `--fish` and `--csh` variants if anyone asks.
+*This section written by Claude*
+
+Shells load the **active** checkout from one file, so nobody has to `eval` anything, and several checkouts can live side by side:
+
+| File | Written by | Holds |
+|---|---|---|
+| `~/.config/lamss/env.sh` (`$XDG_CONFIG_HOME` honoured) | `lamss env switch` | Exports of `LAMSS_ROOT`, `LAMSS_PREFIX` (`build/usr`), `PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH` for the active checkout (first removing the previously active one's entries), the `lm` alias when no `lm` exists, and a `lamss` shell function that re-sources the file after `lamss env switch` |
+| `~/.config/lamss/checkouts` | `lamss env switch` | Every checkout made active so far, for `list` and switching by name |
+| marked block in `~/.bashrc` (and `~/.zshrc` if present) | `lamss env hook` | Sources `env.sh` in every new interactive shell |
+
+| Subcommand | Does |
+|---|---|
+| `show` | Prints the exports for the checkout you are in, for scripts: `eval "$(lamss env show)"` |
+| `list` | The known checkouts, `*` on the active one, each marked built, not built or missing |
+| `switch [path\|name]` | Makes a checkout active (default: the one you are in); the current shell follows through the `lamss` function |
+| `hook [--remove] [--rc FILE]` | Adds or removes the rc block; adding twice is a no-op |
+
+`env.sh` is static shell rather than a call to the tool, so shells start without running the binary and still start when a build is broken. Non-interactive contexts (CI, cron, supervisord) source `env.sh` or use `lamss env show` explicitly rather than relying on `~/.bashrc`. Only POSIX shells (bash, zsh, dash) are supported.
 
 ### `lamss clean`
 
@@ -140,7 +162,7 @@ The tool walks up from the current directory looking for `.lamss/`, like `git` l
 
 ## Alias installation
 
-`init.sh` installs `~/.local/bin/lamss` and, if `lm` is not already a command, `~/.local/bin/lm` as symlinks to `build/usr/bin/lamss`; re-running `./init.sh --no-deps` repeats that step. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own command table, not shell aliases.
+`env.sh` puts `build/usr/bin` on `PATH` and defines `lm` as a shell alias for `lamss` when no other `lm` is a command. Aliases only expand in interactive shells, so scripts call `lamss`. Subcommand shortcuts (`b`, `dep`, `tb`, `m`) are aliases in the tool's own command table, not shell aliases.
 
 ## Implementation notes
 
@@ -152,4 +174,4 @@ The tool walks up from the current directory looking for `.lamss/`, like `git` l
 ## Open questions for the human plan
 
 - `lamss build` does not run clang-format; CI checks it and `lamss format` exists as a convenience (decided).
-- `init.sh` installs the `~/.local/bin` symlinks; `lamss env` remains for `LD_LIBRARY_PATH`/`PYTHONPATH` (decided).
+- `init.sh` loads the environment through `~/.config/lamss/env.sh` and a `~/.bashrc` hook rather than `~/.local/bin` symlinks; `lm` is a shell alias (decided).
