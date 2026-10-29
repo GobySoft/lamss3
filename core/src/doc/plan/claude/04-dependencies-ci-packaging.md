@@ -29,16 +29,18 @@ Format defined in [03](03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep).
 
 | Toolbox | apt packages | Source |
 |---|---|---|
-| core | `build-essential cmake ninja-build git libgoby3-dev libgoby3-moos-dev goby3-apps goby3-moos goby3-gui libdccl5-dev dccl5-compiler libprotobuf-dev protobuf-compiler libboost-all-dev libmoos10-dev moosdb10 moos10-essential libmoos-ivp-dev moos-ivp-apps nlohmann-json3-dev libnetcdf-dev libnetcdf-c++4-dev libgsl-dev python3-jinja2 python3-yaml supervisor python3-bokeh python3-websockets` | — |
+| core | `build-essential cmake ninja-build git libgoby3-dev libgoby3-moos-dev goby3-apps goby3-moos libdccl5-dev dccl5-compiler libprotobuf-dev protobuf-compiler libboost-all-dev libmoos10-dev moosdb10 moos10-essential libmoos-ivp-dev moos-ivp-apps nlohmann-json3-dev libnetcdf-dev libnetcdf-c++4-dev libgsl-dev python3-jinja2 python3-yaml supervisor` | — |
 | autonomy | `libnetsim-dev` | — |
 | hydroman | `libpcap-dev` + whatever `upstream/` needs (copied into this file when the wrapper is written) | HydroMAN 3 submodule |
-| sonar | `libgsl-dev libhdf5-dev libfltk1.3-dev libhidapi-dev libusb-1.0-0-dev libnetsim-dev` | DM7820 DKMS |
+| sonar | `libgsl-dev libhdf5-dev libhidapi-dev libusb-1.0-0-dev libnetsim-dev` | DM7820 DKMS |
 | virtual_ocean | `libnetsim-dev netsim-apps acousticstoolbox libnetcdf-dev python3-netcdf4` | — |
-| icex | `libboost-python-dev libopencv-core-dev libgoby3-gui-dev` | — |
+| gui | `goby3-gui libgoby3-gui-dev moos-ivp-gui python3-websockets` (`libgoby3-gui-dev` pulls in `libwt4-dev`; `moos-ivp-gui` pulls in FLTK and OpenGL) | Bokeh: not packaged by Ubuntu (jammy, noble), so pinned in the `--python-venv` venv |
+| icex | `libboost-python-dev libopencv-core-dev` (its Liaison plugin's `libgoby3-gui-dev` comes from `gui`) | — |
 | mit | `python3-pandas python3-numpy python3-scipy` | — |
 
 Notes:
 
+- `gui` exists to keep the display stack (Wt, FLTK, OpenGL, Bokeh) off machines that do not need it: `core` no longer lists `goby3-gui`, `python3-bokeh` or `python3-websockets`, and `sonar` no longer lists FLTK (its FLTK viewer `uTDA` is attic; any other sonar display moves to `gui`). The GEOV and OpenCPN interfaces (`goby_geov_interface`, `goby_opencpn_interface`) are headless and come with `goby3-apps` in `core`.
 - Python packages come from apt only. The old `pip install -U bokeh websockets pymoos ...` is replaced; `pymoos` is not needed once the mission framework does not talk MOOS. Where a tool genuinely needs a pip package it runs in a venv created by `lamss dependencies install --python-venv`.
 - `apt-key adv` is dead on 24.04; the GobySoft repo is added with a keyring file under `/etc/apt/keyrings/` and a `signed-by=` sources entry.
 - `DEBIAN_FRONTEND=noninteractive` and `--no-install-recommends` for CI.

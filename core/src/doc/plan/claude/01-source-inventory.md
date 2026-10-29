@@ -34,6 +34,7 @@ flowchart LR
   S --> sonar
   S --> vo
   S --> icex
+  S --> gui
   S --> attic
   I[lamss-internal<br/>~60 apps, 15 libs] --> sonar
   I --> attic
@@ -41,6 +42,7 @@ flowchart LR
   M --> icex
   M --> attic
   core:::tb
+  gui:::tb
   auton:::tb
   sonar:::tb
   vo:::tb
@@ -67,10 +69,19 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pPBNodeReport`, `uTopsideSetup` | lamss-shared | GobyMOOSApp | 256 / 255 | Node report conversions |
 | `pInitializer` | lamss | GobyMOOSApp | 55 | Duplicate of Goby's; drop once missions use Goby3 config |
 | `pMOOSLink` | lamss | CMOOSApp | 316 | Bridges two MOOSDBs; needed only until M4, then attic |
-| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; replaced by Goby3's `goby_geov_gateway`, so attic |
+| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; replaced by Goby3's `goby_geov_interface`, so attic |
 | `lib_pylamss`, `lib_pybellhop` | lamss-shared | python3 | ~2k | Log tools, Bellhop readers |
-| `display-center` (LAMSS Display Center) | lamss-shared | web (Bokeh, websockets) | ~10k | Kept; fed from Goby3 groups instead of pymoos |
 | `scripts/km`, `.bash_lamss` | lamss | sh | | Replaced by `lamss env` and `lamss mission stop` |
+
+### gui
+
+*This section written by Claude*
+
+| Item | From | Base | Lines | Notes |
+|---|---|---|---|---|
+| `display-center` (LAMSS Display Center) | lamss-shared | web (Bokeh, websockets) | ~10k | Kept; fed from Goby3 groups instead of pymoos |
+| `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server` | lamss-shared | python3 | | Display Center plot servers used by live missions ([live apps](#apps-actually-launched-by-live-scenarios)) |
+| viewer mission component | missions-lamss | gpp plugs | | Liaison, pMarineViewer (until dropped), GEOV and OpenCPN interface configuration |
 
 ### autonomy
 
@@ -161,13 +172,13 @@ Everything not named above. Highlights so nobody goes looking:
 | Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iBackSeatServer`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
 | Superseded by Goby/MOOS-IvP stock apps | `iModemSim` (netsim), `zLoggerNG`, `uTPB`, `pMailReader`, `pMOOSLink` (after M4), `pInitializer` |
 | Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker`; `uTDA` |
-| Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_gateway`); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
+| Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_interface`); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
 | Internal HydroMAN 1.x (replaced by the HydroMAN 3 repository via the `hydroman` toolbox) | `pHydroMAN_{BasicModel,ModelCalibrator,LBLProcessor,DVLProcessor,SensorFusion,Manager,ModelEstimator}`, `pHydroMAN_ICEXManager` (14k lines, armadillo + embedded Python); the `hydroman`/`hydroman_3` mission flags and `auv/macrura/macrura_plugs/pHydroMAN_BasicModel.plug` |
 | Dead science code (hardcoded `/home/<user>` paths, thesis chains) | emf43 scattering chain (8 apps), `pImagePro`, `pROI`, `lib_arjuna_util`, `pRBTracker`, `pMBTracker`, `p1HTracker`, `pTrackManager`, `pTargetTracker`, `pTwostateTracker` (OpenCV < 3), `pActiveRangeTracker`, `pActiveGeoTracker` (OpenCV < 3), `lib_metrics` |
 | Glider | `pHelmToSlocum`, `uSimSlocum`, `glider/` missions |
 | MATLAB / Octave | `lamss-shared/src/matlab` (92k lines, 35 MB), `iMseas` + `lib_readhops` (MCR 2008a), `pOctaverMIT`, `uSimSoundVelocityMSEAS`, `src/octave` |
 | Lua | `iChauffeur`, `iLivery`, `pLuaScript`, `lib_lua` |
-| Web (kept, see core) | `uPlot` servers; the LAMSS Display Center (`display-center`) itself is wanted and stays in `core` |
+| Web (kept, see gui) | `uPlot` servers; the LAMSS Display Center (`display-center`) itself is wanted and goes to `gui` |
 | Thirdparty | `at`/`at_2010` Acoustics Toolbox (netsim's package covers Bellhop), QccPack, svm_light, `Macrura_piUSBL_ICEX`, `octoport` (Python 2), `python-moos` |
 | Docs | 413 MB of PDFs/PPTX in `lamss/src/doc`, 31 MB in lamss-shared; move to a `lamss-docs` archive, not a submodule anyone builds |
 | Licensing conflicts | `iMOOSGateway`, `payload_interface` ("no permission granted") until the authors clear them |
@@ -179,14 +190,15 @@ Everything not named above. Highlights so nobody goes looking:
 
 | Dep | Used by | 24.04 status |
 |---|---|---|
-| Goby3 (`libgoby3-dev`, `goby3-moos`, `goby3-gui`) | everything | GobySoft apt repo; 3.6.x current |
+| Goby3 (`libgoby3-dev`, `goby3-moos`; `goby3-gui`/`libgoby3-gui-dev` for Liaison, which pull in Wt) | everything; the GUI packages only `gui` | GobySoft apt repo; 3.6.x current |
 | DCCL 5 | protobuf | GobySoft apt repo |
-| MOOS 10 + MOOS-IvP (`libmoos-ivp-dev`, `moos-ivp-apps/gui`) | everything until M4 | GobySoft apt repo; noble builds exist |
+| MOOS 10 + MOOS-IvP (`libmoos-ivp-dev`, `moos-ivp-apps`; `moos-ivp-gui` for pMarineViewer, FLTK + OpenGL) | everything until M4; `moos-ivp-gui` only `gui` | GobySoft apt repo; noble builds exist |
 | netsim 1.3 (`libnetsim-dev`, `netsim-apps`) | virtual_ocean, sonar, autonomy (pDepthAdapt, behaviors) | GobySoft apt repo; noble amd64/arm64/armhf built by netsim's own CI; exports `netsim-config` for `find_package(NETSIM)` |
 | Boost ≥ 1.65 (date_time, thread, system, program_options, filesystem, regex, serialization, statechart) | wide | 1.83 in noble |
 | Protobuf, GSL, NetCDF C/C++4, HDF5, armadillo, FLTK 1.3, libpcap, hidapi/libusb, nlohmann-json | per app | all in noble; `libgsl0-dev` → `libgsl-dev`, `libnetcdf-cxx-legacy-dev` → `libnetcdf-c++4-dev` |
 | OpenCV | `henrik_util` core only (CKalmanFilter dropped for ≥ 3) | drop the dependency by removing/replacing CKalmanFilter |
-| Octave, MATLAB MCR, Lua, mysqlclient, Wt | attic / icex liaison | not in core |
+| Octave, MATLAB MCR, Lua, mysqlclient | attic | not in core |
+| Wt, FLTK, OpenGL, Bokeh, websockets | `gui` (Liaison, pMarineViewer, Display Center); icex's Liaison plugin through `gui` | only installed when `gui` is active |
 | Python: pymoos, bokeh 2.2.3, websockets, pandas, numpy, scipy, netCDF4, jinja2 | python tools, missions | apt `python3-*`; PEP 668 forbids system `pip install` |
 | HydroMAN 3 | `hydroman` wrapper toolbox | git submodule, own CMake build; repository access controls who can activate the toolbox |
 

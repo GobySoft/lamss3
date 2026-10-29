@@ -36,6 +36,7 @@ Part of the `lamss3` git repository:
  - **autonomy**: Related to vehicle autonomy, control, mission state machine, pHelmIvP behaviors.
  - **sonar**: Sonar processing pipelines.
  - **virtual_ocean**: Simulators for creating a simulated ocean.
+ - **gui**: Graphical and web displays (Goby Liaison plugins, LAMSS Display Center, pMarineViewer). Separate because its dependencies are large and are not wanted on vehicles.
  
 Git submodules
  - **mit**: MIT missions from missions-lamss.
@@ -126,7 +127,7 @@ Each tool should have an implicit help (if subcommands are required) and `--help
 `lamss3`
  - `build`: Build artifacts
  - `build/usr`: Installed artifacts (mirrors `/usr`)
- - `<toolbox>`: core, autonomy, sonar, virtual_ocean (and optionally any git submodule toolboxes)
+ - `<toolbox>`: core, autonomy, sonar, virtual_ocean, gui (and optionally any git submodule toolboxes)
 	 + `<src>`: Source code for the toolbox
 		 * `bin`: C++ Binaries (Goby applications)
 		 * `lib`: C++ Libraries

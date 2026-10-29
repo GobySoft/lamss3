@@ -55,6 +55,7 @@ flowchart TB
 | autonomy | lab mission-manager owner + hybrid UUV owner |
 | sonar | passive sonar sim owner + one more |
 | virtual_ocean | ocean model owner + GobySoft (netsim) |
+| gui | Display Center owner + GobySoft (Liaison) |
 | icex | the ICEX lead, when active |
 | mit (missions) | the cruise leads for irminger/mbat |
 | attic | nobody; PRs accepted, CI may be red |

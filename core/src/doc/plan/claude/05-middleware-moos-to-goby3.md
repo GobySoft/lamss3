@@ -129,7 +129,7 @@ classDiagram
 - **Transport.** One protobuf type, `lamss.core.MoosMessage`, carrying key, time, source and a `oneof` of double/string/binary. Each MOOS variable maps to a Goby **dynamic group** named after the variable (`goby::middleware::DynamicGroup(key)`), so subscriptions stay per-variable and cheap. Static groups are preferred for the handful of hot variables (NAV_*, DESIRED_*) and are generated from the catalogue above.
 - **Config.** `m_MissionReader` reads the same `ProcessConfig = pApp { ... }` block from a `.moos`-style file, so existing config templates work unchanged. The shim's own Goby `AppConfig` (loop frequency, glog) is a separate `.pb.cfg`.
 - **Threading.** Everything runs on the Goby single-thread event loop; `OnNewMail` is called once per `loop()` with the queued messages, then `Iterate()`. This matches `CMOOSApp` semantics with `CommsTick == AppTick`.
-- **AppCasting.** `AppCastingMOOSApp::reportRunWarning`/`buildReport` publish to a `lamss.core.AppCast` group so `goby_liaison` or a small `lamss_appcast_viewer` can show them. `uMAC`-style reports are not reproduced.
+- **AppCasting.** `AppCastingMOOSApp::reportRunWarning`/`buildReport` publish to a `lamss.core.AppCast` group so `goby_liaison` or a small `lamss_appcast_viewer` (a Liaison plugin in `gui`) can show them. `uMAC`-style reports are not reproduced.
 - **Not supported** (deliberately): `MOOSDB` wildcard registration (`*:*`), `CMOOSCommClient` direct use, `Comms().Post` with custom source names, `MOOSAsyncCommClient` callbacks. An app using these is flagged by the compiler and either patched or sent to `attic`.
 
 ### Interoperating with real MOOS during the transition
@@ -161,7 +161,7 @@ Plan:
 2. **Autonomy toolbox codes to the IvPico interface now.** The behavior-facing messages that `pLamssMissionManager` and `pLamssTrackManager` produce (`LAMSS_DEPLOY_*`, updates to behaviors, `MODE`/flag variables) are expressed as `ivp.interface.Variable`/`Command`, and a thin adapter publishes them to MOOS for pHelmIvP in the interim. This way the autonomy apps do not need to change again when IvPico lands.
 3. **LAMSS behaviors** (`lib_behaviors-henrik`: `BHV_OptAcoustDepth`, `BHV_OptAcommsDepth`, `BHV_GlideSlopeSpeed`, plus whatever `lamss` carries) are kept as IvP behavior plugins, which IvPico loads the same way pHelmIvP does. Their MOOS-variable I/O goes through IvPico's `Variable`/`Posting` path; any direct MOOS use inside a behavior is removed.
 4. **Nav input**: `openocean.Navigation` becomes the canonical nav message in `core` (replacing `NAV_X/Y/...` and `NODE_REPORT` strings). The frontseat driver and HydroMAN interface publish it; a `lamss_node_report` adapter keeps `NODE_REPORT` alive for pMarineViewer while it is still used.
-5. **Phase 4**: swap the mission template from `pHelmIvP` + gateway to the IvPico Goby app. Visualisation is Goby Liaison and GEOV (via `goby_geov_gateway`); OpenCPN support is added as a third viewer. pMarineViewer is not carried past the transition.
+5. **Phase 4**: swap the mission template from `pHelmIvP` + gateway to the IvPico Goby app. Visualisation is Goby Liaison and GEOV (via `goby_geov_interface`); OpenCPN support is added as a third viewer. pMarineViewer is not carried past the transition.
 
 IvPico-related work that lamss3 should contribute upstream rather than fork: the Goby app itself, a `Visualization` to Liaison plugin, and any `openocean` message fields LAMSS nav needs (e.g. altitude, DVL validity).
 
@@ -177,6 +177,6 @@ IvPico-related work that lamss3 should contribute upstream rather than fork: the
 
 ## Open questions for the human plan
 
-- Viewers (decided): Goby Liaison and GEOV for now, plus OpenCPN support to be added; pMarineViewer is dropped.
+- Viewers (decided): Goby Liaison and GEOV for now, plus OpenCPN support to be added (Goby3 already ships `goby_opencpn_interface`); pMarineViewer is dropped. All of it is configured by the `viewer` component in the `gui` toolbox.
 - The shim lives in `core` until M4, then its fate is decided by what is left (decided).
 - Removing MOOS entirely means Population A is fully rewritten, not just shimmed: confirmed as the goal.

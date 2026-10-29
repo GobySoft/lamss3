@@ -94,7 +94,7 @@ classDiagram
 - **Cruise**: bounds the deployment. Owns the datum, op region, acomms network (modem IDs, MAC, frequency band), the fleet and the environment. `mbat`, `irminger`, `arctic`, `icex20` are cruises.
 - **Fleet**: the platforms that take part, with per-cruise platform parameters (which vehicle is modem 4, what loiter depth). A fleet class is reusable across cruises (`mit_bf21` = resolution + macrura + unicorn).
 - **Platform**: `auv` → `propellor` → `bluefin21` → `macrura`. Has a modem ID, a default component list, and one or more subsystems. The subsystem split differs between sim and runtime: in sim, `frontseat_sim` and `sensor_sim` exist; at runtime, `main` and optionally `nav` (external HydroMAN computer) and `secondary_payload`.
-- **Component**: anything that contributes processes, config templates or parameters: `ivp` (helm + behaviors), `acomms/micromodem`, `mission_manager`, `frontseat/bluefin`, `hydroman/external`, `sonar/passive_chain`, `virtual_ocean/netcdf_ocean`, `logging`, `health`. Components declare `requires` so composition errors are caught at generate time, and they can be `sim_only` or `run_only`.
+- **Component**: anything that contributes processes, config templates or parameters: `ivp` (helm + behaviors), `acomms/micromodem`, `mission_manager`, `frontseat/bluefin`, `hydroman/external`, `sonar/passive_chain`, `virtual_ocean/netcdf_ocean`, `logging`, `health`. Components declare `requires` so composition errors are caught at generate time, and they can be `sim_only` or `run_only`. A platform can list a component as `optional` (the topside's `viewer`): when its toolbox is not active (`gui` for the viewer) it is left out with a note instead of failing, so vehicles and CI run without display packages.
 - **Environment**: bathymetry, sound speed, currents, ice, with a time window; only instantiated for simulation. The environment owns the virtual-ocean components that simulate it (ocean models, propagation, modem network, sonar/noise/target simulators), which run in the platforms' `sensor_sim` subsystems (and the topside's). Concrete environments (`global/atlantic/mass_bay`, `global/arctic/beaufort`, `global/atlantic/irminger`) are mission content and live in `mit`; `core` and `virtual_ocean` hold only the base classes.
 
 Each concept resolves to a plain `dict` (its `params` merged along the MRO, plus children's dicts) and that dict is the only thing templates see.
@@ -119,7 +119,6 @@ core/missions/
 │   │   ├── micromodem/micromodem.py
 │   │   ├── udp/udp.py
 │   │   └── netsim/netsim.py
-│   └── viewer/viewer.py                  # liaison / pMarineViewer bridge
 ├── environment/environment.py            # base class only; concrete environments live in mit
 ├── templates/                            # Jinja2, one per process config: gobyd.pb.cfg.j2 ...
 └── data/                                 # acomms DCCL configs, replicas, modem id lookup
@@ -132,6 +131,9 @@ autonomy/missions/
 ├── component/mission_manager/...
 ├── component/frontseat/{bluefin,hybrid,embedded}/...
 └── templates/
+
+gui/missions/
+└── component/viewer/viewer.py            # liaison, pMarineViewer (transition), GEOV and OpenCPN interfaces
 
 virtual_ocean/missions/
 └── environment/component/                # components attached to the Environment, not the platform
@@ -322,7 +324,7 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 |---|---|
 | 1 | `lamss.mission` package skeleton: registry, `Concept` base, MRO param merge, `to_dict`, `--explain` |
 | 2 | Jinja2 renderer, StrictUndefined, filters, output tree, `supervisord.conf` generation, `lm m` wiring |
-| 3 | `core` components: interprocess (gobyd + MOOSDB + gateway), logging, health, viewer |
+| 3 | `core` components: interprocess (gobyd + MOOSDB + gateway), logging, health; `gui`'s viewer component |
 | 4 | Topside platform + MBAT environment + `mbat` cruise with topside only: `lm m sim mbat` launches gobyd/liaison/logger |
 | 5 | Port `auv/macrura` baseline: platform chain, ivp, acomms, mission manager, frontseat sim, passive sonar chain, virtual ocean (M1, see [10](10-milestone-mbat-macrura.md)) |
 | 6 | Variants: `hybrid`, `hydroman`, `hybrid_hydroman`, `two_auv`, `smoke`; CI smoke test |

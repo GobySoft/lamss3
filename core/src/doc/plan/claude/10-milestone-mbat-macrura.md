@@ -8,7 +8,7 @@ The first end-to-end target from the [core plan](../core.md): "Add the basic Mac
 
 `lm m sim mbat` on one Ubuntu 24.04 machine launches, under one `supervisord`:
 
-- **topside** (`resolution`): gobyd, goby_logger, goby_liaison, goby_coroner, MOOSDB + `lamss_goby_moos_gateway` (transition), pAcommsHandler (netsim UDP driver), pViewMessage, pMarineViewer, pGateway (ship nav), iNoaaBathy, uSimCTD, iBellhop (netsim).
+- **topside** (`resolution`): gobyd, goby_logger, goby_coroner, goby_liaison and pMarineViewer (the viewer component, when `gui` is active), MOOSDB + `lamss_goby_moos_gateway` (transition), pAcommsHandler (netsim UDP driver), pViewMessage, pGateway (ship nav), iNoaaBathy, uSimCTD, iBellhop (netsim).
 - **macrura/main**: MOOSDB, pLamssMissionManager, pLamssTrackManager, pBasicContactMgr, pHelmIvP + LAMSS behaviors, pAcommsHandler, iFrontSeat_bluefin (Goby3 Bluefin frontseat driver in sim mode), pViewMessage, iBellhop, pTetraHoming, the passive chain (pLamssCBF, pLamssBearingTracker, pLamssAEL, pGeoTracker), pMOOSLink to the sim subsystems (transition).
 - **macrura/frontseat_sim**: MOOSDB, uMVS_Bluefin, pMarinePID, uSimGPS, uSimDVL, uSimPhinsINS, iBackSeatServer, iNoaaBathy.
 - **macrura/sensor_sim**: MOOSDB, uSimTargets, uSimTowedArray, uSimPassiveSonar, uSimNoiseCovariance, uSimCTD, uSimAcoBeaconRngBrg, iBellhop.
@@ -50,12 +50,13 @@ Only these move before M1; everything else waits.
 
 | Toolbox | Apps / libs | Lines (approx.) |
 |---|---|---|
-| core | `lamss_core_protobuf` (status, view, header, nav, options), gateway plugin, `pViewMessage`, health listener, `lamss.mission`, templates for gobyd/logger/liaison/coroner/MOOSDB/pLogger/gateway | ~2k C++ + Python |
+| core | `lamss_core_protobuf` (status, view, header, nav, options), gateway plugin, `pViewMessage`, health listener, `lamss.mission`, templates for gobyd/logger/coroner/MOOSDB/pLogger/gateway | ~2k C++ + Python |
 | autonomy | `pLamssMissionManager`, `pLamssTrackManager`, Goby3 Bluefin frontseat config, `uMVS_Bluefin`, `pGateway`, `pTetraHoming`, behaviors: SmartYoyo, MaintainBearing, WiggleTail, RaceTrack, ZigZag, MinAltitude, ConstantBuoyancy, ConstantAltitude, OptAcommsDepth | ~15k |
 | sonar | `pLamssCBF`, `pLamssBearingTracker`, `pLamssAEL`, `pGeoTracker` + `lib_track`, durip array geometry | ~6k |
 | virtual_ocean | `iNoaaBathy`, `uSimCTD`, `uSimGPS`, `uSimDVL`, `uSimPhinsINS`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, `uSimModemNetwork`, `iNetSimManager`, `henrik_util` acoustics subset | ~19k |
 | mit | MBAT environment (bathy + CTD from `cruise/mbat/data`, served from S3) | data |
 | mit | `mbat` cruise, `mit_bf21` fleet, `macrura` + `resolution` platforms, `data/acomms` DCCL configs | Python + data |
+| gui | viewer component (goby_liaison, pMarineViewer); optional, the automated test runs without it | templates |
 
 Stock MOOS-IvP (`pHelmIvP`, `pMarinePID`, `pBasicContactMgr`, `pMarineViewer`, `pLogger`, `uXMS`, `MOOSDB`) and Goby3/netsim apps come from packages.
 
@@ -93,7 +94,7 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 | `hybrid` | `uSimUnderseaVehicle_Vlamss` + actuator map + control engine, `iLamssFrontSeat`, `pFrontSeatData`, glideslope domain, `BHV_GlideSlopeSpeed` |
 | `hycom` | `uSVP_OceanModel`, `uSimCTD_OceanModel`, `uSimADCP_OceanModel` with the HYCOM environment |
 | `two_auv` | adds `unicorn` (modem 3) to the fleet; MAC slot table grows |
-| `displays` | LAMSS Display Center with `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis` fed from Goby3 groups |
+| `displays` | needs the `gui` toolbox active: LAMSS Display Center with `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis` fed from Goby3 groups |
 | `hybrid_hydroman` | the combination of `hybrid` and `hydroman`, defined as its own variant file |
 | `runtime` (not a variant, `lm m run`) | `hw_modem` serial ports, `iFrontSeat_bluefin` against the real vehicle, `iDurip` |
 

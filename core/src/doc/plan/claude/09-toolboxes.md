@@ -6,7 +6,7 @@ What each toolbox contains at the end of Phase 3, what it needs from the old rep
 
 ## core
 
-**Contents**: `lamss` tool, CMake helpers, `lamss.core` protos and groups, `lamss.mission` Python package, the MOOS shim ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)), generic I/O apps, health and viewer glue (Liaison plugins, `goby_geov_gateway` configuration, OpenCPN support, the LAMSS Display Center), `henrik_util` math subset, `supun_util` coordinate helpers, newmat (thirdparty, transitional).
+**Contents**: `lamss` tool, CMake helpers, `lamss.core` protos and groups, `lamss.mission` Python package, the MOOS shim ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)), generic I/O apps, health glue, `henrik_util` math subset, `supun_util` coordinate helpers, newmat (thirdparty, transitional).
 
 **Order of work**
 
@@ -20,7 +20,7 @@ flowchart LR
 - `pCoroner` is not ported as an app. Its job (watch processes, publish a health summary) is done by a supervisord event listener in Python (`lamss_health_listener`) that publishes `lamss.core.ProcessHealth` through a tiny Goby3 publisher, plus `goby_coroner` for the Goby side.
 - `pPBNodeReport`, `uTopsideSetup` and the `NODE_REPORT` string handling collapse into one `lamss_node_report` Goby3 app that converts between `openocean.Navigation`, Goby `NodeStatus`, and the `NODE_REPORT` string for pMarineViewer.
 - `henrik_util` is split by a header-dependency walk: `CVectorUtils`, `CMeasAvg`, `CCovMat`, `CKalmanFilter` (rewritten without OpenCV), `Random` → `core`; `CAcousticModel`, `CRapRays`, `CEigenRays`, `CLamssNetcdf` → `virtual_ocean`; `CTarget`, `CTrack`, `CNoiseCovariance`, `Multistatic_SonarUtils` → `sonar`.
-- GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_gateway`, configured by the viewer component.
+- GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_interface`, configured by `gui`'s viewer component. The interface itself is headless and ships in `goby3-apps`, so it needs nothing from `gui` at run time.
 
 **Tests**: proto build, DCCL ID uniqueness, group catalogue export, mission registry/render tests, shim round-trip test.
 
@@ -70,7 +70,7 @@ flowchart LR
 
 - **DM7820 kernel driver**: packaged as `rtd-dm7820-dkms`, built in CI against the 24.04 HWE kernel headers. If RTD's license forbids redistribution, document the manual install and keep the module out of the tree.
 - `pActiveSonarProcessor`, `pBearingTracker`, `pActiveRangeTracker`, `pActiveGeoTracker` are attic (superseded or OpenCV < 3).
-- `uTDA` (FLTK viewer): attic.
+- `uTDA` (FLTK viewer): attic. `sonar` drops FLTK from its dependencies; any sonar display that is kept moves to `gui` (check the passive chain for other FLTK users when porting).
 - The processing chain is tested in CI against `virtual_ocean`'s simulators with a tiny array and a flat environment (the `smoke` variant).
 
 ## virtual_ocean
@@ -89,6 +89,29 @@ flowchart LR
 
 **Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`; `uSimPassiveSonar` (4k lines) is the lab's most actively edited app, so port it early and in one piece to avoid merge pain with ongoing work in `lamss-shared`.
 
+## gui
+
+*This section written by Claude*
+
+**Contents**: everything that needs a display library, so that Wt, FLTK, OpenGL and Bokeh are installed only where `gui` is activated (topside and developer machines, not vehicles or most CI jobs):
+
+- Liaison plugins for lamss3: a `lamss.core` group viewer and `lamss_appcast_viewer` for the shim's AppCast group ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)).
+- The `viewer` mission component: `goby_liaison`, pMarineViewer while it is still used, and configuration for `goby_geov_interface` and `goby_opencpn_interface` (both headless, from `goby3-apps` in `core`).
+- The LAMSS Display Center and its plot servers (`btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server`), fed from Goby3 groups instead of pymoos.
+- Any future desktop GUI (FLTK, Qt).
+
+**Dependencies**: `goby3-gui`, `libgoby3-gui-dev` (Wt), `moos-ivp-gui` (pMarineViewer: FLTK + OpenGL), `python3-websockets`, and Bokeh, which Ubuntu does not package and so comes from a pinned pip venv ([04](04-dependencies-ci-packaging.md#dependenciesyml-files)). `gui` requires only `core`.
+
+**Order of work**: the viewer component (M1 topside, optional), Liaison plugins, then the Display Center and plot servers for the `displays` variant (M2).
+
+**Decisions**
+
+- Nothing outside `gui` may need a display library to build or run. A toolbox with a GUI part declares `OPTIONAL gui` and builds that part only when `gui` is active (icex's Liaison plugin), and a platform lists the viewer as an `optional` component, so missions generate and run without `gui` ([06](06-missions-framework.md#concepts)).
+- pMarineViewer stays only until Liaison covers what operators use it for; then `moos-ivp-gui` leaves the dependency list.
+- OpenCPN support is configuration of Goby3's existing `goby_opencpn_interface`, not new code.
+
+**Risks**: the Display Center was written for Bokeh 2.2.3; whether that still installs on the Python of noble and resolute is unchecked, and a move to Bokeh 3 may be needed. Bokeh being pip-only is the one exception to apt-only dependencies ([04](04-dependencies-ci-packaging.md#dependenciesyml-files)).
+
 ## mit
 
 **Contents**: cruises (`mbat`, `irminger`), fleets, platforms (`macrura`, `unicorn`, `resolution`), concrete environments, cruise-specific templates and data (DCCL acomms configs, modem ID lookup, op regions).
@@ -99,7 +122,7 @@ flowchart LR
 
 **Contents**: ICEX simulators, the three native Goby3 topside apps and the Liaison plugin, the `icex20` cruise (M3), `hydrohole` mooring, `icex_sim` topside subsystem, `BHV_OpRegion_ICEX`, `lamss.icex` protos, ICEX analysis tooling, `iICEXTracker` (kept in the tree but not built).
 
-**Decisions**: the native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is kept but not built.
+**Decisions**: the Liaison plugin (`lib_liaison-icex`) needs `libgoby3-gui-dev` (Wt), so icex declares `OPTIONAL gui` and builds the plugin only when `gui` is active; the trackers, optimizer and simulators build without it. The native Goby3 apps have been disabled in the build since the import and use Boost.Python + OpenCV; getting them to compile against Goby3 3.6 is the first task and a good test of how far the native API has moved. `iICEXTracker` (Octave) is kept but not built.
 
 **Order of work**: `icex20` is M3: the hydrohole mooring, `uSimICEXMotion`, `iSerialNMEA` hydrophones, `uSimModemNetwork/Range` under `netsim_udp`, HydroMAN 3 via the `hydroman` toolbox's variant, then the native Goby3 tracker/optimizer/multiplexer and the Liaison plugin. The `arctic` cruise is not ported (IRIS modem is dropped); it goes to attic.
 

@@ -7,7 +7,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 ## Goals
 
 1. **Builds on a fresh Ubuntu 22.04, 24.04 or 26.04 install** (every LTS until its end of life) with `apt` dependencies only, plus MOOS-IvP and Goby3 from their upstream packages.
-2. **One repository, many toolboxes.** `core` is always on; `autonomy`, `sonar`, `virtual_ocean` ship in-tree but opt-in; `mit`, `icex`, `attic` and user toolboxes are git submodules.
+2. **One repository, many toolboxes.** `core` is always on; `autonomy`, `sonar`, `virtual_ocean`, `gui` ship in-tree but opt-in; `mit`, `icex`, `attic` and user toolboxes are git submodules.
 3. **One CLI**, `lamss` (alias `lm`), for building, dependencies, toolbox management and running missions.
 4. **A mission framework** that keeps the object-oriented cruise/fleet/platform/component model of `missions-lamss` but uses Python 3 + Jinja2 and launches with `supervisord`.
 5. **Goby3 as the only middleware** at the end, with MOOS retained as a transitional dependency so that nothing has to be rewritten before it can be run.
@@ -25,7 +25,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 | [06-missions-framework](06-missions-framework.md) | Python class model, Jinja2 rendering, supervisord output |
 | [07-protobuf-split](07-protobuf-split.md) | Breaking `lib_lamss_protobuf` across toolboxes |
 | [08-code-style-licensing-maintenance](08-code-style-licensing-maintenance.md) | clang-format, licenses, maintainers, docs |
-| [09-toolboxes](09-toolboxes.md) | Per-toolbox plans: core, autonomy, sonar, virtual_ocean, mit, icex, attic |
+| [09-toolboxes](09-toolboxes.md) | Per-toolbox plans: core, autonomy, sonar, virtual_ocean, gui, mit, icex, attic |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | The first end-to-end target: Macrura in MBAT simulation |
 
 ## Guiding decisions
@@ -39,6 +39,7 @@ These are the choices the detailed plans assume. Change them here first if you d
 - **Protobuf messages are split by toolbox and get a `lamss::<toolbox>` package.** No wire compatibility with the old DCCL messages is kept: no platform in the field needs it.
 - **`attic` is a submodule, not a branch.** Deprecated apps stay buildable in isolation but never block the main build.
 - **HydroMAN 3 is a wrapper toolbox.** HydroMAN lives in its own git repository and runs as its own process group (`pHM3_BasicModel`, `pHM3_VelProcessor`, `iHydroMAN_Gateway`, `pHM_SensorFusion`, …). lamss3 carries a thin `hydroman/` toolbox that holds that repository as a submodule plus the lamss3-side glue: `iHydroMAN_LAMSS`, `iHydroMAN_PHINS`, the hydroman protos and the `hydroman` mission component ([02](02-repository-layout-and-build.md#wrapper-toolboxes)). The internal HydroMAN 1.x toolbox in lamss-shared (seven `pHydroMAN_*` apps, 14k lines) goes to `attic`; `autonomy` has no HydroMAN dependency.
+- **Display code lives in `gui`.** Wt, FLTK, OpenGL, Bokeh and the like are large and rarely wanted on a vehicle, so every viewer, Liaison plugin and plotting server goes in the `gui` toolbox; no other toolbox needs a display library to build or run ([09](09-toolboxes.md#gui)).
 - **Nothing is ported without a consumer.** An app moves out of the old repos only when a mission in `mit` or a toolbox test needs it. Everything else goes to `attic` by default.
 
 ## Phases
@@ -75,7 +76,7 @@ Exit criterion: `git clone && ./init.sh && lm b` builds an empty `core` on 22.04
 ### Phase 1: core toolbox builds
 
 - Split `lib_lamss_protobuf` ([07](07-protobuf-split.md)); only the `core` portion is needed first.
-- Port the core apps (`pCoroner`, `pMOOSLink`, `pViewMessage`, `pInitializer` and the shared libraries) with `git mv`-style history preservation ([09](09-toolboxes.md#core)); `iMOOS2SQL` is replaced by `goby_geov_gateway`.
+- Port the core apps (`pCoroner`, `pMOOSLink`, `pViewMessage`, `pInitializer` and the shared libraries) with `git mv`-style history preservation ([09](09-toolboxes.md#core)); `iMOOS2SQL` is replaced by `goby_geov_interface`.
 - Compile against Goby3 3.6, DCCL 5, Protobuf from the distribution, MOOS-IvP 24.8.1, C++17.
 - Run `clang-format` once over the ported tree.
 
@@ -96,6 +97,7 @@ Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation
 - `hydroman`: wrapper toolbox around the HydroMAN 3 repository.
 - `virtual_ocean`: ocean model, modem network and sensor simulators.
 - `sonar`: processing chains and sonar simulators actually used by the live missions.
+- `gui`: Liaison plugins, the viewer mission component and the LAMSS Display Center; everything that needs a display library ([09](09-toolboxes.md#gui)).
 - `icex` toolbox populated: needed for M3.
 - MBAT variants (**M2**) and the ICEX20 cruise (**M3**) as the forcing functions.
 
@@ -130,6 +132,8 @@ flowchart TB
   m1 --> sonar[sonar toolbox]
   m1 --> m2[M2 MBAT variants]
   core --> icex[icex toolbox]
+  core --> gui[gui toolbox]
+  gui --> m2
   m2 --> m3[M3 ICEX20]
   icex --> m3
   core --> shim[CMOOSApp shim]

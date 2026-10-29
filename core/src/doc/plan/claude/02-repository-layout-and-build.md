@@ -31,6 +31,7 @@ lamss3/
 ├── autonomy/                 # same shape as core
 ├── sonar/
 ├── virtual_ocean/
+├── gui/                      # everything that needs a display library (Wt, FLTK, Bokeh)
 ├── hydroman/                 # wrapper toolbox: lamss3 glue + HydroMAN 3 repo as submodule
 │   ├── CMakeLists.txt
 │   ├── dependencies.yml
@@ -102,7 +103,7 @@ endforeach()
 Rules:
 
 - `core` is implicitly active and cannot be deactivated.
-- A toolbox declares its toolbox dependencies in its `CMakeLists.txt` with `lamss_toolbox(NAME sonar REQUIRES core virtual_ocean)`; the helper function in `cmake/LamssToolbox.cmake` checks they are active (joint build) or installed in `build/usr` (standalone build) and emits a clear error otherwise.
+- A toolbox declares its toolbox dependencies in its `CMakeLists.txt` with `lamss_toolbox(NAME sonar REQUIRES core virtual_ocean)`; `OPTIONAL gui` names a toolbox whose parts are built only when it is active (icex's Liaison plugin), so the rest builds without it; the helper function in `cmake/LamssToolbox.cmake` checks they are active (joint build) or installed in `build/usr` (standalone build) and emits a clear error otherwise.
 - External toolboxes are git submodules at the top level; `lamss toolbox add <url> [name]` runs `git submodule add` and appends to `.lamss/toolboxes`. Adding activates by default.
 - Deactivating removes the line only; the directory stays. Removing an external toolbox deinits the submodule.
 
@@ -121,8 +122,11 @@ flowchart BT
   mit --> autonomy
   mit --> virtual_ocean
   mit -.optional.-> sonar
+  mit -.optional.-> gui
+  gui --> core
   icex --> autonomy
   icex --> mit
+  icex -.optional.-> gui
   attic -.not built.-> core
 ```
 
@@ -209,4 +213,5 @@ History from the old repositories is preserved per app rather than per repo:
 ## Open questions for the human plan
 
 - `mit` is in-tree until M2, then a submodule (agreed).
+- `gui` toolbox (decided): every viewer, Liaison plugin, mission viewer component and plotting server lives in `gui`, so that Wt, FLTK, OpenGL and Bokeh are installed only where it is activated (topside and developer machines, not vehicles or most CI jobs). Other toolboxes depend on it only through `OPTIONAL`.
 - Boundary between `virtual_ocean` and `sonar` (decided): `virtual_ocean` is propagation and ocean models, including every sonar, array, noise and target simulator; `sonar` is hardware drivers, processing and tracking. `sonar` therefore depends on `virtual_ocean` only for tests.
