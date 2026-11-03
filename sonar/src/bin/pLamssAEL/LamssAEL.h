@@ -1,19 +1,19 @@
-// Copyright 2015 
+// Copyright 2015
 // Henrik Schmidt
-// Toby Schneider 
-// Massachusetts Institute of Technology 
+// Toby Schneider
+// Massachusetts Institute of Technology
 
 #ifndef LamssAEL20151221H
 #define LamssAEL20151221H
 
-#include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
+#include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
 
-#include "lamss/lib_henrik_util/CMeasAvg.h"
-#include "goby/moos/moos_protobuf_helpers.h"
-#include "goby/middleware/protobuf/frontseat.pb.h"
 #include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
+#include "goby/middleware/protobuf/frontseat.pb.h"
+#include "goby/moos/moos_protobuf_helpers.h"
+#include "lamss/lib_henrik_util/CMeasAvg.h"
 
 #include "LamssAEL_config.pb.h"
 #include "lamss/lib_lamss_protobuf/ArrayNavigation.pb.h"
@@ -21,22 +21,20 @@
 class AELException : public std::runtime_error
 {
   public:
-  AELException(const std::string& what) : std::runtime_error(what)
-    { }
+    AELException(const std::string& what) : std::runtime_error(what) {}
 };
 
 class Nav
 {
- public:
-
-  double nav_x;
-  double nav_y;
-  double nav_hdg;
-  double nav_dep;
-  double nav_pitch;
-  double nav_roll;
-  double nav_spd;
-  double nav_utc;
+  public:
+    double nav_x;
+    double nav_y;
+    double nav_hdg;
+    double nav_dep;
+    double nav_pitch;
+    double nav_roll;
+    double nav_spd;
+    double nav_utc;
 };
 
 class LamssAEL : public goby::moos::GobyMOOSApp
@@ -47,10 +45,10 @@ class LamssAEL : public goby::moos::GobyMOOSApp
 
   private:
     LamssAEL(LamssAELConfig& cfg);
-    ~LamssAEL() { }
+    ~LamssAEL() {}
 
     // synchronous event
-    void loop();    
+    void loop();
     void slow_loop(double curr_time);
 
     // mail handlers
@@ -61,17 +59,18 @@ class LamssAEL : public goby::moos::GobyMOOSApp
     void set_mooring_nav();
     ArrayNavigation computeAEL();
     double angle360(double angle);
+
   private:
     LamssAELConfig& cfg_;
     double last_slow_loop_t_;
-    
-    static LamssAEL* inst_;    
+
+    static LamssAEL* inst_;
 
     double lat_origin_;
     double lon_origin_;
-    bool  new_origin_;
+    bool new_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
-  
+
     CRadianAvg pitch_filter;
     CRadianAvg roll_filter;
     CAngleAvg heading_filter;
@@ -83,7 +82,6 @@ class LamssAEL : public goby::moos::GobyMOOSApp
     bool filt_set_;
     bool got_nav_;
     int filter_length_;
-
 };
 
 #endif
