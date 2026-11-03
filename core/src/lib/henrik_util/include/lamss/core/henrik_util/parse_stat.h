@@ -1,13 +1,13 @@
 #ifndef __tgt_decode_h__
 #define __tgt_decode_h__
 
-#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include <string>
 #include <vector>
@@ -17,40 +17,15 @@
    trk_str: String with track cue info: tgt_num=1,tgt_x=1235, etc.
   */
 
-bool parse_brng_stat(std::string status,
-		  int & node,
-		  int & state,
-		  double & bearing,
-		  double & sigma,
-		  double & xp,
-		  double & yp,
-		  double & time
-		  );
+bool parse_brng_stat(std::string status, int& node, int& state, double& bearing, double& sigma,
+                     double& xp, double& yp, double& time);
 
-bool parse_tgt_stat(std::string trk_str, 
-		int & tgt_num,
-		double & tgt_x,
-		double & tgt_y,
-		double & tgt_dep,
-		double & tgt_hdg,
-		double & tgt_spd,
-		double & tgt_utc,
-		double & tgt_frq,
-		double & tgt_bw,
-		double & tgt_spl,
-		double & tgt_str,
-		std::vector<double> & tone_frq,
-		std::vector<double> & tone_dbl
-		);
+bool parse_tgt_stat(std::string trk_str, int& tgt_num, double& tgt_x, double& tgt_y,
+                    double& tgt_dep, double& tgt_hdg, double& tgt_spd, double& tgt_utc,
+                    double& tgt_frq, double& tgt_bw, double& tgt_spl, double& tgt_str,
+                    std::vector<double>& tone_frq, std::vector<double>& tone_dbl);
 
-bool parse_track_stat(std::string val,
-		      int & node,
-		      int & state,
-		      double & x,
-		      double & y,
-		      double & heading,
-		      double & speed,
-		      double & time
-		      );
+bool parse_track_stat(std::string val, int& node, int& state, double& x, double& y, double& heading,
+                      double& speed, double& time);
 
 #endif /* __tgt_decode_h__ */
