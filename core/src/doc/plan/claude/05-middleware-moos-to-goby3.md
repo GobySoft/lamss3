@@ -84,7 +84,7 @@ Each app migration is one PR that: moves the app, keeps its config proto, adds a
 | `CMOOSGeodesy` | `goby::util::UTMGeodesy` |
 | `pAcommsHandler` queue names | `intervehicle().publish<group>()` with DCCL messages; the `gobyd` intervehicle config carries the MAC/driver blocks |
 
-Groups are declared once per toolbox in `src/lib/<tb>_groups/groups.h`, replacing the free-form MOOS variable names. The existing `lamss/lib_goby3_lamss_gateway/groups.h` is the seed for `core`.
+Groups are declared once per toolbox in `lamss/<tb>/groups.h`, next to the toolbox's protos in `src/lib/protobuf/` and installed with its proto library, replacing the free-form MOOS variable names. The old `lamss/lib_goby3_lamss_gateway/groups.h` is the seed for `core`'s `lamss/core/groups.h`.
 
 ### The MOOS variable → Goby group catalogue
 

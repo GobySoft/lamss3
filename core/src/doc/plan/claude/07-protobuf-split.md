@@ -99,6 +99,17 @@ flowchart LR
 
 Each step is one PR. Step `c` is the Phase 1 exit criterion for protobuf.
 
+## Phase 1 status
+
+*This section written by Claude*
+
+`lamss_core_protobuf` is built from eleven files imported with their history (103 commits from 2011): `header`, `options`, `status`, `status_topside`, `node_status`, `environment_update`, `tagged_acomms`, `view_point`, `view_polygon`, `view_seglist`, `view_circle`, all in `package lamss.core`. Decisions taken while doing it:
+
+- File names lose the `lamss_` prefix (`lamss_status.proto` → `status.proto`, `option_extensions.proto` → `options.proto`); one file per message group is kept rather than merging the `view_*` files, so `git log --follow` and `git blame` stay useful.
+- `node_status.proto` keeps only `LegacyNodeReport` (used in-process by the gateway plugin). `MinimalNodeStatus` and `MinimalNodeStatusDifference` are used by no live mission and go to attic; they also clashed with `LAMSS_STATUS_NMEA_SHIP`/`_BUOY` on DCCL IDs 21 and 22.
+- lamss3 holds the public DCCL ID blocks 20–23 and 5120–5375 (migration step `d`). The three status messages keep 20–22; the view and environment messages moved to 5120–5123. [`DCCL_IDS.md`](../../../lib/protobuf/lamss/DCCL_IDS.md) is the registry for every toolbox; `lamss_core_protobuf_dccl` loads every core message into one `dccl::Codec` and checks each ID against that table and the blocks.
+- Imports use `dccl/option_extensions.proto` (the `dccl/protobuf/` path is a deprecated forwarder), and unused `goby/protobuf/option_extensions.proto` imports are dropped; only `tagged_acomms.proto` needs Goby (`goby.acomms.protobuf.ModemTransmission`).
+
 ## Open questions for the human plan
 
 - No fielded platform needs the old DCCL IDs (decided).

@@ -1,0 +1,6 @@
+#!/bin/bash
+# Copyright 2019-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+lib_dir="$(cd "$(dirname "$(readlink -f "$0")")/@LAMSS_BIN_TO_LIB_DIR@" && pwd)"
+GOBY_MOOS_GATEWAY_PLUGINS=${lib_dir}/@LAMSS_GATEWAY_PLUGIN_SONAME@:@LAMSS_CORONER_PLUGIN_SONAME@ exec goby_moos_gateway "$@"

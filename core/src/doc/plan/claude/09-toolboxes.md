@@ -22,7 +22,21 @@ flowchart LR
 - `henrik_util` is split by a header-dependency walk: `CVectorUtils`, `CMeasAvg`, `CCovMat`, `CKalmanFilter` (rewritten without OpenCV), `Random` → `core`; `CAcousticModel`, `CRapRays`, `CEigenRays`, `CLamssNetcdf` → `virtual_ocean`; `CTarget`, `CTrack`, `CNoiseCovariance`, `Multistatic_SonarUtils` → `sonar`.
 - GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_interface`, configured by `gui`'s viewer component. The interface itself is headless and ships in `goby3-apps`, so it needs nothing from `gui` at run time.
 
+*This section written by Claude*
+
+- The Goby3 gateway plugin is `core/src/lib/moos_gateway_plugin` (`liblamss_core_moos_gateway_plugin.so`, launched by `lamss_goby_moos_gateway`, which sets `GOBY_MOOS_GATEWAY_PLUGINS`). It keeps the acomms, `LAMSS_STATUS`, `NODE_REPORT`, view geometry and `HYDROMAN_HEALTH_IN` translations; the netsim performance and group-velocity translations go to a `virtual_ocean` gateway plugin and the ICEX ones to an `icex` plugin, so `core` needs neither netsim nor ICEX protos. Its config extension (`[lamss.core.goby_gateway_config]`, field 1000 of `GobyMOOSGatewayConfig`) is private to the plugin.
+- Groups live in `lamss/core/groups.h` (namespace `lamss::core::groups`), installed with `lamss_core_protobuf`; the group names are unchanged so old and new processes interoperate.
+
 **Tests**: proto build, DCCL ID uniqueness, group catalogue export, mission registry/render tests, shim round-trip test.
+
+**Phase 1 status (MOOS apps)**
+
+*This section written by Claude*
+
+- `pViewMessage`, `pMOOSLink`, `iSerialNMEA` and `iLineBasedComms` are in `core/src/bin/` with their history and still MOOS apps. `lamss_add_app(... MOOS)` links Goby3's `goby_moos` (or only `MOOS::MOOS` with `NO_GOBY`); `lamss_find_moos()` and `lamss_find_ivp(<lib>...)` in `LamssToolbox.cmake` make the MOOS, Goby MOOS and MOOS-IvP targets available to other toolboxes.
+- `henrik_util` so far holds only `CMeasAvg` (used by `iSerialNMEA`), in `lamss::core`; the rest of the core subset comes with its first consumer.
+- `pViewMessage`'s ICEX 25 kHz destination switch (`ICEX_VEHICLE_TRANSMIT_SELECTION_IN`, `icex_25khz_id`) is removed from core and belongs to the `icex` toolbox.
+- The apps' config protos are private to each app, in `package lamss.core`.
 
 ## autonomy
 

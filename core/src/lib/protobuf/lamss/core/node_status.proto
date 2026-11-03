@@ -1,0 +1,32 @@
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.core;
+
+message LegacyNodeReport
+{
+    // "NAME=%1%,type=%2%,UTC_TIME=%4%,X=%5%,Y=%6%,LAT=%7%,LON=%8%,SPD=%9%,HDG=%10%,DEPTH=%11%";
+    option (dccl.msg).unit_system = "si";
+
+    optional string name = 1;
+    optional string type = 2;
+    optional double moosdb_time = 3
+        [(dccl.field).units = { base_dimensions: "T" }];
+    optional double utc_time = 4
+        [(dccl.field).units = { base_dimensions: "T" }];
+    optional double x = 5 [(dccl.field).units = { base_dimensions: "L" }];
+    optional double y = 6 [(dccl.field).units = { base_dimensions: "L" }];
+    optional double lat = 7
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
+    optional double lon = 8
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
+    optional double spd = 9 [(dccl.field).units = { base_dimensions: "LT^-1" }];
+    optional double hdg = 10
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
+    optional double depth = 11 [(dccl.field).units = { base_dimensions: "L" }];
+    optional double time = 12 [(dccl.field).units = { base_dimensions: "T" }];
+}

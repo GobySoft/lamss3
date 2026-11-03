@@ -4,9 +4,12 @@
 # LamssToolbox.cmake - helpers shared by every lamss3 toolbox
 #
 #   lamss_toolbox(NAME <tb> [REQUIRES <tb>...])
-#   lamss_add_library(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
+#   lamss_add_library(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...]
+#                     [NO_EXPORT])
 #   lamss_add_proto(<name> PROTOS <files>... [LINK_LIBRARIES <libs>...])
-#   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY])
+#   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY] [MOOS])
+#   lamss_find_moos()
+#   lamss_find_ivp(<lib>...)
 #   lamss_add_python(<package_dir>)
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
@@ -118,6 +121,34 @@ function(_lamss_find_goby)
   endif()
 endfunction()
 
+# Defines MOOS::MOOS (MOOS 10) and goby_moos (Goby3's MOOS library, with GobyMOOSApp) in the
+# calling directory. MOOS comes first: goby_moos's package config refers to MOOS::MOOS without
+# finding it, and only reads its components from GOBY_FIND_COMPONENTS, hence upper-case GOBY.
+function(lamss_find_moos)
+  if(NOT TARGET MOOS::MOOS)
+    find_package(MOOS 10 REQUIRED)
+  endif()
+  if(NOT TARGET goby_moos)
+    find_package(GOBY 3.6 REQUIRED COMPONENTS moos)
+  endif()
+endfunction()
+
+# MOOS-IvP installs static libraries and headers but no CMake package: each <lib> becomes IvP::<lib>.
+function(lamss_find_ivp)
+  find_path(LAMSS_IVP_INCLUDE_DIR MBUtils.h PATH_SUFFIXES ivp REQUIRED)
+  foreach(_lib IN LISTS ARGN)
+    if(TARGET IvP::${_lib})
+      continue()
+    endif()
+    find_library(LAMSS_IVP_${_lib}_LIBRARY NAMES ${_lib}
+      HINTS "${LAMSS_IVP_INCLUDE_DIR}/../../lib" REQUIRED)
+    add_library(IvP::${_lib} STATIC IMPORTED GLOBAL)
+    set_target_properties(IvP::${_lib} PROPERTIES
+      IMPORTED_LOCATION "${LAMSS_IVP_${_lib}_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${LAMSS_IVP_INCLUDE_DIR}")
+  endforeach()
+endfunction()
+
 # Runs protoc (and the DCCL plugin when present) on PROTOS, keeping each file's path relative to
 # CMAKE_CURRENT_SOURCE_DIR, so `lamss/<tb>/foo.proto` generates `<out_dir>/lamss/<tb>/foo.pb.h`.
 function(_lamss_generate_protos out_var out_dir)
@@ -133,7 +164,8 @@ function(_lamss_generate_protos out_var out_dir)
       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}
       ${_goby_inc}
       ${LAMSS_DCCL_PROTO_DIR})
-    if(_dir AND NOT _dir MATCHES "NOTFOUND$" AND NOT _dir MATCHES "^\\$<")
+    # an installed include directory only exists once an upstream toolbox has been installed
+    if(_dir AND NOT _dir MATCHES "^\\$<" AND IS_DIRECTORY "${_dir}")
       list(APPEND _import_flags "-I${_dir}")
     endif()
   endforeach()
@@ -168,9 +200,17 @@ endfunction()
 
 function(lamss_add_library name)
   _lamss_require_toolbox(lamss_add_library)
-  cmake_parse_arguments(_A "" "" "SOURCES;LINK_LIBRARIES" ${ARGN})
+  cmake_parse_arguments(_A "NO_EXPORT" "" "SOURCES;PROTOS;LINK_LIBRARIES" ${ARGN})
   set(_target lamss_${LAMSS_TOOLBOX}_${name})
-  add_library(${_target} SHARED ${_A_SOURCES})
+  set(_srcs ${_A_SOURCES})
+  if(_A_PROTOS)
+    _lamss_generate_protos(_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}" ${_A_PROTOS})
+    list(APPEND _srcs ${_proto_srcs})
+  endif()
+  add_library(${_target} SHARED ${_srcs})
+  if(_A_PROTOS)
+    target_include_directories(${_target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
   add_library(lamss::${LAMSS_TOOLBOX}_${name} ALIAS ${_target})
   string(REPLACE "." ";" _v "${LAMSS_VERSION}")
   list(GET _v 0 _major)
@@ -186,11 +226,16 @@ function(lamss_add_library name)
   endif()
   target_include_directories(${_target} INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
   target_link_libraries(${_target} PUBLIC ${_A_LINK_LIBRARIES})
-  install(TARGETS ${_target} EXPORT lamss_${LAMSS_TOOLBOX}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-  set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORTED ${_target})
+  # NO_EXPORT: only ever loaded with dlopen, so nothing downstream links it
+  if(_A_NO_EXPORT)
+    install(TARGETS ${_target} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  else()
+    install(TARGETS ${_target} EXPORT lamss_${LAMSS_TOOLBOX}Targets
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORTED ${_target})
+  endif()
   add_dependencies(lamss_${LAMSS_TOOLBOX}_all ${_target})
 endfunction()
 
@@ -213,7 +258,7 @@ endfunction()
 
 function(lamss_add_app name)
   _lamss_require_toolbox(lamss_add_app)
-  cmake_parse_arguments(_A "NO_GOBY" "" "SOURCES;PROTOS;LINK_LIBRARIES" ${ARGN})
+  cmake_parse_arguments(_A "NO_GOBY;MOOS" "" "SOURCES;PROTOS;LINK_LIBRARIES" ${ARGN})
   set(_srcs ${_A_SOURCES})
   if(_A_PROTOS)
     _lamss_generate_protos(_proto_srcs "${CMAKE_CURRENT_BINARY_DIR}" ${_A_PROTOS})
@@ -224,6 +269,14 @@ function(lamss_add_app name)
   if(NOT _A_NO_GOBY)
     _lamss_find_goby()
     target_link_libraries(${name} PRIVATE goby)
+  endif()
+  if(_A_MOOS)
+    lamss_find_moos()
+    if(_A_NO_GOBY)
+      target_link_libraries(${name} PRIVATE MOOS::MOOS)
+    else()
+      target_link_libraries(${name} PRIVATE goby_moos)
+    endif()
   endif()
   target_link_libraries(${name} PRIVATE ${_A_LINK_LIBRARIES})
   install(TARGETS ${name} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

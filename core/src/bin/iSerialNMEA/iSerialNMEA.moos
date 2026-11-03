@@ -1,0 +1,20 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+// `iSerialNMEA -e` lists every field; for a serial port use input: INPUT_PORT with
+// serial_port and serial_baud, or connection_type: CONNECTION_TCP_AS_CLIENT with tcp_server and tcp_port.
+ProcessConfig = iSerialNMEA
+{
+  vehicle_name: "ship"
+  vehicle_type: "ship"
+  wait: 1
+  input: INPUT_MOOSDB
+  raw_var_to_read: "SHIP_NMEA_IN"
+  out_status_var: "NODE_REPORT_NMEA_SHIP"
+}
