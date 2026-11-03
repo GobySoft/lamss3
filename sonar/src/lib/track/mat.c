@@ -1,7 +1,10 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "opt.h"
+#include "lamss/sonar/track/opt.h"
 
 #define	Debug		0
 
@@ -100,6 +103,7 @@ extern void matrixrowvector(m, n, y, a, i)	/* y = i-th row vector of A */
 int	m, n, i;
 dbl	y[], a[];
 {
+	(void)m;
 	int	j;
 	
 	for (j=0; j<n; j++) {
@@ -233,6 +237,7 @@ extern void matrixrowscalar(m, n, a, i, p)	/* i-th row *= p */
 int	m, n, i;
 dbl	a[], p;
 {
+	(void)m;
 	int	j;
 	
 	for (j=0; j<n; j++) {
@@ -244,6 +249,7 @@ extern void matrixrowexchange(m, n, a, i0, i1)	/* swap row i0 and row i1 */
 int	m, n, i0, i1;
 dbl	a[];
 {
+	(void)m;
 	int	j;
 	dbl	tmp;
 	
@@ -258,6 +264,7 @@ extern void matrixrowadd(m, n, a, i0, p, i1)	/* row i0 += p * row i1 */
 int	m, n, i0, i1;
 dbl	a[], p;
 {
+	(void)m;
 	int	j;
 	
 	for (j=0; j<n; j++) {
@@ -271,6 +278,8 @@ extern void matrixrowaddtwo(ma, mb, n, a, b, ia, p, ib)
 int	ma, mb, n, ia, ib;
 dbl	a[], b[], p;
 {
+	(void)ma;
+	(void)mb;
 	int	j;
 	
 	for (j=0; j<n; j++) {
@@ -293,6 +302,7 @@ dbl	a[];
 int	*pimax;
 dbl	*pmax;
 {
+	(void)m;
 	int	i;
 	dbl	value;
 	
