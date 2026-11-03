@@ -1,53 +1,50 @@
-// Copyright 2015 
+// Copyright 2015
 // Henrik Schmidt
-// Toby Schneider 
-// Massachusetts Institute of Technology 
+// Toby Schneider
+// Massachusetts Institute of Technology
 
 #ifndef LamssCBF20150402H
 #define LamssCBF20150402H
 
-#include <boost/circular_buffer.hpp>
 #include "LamssCBF_fsm.h"
-#include "goby/moos/goby_moos_app.h"
 #include "MBUtils.h"
-#include "lamss/lib_newmat10D/newmatap.h"
 #include "boost/multi_array.hpp"
+#include "goby/moos/goby_moos_app.h"
+#include "lamss/lib_newmat10D/newmatap.h"
+#include <boost/circular_buffer.hpp>
 
-#include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
 #include "lamss/lib_henrik_util/CMeasAvg.h"
 #include "lamss/lib_henrik_util/CVectorUtils.h"
+#include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
 
-#include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
 #include "lamss/lib_lamss_protobuf/ActiveSonarParameters.pb.h"
+#include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
 #include "lamss/lib_lamss_protobuf/SonarProcessingCommand.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
+#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h"     // DCCL message
 #include "lamss/lib_lamss_protobuf/lamss_processing.pb.h" // DCCL message
-
+#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h"  // DCCL message
 
 class CBFException : public std::runtime_error
 {
   public:
-  CBFException(const std::string& what) : std::runtime_error(what)
-    { }
+    CBFException(const std::string& what) : std::runtime_error(what) {}
 };
 
 class SteeringVector
 {
- public:
+  public:
+    void config(double p_tol, double s_tol);
+    void put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag);
+    bool get(double sv_pitch, double sv_ssp, Matrix& sv_real, Matrix& sv_imag);
 
-  void config(double p_tol, double s_tol);
-  void put(double sv_pitch, double sv_ssp, Matrix sv_real, Matrix sv_imag);
-  bool get(double sv_pitch, double sv_ssp, Matrix & sv_real, Matrix & sv_imag);
+    double pitch;
+    double ssp;
 
-  double pitch;
-  double ssp;
-
- private:
-  double pitch_tol;
-  double ssp_tol;
-  Matrix       steering_vector_real;
-  Matrix       steering_vector_imag;    
+  private:
+    double pitch_tol;
+    double ssp_tol;
+    Matrix steering_vector_real;
+    Matrix steering_vector_imag;
 };
 
 class LamssCBF : public goby::moos::GobyMOOSApp
@@ -58,12 +55,12 @@ class LamssCBF : public goby::moos::GobyMOOSApp
 
   private:
     LamssCBF(LamssCBFConfig& cfg);
-    ~LamssCBF() { }
+    ~LamssCBF() {}
     LamssCBF(const LamssCBF&);
     LamssCBF& operator=(const LamssCBF&);
 
     // synchronous event
-    void loop();    
+    void loop();
     void slow_loop(double curr_time);
     void try_publish();
 
@@ -91,32 +88,34 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     void handle_fc_bw();
     // Processing modules
     bool LoadData(std::string);
-    void hanning(Real *,int);
-    void hamming(Real *,int);  //Added AJP 21 JUL 2010
-    int  round(double);
+    void hanning(Real*, int);
+    void hamming(Real*, int); //Added AJP 21 JUL 2010
+    int round(double);
     bool Process_Data();
     bool initialize_beamformer();
     bool generate_spatial_window();
     void steering_parameters();
-    void zeros(double *,int);
+    void zeros(double*, int);
     void clear_buffers();
     void compute_steering_vectors();
-    size_t parseArrayCoordinates(std::string str, vector<double> & element_coordinate);
+    size_t parseArrayCoordinates(std::string str, vector<double>& element_coordinate);
     void save_stft_file(std::string name);
     void publish_active_processsing_parameters();
 
-    // local Utilities    
+    // local Utilities
     int str2dbl_vec(std::string, std::vector<double>& values);
     bool dbl_vec2str(std::vector<double> numbers, std::string& str);
     double angle360(double hdg);
 
     SonarProcessingCommand last_processing_cmd_;
-    vector<SteeringVector>  SteeringVectors;
+    vector<SteeringVector> SteeringVectors;
 
     // queue_event for FSM
-    template<typename Event>
-        void queue_event()
-    { scheduler_.queue_event(fsm_, boost::intrusive_ptr<Event>(new Event())); }
+    template <typename Event> void queue_event()
+    {
+        scheduler_.queue_event(fsm_, boost::intrusive_ptr<Event>(new Event()));
+    }
+
   private:
     LamssCBFConfig& cfg_;
     LamssCBFConfig curr_cfg_;
@@ -125,8 +124,8 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     boost::shared_ptr<boost::thread> fsm_thread_;
 
     double last_slow_loop_t_;
-    
-    static LamssCBF* inst_;    
+
+    static LamssCBF* inst_;
 
     CRadianAvg pitch_filter;
     CAngleAvg heading_filter;
@@ -170,27 +169,27 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     // newmat arrays for beamformers
     ColumnVector win;
     ColumnVector windowed_data;
-    Matrix       Array_Data;
+    Matrix Array_Data;
     ColumnVector win_spatial;
-    ColumnVector nominal_element_locations; 
+    ColumnVector nominal_element_locations;
     ColumnVector beam_cosines;
     ColumnVector array_x;
     ColumnVector array_y;
     ColumnVector array_z;
     ColumnVector bin_center_frequencies;
     //variables used to generate steering vectors using new convention
-    Matrix       steering_vector_real;
-    Matrix       steering_vector_imag;    
+    Matrix steering_vector_real;
+    Matrix steering_vector_imag;
     ColumnVector azimuthal_beams;
     ColumnVector elevation_beams;
 
-    int *array_elements_used;
+    int* array_elements_used;
     int num_elements_used_;
-    int *bins;
+    int* bins;
     int num_bins_;
 
-    Matrix       Spectrum_real;
-    Matrix       Spectrum_imag;
+    Matrix Spectrum_real;
+    Matrix Spectrum_imag;
     Matrix P;
 
     // Declare matrices which will contain Short Time Fourier Transform (STFT) along each steered beam as a function of azimuth/elevation.
@@ -198,7 +197,7 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     boost::multi_array<double, 4> Beam_STFT_imag;
 
     //parameters used for active sonar detector
-    double  transmit_elevation_angle_;
+    double transmit_elevation_angle_;
     double pingtime_;
     double recordtime_;
     double proc_offset_;
@@ -210,9 +209,9 @@ class LamssCBF : public goby::moos::GobyMOOSApp
     double ping_speed_;
     double ping_heading_;
     double ping_pitch_;
-    
+
     std::vector<double> beam_angles;
-	
+
     double time_window_constant_;
     double hydrophone_amplitude_gain_;
     double hydrophone_calibration_;

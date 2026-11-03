@@ -1,7 +1,7 @@
-// Copyright 2015 
+// Copyright 2015
 // Henrik Schmidt
-// Toby Schneider 
-// Massachusetts Institute of Technology 
+// Toby Schneider
+// Massachusetts Institute of Technology
 
 #include "LamssCBF_fsm.h"
 
@@ -9,11 +9,10 @@ boost::shared_ptr<LamssCBFConfig> lamss::shared::fsm::cfg_;
 
 ProcessingStateEnum lamss::shared::fsm::state_ = PROCESSING_STATE_IDLE;
 
-
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
 boost::mutex lamss::shared::fsm::moos_mutex_;
 
-boost::condition_variable lamss::shared::fsm::processing_cond_;  
+boost::condition_variable lamss::shared::fsm::processing_cond_;
 
 double lamss::shared::fsm::current_time_ = 0;
 
