@@ -1,0 +1,13 @@
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+import "lamss_targetsim.proto";
+
+message SimTargetsConfig
+{
+  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+
+  optional double max_range = 11;
+  optional LAMSS_SIMULATE_TARGET auto_target = 12;
+}
+

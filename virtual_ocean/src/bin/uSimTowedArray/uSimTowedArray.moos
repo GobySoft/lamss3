@@ -1,0 +1,80 @@
+// This is an example minimal MOOS file with a config block 
+// for this particular MOOS application.
+
+ServerHost = localhost
+//ServerHost = 192.168.1.104
+ServerPort = 9000
+
+// GLINT'08 Pianosa Area B 
+ LatOrigin = 42.5
+ LongOrigin = 10.08333
+
+ProcessConfig = SimTowedArray
+{
+  AppTick =   2
+  CommsTick = 4
+
+cond_check =	1
+start_speed  =   0.5
+
+// Next parameter is a flag to create the VSA_DIR and VSA_FRAME info or not.
+create_dir_frame = 0
+
+// Next parameter is a flag to write out heading & pitch to ASCII file or not.
+write_out_files  = 0
+
+// Seems as though we can go from a standing
+// start OK with a tension filter length of 8
+filter_length   = 40
+
+array_type = 2 	// 1: VSA, 2: HYDROPHONE
+
+// Parameters for DURIP array  with 3 sections (tow cable+acoustic section+drogue) 
+
+number_sectors = 3                                   
+//        Nsub, len(m),   wgt(N/m),  dia(m),  td,     nd,   Mod of Elas (N/m^2)
+sector_1 = 20,	20.0,    .0000,     .0095,    .001,   0.2,       1.8e9
+sector_2 = 30,	36.0,    .0000,     .035,   .0024,   0.5,       1.8e8
+sector_3 = 20,	20.0,    .0000,     .0095,   .001,   0.2,       1.8e9
+tow_body = 0
+//                 Wgt(N),drgcoef,area(m^2)
+towbody_parameters = -10.0,   1.0,     0.01 
+
+array_section_number = 2
+first_phone_offset   = 3.0
+
+array_definition_type = 1
+// 0: number_elements, element_spacing
+// 1: phone spacing groups etc. (default)
+// 2: array_element_locations (0,0.75,1.5,....)
+
+phone_spacing_groups = 3
+spacing_group_1      = 1.5  
+num_spacings_group_1 = 5
+spacing_group_2      = 0.75
+num_spacings_group_2 = 22
+spacing_group_3      = 1.5
+num_spacings_group_3 = 4
+  
+// Parameters for Fatline VSA array
+           
+// number_sectors = 4                                   
+// sector_1 = 30,	45.72060, .000089,    .0095,   .003,    0.7,       17.6e9
+// sector_2 = 10,	7.6201,	  .0000,      .0889,   .0024,   0.7,       17.6e9
+// sector_3 = 20,	29.5660,  .0000,      .0889,   .0024,   0.7,       17.6e9
+// sector_4 = 10,	15.2402,  .0000,      .0063,   .0036,   0.7,       17.6e9
+// tow_body = 0
+// towbody_parameters = 8.9, 1.8, .051
+
+//array_section_number = 2
+//first_phone_offset   = 5.78
+//phone_spacing_groups = 3
+//spacing_group_1      = 1.5  
+//num_spacings_group_1 = 3
+//spacing_group_2      = 0.75
+//num_spacings_group_2 = 12
+//spacing_group_3      = 1.5
+//num_spacings_group_3 = 3
+  
+}
+

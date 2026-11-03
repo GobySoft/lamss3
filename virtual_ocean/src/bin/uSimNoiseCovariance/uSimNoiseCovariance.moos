@@ -1,0 +1,33 @@
+// This is an example MOOS file with a config block 
+// for this particular MOOS application.
+
+ServerHost = localhost
+ServerPort = 9000
+
+ProcessConfig = uSimNoiseCovariance
+{
+  AppTick =   25           // should be > 10 
+  CommsTick = 5                 
+
+  // Environmental Parameters
+  water_depth = 100             // used for spherical spreading (m)
+  water_c = 1500                // Speed of sound in water (m/s)
+  bottom_loss = 10.0             // Bottom loss in dB/km
+  noise_level = 60              // dB re 1 uPa
+  minimum_frequency = 800       // Minimum frequency of processing
+  maximum_frequency = 1000      // Maximum frequency of processing
+  isotropic_noise = true        // Use isotropic noise model  
+
+    // note that noise is spatially and temporally white (flat spectrum)  
+
+  // Array and sampling parameters
+  array_type = DURIP                 // DURIP or VSA
+  num_array_elements = 32           // number of elements in the array
+  sampling_frequency = 4000       // Hz
+  num_samples = 8000              // number of samples per file
+
+  base_dir_name = /home/henrik/DURIP/  
+  // absolute path including initial and final forward slash.  
+  
+}
+

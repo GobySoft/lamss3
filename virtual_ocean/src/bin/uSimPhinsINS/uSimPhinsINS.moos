@@ -1,0 +1,18 @@
+//------------------------------------------------
+// uSimPhinsINS config block
+
+ProcessConfig = uSimPhinsINS
+{
+   AppTick   = 20
+   CommsTick = 20
+
+   phins_ip=127.0.0.1
+   phins_port=14000
+
+   ins_bias_udot=0.003
+   ins_bias_vdot=0.002
+   ins_bias_wdot=0.001
+   ins_scale_err=0.005
+   ins_stdev=0.01
+}
+
