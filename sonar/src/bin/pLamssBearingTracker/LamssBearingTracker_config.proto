@@ -4,7 +4,10 @@ import "goby/protobuf/option_extensions.proto";
 
 message LamssBearingTrackerConfig
 {
-  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
 
     optional string ael_nav_variable = 11 [default = "AEL_NAV"];
     optional double alpha = 12 [default = 0.075];
@@ -21,7 +24,6 @@ message LamssBearingTrackerConfig
     optional int32 detector_number_bins = 23 [default = 15];
     optional int32 detector_first_noise_bin = 24 [default = 10];
     optional double detector_alpha = 25 [default = 0.9];
-    optional double noise_depth = 26  [default = 5.0];
-    optional double detection_threshold = 27  [default = 20.0];                     
+    optional double noise_depth = 26 [default = 5.0];
+    optional double detection_threshold = 27 [default = 20.0];
 }
-
