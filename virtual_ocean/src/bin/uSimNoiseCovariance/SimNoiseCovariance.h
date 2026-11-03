@@ -1,13 +1,13 @@
 #ifndef SIMNOISECOVARIANCE_HEADER
 #define SIMNOISECOVARIANCE_HEADER
 
-#include <string>
-#include <vector>
-#include <math.h>
+#include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MBUtils.h"
 #include "lamss/lib_newmat10D/newmatap.h"
+#include <math.h>
+#include <string>
+#include <vector>
 
 // from lib_henrik_util
 #include <lamss/lib_henrik_util/str_num.h>
@@ -15,8 +15,8 @@
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
 //#include "lamss/lib_henrik_util/CBessel.h"
-#include "lamss/lib_henrik_util/CNoiseCovariance.h"
 #include "lamss/lib_henrik_util/CCovMat.h"
+#include "lamss/lib_henrik_util/CNoiseCovariance.h"
 
 /*
 class ComputeCovariance
@@ -65,12 +65,11 @@ class CSimNoiseCovariance : public CMOOSApp
     virtual ~CSimNoiseCovariance();
 
     bool Iterate();
-    bool OnNewMail(MOOSMSG_LIST &NewMail);
+    bool OnNewMail(MOOSMSG_LIST& NewMail);
     bool OnConnectToServer();
     bool OnStartUp();
 
   protected:
-
     bool covariance_requested;
     bool debug;
     bool debug2;
@@ -84,15 +83,12 @@ class CSimNoiseCovariance : public CMOOSApp
 
     int str2int_vec(std::string, std::vector<int>&);
 
-    double computeNoiseCovariance(double depth, 
-			   std::vector<double> dom_nl,
-			   std::vector<double> noise_db);
-    bool parseNoiseProfile( std::string noise_in, 
-			   std::vector<double>& dom_nl,
-			   std::vector<double>& noise_db);
-    bool parseNoiseDirectionality( std::string noise_in, 
-			   std::vector<double>& theta_deg,
-			   std::vector<double>& S_dB);
+    double computeNoiseCovariance(double depth, std::vector<double> dom_nl,
+                                  std::vector<double> noise_db);
+    bool parseNoiseProfile(std::string noise_in, std::vector<double>& dom_nl,
+                           std::vector<double>& noise_db);
+    bool parseNoiseDirectionality(std::string noise_in, std::vector<double>& theta_deg,
+                                  std::vector<double>& S_dB);
 
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -123,8 +119,8 @@ class CSimNoiseCovariance : public CMOOSApp
     std::string array_type;
     int num_array_elements;
     int num_array_elements_save;
-    double sampling_frequency;  
-    double sampling_frequency_save;  
+    double sampling_frequency;
+    double sampling_frequency_save;
     int num_samples;
     int num_freqs;
     int num_freqs_save;
@@ -136,7 +132,6 @@ class CSimNoiseCovariance : public CMOOSApp
     double maximum_frequency;
     double minimum_frequency_save;
     double maximum_frequency_save;
-  
 
     // output file location and name
     std::string base_dir_name;
@@ -155,11 +150,11 @@ class CSimNoiseCovariance : public CMOOSApp
     int icnt_rot;
 
     // --- Declare other variables ---
-    bool ok_hydx,ok_hydy,ok_hydz, ok_array_pitch, ok_array_heading, got_array_info ;
+    bool ok_hydx, ok_hydy, ok_hydz, ok_array_pitch, ok_array_heading, got_array_info;
     double noise_std;
 
     std::vector<double> array_x; // x coordinates of array elements
-    // relative to (0,0) -- origina of coordinate system. 
+    // relative to (0,0) -- origina of coordinate system.
     std::vector<double> array_y;
     std::vector<double> array_z;
     std::vector<double> array_heading;
@@ -179,5 +174,4 @@ class CSimNoiseCovariance : public CMOOSApp
     CBessel spherical_besgen;
 };
 
-#endif 
-
+#endif

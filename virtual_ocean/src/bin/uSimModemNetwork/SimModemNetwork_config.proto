@@ -5,46 +5,47 @@ import "modem_sim.proto";
 
 message SimModemNetworkConfig
 {
-  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
-  optional string base_dir_name = 5 ;
-  optional double acomms_frequency = 10 [default = 10000];
-  optional double acomms_bandwidth = 11 [default = 2000];
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
+    optional string base_dir_name = 5;
+    optional double acomms_frequency = 10 [default = 10000];
+    optional double acomms_bandwidth = 11 [default = 2000];
 
-  optional string test_replica = 14 [default = "replica.dat"];
-  optional double noise_level = 15 [default = 40];
-  optional int32  max_number_bounces = 20  [default = 1];
-  optional double raytracing_interval = 21 [default = 30];
-  optional double raytracing_range_box = 22 [default = 20];
-  optional bool   mseas_svp_updates = 23 [default = false];
-  optional double mseas_update_interval = 24 [default = 60];
-  optional double svp_range_resolution = 25 [default = 200];
-  optional double svp_depth_resolution = 26 [default = 20];
+    optional string test_replica = 14 [default = "replica.dat"];
+    optional double noise_level = 15 [default = 40];
+    optional int32 max_number_bounces = 20 [default = 1];
+    optional double raytracing_interval = 21 [default = 30];
+    optional double raytracing_range_box = 22 [default = 20];
+    optional bool mseas_svp_updates = 23 [default = false];
+    optional double mseas_update_interval = 24 [default = 60];
+    optional double svp_range_resolution = 25 [default = 200];
+    optional double svp_depth_resolution = 26 [default = 20];
 
-  repeated string node = 30;
-  
-  repeated ArrayElement  array_element = 40;
-  message ArrayElement
+    repeated string node = 30;
+
+    repeated ArrayElement array_element = 40;
+    message ArrayElement
     {
-      optional double x_offset = 1 [default = 0];
-      optional double y_offset = 2 [default = 0];
-      optional double z_offset = 3 [default = 0];
+        optional double x_offset = 1 [default = 0];
+        optional double y_offset = 2 [default = 0];
+        optional double z_offset = 3 [default = 0];
     }
-    
-  optional bool depth_performance_prediction = 50 [default = false];
-  optional double min_depth = 51 [default = 2];
-  optional double max_depth = 52 [default = 200];
-  optional int32 num_depths = 53 [default = 100];
-  optional int32 bounce_penalty = 54 [default = 0];
-  optional int32 multipath_penalty = 55 [default = 0]; 
-  optional ModemPerformanceMetric optimize = 56 [default = SNR];
-  optional int32 num_ff_tabs = 57 [default = 21];
-  optional int32 num_fb_tabs = 58 [default = 20];
-  optional int32 nbaud = 59 [default = 18];
-  optional double source_level = 60 [default = 183];
-  optional bool isotropic_noise = 61 [default = false];
-  optional double surface_rms_roughness = 62 [default = 0.0];
-  optional double surface_roughness_loss = 63 [default = 0.0];
-  optional string modem_id_lookup_path = 70 [default = "modemidlookup.txt"];
+
+    optional bool depth_performance_prediction = 50 [default = false];
+    optional double min_depth = 51 [default = 2];
+    optional double max_depth = 52 [default = 200];
+    optional int32 num_depths = 53 [default = 100];
+    optional int32 bounce_penalty = 54 [default = 0];
+    optional int32 multipath_penalty = 55 [default = 0];
+    optional ModemPerformanceMetric optimize = 56 [default = SNR];
+    optional int32 num_ff_tabs = 57 [default = 21];
+    optional int32 num_fb_tabs = 58 [default = 20];
+    optional int32 nbaud = 59 [default = 18];
+    optional double source_level = 60 [default = 183];
+    optional bool isotropic_noise = 61 [default = false];
+    optional double surface_rms_roughness = 62 [default = 0.0];
+    optional double surface_roughness_loss = 63 [default = 0.0];
+    optional string modem_id_lookup_path = 70 [default = "modemidlookup.txt"];
 }
-
-

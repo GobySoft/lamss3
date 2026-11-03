@@ -12,20 +12,20 @@
 
 class SimDVL : public CMOOSApp
 {
- public:
-   SimDVL();
-   ~SimDVL();
+  public:
+    SimDVL();
+    ~SimDVL();
 
- protected: // Standard MOOSApp functions to overload  
-   bool OnNewMail(MOOSMSG_LIST &NewMail);
-   bool Iterate();
-   bool OnConnectToServer();
-   bool OnStartUp();
+  protected: // Standard MOOSApp functions to overload
+    bool OnNewMail(MOOSMSG_LIST& NewMail);
+    bool Iterate();
+    bool OnConnectToServer();
+    bool OnStartUp();
 
- protected:
-   void RegisterVariables();
+  protected:
+    void RegisterVariables();
 
- private: // Configuration variables
+  private: // Configuration variables
     double c_dvl_update_frequency;
     double c_dvl_velocity_std;
     double c_dvl_velocity_bias;
@@ -35,16 +35,16 @@ class SimDVL : public CMOOSApp
     double c_dvl_max_range;
     double c_dvl_min_range;
     double c_simulate_dvl_range;
-    bool   m_using_umvs_bluefin = true;
+    bool m_using_umvs_bluefin = true;
 
- private: // State variables
+  private: // State variables
     double m_dvl_data_post_time;
     double m_current_nav_depth;
     double m_current_nav_depth_time;
     double m_previous_nav_depth;
     double m_previous_nav_depth_time;
     double m_actual_altitude;
-    
+
     double m_current_u;
     double m_current_v;
     double m_current_w;
@@ -69,4 +69,4 @@ class SimDVL : public CMOOSApp
     double auvVelRelIce_zdot;
 };
 
-#endif 
+#endif

@@ -1,67 +1,65 @@
 #ifndef SIMMODEMNETWORK_HEADER
 #define SIMMODEMNETWORK_HEADER
 
-#include <string>
-#include <vector>
-#include <math.h>
+#include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MBUtils.h"
-#include "goby/moos/goby_moos_app.h"
-#include "goby/moos/moos_geodesy.h"
-#include "goby/moos/modem_id_convert.h"
-#include "lamss/lib_newmat10D/newmatap.h"
-#include <lamss/lib_henrik_util/CEigenRays.h>
-#include "netsim/acousticstoolbox/environment.h"
-#include "netsim/acousticstoolbox/svp_request_response.pb.h"
-#include "netsim/acousticstoolbox/iBellhop_messages.pb.h" 
-#include "netsim/messages/netsim.pb.h" 
-#include "goby/moos/moos_protobuf_helpers.h"
 #include "SimModemNetwork_config.pb.h"
-
+#include "goby/moos/goby_moos_app.h"
+#include "goby/moos/modem_id_convert.h"
+#include "goby/moos/moos_geodesy.h"
+#include "goby/moos/moos_protobuf_helpers.h"
+#include "lamss/lib_newmat10D/newmatap.h"
+#include "netsim/acousticstoolbox/environment.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#include "netsim/messages/netsim.pb.h"
+#include <lamss/lib_henrik_util/CEigenRays.h>
+#include <math.h>
+#include <string>
+#include <vector>
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/str_num.h>
 #include <lamss/lib_henrik_util/CTarget.h>
+#include <lamss/lib_henrik_util/str_num.h>
 
-
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_henrik_util/Random.h"
 #include "lamss/lib_henrik_util/CCovMat.h"
 #include "lamss/lib_henrik_util/CNoiseCovariance.h"
+#include "lamss/lib_henrik_util/CVectorUtils.h"
+#include "lamss/lib_henrik_util/Random.h"
 
 class CAcousticNode
 {
- public:
-  std::string name;
-  bool ok_info;
-  double utc;
-  double x;
-  double y;
-  double depth;
-  double heading;
-  double speed;
-  double pitch;
+  public:
+    std::string name;
+    bool ok_info;
+    double utc;
+    double x;
+    double y;
+    double depth;
+    double heading;
+    double speed;
+    double pitch;
 };
 
 class CAcousticContact
 {
- public:
-  std::string ownship;
-  std::string contact;
-  bool ready;
-  double last_request;
-  double last_range;
-  double last_rate;
-  double last_rate_update;
-  int bellhop_request_id;
-  bool new_svp_requested;
-  bool svp_ready;
-  int svp_request_id;
-  double last_svp_request;
-  CEigenRayTable  ray_table;
-  netsim::SVP::protobuf::Response svp_response;
-  double noise_level;
+  public:
+    std::string ownship;
+    std::string contact;
+    bool ready;
+    double last_request;
+    double last_range;
+    double last_rate;
+    double last_rate_update;
+    int bellhop_request_id;
+    bool new_svp_requested;
+    bool svp_ready;
+    int svp_request_id;
+    double last_svp_request;
+    CEigenRayTable ray_table;
+    netsim::SVP::protobuf::Response svp_response;
+    double noise_level;
 };
 
 class SimModemNetwork : public goby::moos::GobyMOOSApp
@@ -72,10 +70,10 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
   private:
     SimModemNetwork(SimModemNetworkConfig& cfg);
-    ~SimModemNetwork() { }
+    ~SimModemNetwork() {}
 
     // synchronous event
-    void loop();    
+    void loop();
     void slow_loop(double curr_time);
     double slow_loop_period;
 
@@ -96,11 +94,10 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     SimModemNetworkConfig& cfg_;
     double last_slow_loop_t_;
-    
-    static SimModemNetwork* inst_;    
+
+    static SimModemNetwork* inst_;
 
   protected:
-
     bool debug;
     bool debug2;
 
@@ -109,7 +106,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     double lat_origin_;
     double lon_origin_;
-    bool  new_origin_;
+    bool new_origin_;
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool mseas_svp_updates;
     double mseas_update_interval;
@@ -131,62 +128,40 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     // Multi target expansion
 
-    bool getAcousticContact(std:: string os, std::string cn, CEigenRayTable& eig_table);
-    int  findAcousticContact(std:: string os, std::string cn);
-    bool readyAcousticContact(std:: string os, std::string cn);
-    bool requestRayTrace(std:: string os, std::string cn, 
-			 double r_min, double r_max, int num_r, 
-			 double dep_min, double dep_max, int num_dep,
-			 double freq);
-    bool requestSVPUpdate(std:: string os, std::string cn);
-    bool readyAcousticContactSVP(std:: string os, std::string cn);
+    bool getAcousticContact(std::string os, std::string cn, CEigenRayTable& eig_table);
+    int findAcousticContact(std::string os, std::string cn);
+    bool readyAcousticContact(std::string os, std::string cn);
+    bool requestRayTrace(std::string os, std::string cn, double r_min, double r_max, int num_r,
+                         double dep_min, double dep_max, int num_dep, double freq);
+    bool requestSVPUpdate(std::string os, std::string cn);
+    bool readyAcousticContactSVP(std::string os, std::string cn);
     bool putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response);
-    bool getAcousticContactSVP(std:: string os, std::string cn, 
-			       netsim::SVP::protobuf::Response& svp_response );
+    bool getAcousticContactSVP(std::string os, std::string cn,
+                               netsim::SVP::protobuf::Response& svp_response);
     bool handleSVPResponse(const CMOOSMsg& msg);
-    bool defineRayTracingBox(CAcousticContact& contact,
-			     double& r_min,
-			     double& r_max,
-			     double& dep_min,
-			     double& dep_max,
-			     int& num_r,
-			     int& num_dep);
-    bool getNodeInfo(std::string node_name,
-		     double& node_x,
-		     double& node_y,
-		     double& node_depth, 
-		     double& node_heading,
-		     double& node_speed);
-    bool parseNoiseProfile( std::string noise_in, 
-			   std::vector<double>& dom_nl,
-			   std::vector<double>& noise_db);
-    bool parseNoiseDirectionality( std::string noise_in, 
-				   std::vector<double>& dom_nl,
-				   std::vector<double>& noise_db);
-    double get_ambient_noise(double depth, 
-			     vector<double> dom_nl,
-			     vector<double> noise_db);
-    bool computeNoiseCovariance(double nl,
-				double water_c,
-				std::vector<double> array_x,
-				std::vector<double> array_y,
-				std::vector<double> array_z);
+    bool defineRayTracingBox(CAcousticContact& contact, double& r_min, double& r_max,
+                             double& dep_min, double& dep_max, int& num_r, int& num_dep);
+    bool getNodeInfo(std::string node_name, double& node_x, double& node_y, double& node_depth,
+                     double& node_heading, double& node_speed);
+    bool parseNoiseProfile(std::string noise_in, std::vector<double>& dom_nl,
+                           std::vector<double>& noise_db);
+    bool parseNoiseDirectionality(std::string noise_in, std::vector<double>& dom_nl,
+                                  std::vector<double>& noise_db);
+    double get_ambient_noise(double depth, vector<double> dom_nl, vector<double> noise_db);
+    bool computeNoiseCovariance(double nl, double water_c, std::vector<double> array_x,
+                                std::vector<double> array_y, std::vector<double> array_z);
     bool write_covmat_file(std::string filename, double nl_now);
     void create_cross_spectral_density();
     double predicted_MAE(double nl_here);
-    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, 
-			 double depth);
-    void compute_tl(CEigenRay  eig, double& snr, double& mpp);
-    bool compute_delay(CEigenRay eig,
-		       double& mean_delay, double& std_delay);
+    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column,
+                         double depth);
+    void compute_tl(CEigenRay eig, double& snr, double& mpp);
+    bool compute_delay(CEigenRay eig, double& mean_delay, double& std_delay);
     double compute_MAE(int con);
     void test_performance_request();
-    void banded_impulse_response
-      (double center_frequency,
-       double bandwidth,
-       double sampling_frequency,
-       int num_samples,
-       std::vector<double>& sig );
+    void banded_impulse_response(double center_frequency, double bandwidth,
+                                 double sampling_frequency, int num_samples,
+                                 std::vector<double>& sig);
     std::complex<double> conjg(std::complex<double> a);
     std::complex<double> cexp(std::complex<double> a);
 
@@ -215,7 +190,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     // noise covariances
     std::vector<CovMat> noise_covar;
     ComputeCovariance compCov;
-    
+
     std::vector<CAcousticContact> acoustic_contacts;
 
     double start_time;
@@ -245,7 +220,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     double dip_ref;
     double p_ref;
     double tau_ref;
-    bool   turn_ref;
+    bool turn_ref;
     double ph_shift_ref;
     double tl_est;
     double nl_prev;
@@ -254,7 +229,7 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     // Eigenrays
     CEigenRayTable eigenray_table;
     CEigenRay eig;
- 
+
     // doubles to keep track of time
     double time_last;
     double file_interval_time;
@@ -264,42 +239,23 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
 
     bool generate_eigenray_table(CAcousticContact& acoustic_contact);
 
-    bool ray_arrivals(CEigenRay eig, 
-		      std::vector<double> rcv_range,
-		      std::vector<double> rcv_depth, 
-		      std::vector<double> & cos_Src,
-		      std::vector<double> & cos_Rcv,
-		      std::vector<std::vector<double> >& delays, 
-		      std::vector<double> & amplitudes);
+    bool ray_arrivals(CEigenRay eig, std::vector<double> rcv_range, std::vector<double> rcv_depth,
+                      std::vector<double>& cos_Src, std::vector<double>& cos_Rcv,
+                      std::vector<std::vector<double>>& delays, std::vector<double>& amplitudes);
 
-    void ray_doppler_vel(double v_S, double a_S,double e_S, 
-				double v_R, double a_R, double e_R, 
-				double& vr_S, double& vr_R );
-    void modem_ray_arrivals(CEigenRayTable eigenray_table,
-			    std::vector<std::vector<double> >& delay,
-			    std::vector<double> & amplitude,
-			    std::vector<double> & doppler,
-			    std::vector<double> & elevation,
-			    std::vector<int> & surface_bounces,
-			    std::vector<int> & bottom_bounces,
-			    std::vector<double> & ael_x,
-			    std::vector<double> & ael_y,
-			    std::vector<double> & ael_z
-			    );
-    
-    void array_locations(double nav_x, 
-			 double nav_y, 
-			 double nav_z,
-			 double nav_yaw, 
-			 double nav_pitch,
-			 std::vector<double> local_x,
-			 std::vector<double> local_y,
-			 std::vector<double> local_z,
-			 std::vector<double>& ael_x,
-			 std::vector<double>& ael_y,
-			 std::vector<double>& ael_z
-			 );
-      
+    void ray_doppler_vel(double v_S, double a_S, double e_S, double v_R, double a_R, double e_R,
+                         double& vr_S, double& vr_R);
+    void modem_ray_arrivals(CEigenRayTable eigenray_table, std::vector<std::vector<double>>& delay,
+                            std::vector<double>& amplitude, std::vector<double>& doppler,
+                            std::vector<double>& elevation, std::vector<int>& surface_bounces,
+                            std::vector<int>& bottom_bounces, std::vector<double>& ael_x,
+                            std::vector<double>& ael_y, std::vector<double>& ael_z);
+
+    void array_locations(double nav_x, double nav_y, double nav_z, double nav_yaw, double nav_pitch,
+                         std::vector<double> local_x, std::vector<double> local_y,
+                         std::vector<double> local_z, std::vector<double>& ael_x,
+                         std::vector<double>& ael_y, std::vector<double>& ael_z);
+
     // JPA stuff
     double mae_sampling_frequency;
     int mae_nfft;
@@ -311,14 +267,13 @@ class SimModemNetwork : public goby::moos::GobyMOOSApp
     int num_fb_tabs;
     int numacausalfftabs;
     int numcausalfftabs;
-    std::vector<double> FreqVec ;
-    std::vector<std::complex<double> > h_lpf;
-    std::vector<std::vector<std::complex<double> > > Rv_bbds;
+    std::vector<double> FreqVec;
+    std::vector<std::complex<double>> h_lpf;
+    std::vector<std::vector<std::complex<double>>> Rv_bbds;
     // array impulse response (Narray x num_samples)
-    std::vector<std::vector<double> > ts;
+    std::vector<std::vector<double>> ts;
     //
     int test_count;
 };
 
-#endif 
-
+#endif

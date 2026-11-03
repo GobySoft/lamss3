@@ -1,98 +1,96 @@
 #ifndef SIMPASSIVESONAR_HEADER
 #define SIMPASSIVESONAR_HEADER
 
-#include <string>
-#include <vector>
-#include <math.h>
+#include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "MBUtils.h"
+#include "SimPassiveSonar_config.pb.h"
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
-#include "lamss/lib_newmat10D/newmatap.h"
-#include <lamss/lib_henrik_util/CRapRays.h>
-#include <lamss/lib_henrik_util/CEigenRays.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_fft_halfcomplex.h>
-#include "netsim/acousticstoolbox/svp_request_response.pb.h"
-#include "netsim/acousticstoolbox/iBellhop_messages.pb.h" 
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "SimPassiveSonar_config.pb.h"
 #include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
-
+#include "lamss/lib_newmat10D/newmatap.h"
+#include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
+#include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_fft_halfcomplex.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_randist.h>
+#include <gsl/gsl_rng.h>
+#include <lamss/lib_henrik_util/CEigenRays.h>
+#include <lamss/lib_henrik_util/CRapRays.h>
+#include <math.h>
+#include <string>
+#include <vector>
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/str_num.h>
 #include <lamss/lib_henrik_util/CTarget.h>
+#include <lamss/lib_henrik_util/str_num.h>
 
-
+#include "lamss/lib_henrik_util/CCovMat.h"
 #include "lamss/lib_henrik_util/CVectorUtils.h"
 #include "lamss/lib_henrik_util/Random.h"
-#include "lamss/lib_henrik_util/CCovMat.h"
 
 class CSensor
 {
- public:
-  vector<double> spectrum;
-  bool initSpectrum(int nfft_in);
-  bool clearSpectrum();
-  bool putSpectrum(vector<double> spec_in);
-  bool addToSpectrum(vector<double> spec_in);
-  vector<double> getSpectrum();
-  vector<double> timeseries();
+  public:
+    vector<double> spectrum;
+    bool initSpectrum(int nfft_in);
+    bool clearSpectrum();
+    bool putSpectrum(vector<double> spec_in);
+    bool addToSpectrum(vector<double> spec_in);
+    vector<double> getSpectrum();
+    vector<double> timeseries();
 
- protected:
-  int nfft;
+  protected:
+    int nfft;
 };
-  
+
 class CAcousticContact
 {
- public:
-  std::string contact;
-  double contact_x;
-  double contact_y;
-  double contact_depth;
-  bool ready;
-  double last_request;
-  double last_range;
-  double last_rate;
-  double last_rate_update;
-  bool svp_ready;
-  int svp_request_id;
-  double last_svp_request;
-  CEigenRayTable  ray_table;
-  netsim::SVP::protobuf::Response svp_response;
+  public:
+    std::string contact;
+    double contact_x;
+    double contact_y;
+    double contact_depth;
+    bool ready;
+    double last_request;
+    double last_range;
+    double last_rate;
+    double last_rate_update;
+    bool svp_ready;
+    int svp_request_id;
+    double last_svp_request;
+    CEigenRayTable ray_table;
+    netsim::SVP::protobuf::Response svp_response;
 };
 
 class CPinger
 {
-public:
-  bool active{false};
-  unsigned int number;
-  std::string id{"PINGER_xx"};
-  bool enabled{false};
-  double x;
-  double y;
-  double lat;
-  double lon;
-  double depth;
-  double speed;
-  double heading;
-  double db;
-  double interval{0};
-  double center_frequency;
-  double bandwidth;
-  double pulsewidth;
-  LAMSS_PINGER_COMMAND::WaveformEnum waveform;
-  LAMSS_PINGER_COMMAND::WindowShading window;
-  std::vector<double> replica;
+  public:
+    bool active{false};
+    unsigned int number;
+    std::string id{"PINGER_xx"};
+    bool enabled{false};
+    double x;
+    double y;
+    double lat;
+    double lon;
+    double depth;
+    double speed;
+    double heading;
+    double db;
+    double interval{0};
+    double center_frequency;
+    double bandwidth;
+    double pulsewidth;
+    LAMSS_PINGER_COMMAND::WaveformEnum waveform;
+    LAMSS_PINGER_COMMAND::WindowShading window;
+    std::vector<double> replica;
 
-  double pingtime;
-  unsigned int counter{0};
-  bool got_eigenrays{false};
+    double pingtime;
+    unsigned int counter{0};
+    bool got_eigenrays{false};
 };
 
 class SimPassiveSonar : public goby::moos::GobyMOOSApp
@@ -103,10 +101,10 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
   private:
     SimPassiveSonar(SimPassiveSonarConfig& cfg);
-    ~SimPassiveSonar() { }
+    ~SimPassiveSonar() {}
 
     // synchronous event
-    void loop();    
+    void loop();
     void slow_loop(double curr_time);
     double slow_loop_period;
 
@@ -140,27 +138,25 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     SimPassiveSonarConfig& cfg_;
     double last_slow_loop_t_;
-    
-    static SimPassiveSonar* inst_;    
+
+    static SimPassiveSonar* inst_;
 
   protected:
-
     bool debug;
     bool debug2;
 
     bool sonar_on_;
-    
+
     // Sensor arrays
     std::vector<CSensor> hydrophones;
     std::vector<CSensor> x_accelerometers;
     std::vector<CSensor> y_accelerometers;
     std::vector<CSensor> z_accelerometers;
 
-
     double lat_origin_;
     double lon_origin_;
-    bool  new_origin_;
-  
+    bool new_origin_;
+
     goby::moos::CMOOSGeodesy m_Geodesy;
     bool svp_updates;
     double svp_update_interval;
@@ -176,63 +172,47 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     // RAP raytracer
     CRapRays Rap;
- 
-    //---Declare variables that get their valies directly from the .moos file---
-  LAMSS_PINGER_COMMAND pinger_command;
-  std::vector<CPinger> pinger;
-  std::vector<double> replica;
 
-  bool getPingerInfo(unsigned int i);
-  void generate_doppler_waveform(std::vector<double>& source_waveform,
-				 double dop_fac,
-				 double source_strength,
-				 unsigned int pinger_indx);
-  std::vector<double> doppler_shifted_waveform(double dop_fac,
-					      unsigned int indx);
-  // Time stam for each recorded file
-  double timestamp;
-  // Target control. true= SourceSim, false = prosecute message
-  bool t_control; 
-  
+    //---Declare variables that get their valies directly from the .moos file---
+    LAMSS_PINGER_COMMAND pinger_command;
+    std::vector<CPinger> pinger;
+    std::vector<double> replica;
+
+    bool getPingerInfo(unsigned int i);
+    void generate_doppler_waveform(std::vector<double>& source_waveform, double dop_fac,
+                                   double source_strength, unsigned int pinger_indx);
+    std::vector<double> doppler_shifted_waveform(double dop_fac, unsigned int indx);
+    // Time stam for each recorded file
+    double timestamp;
+    // Target control. true= SourceSim, false = prosecute message
+    bool t_control;
+
     // Multi target expansion
 
     int str2int_vec(std::string, std::vector<int>&);
     bool getTargetInfo(int i);
 
-    bool putAcousticContact(std::string cn, double contact_x,
-			    double contact_y, double contact_depth,
-			    CEigenRayTable eig_table);
+    bool putAcousticContact(std::string cn, double contact_x, double contact_y,
+                            double contact_depth, CEigenRayTable eig_table);
     bool getAcousticContact(std::string cn, CEigenRayTable& eig_table);
     int findAcousticContact(std::string cn);
     bool readyAcousticContact(std::string cn);
-    bool requestRayTrace(std::string cn, 
-			 double r_min, double r_max, int num_r, 
-			 double dep_min, double dep_max, int num_dep,
-			 double freq, int target_number);
-    double getAmbientNoise(double depth, 
-			   std::vector<double> dom_nl,
-			   std::vector<double> noise_db);
-    bool parseNoiseProfile( std::string noise_in, 
-			   std::vector<double>& dom_nl,
-			   std::vector<double>& noise_db);
-    bool parseNoiseDirectionality( std::string noise_in, 
-			   std::vector<double>& theta_deg,
-			   std::vector<double>& S_dB);
-    bool requestSVPUpdate(std::string cn, 
-			  int target_number);
+    bool requestRayTrace(std::string cn, double r_min, double r_max, int num_r, double dep_min,
+                         double dep_max, int num_dep, double freq, int target_number);
+    double getAmbientNoise(double depth, std::vector<double> dom_nl, std::vector<double> noise_db);
+    bool parseNoiseProfile(std::string noise_in, std::vector<double>& dom_nl,
+                           std::vector<double>& noise_db);
+    bool parseNoiseDirectionality(std::string noise_in, std::vector<double>& theta_deg,
+                                  std::vector<double>& S_dB);
+    bool requestSVPUpdate(std::string cn, int target_number);
     bool readyAcousticContactSVP(std::string cn);
     bool putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response);
-    bool getAcousticContactSVP(std::string cn, 
-			       netsim::SVP::protobuf::Response& svp_response );
+    bool getAcousticContactSVP(std::string cn, netsim::SVP::protobuf::Response& svp_response);
     bool handleSVPResponse(const CMOOSMsg& msg);
-    bool defineRayTracingBox(CAcousticContact& target,
-			     double& r_min,
-			     double& r_max,
-			     double& dep_min,
-			     double& dep_max,
-			     int& num_r,
-			     int& num_dep);
-    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column, double depth);
+    bool defineRayTracingBox(CAcousticContact& target, double& r_min, double& r_max,
+                             double& dep_min, double& dep_max, int& num_r, int& num_dep);
+    double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column,
+                         double depth);
 
     bool noise_profile;
     std::vector<double> depth_nl;
@@ -259,14 +239,13 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
 
     std::vector<bool> ok_target_info;
 
-
     // source parameters
     std::vector<double> tone_freqs;
     std::vector<double> tone_amps;
 
     // Frequency phase randomization for coherent source arrays
     std::vector<double> freq_phase;
-    
+
     // environmental parameters
     double water_depth; // Used for region of spherical spreading.
     double water_c;
@@ -284,7 +263,7 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     // array and sampling parameters
     std::string array_type;
     int num_array_elements;
-    double sampling_frequency;  
+    double sampling_frequency;
     int num_samples;
     int num_freqs;
     unsigned int nfft;
@@ -292,10 +271,9 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     bool noise_cov_built;
     double minimum_frequency;
     double maximum_frequency;
-  
+
     double hydrophone_gain;
     double accel_gain;
-
 
     std::string ownship;
     // output file location and name
@@ -336,13 +314,12 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     double source_bb_freq;
     double source_bb_bw;
 
-
     double depth_ref;
     double range_ref;
     double dip_ref;
     double p_ref;
     double tau_ref;
-    bool   turn_ref;
+    bool turn_ref;
     double ph_shift_ref;
     double tl_est;
     double nl_prev;
@@ -351,21 +328,18 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     // Eigenrays
     CEigenRayTable eigenray_table;
     CEigenRay eig;
- 
+
     // --- Declare other variables ---
-    bool ok_towx,ok_towy,ok_towz,ok_hydx,ok_hydy,ok_hydz, 
-      ok_array_pitch, ok_array_heading, 
-      got_array_info, 
-      ok_source_bb_spl, ok_source_bb_freq, 
-      ok_source_bb_bw, got_source_bb_info;
+    bool ok_towx, ok_towy, ok_towz, ok_hydx, ok_hydy, ok_hydz, ok_array_pitch, ok_array_heading,
+        got_array_info, ok_source_bb_spl, ok_source_bb_freq, ok_source_bb_bw, got_source_bb_info;
     bool ok_dir_x, ok_dir_y, ok_dir_z, got_array_dir_info;
 
     double noise_std;
-    std::vector<double> tone_amps_Pa; 
-    std::vector<double> tone_ks; 
+    std::vector<double> tone_amps_Pa;
+    std::vector<double> tone_ks;
 
     std::vector<double> array_x; // x coordinates of array elements
-    // relative to (0,0) -- origina of coordinate system. 
+    // relative to (0,0) -- origina of coordinate system.
     std::vector<double> array_y;
     std::vector<double> array_z;
     std::vector<double> array_dir_x;
@@ -389,43 +363,37 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     double file_interval_time;
     int frame_number;
 
-    // matricies 
-    gsl_matrix * sum_of_timeseries;
-    gsl_matrix * sum_of_timeseries_x;
-    gsl_matrix * sum_of_timeseries_y;
-    gsl_matrix * sum_of_timeseries_z;
-    
+    // matricies
+    gsl_matrix* sum_of_timeseries;
+    gsl_matrix* sum_of_timeseries_x;
+    gsl_matrix* sum_of_timeseries_y;
+    gsl_matrix* sum_of_timeseries_z;
+
     // gsl random number generator
-    const gsl_rng_type * gsl_rng_type_1;
-    gsl_rng * gsl_rng_1;
-    std::vector<gsl_rng *> gsl_rng_tgt;
+    const gsl_rng_type* gsl_rng_type_1;
+    gsl_rng* gsl_rng_1;
+    std::vector<gsl_rng*> gsl_rng_tgt;
 
     // --- Functions ---
     //    int get_values(std::string, std::vector<double>& values);
     bool print_vec(vector<double> temp);
     bool print_array(double a[], int l);
-  void request_eigenrays(int cn_num, CAcousticContact &acoustic_contact);
-    bool generate_eigenray_table(int cn_num, 
-				 CAcousticContact& acoustic_contact);
+    void request_eigenrays(int cn_num, CAcousticContact& acoustic_contact);
+    bool generate_eigenray_table(int cn_num, CAcousticContact& acoustic_contact);
     bool generate_signal_spectrum(int tgt_count);
     bool generate_corr_noise_spectrum();
     bool save_spectral_timeseries();
     bool add_pinger_timeseries(unsigned int pinger_indx);
     bool initialize_spectrum();
-    bool ray_arrivals(CEigenRay eig, 
-		      double rcv_range,
-		      double rcv_depth, 
-		      std::vector<double> & cos_Src,
-		      std::vector<double> & cos_Rcv,
-		      std::vector<double> & delays, 
-		      std::vector<double> & amplitudes);
+    bool ray_arrivals(CEigenRay eig, double rcv_range, double rcv_depth,
+                      std::vector<double>& cos_Src, std::vector<double>& cos_Rcv,
+                      std::vector<double>& delays, std::vector<double>& amplitudes);
 
-    void ray_doppler_vel(double v_S, double a_S,double e_S, 
-				double v_R, double a_R, double e_R, 
-				double& vr_S, double& vr_R );
-    void array_ray_arrivals(std::vector<std::vector<double> > & delays,
-			    std::vector<std::vector<double> > & amplitudes,
-			    std::vector<std::vector<double> > & doppler);
+    void ray_doppler_vel(double v_S, double a_S, double e_S, double v_R, double a_R, double e_R,
+                         double& vr_S, double& vr_R);
+    void array_ray_arrivals(std::vector<std::vector<double>>& delays,
+                            std::vector<std::vector<double>>& amplitudes,
+                            std::vector<std::vector<double>>& doppler);
 
     bool write_hyd_file();
     bool write_nas_file(double timestamp);
@@ -437,9 +405,8 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
     // Weights for coherent sources
     bool read_weight_file(string src_wgt_file);
     std::vector<double> src_wgt_freq;
-    std::vector<std::vector<double> > src_wgt_mag;
-    std::vector<std::vector<double> > src_wgt_phase;
+    std::vector<std::vector<double>> src_wgt_mag;
+    std::vector<std::vector<double>> src_wgt_phase;
 };
 
-#endif 
-
+#endif

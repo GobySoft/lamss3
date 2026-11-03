@@ -2,17 +2,18 @@
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "SimTowedArray.h"
 
-int main(int argc , char * argv[])
+int main(int argc, char* argv[])
 {
-  const char * sMissionFile = "uSimTowedArray.moos";
+    const char* sMissionFile = "uSimTowedArray.moos";
 
-  if(argc > 1) {
-    sMissionFile = argv[1];
-  }
-  
-  CSimTowedArray uSimTowedArray;
-  
-  uSimTowedArray.Run("uSimTowedArray", sMissionFile);
-  
-  return 0;
+    if (argc > 1)
+    {
+        sMissionFile = argv[1];
+    }
+
+    CSimTowedArray uSimTowedArray;
+
+    uSimTowedArray.Run("uSimTowedArray", sMissionFile);
+
+    return 0;
 }
