@@ -1,9 +1,5 @@
-/************************************************************/
-/*    NAME: Nick Rypkema                                    */
-/*    ORGN: MIT                                             */
-/*    FILE: TetraHoming.h                                   */
-/*    DATE: April 2017                                      */
-/************************************************************/
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef TetraHoming_HEADER
 #define TetraHoming_HEADER

@@ -1,5 +1,11 @@
-//------------------------------------------------
-// pTetraHoming config block
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
 ProcessConfig = pTetraHoming
 {
@@ -13,4 +19,3 @@ ProcessConfig = pTetraHoming
    RETURN_UPDATE_VAR = HOMING_CONFIG  // update homing loiter position to this MOOSVar
    ABORT_UPDATE_VAR = ABORT_HEADING   // update homing abort heading to this MOOSVar
 }
-

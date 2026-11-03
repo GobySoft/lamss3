@@ -1,9 +1,5 @@
-/****************************************************************/
-/*   NAME: Nick Rypkema                                             */
-/*   ORGN: MIT Cambridge MA                                     */
-/*   FILE: TetraHoming_Info.cpp                               */
-/*   DATE: Dec 29th 1963                                        */
-/****************************************************************/
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "TetraHoming_Info.h"
 #include "ColorParse.h"

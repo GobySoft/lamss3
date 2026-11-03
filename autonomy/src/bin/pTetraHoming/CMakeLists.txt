@@ -1,30 +1,7 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                    pTetraHoming
-# Author(s):                              Nick Rypkema
-# Changes by                              Henrik Schmidt
-# 2/20/2020
-# Moved to lamss-shared from lamss-internal
-# Added publication of HOMING_LOCK
-# Only re-initializes beacon location estimate when homing
-# lock is stale for more than 120 seconds
-#--------------------------------------------------------
+# Copyright 2017-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-# FILE(GLOB SRC *.cpp)
-
-SET(SRC
-  TetraHoming.cpp
-  TetraHoming_Info.cpp
-  main.cpp
-)
-
-
-
-ADD_EXECUTABLE(pTetraHoming ${SRC})
-
-TARGET_LINK_LIBRARIES(pTetraHoming
-   ${MOOS_LIBRARIES}
-   ${IVP_GEOMETRY_LIBRARY}
-   ${IVP_MBUTIL_LIBRARY}
-   m
-   pthread)
-
+lamss_find_ivp(geometry mbutil)
+lamss_add_app(pTetraHoming MOOS NO_GOBY
+  SOURCES main.cpp TetraHoming.cpp TetraHoming_Info.cpp
+  LINK_LIBRARIES IvP::geometry IvP::mbutil)
