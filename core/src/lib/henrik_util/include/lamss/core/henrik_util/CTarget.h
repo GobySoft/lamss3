@@ -1,8 +1,8 @@
 // H. Schmidt, henrik@mit.edu 01.20.10
 // Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology 
-// 
-// CTarget.h  
+// Massachusetts Institute of Technology
+//
+// CTarget.h
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -20,53 +20,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #ifndef __CTARGET_h__
 #define __CTARGET_h__
 
-#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
-#include <math.h>
-#include <time.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <time.h>
 #include <vector>
 
- 
-class CTarget 
+class CTarget
 {
- public:
+  public:
+    bool setTargetValues(int tgt_num, bool tgt_on, std::vector<double> values);
+    bool getTargetValues(int& tgt_num, bool& tgt_on, std::vector<double>& values);
+    std::string printTargetValues();
+    std::string target_id();
+    std::string target_state();
 
-  bool setTargetValues(int tgt_num, bool tgt_on, std::vector<double> values);
-  bool getTargetValues(int& tgt_num, bool& tgt_on, std::vector<double>& values);
-  std::string printTargetValues();
-  std::string target_id();
-  std::string target_state();
+    bool target_on;
+    int target_number;
+    double target_utc;
+    double target_x;
+    double target_y;
+    double target_spd;
+    double target_hdg;
+    double target_dep;
+    double target_spl;
+    double target_freq;
+    double target_bw;
+    double target_strength;
+    double target_str;
+    std::vector<double> tone_freq;
+    std::vector<double> tone_dbl;
 
-  bool target_on;
-  int target_number;
-  double target_utc;
-  double target_x;
-  double target_y;
-  double target_spd;
-  double target_hdg;
-  double target_dep;
-  double target_spl;
-  double target_freq;
-  double target_bw;
-  double target_strength;
-  double target_str;
-  std::vector<double> tone_freq;
-  std::vector<double> tone_dbl;
-  
-
-  double target_amp() {return pow(10.0,-6.0)*pow(10.0,target_spl/20.0);};
-
+    double target_amp() { return pow(10.0, -6.0) * pow(10.0, target_spl / 20.0); };
 };
 
 #endif /* __CTARGET_h__ */

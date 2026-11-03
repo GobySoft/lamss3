@@ -1,8 +1,8 @@
 // H. Schmidt, henrik@mit.edu 07.02.10
 // Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology 
-// 
-// CBessel.h  
+// Massachusetts Institute of Technology
+//
+// CBessel.h
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -29,37 +29,34 @@
 
 class CBesTable
 {
- public:
-  double interp(double x);
-  double dx;
-  double onodx;
-  double x_min;
-  double x_max;
-  std::vector<double> value;
- protected:
+  public:
+    double interp(double x);
+    double dx;
+    double onodx;
+    double x_min;
+    double x_max;
+    std::vector<double> value;
+
+  protected:
 };
-  
-class CBessel 
+
+class CBessel
 {
- public:
-  bool initBessel(int max_order, 
-		  double max_x);
-  bool initSphBes(int max_order, 
-		  double max_x);
-  double bessel_J(int m, double x);
-  double sphbes_j(int m, double x);
+  public:
+    bool initBessel(int max_order, double max_x);
+    bool initSphBes(int max_order, double max_x);
+    double bessel_J(int m, double x);
+    double sphbes_j(int m, double x);
 
- protected:
+  protected:
+    double bessj0(double x);
+    double bessj1(double x);
 
-  double bessj0(double x);
-  double bessj1(double x);
+    void bessjn(int n, double x, std::vector<double>& bjn);
+    void sphbesjn(int n, double x, std::vector<double>& bjn);
 
-  void bessjn(int n, double x, std::vector<double>& bjn);
-  void sphbesjn(int n, double x, std::vector<double>& bjn );
-
-  std::vector<CBesTable> bes_table;
-  std::vector<CBesTable> sphbes_table;
-
+    std::vector<CBesTable> bes_table;
+    std::vector<CBesTable> sphbes_table;
 };
-  
+
 #endif /* __CBESSEL_h__ */
