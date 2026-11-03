@@ -10,4 +10,9 @@ if(NOT _in_tree)
 endif()
 lamss_toolbox(NAME virtual_ocean REQUIRES core)
 
+add_subdirectory(src/lib/protobuf)
+if(BUILD_TESTING)
+  add_subdirectory(src/test)
+endif()
+
 lamss_toolbox_export()

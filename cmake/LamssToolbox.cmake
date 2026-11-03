@@ -12,6 +12,7 @@
 #   lamss_find_ivp(<lib>...)
 #   lamss_add_python(<package_dir>)
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
+#   lamss_add_dccl_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
 #
 # See core/src/doc/plan/claude/02-repository-layout-and-build.md.
@@ -50,6 +51,12 @@ if(LAMSS_ROOT)
 endif()
 
 find_program(LAMSS_PROTOC_GEN_DCCL protoc-gen-dccl)
+
+# core installs DCCL_IDS.md beside this file for toolboxes built outside a lamss3 checkout
+set(LAMSS_DCCL_IDS_MD "${LAMSS_CMAKE_DIR}/../core/src/lib/protobuf/lamss/DCCL_IDS.md")
+if(NOT EXISTS "${LAMSS_DCCL_IDS_MD}")
+  set(LAMSS_DCCL_IDS_MD "${LAMSS_CMAKE_DIR}/DCCL_IDS.md")
+endif()
 
 function(_lamss_joint_build out_var)
   get_property(_set GLOBAL PROPERTY LAMSS_ACTIVE_TOOLBOXES SET)
@@ -298,6 +305,13 @@ function(lamss_add_test name)
   target_link_libraries(${name} PRIVATE ${_A_LINK_LIBRARIES})
   add_test(NAME ${name} COMMAND ${name})
   add_dependencies(lamss_${LAMSS_TOOLBOX}_all ${name})
+endfunction()
+
+# Includes lamss_dccl_test.h, for checking a toolbox's DCCL messages against DCCL_IDS.md.
+function(lamss_add_dccl_test name)
+  lamss_add_test(${name} ${ARGN})
+  target_include_directories(${name} PRIVATE "${LAMSS_CMAKE_DIR}")
+  target_compile_definitions(${name} PRIVATE LAMSS_DCCL_IDS_MD="${LAMSS_DCCL_IDS_MD}")
 endfunction()
 
 function(lamss_toolbox_export)

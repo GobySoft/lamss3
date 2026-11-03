@@ -8,6 +8,11 @@ if(NOT _in_tree)
   find_package(lamss_core REQUIRED)
   include(LamssToolbox)
 endif()
-lamss_toolbox(NAME sonar REQUIRES core)
+lamss_toolbox(NAME sonar REQUIRES core autonomy)
+
+add_subdirectory(src/lib/protobuf)
+if(BUILD_TESTING)
+  add_subdirectory(src/test)
+endif()
 
 lamss_toolbox_export()

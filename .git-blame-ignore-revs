@@ -13,3 +13,5 @@ c57e6d7af35bd18255036492bffd439209079c48
 84f2087e33459c3fa65e088f45f983b5d8a0f1c9
 # Format iLineBasedComms with clang-format
 6855d975a1ccd768f0a4e78ccd6dff5596670904
+# Format the M1 autonomy, sonar and virtual_ocean protos with clang-format
+e13a0686d10baf72c462eba2805c584397c759d4
