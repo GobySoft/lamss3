@@ -15,3 +15,15 @@ c57e6d7af35bd18255036492bffd439209079c48
 6855d975a1ccd768f0a4e78ccd6dff5596670904
 # Format the M1 autonomy, sonar and virtual_ocean protos with clang-format
 e13a0686d10baf72c462eba2805c584397c759d4
+# Format henrik_util's CVectorUtils, Measurement and parse_stat with clang-format
+edd69b2de1537020d4feb83f31a4cd1ea7bb174d
+# Format sonar's henrik_util CTrack and lib_track with clang-format
+69046691155e5869dcd9a9d8f511de29a706f21b
+# Format pLamssCBF with clang-format
+a1330f76d7ed2fa0fd572d8072c0fdef3feaf36b
+# Format pLamssBearingTracker with clang-format
+6e61629dc4590bea006107949c728866a5ca4754
+# Format pLamssAEL with clang-format
+c512d1ab16f2c7ed4302fe9b8b00d6f4034e4b75
+# Format pGeoTracker with clang-format
+e77e91e9efbcb09cc8196341f6725ad789acd63a

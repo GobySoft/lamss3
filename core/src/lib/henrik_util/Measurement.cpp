@@ -1,6 +1,14 @@
-#include "Measurement.h"
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "lamss/core/henrik_util/Measurement.h"
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 //
 // Measurement methods and functions
@@ -69,3 +77,6 @@ bool parse_brng_stat(std::string val, int& node, int& state, double& bearing, do
 
     return (true);
 }
+
+} // namespace core
+} // namespace lamss

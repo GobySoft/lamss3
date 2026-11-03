@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef __tgt_decode_h__
 #define __tgt_decode_h__
 
@@ -11,6 +14,11 @@
 
 #include <string>
 #include <vector>
+
+namespace lamss
+{
+namespace core
+{
 
 /*
    Decodes a target cue message. Used by pSearch, pMultiTargetSim, pTargetAIS
@@ -27,5 +35,8 @@ bool parse_tgt_stat(std::string trk_str, int& tgt_num, double& tgt_x, double& tg
 
 bool parse_track_stat(std::string val, int& node, int& state, double& x, double& y, double& heading,
                       double& speed, double& time);
+
+} // namespace core
+} // namespace lamss
 
 #endif /* __tgt_decode_h__ */

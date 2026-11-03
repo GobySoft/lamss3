@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef __MEASUREMENT_h__
 #define __MEASUREMENT_h__
 
@@ -8,6 +11,11 @@
 #include <math.h>
 #include <string.h>
 #include <string>
+
+namespace lamss
+{
+namespace core
+{
 
 class Measurement
 {
@@ -31,5 +39,8 @@ bool parse_measurement(std::string, Measurement*);
 
 bool parse_brng_stat(std::string status, int& node, int& state, double& bearing, double& sigma,
                      double& xp, double& yp, double& time);
+
+} // namespace core
+} // namespace lamss
 
 #endif /* __MEASUREMENT_h__ */
