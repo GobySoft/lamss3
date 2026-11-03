@@ -19,41 +19,43 @@
 /* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
 /* Boston, MA 02111-1307, USA.                                   */
 /*****************************************************************/
- 
+
 #ifndef BHV_SMART_YOYO_HEADER
 #define BHV_SMART_YOYO_HEADER
 
-#include <string>
 #include "IvPBehavior.h"
+#include <string>
 
 class IvPDomain;
-class BHV_SmartYoyo : public IvPBehavior {
-public:
-  BHV_SmartYoyo(IvPDomain);
-  ~BHV_SmartYoyo() {};
-  
-  bool         setParam(std::string, std::string);
-  IvPFunction* onRunState();
-  void         onIdleState();
+class BHV_SmartYoyo : public IvPBehavior
+{
+  public:
+    BHV_SmartYoyo(IvPDomain);
+    ~BHV_SmartYoyo(){};
 
-protected:
+    bool setParam(std::string, std::string);
+    IvPFunction* onRunState();
+    void onIdleState();
 
-private: // Behavior Parameters
-  std::string depth_function;
-  double      period,period_segments,distance_traveled;
-  double      min_depth,max_depth,max_depth_local,new_depth;
-  double      deploy_speed,deploy_depth;
-  double      min_altitude;
-  bool        m_inverted_dvl;
+  protected:
+  private: // Behavior Parameters
+    std::string depth_function;
+    double period, period_segments, distance_traveled;
+    double min_depth, max_depth, max_depth_local, new_depth;
+    double deploy_speed, deploy_depth;
+    double min_altitude;
+    bool m_inverted_dvl;
 
-private: // Behavior State Variables
-  bool        first_iteration;
-  double      mark_time,mark_distance,mark_increment,start_time,iter_time;
+  private: // Behavior State Variables
+    bool first_iteration;
+    double mark_time, mark_distance, mark_increment, start_time, iter_time;
 };
 
-extern "C" {
-  IvPBehavior * createBehavior(std::string name, IvPDomain domain)
-  {return new BHV_SmartYoyo(domain);}
+extern "C"
+{
+    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
+    {
+        return new BHV_SmartYoyo(domain);
+    }
 }
 #endif
- 

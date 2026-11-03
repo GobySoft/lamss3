@@ -19,35 +19,37 @@
 /* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
 /* Boston, MA 02111-1307, USA.                                   */
 /*****************************************************************/
- 
+
 #ifndef BHV_CONSTANT_ALTITUDE_HEADER
 #define BHV_CONSTANT_ALTITUDE_HEADER
 
-#include <string>
 #include "IvPBehavior.h"
+#include <string>
 
 class IvPDomain;
-class BHV_ConstantAltitude : public IvPBehavior {
-public:
-  BHV_ConstantAltitude(IvPDomain);
-  ~BHV_ConstantAltitude() {};
-  
-  bool         setParam(std::string, std::string);
-  IvPFunction* onRunState();
-  void         onIdleState();
+class BHV_ConstantAltitude : public IvPBehavior
+{
+  public:
+    BHV_ConstantAltitude(IvPDomain);
+    ~BHV_ConstantAltitude(){};
 
-protected:
+    bool setParam(std::string, std::string);
+    IvPFunction* onRunState();
+    void onIdleState();
 
-private: // Behavior Parameters
-  double      depth_local;
-  double      altitude;
-  bool        m_missing_altitude_critical;
-  bool        m_inverted_dvl;
+  protected:
+  private: // Behavior Parameters
+    double depth_local;
+    double altitude;
+    bool m_missing_altitude_critical;
+    bool m_inverted_dvl;
 };
 
-extern "C" {
-  IvPBehavior * createBehavior(std::string name, IvPDomain domain)
-  {return new BHV_ConstantAltitude(domain);}
+extern "C"
+{
+    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
+    {
+        return new BHV_ConstantAltitude(domain);
+    }
 }
 #endif
- 

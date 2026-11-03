@@ -19,33 +19,34 @@
 /* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
 /* Boston, MA 02111-1307, USA.                                   */
 /*****************************************************************/
- 
+
 #ifndef BHV_CONSTANT_BUOYANCY_HEADER
 #define BHV_CONSTANT_BUOYANCY_HEADER
 
-#include <string>
 #include "IvPBehavior.h"
+#include <string>
 
 class IvPDomain;
-class BHV_ConstantBuoyancy : public IvPBehavior {
-public:
-  BHV_ConstantBuoyancy(IvPDomain);
-  ~BHV_ConstantBuoyancy() {};
-  
-  bool         setParam(std::string, std::string);
-  IvPFunction* onRunState();
-  void         onIdleState();
+class BHV_ConstantBuoyancy : public IvPBehavior
+{
+  public:
+    BHV_ConstantBuoyancy(IvPDomain);
+    ~BHV_ConstantBuoyancy(){};
 
-protected:
+    bool setParam(std::string, std::string);
+    IvPFunction* onRunState();
+    void onIdleState();
 
-private: // Behavior Parameters
-
-  double buoyancy;
+  protected:
+  private: // Behavior Parameters
+    double buoyancy;
 };
 
-extern "C" {
-  IvPBehavior * createBehavior(std::string name, IvPDomain domain)
-  {return new BHV_ConstantBuoyancy(domain);}
+extern "C"
+{
+    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
+    {
+        return new BHV_ConstantBuoyancy(domain);
+    }
 }
 #endif
- 

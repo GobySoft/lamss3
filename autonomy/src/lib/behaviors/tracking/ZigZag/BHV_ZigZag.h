@@ -19,55 +19,56 @@
 /* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
 /* Boston, MA 02111-1307, USA.                                   */
 /*****************************************************************/
- 
+
 #ifndef BHV_ZIGZAG_HEADER
 #define BHV_ZIGZAG_HEADER
 
 #include "goby/moos/moos_geodesy.h"
 
-#include <string>
 #include "IvPBehavior.h"
+#include <string>
 
 class IvPDomain;
-class BHV_ZigZag : public IvPBehavior {
-public:
-  BHV_ZigZag(IvPDomain);
-  ~BHV_ZigZag() {};
-  
-  bool         setParam(std::string, std::string);
-  IvPFunction* onRunState();
-  void         onIdleState();
+class BHV_ZigZag : public IvPBehavior
+{
+  public:
+    BHV_ZigZag(IvPDomain);
+    ~BHV_ZigZag(){};
 
-protected:
+    bool setParam(std::string, std::string);
+    IvPFunction* onRunState();
+    void onIdleState();
 
-  double       currentCompensatedHeading(double desired_current, double water_speed);
+  protected:
+    double currentCompensatedHeading(double desired_current, double water_speed);
 
-private: // Behavior Parameters
+  private: // Behavior Parameters
+    goby::moos::CMOOSGeodesy m_Geodesy;
 
-  goby::moos::CMOOSGeodesy m_Geodesy;
+    // Dynamic UTM
+    double lat_origin_;
+    double lon_origin_;
+    bool got_lat_origin;
+    bool got_lon_origin;
+    bool geo_init;
 
-  // Dynamic UTM
-  double lat_origin_;
-  double lon_origin_;
-  bool got_lat_origin;
-  bool got_lon_origin; 
-  bool geo_init;
+    std::string zigzag_function;
+    double period, distance_traveled, heading, amplitude, start_x, start_y;
+    double head_x, head_y, new_heading, speed;
+    double start_lat, start_lon;
 
-  std::string zigzag_function;
-  double      period,distance_traveled,heading,amplitude,start_x,start_y;
-  double head_x,head_y,new_heading,speed;
-  double start_lat, start_lon;
-  
-  double       east_current_spd;
-  double       north_current_spd;
-  bool         m_current_compensator;
-  bool        first_iteration;
+    double east_current_spd;
+    double north_current_spd;
+    bool m_current_compensator;
+    bool first_iteration;
 };
 
-extern "C" {
-  IvPBehavior * createBehavior(std::string name, IvPDomain domain)
-  {return new BHV_ZigZag(domain);}
+extern "C"
+{
+    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
+    {
+        return new BHV_ZigZag(domain);
+    }
 }
 
 #endif
- 
