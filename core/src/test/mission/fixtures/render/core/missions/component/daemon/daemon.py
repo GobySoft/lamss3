@@ -9,5 +9,5 @@ class Daemon(Component):
     ports = ["daemon"]
     processes = [Process("daemon", "sleep {{ component.daemon.seconds }}", "daemon.cfg.j2")]
 
-    def environment(self):
+    def environment(self, paths):
         return {"DAEMON_PORT": str(self.subsystem.allocated_ports["daemon"])}

@@ -115,9 +115,13 @@ class Component(Concept):
 
     subsystem: "Subsystem"
 
-    def environment(self) -> dict[str, str]:
-        """Variables for this subsystem's processes and its env.sh."""
+    def environment(self, paths: dict[str, Any]) -> dict[str, str]:
+        """Variables for this subsystem's processes and its env.sh; `paths` is the context's."""
         return {}
+
+    def test_endpoint(self, paths: dict[str, Any]) -> Opt[dict[str, Any]]:
+        """`goby test` endpoint settings for this subsystem (e.g. {"zeromq": {...}}), if any."""
+        return None
 
     def active_processes(self) -> list[Process]:
         """The processes to launch; override to make them depend on the parameters or mode."""

@@ -1,0 +1,5 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+interprocess {
+  platform: {{ platform.name | pb_string }}
+  socket_name: {{ paths.run | socket_path("gobyd") | pb_string }}
+}
