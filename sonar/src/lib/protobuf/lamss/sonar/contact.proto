@@ -1,46 +1,101 @@
 import "dccl/protobuf/option_extensions.proto";
 import "goby/protobuf/option_extensions.proto";
-message LAMSS_CONTACT { 
-	option (dccl.msg).id = 23;
-	option (dccl.msg).max_bytes = 32;
-        option (dccl.msg).codec_version = 4;
-	optional double time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
-	optional int32 node = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
-	optional int32 _dest_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
-	optional string MessageType = 4 [default="LAMSS_CONTACT", (dccl.field).static_value="LAMSS_CONTACT", (dccl.field).codec="_static"];
-        optional double nav_long = 5 [
-         (dccl.field).max = 180,
-         (dccl.field).min = -180,
-         (dccl.field).precision = 5
-        ];
-        optional double nav_lat = 6 [
-         (dccl.field).max = 90,
-         (dccl.field).min = -90,
-         (dccl.field).precision = 5
-        ];
-	optional double nav_hdg = 7 [(dccl.field).max=359, (dccl.field).min=0, (dccl.field).precision=0];
-	optional double nav_spd = 8 [(dccl.field).max=6.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double nav_dep = 9 [(dccl.field).max=6400.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional Collaboration_modeEnum collaboration_mode = 10;
-	enum Collaboration_modeEnum{ 
-		 COLLABORATION_MODE_OFF = 0; 
-		 COLLABORATION_MODE_SYNCH = 1; 
-		 COLLABORATION_MODE_COLLABORATING = 2; 
-	} 
-	optional Sonar_controlEnum sonar_control = 11;
-	enum Sonar_controlEnum{ 
-		 SONAR_CONTROL_ON = 0; 
-		 SONAR_CONTROL_OFF = 1; 
-	} 
-	optional int32 track = 12 [(dccl.field).max=8191, (dccl.field).min=0];
-	optional int32 priority = 13 [(dccl.field).max=15, (dccl.field).min=0];
-	optional int32 template = 14 [(dccl.field).max=7, (dccl.field).min=0];
-	optional double ael_x = 15 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double ael_y = 16 [(dccl.field).max=100000, (dccl.field).min=-100000, (dccl.field).precision=0];
-	optional double bearing = 17 [(dccl.field).max=359.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double bearing_error = 18 [(dccl.field).max=31.0, (dccl.field).min=0.0, (dccl.field).precision=1];
-	optional double rate = 19 [(dccl.field).max=10.00, (dccl.field).min=-10.00, (dccl.field).precision=2];
-	optional double rate_error = 20 [(dccl.field).max=7.00, (dccl.field).min=0.00, (dccl.field).precision=2];
-	optional double snr = 21 [(dccl.field).max=50.00, (dccl.field).min=-50.00, (dccl.field).precision=2];
-} 
-
+message LAMSS_CONTACT
+{
+    option (dccl.msg).id = 23;
+    option (dccl.msg).max_bytes = 32;
+    option (dccl.msg).codec_version = 4;
+    optional double time = 1
+        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+    optional int32 node = 2 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional int32 _dest_id = 3 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional string MessageType = 4 [
+        default = "LAMSS_CONTACT",
+        (dccl.field).static_value = "LAMSS_CONTACT",
+        (dccl.field).codec = "_static"
+    ];
+    optional double nav_long = 5 [
+        (dccl.field).max = 180,
+        (dccl.field).min = -180,
+        (dccl.field).precision = 5
+    ];
+    optional double nav_lat = 6 [
+        (dccl.field).max = 90,
+        (dccl.field).min = -90,
+        (dccl.field).precision = 5
+    ];
+    optional double nav_hdg = 7 [
+        (dccl.field).max = 359,
+        (dccl.field).min = 0,
+        (dccl.field).precision = 0
+    ];
+    optional double nav_spd = 8 [
+        (dccl.field).max = 6.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1
+    ];
+    optional double nav_dep = 9 [
+        (dccl.field).max = 6400.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1
+    ];
+    optional Collaboration_modeEnum collaboration_mode = 10;
+    enum Collaboration_modeEnum
+    {
+        COLLABORATION_MODE_OFF = 0;
+        COLLABORATION_MODE_SYNCH = 1;
+        COLLABORATION_MODE_COLLABORATING = 2;
+    }
+    optional Sonar_controlEnum sonar_control = 11;
+    enum Sonar_controlEnum
+    {
+        SONAR_CONTROL_ON = 0;
+        SONAR_CONTROL_OFF = 1;
+    }
+    optional int32 track = 12 [(dccl.field).max = 8191, (dccl.field).min = 0];
+    optional int32 priority = 13 [(dccl.field).max = 15, (dccl.field).min = 0];
+    optional int32 template = 14 [(dccl.field).max = 7, (dccl.field).min = 0];
+    optional double ael_x = 15 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0
+    ];
+    optional double ael_y = 16 [
+        (dccl.field).max = 100000,
+        (dccl.field).min = -100000,
+        (dccl.field).precision = 0
+    ];
+    optional double bearing = 17 [
+        (dccl.field).max = 359.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1
+    ];
+    optional double bearing_error = 18 [
+        (dccl.field).max = 31.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1
+    ];
+    optional double rate = 19 [
+        (dccl.field).max = 10.00,
+        (dccl.field).min = -10.00,
+        (dccl.field).precision = 2
+    ];
+    optional double rate_error = 20 [
+        (dccl.field).max = 7.00,
+        (dccl.field).min = 0.00,
+        (dccl.field).precision = 2
+    ];
+    optional double snr = 21 [
+        (dccl.field).max = 50.00,
+        (dccl.field).min = -50.00,
+        (dccl.field).precision = 2
+    ];
+}

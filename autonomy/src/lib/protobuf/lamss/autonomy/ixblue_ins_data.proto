@@ -21,7 +21,7 @@ message IXBlueINSData
 
     // Rotation Rate Vessel Frame Stdev
     optional RotationRateVesselFrameDeviation rot_rate_vessel_frame_stdev = 5;
-    
+
     // Linear Acceleration Vessel Frame
     optional AccelerationVesselFrame acce_vessel_frame_msec2 = 6;
 
@@ -39,7 +39,7 @@ message IXBlueINSData
 
     // Attitude Stdev
     optional AttitudeDeviation attitude_stdev = 11;
-    
+
     // Speed Vessel Frame
     optional speedVesselFrame speed_vessel_frame_msec = 12;
 
@@ -48,13 +48,11 @@ message IXBlueINSData
 
     // Speed geographic Frame Stdev
     optional speedGeographicFrameDeviation speed_geographic_frame_stdev = 14;
-    
 }
 
 // Header message
 message Header
 {
-    
     optional int32 protocol_version = 1;
     optional int32 navigation_bit_mask = 2;
     optional int32 extended_navigation_bit_mask = 3;
@@ -64,7 +62,7 @@ message Header
 }
 
 // Attitude quaternion data
-message AttitudeQuaternion 
+message AttitudeQuaternion
 {
     optional double q0 = 1;
     optional double q1 = 2;
@@ -73,7 +71,7 @@ message AttitudeQuaternion
 }
 
 // Attitude quaternion stdev data
-message AttitudeQuaternionStdev 
+message AttitudeQuaternionStdev
 {
     optional double xi1 = 1;
     optional double xi2 = 2;
@@ -81,16 +79,25 @@ message AttitudeQuaternionStdev
 }
 
 // Rotation Rate Vessel Frame
-message RotationRateVesselFrame 
+message RotationRateVesselFrame
 {
     option (dccl.msg).unit_system = "si";
-    optional double xv1 = 1 [(dccl.field).units = {system: "angle::degree" base_dimensions: "AT^-1"}];
-    optional double xv2 = 2 [(dccl.field).units = {system: "angle::degree" base_dimensions: "AT^-1"}];
-    optional double xv3 = 3 [(dccl.field).units = {system: "angle::degree" base_dimensions: "AT^-1"}];
+    optional double xv1 = 1 [(dccl.field).units = {
+        system: "angle::degree"
+        base_dimensions: "AT^-1"
+    }];
+    optional double xv2 = 2 [(dccl.field).units = {
+        system: "angle::degree"
+        base_dimensions: "AT^-1"
+    }];
+    optional double xv3 = 3 [(dccl.field).units = {
+        system: "angle::degree"
+        base_dimensions: "AT^-1"
+    }];
 }
 
 // Rotation Rate Vessel Frame Stdev
-message RotationRateVesselFrameDeviation 
+message RotationRateVesselFrameDeviation
 {
     optional double xv1 = 1;
     optional double xv2 = 2;
@@ -98,16 +105,16 @@ message RotationRateVesselFrameDeviation
 }
 
 // Linear Acceleration
-message AccelerationVesselFrame 
+message AccelerationVesselFrame
 {
     option (dccl.msg).unit_system = "si";
-    optional double xv1 = 1 [(dccl.field).units = {base_dimensions: "LT^-2"}];
-    optional double xv2 = 2 [(dccl.field).units = {base_dimensions: "LT^-2"}];
-    optional double xv3 = 3 [(dccl.field).units = {base_dimensions: "LT^-2"}];
+    optional double xv1 = 1 [(dccl.field).units = { base_dimensions: "LT^-2" }];
+    optional double xv2 = 2 [(dccl.field).units = { base_dimensions: "LT^-2" }];
+    optional double xv3 = 3 [(dccl.field).units = { base_dimensions: "LT^-2" }];
 }
 
 // Linear Acceleration Vessel Frame Stdev
-message AccelerationVesselFrameDeviation 
+message AccelerationVesselFrameDeviation
 {
     optional double xv1 = 1;
     optional double xv2 = 2;
@@ -115,7 +122,7 @@ message AccelerationVesselFrameDeviation
 }
 
 // Position
-message Position 
+message Position
 {
     optional double latitude = 1;
     optional double longitude = 2;
@@ -132,12 +139,15 @@ message PositionDeviation
 }
 
 // Attitude
-message Attitude 
+message Attitude
 {
     option (dccl.msg).unit_system = "si";
-    optional double roll = 1 [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
-    optional double pitch = 2 [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
-    optional double heading = 3 [(dccl.field).units = {system: "angle::degree" base_dimensions: "A"}];
+    optional double roll = 1
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
+    optional double pitch = 2
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
+    optional double heading = 3
+        [(dccl.field).units = { system: "angle::degree" base_dimensions: "A" }];
 }
 
 // Attitude Stdev

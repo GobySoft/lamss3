@@ -3,22 +3,29 @@ import "goby/protobuf/option_extensions.proto";
 
 package lamss.protobuf;
 
-message BTR { 
+message BTR
+{
     option (dccl.msg).id = 0x1402;
     option (dccl.msg).max_bytes = 64;
-        option (dccl.msg).codec_version = 4;
-    
-    optional double time = 1 [(dccl.field).codec="_time",
-                              (dccl.field).in_head=true];
-    optional int32 src = 2 [(dccl.field).max=31,
-                            (dccl.field).min=0,
-                            (dccl.field).in_head=true];
-    optional int32 dest = 3 [(dccl.field).max=31,
-                             (dccl.field).min=0,
-                             (dccl.field).in_head=true];
-    repeated int32 beam_power_db  = 4 [(dccl.field).max=83,
-                                        (dccl.field).min=20,
-                                        (dccl.field).max_repeat=60];
+    option (dccl.msg).codec_version = 4;
+
+    optional double time = 1
+        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+    optional int32 src = 2 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional int32 dest = 3 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    repeated int32 beam_power_db = 4 [
+        (dccl.field).max = 83,
+        (dccl.field).min = 20,
+        (dccl.field).max_repeat = 60
+    ];
     optional bool wavenumber = 5 [default = true];
     optional bool ambiguous = 6 [default = true];
-} 
+}

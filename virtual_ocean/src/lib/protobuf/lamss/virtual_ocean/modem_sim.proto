@@ -46,18 +46,18 @@ message TransmitGroupVelocity
 
 message ModemPerformanceRequest
 {
-   oneof src
+    oneof src
     {
-    string source = 1;
-    int32  source_id = 21;
+        string source = 1;
+        int32 source_id = 21;
     }
-   oneof rcv
+    oneof rcv
     {
-    string receiver = 2;
-    int32  receiver_id =22;
+        string receiver = 2;
+        int32 receiver_id = 22;
     }
 
-   optional double source_level = 3 [default = 0];
+    optional double source_level = 3 [default = 0];
 
     optional int32 request_id = 10;
     optional double request_time = 11;
@@ -65,33 +65,31 @@ message ModemPerformanceRequest
 
 message ModemPerformanceResponse
 {
-   oneof src
+    oneof src
     {
-    string source = 1;
-    int32  source_id = 21;
+        string source = 1;
+        int32 source_id = 21;
     }
-   oneof rcv
+    oneof rcv
     {
-    string receiver = 2;
-    int32  receiver_id =22;
+        string receiver = 2;
+        int32 receiver_id = 22;
     }
 
-   required double range = 3;
-   required double tl = 4;
-   required double nl = 5;
-   required double snr  = 6;
-   optional double mpp = 7;
-   optional double mae = 8;
+    required double range = 3;
+    required double tl = 4;
+    required double nl = 5;
+    required double snr = 6;
+    optional double mpp = 7;
+    optional double mae = 8;
 
-   optional int32 request_id = 10;
-   optional double request_time = 11;
+    optional int32 request_id = 10;
+    optional double request_time = 11;
 }
 
-
 enum ModemPerformanceMetric
-    {
-     SNR = 1;
-     MPP = 2;
-     MAE = 3;
-    }
-
+{
+    SNR = 1;
+    MPP = 2;
+    MAE = 3;
+}

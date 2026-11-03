@@ -1,7 +1,8 @@
 import "dccl/protobuf/option_extensions.proto";
 import "goby/protobuf/option_extensions.proto";
 
-message ArrayNavigation { 
+message ArrayNavigation
+{
     optional double ael_utc = 1;
     optional double ael_x = 2;
     optional double ael_y = 3;
@@ -9,4 +10,4 @@ message ArrayNavigation {
     optional double ael_heading = 5 [default = 0];
     optional double ael_pitch = 6 [default = 0];
     optional double ael_roll = 7 [default = 0];
-} 
+}
