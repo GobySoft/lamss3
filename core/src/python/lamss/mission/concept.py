@@ -80,6 +80,8 @@ class Process:
     startsecs: int = 1
     stopsignal: str = "TERM"
     environment: dict[str, str] = field(default_factory=dict)
+    # answers Goby health requests, so a health monitor can expect it
+    health: bool = False
 
 
 @dataclass(frozen=True)
@@ -126,6 +128,12 @@ class Component(Concept):
     def active_processes(self) -> list[Process]:
         """The processes to launch; override to make them depend on the parameters or mode."""
         return list(self.processes)
+
+    def active_templates(self) -> list[str]:
+        return list(self.templates)
+
+    def active_fragments(self) -> dict[str, list[str]]:
+        return {target: list(names) for target, names in self.fragments.items()}
 
     @property
     def platform(self) -> "Platform":

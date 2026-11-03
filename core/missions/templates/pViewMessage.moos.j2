@@ -1,0 +1,10 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+ProcessConfig = pViewMessage
+{
+  common {
+    app_tick: 4
+    comm_tick: 4
+  }
+  generate_view_objects: {{ "true" if component.view_message.generate_view_objects else "false" }}
+  destination: {{ component.view_message.destination }}
+}

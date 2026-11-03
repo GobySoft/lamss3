@@ -1,0 +1,24 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Run with `lamss mission test example`, which adds the topside_main endpoint and the fixture that
+# runs the mission.
+test:
+  name: example cruise
+  default_timeout: 10
+  require_app:
+    - { endpoint: topside_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+  run:
+    - name: NODE_REPORT round trip through MOOS and the lamss gateway plugin
+      publish:
+        - endpoint: topside_main
+          group: 'lamss::moos::NODE_REPORT::out'
+          type: PROTOBUF/lamss.core.LegacyNodeReport
+          value: 'name: "${LAMSS_INSTANCE}" type: "topside" x: 10 y: 20'
+          delay: 1
+      expect:
+        - endpoint: topside_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "${LAMSS_INSTANCE}"'
+          condition: [{ field: x, op: EQ, value: 10 }, { field: y, op: EQ, value: 20 }]

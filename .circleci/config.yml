@@ -153,11 +153,36 @@ jobs:
             if echo "$PATH:$LD_LIBRARY_PATH:$PYTHONPATH" | grep -q /root/second; then exit 1; fi
             grep -qF '# >>> lamss >>>' "$HOME/.bashrc"
 
+  mission:
+    executor: ubuntu
+    steps:
+      - install-prerequisites
+      - checkout
+      - init
+      - run:
+          name: lamss build
+          command: lamss build
+      - run:
+          name: lamss mission sim, status, test and stop the example cruise
+          command: |
+            lamss mission list
+            lamss mission sim example --set port_base=29000
+            lamss mission status example
+            lamss mission test example
+            lamss mission stop example
+            # stock images lack procps
+            if grep -xE 'gobyd|MOOSDB|goby_.*|pViewMessage|supervisord' /proc/[0-9]*/comm; then exit 1; fi
+      - run:
+          name: Mission logs
+          when: on_fail
+          command: tail -n 30 core/missions/log/*/*/*/*/*.out core/missions/log/*/*/supervisord.log || true
+
 workflows:
   ci:
     jobs:
       - format
       - env-switch
+      - mission
       - build-standalone:
           name: build-<< matrix.toolbox >>-standalone
           matrix:

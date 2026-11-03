@@ -301,7 +301,7 @@ class Renderer:
 
         fragments: dict[str, list[str]] = {}
         for component in subsystem.components:
-            for target, names in type(component).fragments.items():
+            for target, names in component.active_fragments().items():
                 for name in names:
                     fragments.setdefault(target, []).append(self.render_template(name, context, component))
         context = dict(context, fragments=fragments)
@@ -309,7 +309,7 @@ class Renderer:
         files: dict[str, str] = {}
         programs: list[tuple[Component, Process, int]] = []
         for index, component in enumerate(subsystem.components):
-            names = list(type(component).templates)
+            names = component.active_templates()
             processes = component.active_processes()
             names += [p.config_template for p in processes if p.config_template]
             for name in names:
