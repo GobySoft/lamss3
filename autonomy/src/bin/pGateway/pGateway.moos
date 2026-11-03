@@ -1,12 +1,21 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
 ProcessConfig = pGateway
 {
   AppTick    = 4
   CommsTick  = 4
 
- // May be specified in local grid or latitude and longitude
- // deploy_x = 2000
- // deploy_y = 2000
-  deploy_latitude = 42.58898
-  deploy_longitude = 10.12533
+  // May be specified in local grid or latitude and longitude
+  // deploy_x = 2000
+  // deploy_y = 2000
+  deploy_latitude = 42.36
+  deploy_longitude = -71.08
   deploy_depth = 84.7
 }

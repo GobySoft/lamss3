@@ -1,14 +1,5 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                     pMessageSim
-# Author(s):                                Don Eickstedt
-#--------------------------------------------------------
+# Copyright 2011-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(pGateway ${SRC})
-   
-TARGET_LINK_LIBRARIES(pGateway
-  ${MOOS_LIBRARIES}
-  ${IVP_MBUTIL_LIBRARY}
-  goby_moos
-)
+lamss_find_ivp(mbutil)
+lamss_add_app(pGateway MOOS SOURCES pGatewaymain.cpp Gateway.cpp LINK_LIBRARIES IvP::mbutil)
