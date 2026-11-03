@@ -1,28 +1,14 @@
-// H. Schmidt, henrik@mit.edu 07.02.10
-// Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology
-//
-// CRapRays.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "CRapRays.h"
+#include "lamss/core/henrik_util/CRapRays.h"
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 bool CRapRays::setEnv(double c_surface, double c_gradient, double water_depth, double z_rap_max)
 {
@@ -44,7 +30,6 @@ bool CRapRays::setEnv(double c_surface, double c_gradient, double water_depth, d
 bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, double z, double& theta0,
                       double& p_tl, double& tau, bool& turn)
 {
-    double eps = 1e-3;
     double r = sqrt(pow(x - x0, 2) + pow(y - y0, 2));
     double c_s = (c_0 + c_grad * z0);
 
@@ -122,14 +107,13 @@ bool CRapRays::rapRay(double x0, double y0, double z0, double x, double y, doubl
         double a = cth0 / c_s;
         // ray travel time
         // going through turning point?
-        if (turn = (sth * sth0 < 0))
+        if ((turn = (sth * sth0 < 0)))
         {
             double z_turn = R - c_0 / c_grad;
 
             if (z_turn > w_depth || z_turn < 0.0)
                 return (false);
             // travel time
-            double c_turn = c_0 + c_grad * z_turn;
             tau = fabs((logTerm(c_s, a) + logTerm(c_r, a)) / c_grad);
             //MOOSTrace("ray turning depth, z_turn = %f \n",z_turn);
         }
@@ -225,7 +209,8 @@ bool CRapRays::rapDipRange(double z0, double z, double tau, double& th0_deg, dou
         return (true);
 }
 
-bool CRapRays::rapRange(double x0, double y0, double z0, double z, double th0_deg, double& r_rap)
+bool CRapRays::rapRange(double /*x0*/, double /*y0*/, double z0, double z, double th0_deg,
+                        double& r_rap)
 {
     double th0 = M_PI * th0_deg / 180.0;
     double cth0 = cos(th0);
@@ -340,3 +325,6 @@ bool CRapRays::rapGeoTrack(double x0, double y0, double hdg0, double spd0, doubl
 
     return (true);
 }
+
+} // namespace core
+} // namespace lamss

@@ -15,3 +15,5 @@ c57e6d7af35bd18255036492bffd439209079c48
 6855d975a1ccd768f0a4e78ccd6dff5596670904
 # Format the M1 autonomy, sonar and virtual_ocean protos with clang-format
 e13a0686d10baf72c462eba2805c584397c759d4
+# Format henrik_util's CVectorUtils, CEigenRays and CRapRays with clang-format
+9395a40fa5b599f68ac8753f276badbd3ae06f4e
