@@ -283,6 +283,11 @@ int dispatch(const Command& root, int argc, char* argv[])
         }
 
         Args args;
+        if (cmd->passthrough)
+        {
+            for (; i < tokens.size(); ++i) args.add("args", tokens[i]);
+            return cmd->run(args);
+        }
         if (!parse_leaf(*cmd, tokens, i, args))
         {
             print_help(*cmd, path);

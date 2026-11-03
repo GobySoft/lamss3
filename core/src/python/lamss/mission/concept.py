@@ -106,8 +106,18 @@ class Component(Concept):
     processes: ClassVar[Sequence[Process]] = []
     templates: ClassVar[Sequence[str]] = []
     data_files: ClassVar[Sequence[str]] = []
+    # templates rendered into a file another component owns, e.g. {"last.moos": ["pApp.moos.j2"]};
+    # the owner's template sees them as fragments["last.moos"]
+    fragments: ClassVar[dict[str, Sequence[str]]] = {}
+    # names of TCP/UDP ports this component needs, allocated per subsystem from cruise.port_base
+    # unless the subsystem's `ports` parameter sets them
+    ports: ClassVar[Sequence[str]] = []
 
     subsystem: "Subsystem"
+
+    def environment(self) -> dict[str, str]:
+        """Variables for this subsystem's processes and its env.sh."""
+        return {}
 
     def active_processes(self) -> list[Process]:
         """The processes to launch; override to make them depend on the parameters or mode."""
@@ -122,7 +132,7 @@ class Subsystem(Concept):
     """Part of a platform with its own processes and supervisord fragment (often its own computer)."""
 
     kind = "subsystem"
-    params = dict(host="localhost")
+    params = dict(host="localhost", ports={})
 
     def __init__(self, name: str, components: Sequence[ComponentEntry] = (),
                  mode: Opt[str] = None, **overrides: Any):
@@ -136,6 +146,10 @@ class Subsystem(Concept):
 
     platform: "Platform"
     components: list[Component]
+    allocated_ports: dict[str, int]
+
+    def derived(self) -> dict[str, Any]:
+        return {"ports": dict(self.allocated_ports)}
 
     def to_dict(self) -> dict[str, Any]:
         out = super().to_dict()
@@ -189,7 +203,8 @@ class Cruise(Concept):
     """Bounds a deployment: datum, region, acomms network, fleet and environment."""
 
     kind = "cruise"
-    params = dict(datum=dict(lat=0.0, lon=0.0), warp=1)
+    params = dict(datum=dict(lat=0.0, lon=0.0), warp=1, port_base=9000,
+                  supervisor=dict(http_port=None))
     fleet: ClassVar[Union[type[Fleet], Fleet, str, None]] = None
     environment: ClassVar[Union[type[Environment], Environment, str, None]] = None
     overrides: ClassVar[dict[str, Any]] = {}

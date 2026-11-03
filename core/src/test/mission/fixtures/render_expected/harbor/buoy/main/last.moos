@@ -1,0 +1,12 @@
+ServerHost = localhost
+ServerPort = 24003
+Community  = buoy_main
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = app
+{
+  AppTick = 4
+  label = 100% app
+}
+

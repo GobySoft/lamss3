@@ -29,6 +29,7 @@ add_executable(lamss
   cmd/clean.cpp
   cmd/dependencies.cpp
   cmd/env.cpp
+  cmd/mission.cpp
   cmd/toolbox.cpp)
 target_link_libraries(lamss PRIVATE lamss_tool_common)
 install(TARGETS lamss RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

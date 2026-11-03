@@ -309,6 +309,27 @@ def _finish(mission: Mission) -> None:
             if modem_id in modem_ids:
                 raise MissionError(f"platforms {modem_ids[modem_id]} and {p.name} both have modem_id {modem_id}")
             modem_ids[modem_id] = p.name
+    _allocate_ports(mission)
+
+
+def _allocate_ports(mission: Mission) -> None:
+    subsystems = [s for p in mission.platforms for s in p.resolved_subsystems]
+    used = {v for s in subsystems for v in s.params["ports"].values()}
+    next_port = int(mission.cruise.params["port_base"])
+    for s in subsystems:
+        ports = dict(s.params["ports"])
+        owners: dict[str, str] = {}
+        for c in s.components:
+            for name in type(c).ports:
+                if name in owners:
+                    raise MissionError(f"{s.path}: {owners[name]} and {c.path} both need port '{name}'")
+                owners[name] = c.path
+                if name not in ports:
+                    while next_port in used:
+                        next_port += 1
+                    ports[name] = next_port
+                    used.add(next_port)
+        s.allocated_ports = ports
 
 
 def resolve(registry: Registry, cruise: str, variant: Optional[str] = None, mode: str = "sim",

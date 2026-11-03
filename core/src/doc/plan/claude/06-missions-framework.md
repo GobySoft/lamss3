@@ -287,26 +287,33 @@ The 143 `flags.txt` entries map to:
 
 The `missions/build`, `log` and `run` directories live in the toolbox that owns the cruise (`mit/missions/...`), matching the core plan's layout; `lm m` prints the paths it used.
 
+As built, the directories are keyed by instance (`<cruise>[_<variant>]`, or `--instance`) rather than by cruise, so a variant or a test can run beside the plain cruise: `build/<instance>/` also holds `mission.yaml` (the whole mission dict) and `<mode>/supervisord.conf` (`sim/` or `run/`); logs go to `log/<instance>/<UTC time>/` and `run/<instance>/log` links to the current one, so generated files name only the stable link and generating twice gives identical bytes. Templates are found in the cruise's directory (cruise-specific overrides), then the component class's directories along its MRO, then every active toolbox's `missions/templates/` (later toolboxes first). A component can render fragments into a file another component owns (`fragments = {"last.moos": ["pApp.moos.j2"]}`; the owner's template loops over `fragments["last.moos"]`), name the ports it needs (`ports = ["moosdb"]`, allocated per subsystem from `cruise.port_base` unless the subsystem's `ports` parameter sets them) and add variables to its processes' environment (`environment()`). A unix socket path too long for `sun_path` moves to `$TMPDIR/lamss-<uid>/<hash>.sock`.
+
 ### supervisord
 
 One `supervisord` instance per machine. `sim` on one machine merges every subsystem's fragment; `run --platform macrura --subsystem main` uses only that fragment. Generated entries look like:
 
 ```ini
-[program:gobyd]
-command=gobyd -c gobyd.pb.cfg
+[group:macrura_main]
+programs=macrura_main_gobyd,macrura_main_pLamssMissionManager
+
+[program:macrura_main_gobyd]
+process_name=gobyd
+command=gobyd gobyd.pb.cfg
 directory=%(here)s
 priority=10
 autorestart=unexpected
-stdout_logfile=%(ENV_LAMSS_LOG)s/gobyd.out
-environment=LAMSS_PLATFORM="macrura",LAMSS_WARP="%(ENV_LAMSS_WARP)s"
+stdout_logfile=%(here)s/../../../../run/mbat/log/macrura/main/gobyd.out
+environment=LAMSS_PLATFORM="macrura",LAMSS_WARP="1",...
 
-[program:pLamssMissionManager]
+[program:macrura_main_pLamssMissionManager]
+process_name=pLamssMissionManager
 command=pLamssMissionManager last.moos
 priority=50
 startsecs=2
 ```
 
-`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`. `lamss mission status|stop|restart|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component installs an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role.
+`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`: it is `10 × (component index + 1) + process index` in the subsystem's component list, unless a `Process` sets it. Program names are prefixed with the group (supervisord needs them unique), while `process_name` keeps the plain name, so `supervisorctl` shows `macrura_main:gobyd`. supervisord mangles quotes in `environment=`, so variables holding quotes (`GOBY_INTERPROCESS`) go only into `env.sh`. `lamss mission status|stop|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component installs an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role.
 
 ## Runtime (vehicle) deployment
 

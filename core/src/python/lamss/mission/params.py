@@ -83,7 +83,10 @@ def _assign(merged: dict[str, Any], key: str, value: Any) -> None:
 
 
 def _known(merged: Mapping[str, Any], key: str) -> bool:
-    return key in merged or any(k.startswith(key + ".") for k in merged)
+    if key in merged or any(k.startswith(key + ".") for k in merged):
+        return True
+    parts = key.split(".")
+    return any(merged.get(".".join(parts[:i])) == {} for i in range(1, len(parts)))
 
 
 class Params:
