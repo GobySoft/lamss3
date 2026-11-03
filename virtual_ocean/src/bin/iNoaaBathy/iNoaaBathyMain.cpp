@@ -2,8 +2,8 @@
 // ocean engineering graduate student - mit / whoi joint program
 // massachusetts institute of technology (mit)
 // laboratory for autonomous marine sensing systems (lamss)
-// 
-// this is iNoaaBathyMain.cpp 
+//
+// this is iNoaaBathyMain.cpp
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -22,16 +22,16 @@
 // along with this software.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "iNoaaBathy.h"
- 
-int main(int argc, char * argv[])
+
+int main(int argc, char* argv[])
 {
     // default parameters file
-    const char * sMissionFile = "iNoaaBathy.moos";
-        
+    const char* sMissionFile = "iNoaaBathy.moos";
+
     // under what name should the application register with the MOOSDB?
-    const char * sMOOSName = "iNoaaBathy";
-  
-    switch(argc)
+    const char* sMOOSName = "iNoaaBathy";
+
+    switch (argc)
     {
         case 3:
             // command line says don't register with default name
@@ -40,12 +40,12 @@ int main(int argc, char * argv[])
             // command line says don't use default config file
             sMissionFile = argv[1];
     }
-  
+
     // make an application
     CiNoaaBathy iNoaaBathyApp;
-    
+
     // run it
-    iNoaaBathyApp.Run(sMOOSName,sMissionFile);
+    iNoaaBathyApp.Run(sMOOSName, sMissionFile);
 
     return 0;
 }

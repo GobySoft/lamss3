@@ -2,8 +2,8 @@
 // ocean engineering graduate student - mit / whoi joint program
 // massachusetts institute of technology (mit)
 // laboratory for autonomous marine sensing systems (lamss)
-// 
-// this is iNoaaBathy.h 
+//
+// this is iNoaaBathy.h
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -24,32 +24,31 @@
 #ifndef iNoaaBathyH
 #define iNoaaBathyH
 
-#include "MOOS/libMOOS/MOOSLib.h"
 #include "MBUtils.h"
-#include <netcdf.h>
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "goby/moos/moos_geodesy.h"
 #include "lamss/lib_henrik_util/CLamssNetcdf.h"
-#include <cmath>
 #include <cfloat>
+#include <cmath>
+#include <netcdf.h>
 
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
 
-
-class CiNoaaBathy : public CMOOSApp  
+class CiNoaaBathy : public CMOOSApp
 {
   public:
     CiNoaaBathy();
     virtual ~CiNoaaBathy();
 
   private:
-    bool OnNewMail(MOOSMSG_LIST &NewMail);
+    bool OnNewMail(MOOSMSG_LIST& NewMail);
     bool Iterate();
     bool OnConnectToServer();
     bool OnStartUp();
 
     void RegisterVariables();
     bool ReadConfiguration();
-         
+
     std::vector<double> get_bathy(double auv_lat_, double auv_lon_);
 
     /////
@@ -65,7 +64,7 @@ class CiNoaaBathy : public CMOOSApp
     void send_bathy_response();
     bool bathy_response_sent_;
     /////
-    
+
     double auv_lat_;
     double auv_lon_;
     double auv_x_;
@@ -82,7 +81,7 @@ class CiNoaaBathy : public CMOOSApp
     double bathy_z_;
     double min_lat_val_, min_lat_val2_, min_lat_val3_;
     double min_lon_val_, min_lon_val2_, min_lon_val3_;
-    
+
     std::string nc_bathy_file_;
     double publish_interval_;
     double start_time_;
@@ -90,7 +89,6 @@ class CiNoaaBathy : public CMOOSApp
 
     LamssNetCdf NOAAbathy;
     goby::moos::CMOOSGeodesy geodesy_;
-    
 };
 
-#endif 
+#endif

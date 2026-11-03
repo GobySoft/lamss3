@@ -5,17 +5,18 @@
 
 #include "uSimCTD.h"
 
-int main(int argc , char * argv[])
+int main(int argc, char* argv[])
 {
-  const char * sMissionFile = "uSimCTD.moos";
-  
-  if(argc > 1) {
-    sMissionFile = argv[1];
-  }
-  
-  CuSimCTD MSim;
-  
-  MSim.Run("uSimCTD", sMissionFile);
-  
-  return 0;
+    const char* sMissionFile = "uSimCTD.moos";
+
+    if (argc > 1)
+    {
+        sMissionFile = argv[1];
+    }
+
+    CuSimCTD MSim;
+
+    MSim.Run("uSimCTD", sMissionFile);
+
+    return 0;
 }

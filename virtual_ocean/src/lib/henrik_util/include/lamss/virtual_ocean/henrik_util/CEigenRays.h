@@ -1,8 +1,8 @@
 // H. Schmidt, henrik@mit.edu 08.18.10
 // Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology 
-// 
-// CEigenRays.h 
+// Massachusetts Institute of Technology
+//
+// CEigenRays.h
 //
 // see the readme file within this directory for information
 // pertaining to usage and purpose of this script.
@@ -26,68 +26,61 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 // #include "AngleUtils.h"
 
-#include <math.h>
 #include <complex>
-#include <vector>
+#include <fstream>
+#include <math.h>
 #include <string.h>
 #include <string>
-#include <fstream>
- 
-class CRay 
+#include <vector>
+
+class CRay
 {
- public:
-  double amp;
-  double phase;
-  double tau;
-  double dip_source;
-  double dip_receiver;
-  int surface_bounces;
-  int bottom_bounces;
+  public:
+    double amp;
+    double phase;
+    double tau;
+    double dip_source;
+    double dip_receiver;
+    int surface_bounces;
+    int bottom_bounces;
 };
 
-class CEigenRay 
+class CEigenRay
 {
- public:
+  public:
+    void clear();
 
-  void clear();
+    double source_depth;
+    double receiver_depth;
+    double freq;
+    double range;
+    int num_rays;
+    std::vector<CRay> bundle;
 
-  double source_depth;
-  double receiver_depth;
-  double freq;
-  double range;
-  int num_rays;
-  std::vector<CRay> bundle;
-
- protected:
-
+  protected:
 };
-  
-class CEigenRayTable 
+
+class CEigenRayTable
 {
- public:
+  public:
+    bool readEigenRayTable(std::string arr_file_path, int max_num_bounces);
+    bool getEigenRays(double req_range, double req_depth, double& act_range, double& act_depth,
+                      CEigenRay& eig);
+    bool putEigenRay(double sd, double rd, double f, double r, CRay ray);
+    int getDepths(std::vector<double>& depths);
+    int getRanges(std::vector<double>& ranges);
+    std::vector<CEigenRay> getEigenRayTable(std::string arr_file_path, int max_num_bounces);
 
-  bool readEigenRayTable(std::string arr_file_path, int max_num_bounces); 
-  bool getEigenRays(double req_range, double req_depth, 
-		   double& act_range, double& act_depth,
-		   CEigenRay& eig); 
-  bool putEigenRay(double sd, double rd, double f, double r, CRay ray);
-  int getDepths(std::vector<double>& depths);
-  int getRanges(std::vector<double>& ranges);
-  std::vector<CEigenRay> getEigenRayTable(std::string arr_file_path, int max_num_bounces);
- 
+    void clear();
 
-  void clear();
+    double source_depth;
+    int num_ranges;
+    int num_depths;
 
-  double source_depth;
-  int num_ranges;
-  int num_depths;
-
- protected:
-  std::vector<double> range;
-  std::vector<double> depth;
-  std::vector<CEigenRay> eigenray_table;
-
-
+  protected:
+    std::vector<double> range;
+    std::vector<double> depth;
+    std::vector<CEigenRay> eigenray_table;
 };
-  
+
 #endif /* __CEIGENRAYS_h__ */
