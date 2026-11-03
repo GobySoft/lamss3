@@ -105,13 +105,13 @@ Per toolbox, mirroring the class tree. A directory `x/` holds `x.py` defining cl
 
 ```
 core/missions/
-├── cruise/cruise.py                      # class Cruise
-├── fleet/fleet.py
-├── platform/platform.py
+├── cruise/                               # Cruise, Fleet, Platform, Component, Environment are in lamss.mission
+├── fleet/
+├── platform/
 │   ├── auv/auv.py                        # class Auv(Platform)
 │   ├── topside/topside.py
 │   └── mooring/mooring.py
-├── component/component.py
+├── component/
 │   ├── logging/logging.py                # goby_logger, glog config
 │   ├── health/health.py                  # goby_coroner / supervisord event listener
 │   ├── interprocess/interprocess.py      # gobyd (+ MOOSDB + gateway during transition)
@@ -119,7 +119,7 @@ core/missions/
 │   │   ├── micromodem/micromodem.py
 │   │   ├── udp/udp.py
 │   │   └── netsim/netsim.py
-├── environment/environment.py            # base class only; concrete environments live in mit
+├── environment/                          # concrete environments live in mit
 ├── templates/                            # Jinja2, one per process config: gobyd.pb.cfg.j2 ...
 └── data/                                 # acomms DCCL configs, replicas, modem id lookup
 
@@ -161,6 +161,8 @@ mit/missions/
 ```
 
 Class discovery: `lamss.mission.registry` walks each active toolbox's `missions/` tree, imports every `<dir>/<dir>.py`, and registers classes by their path (`platform/auv/propellor/bluefin21/macrura`) and short name (`macrura`). Toolboxes extend each other's trees by placing a subdirectory at the same path (the `mit` toolbox adds `bluefin21/macrura` beneath `autonomy`'s `bluefin21`). A name clash is an error.
+
+The base classes live in the `lamss.mission` package and are the roots of the trees (`cruise/`, `fleet/`, `platform/`, `subsystem/`, `component/`, `environment/`), so no toolbox defines them. The merged trees are importable as the `missions` package (`from missions.platform.auv import Auv`, wherever `auv.py` lives); the other `.py` files in a directory hold its variants. A directory holds one class, which subclasses the class of the directory above it. A component's name in the context is its directory beneath `component/` (every `component/acomms/*` implementation is `acomms`); a platform's is its directory, or the name given in the fleet (`Topside("ship")`).
 
 ## Rendering pipeline
 
@@ -214,7 +216,7 @@ flowchart LR
   d1[Component defaults] --> d2[Platform class MRO<br/>Platform -> Auv -> Bluefin21 -> Macrura] --> d3[Fleet per-platform overrides] --> d4[Cruise overrides] --> d5[Variant] --> d6[--set key=value]
 ```
 
-Later boxes override earlier ones. Each level is an explicit dict, so `lm m generate mbat --explain platform.macrura.max_depth` can print where a value came from. This fixes the gpp gotcha where `auv.def` silently overrode `all.def`.
+Later boxes override earlier ones. Each level is an explicit dict, so `lm m generate mbat --explain platform.macrura.max_depth` can print where a value came from. A class sets its own `params`; a list entry can be a spec that overrides parameters where it is used (`components = [Logging(level="DEBUG")]`, `platforms = [Macrura(modem_id=4)]`); a cruise or fleet sets anything else with `overrides` keyed by dotted path (`{"platform.macrura.max_depth": 150}`). Every key is such a path into the mission dict (`platform.macrura.subsystem.main.component.logging.level`); a bare key is a cruise parameter (`--set warp=10`). Overriding a key that no lower layer defines is an error, so typos do not pass silently. A variant's own `params`, `overrides` and spec entries form the variant layer, wherever its class sits in the MRO. This fixes the gpp gotcha where `auv.def` silently overrode `all.def`.
 
 ## Variants
 
@@ -223,8 +225,7 @@ A variant is a class decorated with `@variant("name")` that subclasses a concept
 ```python
 # mit/missions/platform/auv/propellor/bluefin21/macrura/macrura.py
 class Macrura(Bluefin21):
-    modem_id = 4
-    params = dict(max_depth=190, low_speed=1.2, high_speed=2.0)
+    params = dict(modem_id=4, max_depth=190, low_speed=1.2, high_speed=2.0)
     components = Bluefin21.components + [TetraHoming, PassiveSonarChain.with_array("durip")]
     sim_components = [FrontseatSim(UMVSBluefin), SensorSim(PassiveSonarSim, NetcdfOcean)]
 ```
@@ -246,7 +247,7 @@ class MacruraHydroman(Macrura):
     subsystems = Macrura.subsystems + [Subsystem("nav", components=[Hydroman.nav_side])]  # HM3 process group
 ```
 
-Only one variant is named on the command line (`lm m sim mbat hybrid_hydroman`). Combinations are defined in a file as a named variant that inherits from the variants it combines (`class MacruraHybridHydroman(MacruraHydroman, MacruraHybrid)` in `macrura_hybrid_hydroman.py`), so every runnable configuration has a name, a file and a git history. Conflicts in such a combination (two parents replacing the same component differently) are reported at import time, not resolved silently.
+Only one variant is named on the command line (`lm m sim mbat hybrid_hydroman`). Combinations are defined in a file as a named variant that inherits from the variants it combines (`class MacruraHybridHydroman(MacruraHydroman, MacruraHybrid)` in `macrura_hybrid_hydroman.py`), so every runnable configuration has a name, a file and a git history. Conflicts in such a combination (two parents replacing the same component differently) are reported at import time, not resolved silently. The combination's lists (`components`, `subsystems`, ...) are merged from each parent's changes to the common base, so `MacruraHybridHydroman` needs no body unless its parents conflict, in which case setting the attribute in the combination resolves it. `replace(list, Old, New)` and `remove(list, Old)` edit inherited lists. A variant name may be defined for several concepts (`hybrid` on each AUV); it must apply to something in the cruise.
 
 Cruise and fleet variants work the same way (`@variant("two_auv")` adds `unicorn`; `@variant("smoke")` shrinks the fleet to one AUV + topside for CI).
 
