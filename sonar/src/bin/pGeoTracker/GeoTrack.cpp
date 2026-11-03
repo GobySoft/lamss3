@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include <iostream>
 #include <math.h>
 #include <stdio.h>
@@ -8,7 +11,9 @@
 // replaced by:
 #include <float.h>
 #include <limits.h>
+#ifndef MAXFLOAT
 #define MAXFLOAT FLT_MAX
+#endif
 
 #include "GeoTrack.h"
 
@@ -124,8 +129,6 @@ void CGeoTrack::set_measurement(double veh_x, double veh_y, double bear, double 
 
 status CGeoTrack::get_track()
 {
-    bool silent = true;
-
     double x[nvar];
     double new_range, x_r, y_r, x_v, y_v, sor;
 
@@ -248,10 +251,10 @@ status CGeoTrack::get_track()
     return stat;
 }
 
-dbl CGeoTrack::track_func(int n, double x[])
+dbl CGeoTrack::track_func(int, double x[])
 {
     int i;
-    double sum, time_step, x0, x1, x2, x3, xpot, ypot, bear_pot, dtsum;
+    double sum, x0, x1, x2, x3, xpot, ypot, bear_pot, dtsum;
 
     sum = 0.0; //time_step = 1.0;
     dtsum = 0.0;
@@ -280,10 +283,10 @@ dbl CGeoTrack::track_func(int n, double x[])
     return (sum);
 }
 
-double* CGeoTrack::grad_track(int n, double x[], double grad[])
+double* CGeoTrack::grad_track(int, double x[], double grad[])
 {
     double x0, x1, x2, x3, g0sum, g1sum, g2sum, g3sum, hx0, hx1, hx2, hx3;
-    double xpot, ypot, time_step, bear_pot, diff, dtsum, dtavg;
+    double xpot, ypot, bear_pot, diff, dtsum, dtavg;
     int i;
 
     x0 = x[0]; //target initial X
@@ -356,7 +359,7 @@ void CGeoTrack::update(dbl* h, dbl* dl, dbl* gm)
 {
     int i, j, k, l;
     dbl sum;
-    dbl a, p, q;
+    dbl a, p;
 
     if ((sum = vectorvector(nvar, dl, gm)) == 0.00)
     {

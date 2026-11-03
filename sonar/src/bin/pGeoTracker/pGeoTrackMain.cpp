@@ -1,14 +1,17 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "GeoTracker.h"
 #include <MOOS/libMOOS/MOOSLib.h>
 
 int main(int argc, char* argv[])
 {
-    char* sMissionFile = "Mission.moos";
-    char* sMOOSName = "pGeoTracker";
+    const char* sMissionFile = "Mission.moos";
+    const char* sMOOSName = "pGeoTracker";
 
     switch (argc)
     {
-        case 3: sMOOSName = argv[2];
+        case 3: sMOOSName = argv[2]; [[fallthrough]];
         case 2: sMissionFile = argv[1];
     }
 

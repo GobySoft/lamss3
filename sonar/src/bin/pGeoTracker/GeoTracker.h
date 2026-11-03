@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "MBUtils.h"
 #include <MOOS/libMOOS/MOOSLib.h>
 #include <MOOS/libMOOS/Utils/MOOSUtils.h>
@@ -10,16 +13,17 @@
 
 #include "GeoTrack.h"
 
-#include "lamss/lib_henrik_util/CMeasAvg.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_henrik_util/Measurement.h"
-#include "lamss/lib_henrik_util/parse_stat.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/Measurement.h"
+#include "lamss/core/henrik_util/parse_stat.h"
 
 #define NO_TRACK 0
 #define LR_TRACK 1
 #define TRACKING 2
 
 using namespace std;
+using namespace lamss::core;
 
 //typedef enum{
 #define NO_CONTACT 0

@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "GeoTracker.h"
 
 using namespace std;
@@ -76,7 +79,6 @@ bool CGeoTracker::Iterate()
         double cy = Temp_Contact.y_pos;
         double ch = Temp_Contact.heading;
         double cs = Temp_Contact.speed;
-        double range = Temp_Contact.range;
         double stime = Temp_Contact.Last_Meas_Time;
         nmeas = Temp_Contact.num_meas;
 
@@ -126,8 +128,6 @@ bool CGeoTracker::Iterate()
 bool CGeoTracker::OnStartUp()
 {
     //CMOOSApp::OnStartUp();
-
-    double th;
 
     double dfmeas;
     if (m_MissionReader.GetConfigurationParam("init_meas", dfmeas))
@@ -306,7 +306,7 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST& NewMail)
                 else
                     sint = 0;
 
-                if (close_range = (meas_count >= init_meas))
+                if ((close_range = (meas_count >= init_meas)))
                     m_Comms.Notify("CLOSE_RANGE", "TRUE");
                 else
                     m_Comms.Notify("CLOSE_RANGE", "FALSE");
@@ -346,7 +346,6 @@ bool CGeoTracker::OnNewMail(MOOSMSG_LIST& NewMail)
             }
             else
             {
-                int num_contacts = CList.get_num_contacts();
                 //MOOSTrace("num_Contacts = %d\n",num_contacts);
                 //if we have lost contact, reset
                 if (CList.get_num_contacts() > 0)
@@ -644,15 +643,10 @@ void Contact_List::reset_solution()
     for (int jj = 0; jj < num_c; jj++) Contacts[jj].Topt.reset_solution();
 }
 
-int Contact_List::associate_bearing(Measurement* Meas)
+int Contact_List::associate_bearing(Measurement*)
 {
     Contact* New_Contact;
-    double new_bearing;
-    int beamno;
     int cid;
-
-    new_bearing = Meas->true_bearing;
-    beamno = Meas->beam;
 
     //right now hard-wired for a single contact
     //in the future add an algorithm to track multiple
@@ -711,7 +705,6 @@ void Contact_List::update_contact(int cid, Measurement* Meas)
 bool Contact_List::Add_Measurement(int cid, Measurement* Meas)
 {
     double dt;
-    bool silent = false;
 
     if (Contacts[cid].num_meas == 0)
     {
@@ -940,7 +933,7 @@ bool Contact_List::SolveTrack(int track_id, double xnow, double ynow)
                     t.resize(Contacts[track_id].num_track);
                     x.resize(Contacts[track_id].num_track);
                     y.resize(Contacts[track_id].num_track);
-                    for (int i = 0; i < x.size(); i++)
+                    for (int i = 0; i < (int)x.size(); i++)
                     {
                         t[i] = Contacts[track_id].track_utc[i];
                         x[i] = Contacts[track_id].track_x[i];

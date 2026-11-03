@@ -1,18 +1,7 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                      pgeoTracker
-# Author(s):                               Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(pGeoTracker ${SRC})
-
-TARGET_LINK_LIBRARIES(pGeoTracker
-   ${MOOS_LIBRARIES}
-   ${IVP_MBUTIL_LIBRARY}
-   ${LAMSS_HENRIK_UTIL_LIBRARY}
-   ${IVP_GEOMETRY_LIBRARY}
-   opt
-)
-
-
+lamss_find_ivp(mbutil)
+lamss_add_app(pGeoTracker MOOS NO_GOBY
+  SOURCES pGeoTrackMain.cpp GeoTracker.cpp GeoTrack.cpp
+  LINK_LIBRARIES lamss::sonar_track lamss::core_henrik_util IvP::mbutil)
