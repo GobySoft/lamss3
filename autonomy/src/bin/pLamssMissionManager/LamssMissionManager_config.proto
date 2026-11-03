@@ -1,11 +1,15 @@
 
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
+
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
-import "lamss_deploy.proto";
-import "lamss_transit.proto";
-import "icex_tracking_20.proto";
+import "lamss/autonomy/deploy.proto";
+import "lamss/autonomy/transit.proto";
 
-import "goby/acomms/protobuf/amac.proto";
+package lamss.autonomy;
 
 message LamssMissionManagerConfig
 {
@@ -58,20 +62,11 @@ message LamssMissionManagerConfig
     optional double homing_beacon_frequency = 31 [default = 0];
     optional double homing_interval = 32 [default = 600];
     optional double homing_duration = 33 [default = 300];
-    optional string tracking_message = 34
-        [default = "ICEX20_TRACKING_VEHICLE_POS_IN"];
-    optional string track_signal_update_message = 35
-        [default = "ICEX_TRACKING_SIGNAL_UPDATE_IN"];
     optional double prosecute_center_frequency = 40 [default = 900];
     optional double prosecute_bandwidth = 41 [default = 200];
     optional bool navigating_with_hydroman = 42 [default = false];
 
-    optional .goby.acomms.protobuf.MACUpdate standard_mac = 50;
-    optional .goby.acomms.protobuf.MACUpdate legacy_mac = 51;
-
     repeated uint32 additional_modem_id = 60;
-
-    repeated lamss.icex.protobuf.BeaconDepth beacon_depth = 70;
 
     optional bool auto_depth_adaptation = 80 [default = false];
 
@@ -85,4 +80,6 @@ message LamssMissionManagerConfig
     repeated GlideParameters glide_parameters = 52;
 
     optional bool use_geo_commands = 61 [default = false];
+
+    reserved 34, 35, 50, 51, 70;
 }

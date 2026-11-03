@@ -1,7 +1,5 @@
-// Copyright 2014
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <dlfcn.h>
 
@@ -17,8 +15,6 @@
 
 #include "goby/moos/moos_protobuf_helpers.h"
 
-#include "goby/acomms/protobuf/driver_base.pb.h"
-#include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 
 #include "ivp/NodeRecord.h"
@@ -56,23 +52,23 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssMissionManagerFSM>()),
       initial_deploy_done_(false),
+      slow_loop_period_(15),
+      last_slow_loop_t_(0),
+      new_origin_(false),
+      last_utm_update_(0),
+      homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
+      collaborator_id_(-1),
+      collaborator_name(""),
+      got_first_tracking_msg(false),
+      got_gps_nav(false),
+      filter_length(10),
       abort_x(cfg_.abort_x_offset()),
       abort_y(cfg_.abort_y_offset()),
       abort_x_offset(cfg_.abort_x_offset()),
       abort_y_offset(cfg_.abort_y_offset()),
-      homing_beacon(cfg_.homing_array() != LamssMissionManagerConfig::NONE),
       homing_lock(false),
-      slow_loop_period_(15),
-      got_first_tracking_msg(false),
       in_track(false),
-      depth_adapting(false),
-      last_slow_loop_t_(0),
-      collaborator_id_(-1),
-      collaborator_name(""),
-      new_origin_(false),
-      filter_length(10),
-      last_utm_update_(0),
-      got_gps_nav(false)
+      depth_adapting(false)
 {
     goby::glog.set_lock_action(lock);
     goby::glog.add_group("fsm", goby::util::Colors::lt_magenta);
@@ -115,14 +111,9 @@ LamssMissionManager::LamssMissionManager(LamssMissionManagerConfig& cfg)
     //    subscribe("GPS_UPDATE_RECEIVED", &LamssMissionManager::handle_gps_update, this);
     subscribe("IN_TRACK", &LamssMissionManager::handle_in_track, this);
     subscribe("HOMING_LOCK", &LamssMissionManager::handle_homing_lock, this);
-    subscribe(cfg_.tracking_message(), &LamssMissionManager::handle_icex20_tracking_message, this);
-    subscribe_pb(cfg_.track_signal_update_message(),
-                 &LamssMissionManager::handle_track_signal_update_message, this);
     subscribe("SURVEY_WPT_INDEX", &LamssMissionManager::handle_survey_wpt_index, this);
     subscribe("TRANSIT_WPT_INDEX", &LamssMissionManager::handle_transit_wpt_index, this);
     subscribe("TRANSIT_COMPLETED", &LamssMissionManager::handle_transit_flag, this);
-    subscribe_pb("ICEX_VEHICLE_TRANSMIT_SELECTION_IN",
-                 &LamssMissionManager::handle_vehicle_transmit_selection, this);
     // intialize MOOSGeodesy
 
     m_Geodesy.Initialise(cfg_.common().lat_origin(), cfg_.common().lon_origin());
@@ -243,7 +234,7 @@ void LamssMissionManager::slow_loop(double curr_time)
 
     if (descent_state_active_)
     {
-        if (touchdown_location_reached_ = (loiter_range <= 2 * last_deploy_cmd_.loiter_radius()))
+        if ((touchdown_location_reached_ = (loiter_range <= 2 * last_deploy_cmd_.loiter_radius())))
             glog.is(VERBOSE) && glog << "Touchdown location range  " << loiter_range << " reached"
                                      << std::endl;
         ;
@@ -448,7 +439,7 @@ void LamssMissionManager::UTM_update()
     m_Geodesy.LatLong2LocalUTM(camp_lat_deploy, camp_lon_deploy, camp_y_deploy, camp_x_deploy);
 
     // Current transit route
-    for (int i = 0; i < transit_lat.size(); i++)
+    for (int i = 0; i < static_cast<int>(transit_lat.size()); i++)
     {
         double x, y;
         m_Geodesy.LatLong2LocalUTM(transit_lat[i], transit_lon[i], y, x);
@@ -458,7 +449,7 @@ void LamssMissionManager::UTM_update()
     post_transit_route();
 
     // Stovepipes. Invariant lat/long
-    for (int i = 0; i < Stovepipes.size(); i++)
+    for (int i = 0; i < static_cast<int>(Stovepipes.size()); i++)
         m_Geodesy.LatLong2LocalUTM(Stovepipes[i].lat, Stovepipes[i].lon, Stovepipes[i].y,
                                    Stovepipes[i].x);
 }
@@ -615,7 +606,6 @@ void LamssMissionManager::initial_deploy()
         init_deploy_cmd.set_deploy_upper_depth(cfg_.abort_depth());
         // If stale acomms, continue with current duration timer
         double stale_acomms = MOOSTime() - last_acomms_;
-        double stale_gps = MOOSTime() - last_gps_;
         double remaining = last_deploy_cmd_.deploy_duration() - stale_acomms;
         if (remaining < init_deploy_cmd.deploy_duration())
             init_deploy_cmd.set_deploy_duration(remaining);
@@ -1338,7 +1328,7 @@ void LamssMissionManager::handle_prosecute(const CMOOSMsg& msg)
     }
 }
 
-void LamssMissionManager::prosecute_behavior_updates(bool new_prosecute)
+void LamssMissionManager::prosecute_behavior_updates(bool /*new_prosecute*/)
 {
     // Setting state variables
 
@@ -1432,7 +1422,7 @@ void LamssMissionManager::handle_gps_update(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 {
     double new_lat = msg.GetDouble();
-    if (!isnan(new_lat) && fabs(new_lat - lat_origin_) > 1e-6)
+    if (!std::isnan(new_lat) && fabs(new_lat - lat_origin_) > 1e-6)
     {
         lat_origin_ = new_lat;
         new_origin_ = true;
@@ -1442,7 +1432,7 @@ void LamssMissionManager::handle_lat_origin(const CMOOSMsg& msg)
 void LamssMissionManager::handle_lon_origin(const CMOOSMsg& msg)
 {
     double new_lon = msg.GetDouble();
-    if (!isnan(new_lon) && fabs(new_lon - lon_origin_) > 1e-6)
+    if (!std::isnan(new_lon) && fabs(new_lon - lon_origin_) > 1e-6)
     {
         lon_origin_ = new_lon;
         new_origin_ = true;
@@ -1453,7 +1443,6 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_id_ = msg.GetDouble();
-    platform_info.set_modem_id(vehicle_id_);
     ownship_modem_ids_.clear();
     ownship_modem_ids_.insert(vehicle_id_);
     for (auto id : cfg_.additional_modem_id()) ownship_modem_ids_.insert(id);
@@ -1461,11 +1450,6 @@ void LamssMissionManager::handle_vehicle_id(const CMOOSMsg& msg)
     {
         glog.is(VERBOSE) && glog << "Ownship modem ID: " << id << std::endl;
     }
-    // get name from modemidtable
-    goby::moos::ModemIdConvert converter;
-    converter.read_lookup_file("../../cruise/current/data/modemidlookup.txt");
-    platform_info.set_name(converter.get_name_from_id(vehicle_id_));
-    //   publish_pb("PLATFORM_INFO",platform_info);
 }
 
 void LamssMissionManager::handle_collaborator_id(const CMOOSMsg& msg)
@@ -1482,7 +1466,6 @@ void LamssMissionManager::handle_vehicle_name(const CMOOSMsg& msg)
 {
     boost::mutex::scoped_lock lock(moos_mutex_);
     vehicle_name_ = msg.GetString();
-    platform_info.set_name(vehicle_name_);
 }
 
 void LamssMissionManager::handle_mission_state(const CMOOSMsg& msg)
@@ -1690,166 +1673,6 @@ void LamssMissionManager::handle_survey_flag(const CMOOSMsg& msg)
     }
 }
 
-void LamssMissionManager::handle_icex20_tracking_message(const CMOOSMsg& msg)
-{
-    lamss::icex::protobuf::TrackingResult tracking_result;
-    parse_for_moos(msg.GetString(), &tracking_result);
-    // Only handle messages for me
-    if (ownship_modem_ids_.count(tracking_result.dest()))
-    {
-        double delta_x = tracking_result.vehicle_pos().dx();
-        double delta_y = tracking_result.vehicle_pos().dy();
-        ;
-        double camp_x = tracking_result.hydrohole_pos().x();
-        double camp_y = tracking_result.hydrohole_pos().y();
-        double camp_lat;
-        double camp_lon;
-        bool valid_track = !isnan(delta_x) && !isnan(delta_y);
-
-        if (m_Geodesy.UTM2LatLong(camp_x, camp_y, camp_lat, camp_lon))
-        {
-            // save initial camp location
-            if (!got_first_tracking_msg)
-            {
-                camp_x_init = camp_x;
-                camp_y_init = camp_y;
-                m_Geodesy.UTM2LatLong(camp_x_init, camp_y_init, camp_lat_init, camp_lon_init);
-                //	      got_first_tracking_msg = true;
-                //              last_tracking_msg = tracking_result.vehicle_tx_time();
-                camp_x_spd_filt.configAvg(filter_length);
-                camp_y_spd_filt.configAvg(filter_length);
-            }
-            else
-            {
-                // Update camp speed filters
-                camp_x_spd_filt.setVal((camp_x - camp_x_last) /
-                                       (tracking_result.vehicle_tx_time() - last_tracking_msg));
-                camp_y_spd_filt.setVal((camp_y - camp_y_last) /
-                                       (tracking_result.vehicle_tx_time() - last_tracking_msg));
-            }
-            // save camp location for possible deploy zambony being relative to deploy location
-            camp_x_last = camp_x;
-            camp_y_last = camp_y;
-            m_Geodesy.UTM2LatLong(camp_x_last, camp_y_last, camp_lat_last, camp_lon_last);
-
-            // Use current vehicle time stamp
-            //	  last_tracking_msg = tracking_result.vehicle_tx_time();
-
-            last_acomms_ = MOOSTime();
-            if (valid_track)
-            {
-                // reset deploy duration counter if we got a valid track
-                last_gps_ = MOOSTime();
-                glog.is(VERBOSE) && glog << "Received Tracking Update:" << " delta_x=" << delta_x
-                                         << " delta_y=" << delta_y << " camp_x=" << camp_x
-                                         << " camp_y=" << camp_y << std::endl;
-            }
-            else
-                glog.is(VERBOSE) && glog << "Invalid track, Camp Update:" << " camp_x=" << camp_x
-                                         << " camp_y=" << camp_y << std::endl;
-
-            NodeRecord node_report(cfg_.topside_name(), "hydrohole");
-            node_report.setTimeStamp(tracking_result.vehicle_tx_time());
-            node_report.setX(camp_x);
-            node_report.setY(camp_y);
-            node_report.setLat(camp_lat);
-            node_report.setLon(camp_lon);
-            node_report.setDepth(0.0);
-            node_report.setSpeed(tracking_result.hydrohole_drift().speed());
-            node_report.setHeading(tracking_result.hydrohole_drift().heading());
-            //publish("NODE_REPORT", node_report.getSpec());
-
-            // Save depth for comms when adapt fails
-            std::stringstream ss;
-            ss << "depth=" << last_nav_.global_fix().depth();
-            publish("ACOMMS_DEPTH", ss.str());
-
-            // Modem buoys and stovepipes
-
-            if (!got_first_tracking_msg)
-            {
-                h_x_spd_filt.resize(tracking_result.modem_pos_size());
-                h_y_spd_filt.resize(tracking_result.modem_pos_size());
-                h_x_last.resize(tracking_result.modem_pos_size());
-                h_y_last.resize(tracking_result.modem_pos_size());
-                for (int i = 0; i < tracking_result.modem_pos_size(); i++)
-                {
-                    h_x_spd_filt[i].configAvg(filter_length);
-                    h_y_spd_filt[i].configAvg(filter_length);
-                }
-            }
-
-            for (int i = 0; i < tracking_result.modem_pos_size(); i++)
-            {
-                double h_x =
-                    tracking_result.hydrohole_pos().x() + tracking_result.modem_pos(i).dx();
-                double h_y =
-                    tracking_result.hydrohole_pos().y() + tracking_result.modem_pos(i).dy();
-                double h_z = tracking_result.modem_pos(i).z();
-                double h_lat;
-                double h_lon;
-                m_Geodesy.UTM2LatLong(h_x, h_y, h_lat, h_lon);
-                std::stringstream mm;
-                mm << "h" << i + 1;
-                NodeRecord node_report(mm.str(), "buoy");
-                node_report.setTimeStamp(tracking_result.vehicle_tx_time());
-                node_report.setX(h_x);
-                node_report.setY(h_y);
-                node_report.setLat(h_lat);
-                node_report.setLon(h_lon);
-                if (cfg_.beacon_depth_size() > i)
-                {
-                    switch (tracking_result.rx_layer())
-                    {
-                        case lamss::icex::protobuf::RECEIVE_SHALLOW:
-                            node_report.setDepth(cfg_.beacon_depth(i).receive_shallow());
-                            break;
-
-                        case lamss::icex::protobuf::RECEIVE_DEEP:
-                        case lamss::icex::protobuf::RECEIVE_ALL_ARRAY:
-                            node_report.setDepth(cfg_.beacon_depth(i).receive_deep());
-                            break;
-
-                        case lamss::icex::protobuf::RECEIVE_MAIN_CHANNEL:
-                            node_report.setDepth(cfg_.beacon_depth(i).transmit());
-                            break;
-                    }
-                }
-                else
-                {
-                    node_report.setDepth(-h_z);
-                }
-                if (got_first_tracking_msg)
-                {
-                    // Update modem mooring speeds
-                    h_x_spd_filt[i].setVal((h_x - h_x_last[i]) /
-                                           (tracking_result.vehicle_tx_time() - last_tracking_msg));
-                    h_y_spd_filt[i].setVal((h_y - h_y_last[i]) /
-                                           (tracking_result.vehicle_tx_time() - last_tracking_msg));
-                }
-                h_x_last[i] = h_x;
-                h_y_last[i] = h_y;
-                double spd =
-                    sqrt(pow(h_x_spd_filt[i].getAvg(), 2) + pow(h_y_spd_filt[i].getAvg(), 2));
-                double hdg = 180 / M_PI * atan2(h_x_spd_filt[i].getAvg(), h_y_spd_filt[i].getAvg());
-                if (hdg < 0)
-                    hdg += 360;
-                node_report.setSpeed(spd);
-                node_report.setHeading(hdg);
-                //node_report.setSpeed(tracking_result.hydrohole_drift().speed());
-                //node_report.setHeading(tracking_result.hydrohole_drift().heading());
-                publish("NODE_REPORT", node_report.getSpec());
-            }
-            got_first_tracking_msg = true;
-            last_tracking_msg = tracking_result.vehicle_tx_time();
-        }
-        else
-        {
-            glog.is(VERBOSE) && glog << "Invalid Tracking Update:" << std::endl;
-        }
-    }
-}
-
 void LamssMissionManager::handle_survey_wpt_index(const CMOOSMsg& msg)
 {
     int wpt_index = msg.GetDouble();
@@ -1868,6 +1691,7 @@ void LamssMissionManager::handle_transit_wpt_index(const CMOOSMsg& msg)
         new_transit_wpt_index = true;
         // pop last route waypoint in case we have to
         if (transit_state_ && transit_x.size() > 0)
+        {
             if (last_deploy_cmd_.deploy_mode() == LAMSS_DEPLOY::DEPLOY_MODE_RETURN)
             {
                 transit_x.pop_back();
@@ -1882,6 +1706,7 @@ void LamssMissionManager::handle_transit_wpt_index(const CMOOSMsg& msg)
                 transit_lat.erase(transit_lat.begin());
                 transit_lon.erase(transit_lon.begin());
             }
+        }
         glog.is(DEBUG1) && glog << "Reached waypoint " << wpt_index
                                 << " Pruning. Remaining waypoints: " << transit_x.size()
                                 << std::endl;
@@ -1961,75 +1786,6 @@ void LamssMissionManager::handle_stovepipe_message(const CMOOSMsg& msg)
     update_stovepipes(stovepipe_msg);
     // needs to be done twice to get right name
     // update_stovepipes(stovepipe_msg);
-}
-
-void LamssMissionManager::handle_track_signal_update_message(
-    const lamss::icex::protobuf::TrackingSignalUpdate& msg)
-{
-    goby::acomms::protobuf::DriverConfig cfg;
-    cfg.set_modem_id(msg.tracking_modem_id());
-
-    // just needs to be the start of a minute
-    const int even_reference_time = 1449763200;
-    const int odd_reference_time = even_reference_time + static_cast<int>(msg.ping_period()) / 2;
-
-    switch (msg.current_vehicle())
-    {
-        case lamss::icex::protobuf::TrackingSignalUpdate::NONE:
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.mode,0");
-            break;
-
-        case lamss::icex::protobuf::TrackingSignalUpdate::EVEN_PLATFORM:
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.carrier_Hz,10500");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.period," +
-                                goby::util::as<std::string>(msg.ping_period()));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.reference_time," +
-                                goby::util::as<std::string>(even_reference_time));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.duration_msx10,100");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.bandwidth_Hz,3000");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.mode,3");
-            break;
-
-        case lamss::icex::protobuf::TrackingSignalUpdate::ODD_PLATFORM:
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.carrier_Hz,10500");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.period," +
-                                goby::util::as<std::string>(msg.ping_period()));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.reference_time," +
-                                goby::util::as<std::string>(odd_reference_time));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.duration_msx10,100");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.bandwidth_Hz,3000");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.mode,3");
-            break;
-
-        case lamss::icex::protobuf::TrackingSignalUpdate::UNIT:
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.carrier_Hz,13500");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.period,1");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.reference_time," +
-                                goby::util::as<std::string>(even_reference_time));
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.duration_msx10,35");
-            cfg.MutableExtension(goby::acomms::micromodem::protobuf::config)
-                ->add_nvram_cfg("nav.trackping.mode,4");
-            break;
-    }
-
-    publish_pb("ACOMMS_DRIVER_CONFIG_UPDATE", cfg);
 }
 
 void LamssMissionManager::update_deploy_parameters()
@@ -2119,7 +1875,10 @@ void LamssMissionManager::update_deploy_parameters()
         //
         // Update stovepipes and publish
         //
-        for (int i = 0; i < Stovepipes.size(); i++) { publish_stovepipe(i, camp_x, camp_y); }
+        for (int i = 0; i < static_cast<int>(Stovepipes.size()); i++)
+        {
+            publish_stovepipe(i, camp_x, camp_y);
+        }
     }
     // update abort location. Note that it's defined as offset relative to camp
     abort_x = camp_x + abort_x_offset;
@@ -2169,19 +1928,18 @@ void LamssMissionManager::publish_stovepipe(int i, double camp_x, double camp_y)
 
 void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
 {
-    CStovepipe Empty;
-
     // Current camp location
     double camp_x =
         camp_x_last + camp_x_spd_filt.getAvg() * (stovepipe_msg._time() - last_tracking_msg);
     double camp_y =
         camp_y_last + camp_y_spd_filt.getAvg() * (stovepipe_msg._time() - last_tracking_msg);
-    for (int i = 0; i < Stovepipes.size(); i++)
+    for (int i = 0; i < static_cast<int>(Stovepipes.size()); i++)
     {
         // if negative ID kill it
         if (Stovepipes[i].ID == -stovepipe_msg.stovepipe_id())
         {
-            for (int j = i; j < Stovepipes.size() - 1; j++) Stovepipes[j] = Stovepipes[j + 1];
+            for (int j = i; j < static_cast<int>(Stovepipes.size()) - 1; j++)
+                Stovepipes[j] = Stovepipes[j + 1];
             Stovepipes.pop_back();
             return;
         }
@@ -2241,33 +1999,4 @@ void LamssMissionManager::update_stovepipes(LAMSS_STOVEPIPE stovepipe_msg)
                              << " camp_x = " << camp_x << " camp_y = " << camp_y << std::endl;
     publish_stovepipe(last, camp_x, camp_y);
     return;
-}
-
-// Receives VehicleTransmitSelection, checks against the current state (previous) and if different switches the modems by publishing ACOMMS_DRIVER_RESET
-void LamssMissionManager::handle_vehicle_transmit_selection(
-    const lamss::icex::protobuf::VehicleTransmitSelection& msg)
-{
-    glog.is(VERBOSE) && glog << "Received command to set modem to " << msg.ShortDebugString()
-                             << std::endl;
-    if (msg.modem() == vehicle_transmit_.modem())
-    {
-        glog.is(VERBOSE) && glog << "Modem already set, doing nothing" << std::endl;
-    }
-    else
-    {
-        glog.is(VERBOSE) && glog << "Publishing reset to have pAcommsHandler swap modems"
-                                 << std::endl;
-        publish("ACOMMS_DRIVER_RESET", "Reset");
-
-        goby::acomms::protobuf::MACUpdate mac = cfg_.standard_mac();
-        if (msg.modem() == lamss::icex::protobuf::VehicleTransmitSelection::TRANSMIT_25KHZ)
-            mac = cfg_.legacy_mac();
-
-        mac.set_src(vehicle_id_);
-        mac.set_dest(vehicle_id_);
-        mac.set_update_type(goby::acomms::protobuf::MACUpdate::ASSIGN);
-        publish_pb("ACOMMS_MAC_CYCLE_UPDATE", mac);
-    }
-
-    vehicle_transmit_ = msg;
 }

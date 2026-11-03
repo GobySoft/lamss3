@@ -1,7 +1,5 @@
-// Copyright 2014
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LAMSSMissionManagerFSM20150929H
 #define LAMSSMissionManagerFSM20150929H
@@ -30,10 +28,19 @@
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
 
 #include "LamssMissionManager_config.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h"    // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_stovepipe.pb.h"
+#include "lamss/autonomy/deploy.pb.h"
+#include "lamss/autonomy/prosecute.pb.h"
+#include "lamss/autonomy/stovepipe.pb.h"
+#include "lamss/core/status.pb.h"
+
+using lamss::autonomy::LAMSS_DEPLOY;
+using lamss::autonomy::LAMSS_PROSECUTE;
+using lamss::autonomy::LAMSS_STOVEPIPE;
+using lamss::autonomy::LAMSS_TRANSIT;
+using lamss::autonomy::LamssMissionManagerConfig;
+using lamss::core::LAMSS_STATUS;
+using lamss::core::Mission_StateEnum;
+using lamss::core::Mission_StateEnum_Name;
 
 namespace lamss
 {
@@ -211,7 +218,7 @@ struct LamssMissionManagerFSM
 
 // Idle
 struct Idle : boost::statechart::state<Idle, LamssMissionManagerFSM>,
-              StateNotify<MISSION_STATE_ALLSTOP>
+              StateNotify<lamss::core::MISSION_STATE_ALLSTOP>
 {
     Idle(my_context ctx) : my_base(ctx)
     {
@@ -267,7 +274,7 @@ struct Diving : boost::statechart::simple_state<Diving, Mission, Deploy>
 
 // Mission/Surfacing
 struct Surfacing : boost::statechart::simple_state<Surfacing, Mission>,
-                   StateNotify<MISSION_STATE_SURFACING>
+                   StateNotify<lamss::core::MISSION_STATE_SURFACING>
 {
     Surfacing()
     {
@@ -285,7 +292,7 @@ struct Surfacing : boost::statechart::simple_state<Surfacing, Mission>,
 
 // /Mission/Diving/Deploy
 struct Deploy : boost::statechart::simple_state<Deploy, Diving, Survey>,
-                StateNotify<MISSION_STATE_DEPLOY>
+                StateNotify<lamss::core::MISSION_STATE_DEPLOY>
 {
     Deploy()
     {
@@ -473,7 +480,7 @@ struct LiftOff : boost::statechart::simple_state<LiftOff, Landing>
 
 // /Mission/Diving/Prosecute
 struct Prosecute : boost::statechart::simple_state<Prosecute, Diving, Target>,
-                   StateNotify<MISSION_STATE_PROSECUTE>
+                   StateNotify<lamss::core::MISSION_STATE_PROSECUTE>
 {
     Prosecute()
     {
@@ -533,7 +540,8 @@ struct Homing : boost::statechart::simple_state<Homing, Prosecute>
 };
 
 // /Mission/Diving/Abort
-struct Abort : boost::statechart::simple_state<Abort, Diving>, StateNotify<MISSION_STATE_ABORT>
+struct Abort : boost::statechart::simple_state<Abort, Diving>,
+               StateNotify<lamss::core::MISSION_STATE_ABORT>
 {
     Abort()
     {
@@ -559,7 +567,7 @@ struct Abort : boost::statechart::simple_state<Abort, Diving>, StateNotify<MISSI
 
 // /Mission/Diving/Drifting
 struct Drifting : boost::statechart::simple_state<Drifting, Diving>,
-                  StateNotify<MISSION_STATE_DRIFTING>
+                  StateNotify<lamss::core::MISSION_STATE_DRIFTING>
 {
     Drifting()
     {

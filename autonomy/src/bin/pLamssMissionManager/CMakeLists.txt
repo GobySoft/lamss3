@@ -1,28 +1,17 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                  pLamssMissionManager
-# Author(s):                               Henrik Schmidt
-#                                          Toby Schneider 
-#--------------------------------------------------------
+# Copyright 2015-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-#set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} )
-
-set(SRC LamssMissionManager.cpp  LamssMissionManager_fsm.cpp)
-
-ADD_EXECUTABLE(pLamssMissionManager ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
-      
-TARGET_LINK_LIBRARIES(pLamssMissionManager 
-  ${Boost_LIBRARIES}
-  ${MOOS_LIBRARIES}
-  ${GOBY_LIBRARIES}
-  ${LAMSS_PROTOBUF_LIBRARY}
-  ${PROTOBUF_LIBRARIES}
-  ${LAMSS_HENRIK_UTIL_LIBRARY} 
-  ${LAMSS_PROTOBUF_LIBRARY}
-  ${IVP_CONTACTS_LIBRARY}
-  ${IVP_GEOMETRY_LIBRARY}
-  ${IVP_MBUTIL_LIBRARY}
-  goby_frontseat_bluefin
- )
+find_package(Boost REQUIRED COMPONENTS thread)
+lamss_find_ivp(contacts geometry mbutil)
+lamss_add_app(pLamssMissionManager MOOS
+  SOURCES LamssMissionManager.cpp LamssMissionManager_fsm.cpp
+  PROTOS LamssMissionManager_config.proto
+  LINK_LIBRARIES
+    lamss::autonomy_protobuf
+    lamss::core_protobuf
+    lamss::core_henrik_util
+    goby_frontseat_bluefin
+    Boost::thread
+    IvP::contacts
+    IvP::geometry
+    IvP::mbutil)

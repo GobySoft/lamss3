@@ -1,7 +1,5 @@
-// Copyright 2014
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 //#include "goby/util/debug_logger.h"
 //#include "goby/time/legacy.h"
@@ -15,7 +13,7 @@
 
 boost::shared_ptr<LamssMissionManagerConfig> lamss::shared::fsm::cfg_;
 
-Mission_StateEnum lamss::shared::fsm::state_ = MISSION_STATE_ALLSTOP;
+Mission_StateEnum lamss::shared::fsm::state_ = lamss::core::MISSION_STATE_ALLSTOP;
 
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
 boost::mutex lamss::shared::fsm::moos_mutex_;

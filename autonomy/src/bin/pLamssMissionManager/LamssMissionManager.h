@@ -1,7 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LamssMissionManager20150402H
 #define LamssMissionManager20150402H
@@ -12,13 +10,7 @@
 #include "LamssMissionManager_fsm.h"
 #include "goby/moos/goby_moos_app.h"
 
-#include "lamss/lib_henrik_util/CMeasAvg.h"
-#include "lamss/lib_lamss_protobuf/icex_tracking.pb.h"
-#include "lamss/lib_lamss_protobuf/icex_tracking_20.pb.h"
-#include "lamss/lib_lamss_protobuf/platform_info.pb.h"
-
-//#include "MBUtils.h"
-#include "goby/moos/modem_id_convert.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
 
 #include "XYPolygon.h"
 #include "goby/moos/moos_geodesy.h"
@@ -110,22 +102,18 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     void handle_survey_flag(const CMOOSMsg& msg);
     void handle_gps_update(const CMOOSMsg& msg);
     void handle_in_track(const CMOOSMsg& msg);
-    void handle_icex20_tracking_message(const CMOOSMsg& msg);
     void handle_stovepipe_geo_message(const CMOOSMsg& msg);
     void handle_stovepipe_message(const CMOOSMsg& msg);
     void handle_homing_lock(const CMOOSMsg& msg);
     void handle_survey_wpt_index(const CMOOSMsg& msg);
     void handle_transit_flag(const CMOOSMsg& msg);
     void handle_transit_wpt_index(const CMOOSMsg& msg);
-    void handle_track_signal_update_message(const lamss::icex::protobuf::TrackingSignalUpdate& msg);
     void update_deploy_parameters();
     void deploy_behavior_updates(bool new_deploy);
     void prosecute_behavior_updates(bool new_prosecute);
     void post_transit_route();
     // Stovepipe manager
     void publish_stovepipe(int i, double camp_x, double camp_y);
-    void
-    handle_vehicle_transmit_selection(const lamss::icex::protobuf::VehicleTransmitSelection& msg);
 
     // queue_event for FSM
     template <typename Event> void queue_event()
@@ -154,8 +142,6 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     double last_utm_update_;
 
     goby::middleware::frontseat::protobuf::NodeStatus last_nav_;
-
-    lamss::protobuf::PlatformInfo platform_info;
 
     static LamssMissionManager* inst_;
     // Last deploy location
@@ -204,13 +190,8 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
 
     double last_tracking_msg;
     bool got_gps_nav;
-    CMeasAvg camp_x_spd_filt;
-    CMeasAvg camp_y_spd_filt;
-    // Mooring speed filters
-    std::vector<CMeasAvg> h_x_spd_filt;
-    std::vector<CMeasAvg> h_y_spd_filt;
-    std::vector<double> h_x_last;
-    std::vector<double> h_y_last;
+    lamss::core::CMeasAvg camp_x_spd_filt;
+    lamss::core::CMeasAvg camp_y_spd_filt;
     int filter_length;
     //
     // Abort location
@@ -233,9 +214,6 @@ class LamssMissionManager : public goby::moos::GobyMOOSApp
     bool depth_adapting;
     // Dynamic stovepipes (following ice in ICEX)
     std::vector<CStovepipe> Stovepipes;
-
-    // Keep track of current transmit modem (10kHz or 25kHz)
-    lamss::icex::protobuf::VehicleTransmitSelection vehicle_transmit_;
 
     // all modem ids for this vehicle (vehicle_id_ plus additional configured)
     std::set<int> ownship_modem_ids_;

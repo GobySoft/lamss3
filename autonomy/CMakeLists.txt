@@ -11,6 +11,7 @@ endif()
 lamss_toolbox(NAME autonomy REQUIRES core)
 
 add_subdirectory(src/lib/protobuf)
+add_subdirectory(src/bin/pLamssMissionManager)
 if(BUILD_TESTING)
   add_subdirectory(src/test)
 endif()
