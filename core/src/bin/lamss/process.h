@@ -26,6 +26,9 @@ std::string format_command(const Argv& command);
 // Runs with inherited stdio; returns the exit status (128 + signal if killed, 127 if exec fails).
 int run_process(const Argv& command, const RunOptions& options = {});
 
+// Replaces this process with command; throws if it cannot be run.
+[[noreturn]] void exec_process(const Argv& command);
+
 struct Captured
 {
     int status;

@@ -1,0 +1,8 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+platform: {{ platform.name | pb_string }}
+datum { {{ cruise.datum | latlon }} }
+utm_zone: {{ (cruise.datum | utm).zone }}
+port: {{ subsystem.ports.daemon }}
+log_dir: {{ paths.log | pb_string }}
+{% for name in platforms | sort %}peer { name: {{ name | pb_string }} modem_id: {{ platforms[name].modem_id }} }
+{% endfor %}
