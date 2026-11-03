@@ -1,43 +1,47 @@
-typedef	double	dbl;
-typedef	enum status {success, failure, error} status;
+typedef double dbl;
+typedef enum status
+{
+    success,
+    failure,
+    error
+} status;
 
 //#define	allc(type,size)		((type *)malloc((size)*sizeof(type)))
 //#define	alloc(type,size)	allc(type,size);
 
-extern "C" void	vectorcopy(int, dbl *, dbl *);
-extern "C" void	vectorfill(int, dbl *, dbl);
-extern "C" dbl	vectorvector(int, dbl *, dbl *);
-extern "C" void	scalarvector(int, dbl *, dbl, dbl *);
-extern "C" void	vectoradd(int, dbl *, dbl *, dbl *);
-extern "C" void	vectorsub(int, dbl *, dbl *, dbl *);
+extern "C" void vectorcopy(int, dbl*, dbl*);
+extern "C" void vectorfill(int, dbl*, dbl);
+extern "C" dbl vectorvector(int, dbl*, dbl*);
+extern "C" void scalarvector(int, dbl*, dbl, dbl*);
+extern "C" void vectoradd(int, dbl*, dbl*, dbl*);
+extern "C" void vectorsub(int, dbl*, dbl*, dbl*);
 
-extern "C" void	matrixvector(int, int, dbl *, dbl *, dbl *);
-extern "C" void	matrixrowvector(int, int, dbl *, dbl *, int);
-extern "C" void	matrixcolumnvector(int, int, dbl *, dbl *, int);
+extern "C" void matrixvector(int, int, dbl*, dbl*, dbl*);
+extern "C" void matrixrowvector(int, int, dbl*, dbl*, int);
+extern "C" void matrixcolumnvector(int, int, dbl*, dbl*, int);
 
-extern "C" void	matrixcopy(int, int, dbl *, dbl *);
-extern "C" void	matrixunit(int, dbl *);
-extern "C" void	scalarmatrix(int, int, dbl *, dbl, dbl *);
-extern "C" void	matrixadd(int, int, dbl *, dbl *, dbl *);
-extern "C" void	matrixsub(int, int, dbl *, dbl *, dbl *);
-extern "C" void	matrixmatrix(int, int, int, dbl *, dbl *, dbl *);
-extern "C" void	matrixtranspose(int, int, dbl *, dbl *);
+extern "C" void matrixcopy(int, int, dbl*, dbl*);
+extern "C" void matrixunit(int, dbl*);
+extern "C" void scalarmatrix(int, int, dbl*, dbl, dbl*);
+extern "C" void matrixadd(int, int, dbl*, dbl*, dbl*);
+extern "C" void matrixsub(int, int, dbl*, dbl*, dbl*);
+extern "C" void matrixmatrix(int, int, int, dbl*, dbl*, dbl*);
+extern "C" void matrixtranspose(int, int, dbl*, dbl*);
 
-extern "C" void	matrixrowscalar(int, int, dbl *, int, dbl);
-extern "C" void	matrixrowexchange(int, int, dbl *, int, int);
-extern "C" void	matrixrowadd(int, int, dbl *, int, dbl, int);
-extern "C" void	matrixrowaddtwo(int, int, int, dbl *, dbl *, int, dbl, int);
-extern "C" void	matrixsearchcolumnmaxabs(int, int, dbl *, int, int, int,
-					 int *, dbl *);
-extern "C" void	matrixinverse(int, dbl *, dbl *, dbl);
+extern "C" void matrixrowscalar(int, int, dbl*, int, dbl);
+extern "C" void matrixrowexchange(int, int, dbl*, int, int);
+extern "C" void matrixrowadd(int, int, dbl*, int, dbl, int);
+extern "C" void matrixrowaddtwo(int, int, int, dbl*, dbl*, int, dbl, int);
+extern "C" void matrixsearchcolumnmaxabs(int, int, dbl*, int, int, int, int*, dbl*);
+extern "C" void matrixinverse(int, dbl*, dbl*, dbl);
 
-extern "C" void	vectorfprint(FILE *, int, dbl *);
-extern "C" void	vectorfscan(FILE *, int, dbl *);
-extern "C" void	matrixfprint(FILE *, int, int, dbl *);
-extern "C" void	matrixfscan(FILE *, int, int, dbl *);
-extern "C" void	matrixprintformat(char *);
-extern "C" int	nullspace(int, int, dbl *, dbl *, int *, dbl);
-extern "C" int	svd(int, int, dbl *, dbl *, int *, dbl);
+extern "C" void vectorfprint(FILE*, int, dbl*);
+extern "C" void vectorfscan(FILE*, int, dbl*);
+extern "C" void matrixfprint(FILE*, int, int, dbl*);
+extern "C" void matrixfscan(FILE*, int, int, dbl*);
+extern "C" void matrixprintformat(char*);
+extern "C" int nullspace(int, int, dbl*, dbl*, int*, dbl);
+extern "C" int svd(int, int, dbl*, dbl*, int*, dbl);
 /*
 extern status	IntervalReduction(dbl(), dbl, dbl, dbl *, int, dbl);
 
