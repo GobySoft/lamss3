@@ -16,7 +16,7 @@ IDs below 128 cost one byte on the wire instead of two, so 20–23 are kept for 
 | 20 | `lamss.core.LAMSS_STATUS` | core |
 | 21 | `lamss.core.LAMSS_STATUS_NMEA_SHIP` | core |
 | 22 | `lamss.core.LAMSS_STATUS_NMEA_BUOY` | core |
-| 23 | *free* | |
+| 23 | `lamss.sonar.LAMSS_CONTACT` | sonar |
 | 5120 | `lamss.core.VIEW_POINT` | core |
 | 5121 | `lamss.core.VIEW_POLYGON` | core |
 | 5122 | `lamss.core.VIEW_SEGLIST` | core |
@@ -25,7 +25,7 @@ IDs below 128 cost one byte on the wire instead of two, so 20–23 are kept for 
 | 5125 | `lamss.autonomy.LAMSS_TRANSIT` | autonomy |
 | 5126 | `lamss.autonomy.LAMSS_PROSECUTE` | autonomy |
 | 5127 | `lamss.autonomy.LAMSS_STOVEPIPE` | autonomy |
-| 5128 | `lamss.sonar.LAMSS_CONTACT` | sonar |
+| 5128 | *free* | |
 | 5129 | `lamss.sonar.LAMSS_TRACK` | sonar |
 | 5130 | `lamss.sonar.BTR` | sonar |
 | 5131 | `lamss.sonar.LAMSS_PROCESSING` | sonar |

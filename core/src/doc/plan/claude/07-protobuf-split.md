@@ -115,7 +115,7 @@ Each step is one PR. Step `c` is the Phase 1 exit criterion for protobuf.
 
 *This section written by Claude*
 
-Migration step `e` for the M1 apps: `lamss_autonomy_protobuf`, `lamss_sonar_protobuf` and `lamss_virtual_ocean_protobuf` hold the files those apps include or load by name (sixteen files, one of them in core), imported with their history from `lib_lamss_protobuf`. Their DCCL messages took 5124–5133 in [`DCCL_IDS.md`](../../../lib/protobuf/lamss/DCCL_IDS.md).
+Migration step `e` for the M1 apps: `lamss_autonomy_protobuf`, `lamss_sonar_protobuf` and `lamss_virtual_ocean_protobuf` hold the files those apps include or load by name (sixteen files, one of them in core), imported with their history from `lib_lamss_protobuf`. Their DCCL messages took 5124–5133 in [`DCCL_IDS.md`](../../../lib/protobuf/lamss/DCCL_IDS.md), except `LAMSS_CONTACT`, the contact report sent often from vehicle to topside, which has the one-byte ID 23 (5128 stays free).
 
 | Toolbox | Files | Requires |
 |---|---|---|
