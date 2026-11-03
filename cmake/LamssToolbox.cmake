@@ -12,6 +12,8 @@
 #   lamss_find_ivp(<lib>...)
 #   lamss_add_python(<package_dir>)
 #   lamss_add_pytest(<name> <path> [PYTHONPATH <dirs>...])
+#   lamss_add_mission_test(NAME <name> CRUISE <cruise> [VARIANT <variant>] TEST <file>
+#                          [SET <key=value>...] [WAIT <seconds>] [TIMEOUT <seconds>])
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
 #
@@ -315,6 +317,52 @@ function(lamss_add_pytest name path)
   add_test(NAME ${name}
     COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${_pythonpath} PYTHONDONTWRITEBYTECODE=1
       ${Python3_EXECUTABLE} -m pytest -q -p no:cacheprovider "${_path}")
+endfunction()
+
+# Runs `lamss mission test` on one goby test file. The mission runs from the install prefix, so
+# run it after installing (`lamss build --test` does). The instance is named after the test, so
+# tests of one cruise can run in parallel; ports are picked free unless SET gives port_base.
+function(lamss_add_mission_test)
+  _lamss_require_toolbox(lamss_add_mission_test)
+  cmake_parse_arguments(_A "" "NAME;CRUISE;VARIANT;TEST;WAIT;TIMEOUT" "SET" ${ARGN})
+  foreach(_required NAME CRUISE TEST)
+    if(NOT _A_${_required})
+      message(FATAL_ERROR "lamss_add_mission_test: ${_required} is required")
+    endif()
+  endforeach()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  if(NOT GOBY_EXECUTABLE)
+    find_package(goby 3.6 QUIET)
+  endif()
+  if(GOBY_EXECUTABLE)
+    set(_goby "${GOBY_EXECUTABLE}")
+  else()
+    find_program(LAMSS_GOBY_TOOL goby REQUIRED)
+    set(_goby "${LAMSS_GOBY_TOOL}")
+  endif()
+  # the source tree's lamss.mission when core is part of this build, else the installed one
+  if(IS_DIRECTORY "${LAMSS_CMAKE_DIR}/../core/src/python/lamss/mission")
+    get_filename_component(_pythonpath "${LAMSS_CMAKE_DIR}/../core/src/python" ABSOLUTE)
+  else()
+    set(_pythonpath "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/python3/dist-packages")
+  endif()
+  get_filename_component(_test "${_A_TEST}" ABSOLUTE)
+  if(NOT _A_WAIT)
+    set(_A_WAIT 60)
+  endif()
+  if(NOT _A_TIMEOUT)
+    math(EXPR _A_TIMEOUT "${_A_WAIT} + 240")
+  endif()
+  set(_args ${_A_CRUISE} ${_A_VARIANT} --instance ${_A_NAME} --test-file ${_test} --wait ${_A_WAIT}
+    --goby ${_goby})
+  foreach(_set IN LISTS _A_SET)
+    list(APPEND _args --set ${_set})
+  endforeach()
+  add_test(NAME ${_A_NAME}
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${_pythonpath} PYTHONDONTWRITEBYTECODE=1
+      LAMSS_ROOT=${LAMSS_ROOT} LAMSS_PREFIX=${CMAKE_INSTALL_PREFIX}
+      ${Python3_EXECUTABLE} -m lamss.mission test ${_args})
+  set_tests_properties(${_A_NAME} PROPERTIES TIMEOUT ${_A_TIMEOUT})
 endfunction()
 
 # Test executables are part of lamss_<tb>_all so `lamss build --toolbox <tb> --test` builds them.

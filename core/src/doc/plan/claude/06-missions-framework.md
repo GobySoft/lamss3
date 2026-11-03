@@ -315,6 +315,17 @@ startsecs=2
 
 `priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`: it is `10 × (component index + 1) + process index` in the subsystem's component list, unless a `Process` sets it. Program names are prefixed with the group (supervisord needs them unique), while `process_name` keeps the plain name, so `supervisorctl` shows `macrura_main:gobyd`. supervisord mangles quotes in `environment=`, so variables holding quotes (`GOBY_INTERPROCESS`) go only into `env.sh`. `lamss mission status|stop|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component installs an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role.
 
+## Testing missions
+
+*This section written by Claude*
+
+`lamss mission test <cruise> [variant] [-- <goby test run options>]` checks a running mission with [`goby test`](https://github.com/GobySoft/goby3/blob/3.0/src/doc/markdown/doc010_cli.md#goby-test). A cruise keeps its test files in `test/` beside its class (`core/missions/cruise/example/test/example.yml`); they hold only the `test:` section and name endpoints `<platform>_<subsystem>`. For each file the command generates the mission as instance `<cruise>[_<variant>]_test` with a free block of ports (unless `--set port_base=` is given), writes `build/<instance>/test/mission.yml` with
+
+- one endpoint per subsystem whose component returns settings from `test_endpoint()` (the interprocess component: its gobyd's zeromq settings), and
+- one fixture, `lamss mission sim ... --execute --foreground`, ready on its `all N processes RUNNING` line and stopped with SIGINT,
+
+and a wrapper that includes it and the test file, then runs `goby test run` on the wrapper with `-l` for each installed `liblamss_<tb>_protobuf.so` and `-D` values from the context: `LAMSS_ROOT`, `LAMSS_PREFIX`, `LAMSS_INSTANCE`, `LAMSS_CRUISE`, `LAMSS_RUN`, `CRUISE_<param>`, `PLATFORM_<platform>_<param>` (scalars, dots as `_`), `PORT_<platform>_<subsystem>_<name>`, `RUN_<platform>_<subsystem>` and `LOG_<platform>_<subsystem>`. Its exit status is `goby test`'s (0 pass, 1 fail, 2 could not run). In CMake, `lamss_add_mission_test(NAME <n> CRUISE <c> [VARIANT <v>] TEST <file> [SET k=v...] [WAIT s])` registers one in ctest, using `GOBY_EXECUTABLE` from `find_package(goby)` or `goby` on `PATH`; it runs the installed mission, so it belongs after `install` (as in `lamss build --test`).
+
 ## Runtime (vehicle) deployment
 
 - `lm m run <cruise> --platform macrura --subsystem main` on the payload computer generates into the local `missions/build` and starts supervisord. A `--remote host` option rsyncs the generated directory to the target and runs there, replacing the ad-hoc `payload_ip`/`rsync` plugs.

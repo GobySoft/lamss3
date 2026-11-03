@@ -23,6 +23,8 @@ flowchart LR
 
 The old `DEPENDENCIES` Makefile pulled MOOS and MOOS-IvP from `ppa:tes/lamss-moos10` and `packages.gobysoft.org`. netsim 1.3.0's CI confirms that `libnetsim-dev`/`netsim-apps` and their Goby3/DCCL dependencies are built for noble. netsim also `find_package(MOOS 10)`s, so `libmoos10-dev` for noble exists on the same repository. `libmoos-ivp-dev`/`moos-ivp-apps` for noble exist on the same repository.
 
+lamss3 installs from the `continuous/` channel of `packages.gobysoft.org` (decided): it tracks Goby3's development closely and needs features before they are released (`goby test`, used by the mission tests).
+
 ## `dependencies.yml` files
 
 Format defined in [03](03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep). Expected apt contents, derived from the old `DEPENDENCIES` and the survey ([01](01-source-inventory.md#dependencies-to-carry-forward)):

@@ -7,11 +7,12 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any, Optional, Sequence
 
 import yaml
 
-from . import render, supervisor, workspace
+from . import missiontest, render, supervisor, workspace
 from .errors import MissionError
 from .registry import Registry
 from .resolve import Mission, resolve
@@ -112,7 +113,7 @@ def _generate(args: argparse.Namespace, mode: str, suffix: Optional[str] = None,
     for note in mission.notes:
         print(f"note: {note}", file=sys.stderr)
     layout = _layout(args, mission, suffix)
-    if getattr(args, "func", None) in (cmd_sim, cmd_run) and not args.generate and supervisor.running(layout):
+    if getattr(args, "func", None) in (cmd_sim, cmd_run, cmd_test) and not args.generate and supervisor.running(layout):
         raise MissionError(f"{layout.instance} is already running; `lamss mission stop {layout.instance}` first")
     if not getattr(args, "execute", False):
         render.generate(mission, layout, args.platform, args.subsystem)
@@ -214,6 +215,29 @@ def cmd_tail(args: argparse.Namespace) -> int:
                                     capture=False).returncode
 
 
+def cmd_test(args: argparse.Namespace) -> int:
+    sets = list(args.sets)
+    if not any(s.split("=", 1)[0].strip() in ("port_base", "cruise.port_base") for s in sets):
+        probe = resolve(load_registry(), args.cruise, args.variant, "sim", sets)
+        sets.append(f"port_base={missiontest.free_port_base(missiontest.ports_needed(probe))}")
+    args.generate = False
+    mission, layout = _generate(args, "sim", "test", sets[len(args.sets):])
+    selection = render.select(mission, args.platform, args.subsystem)
+    sim_args = [args.cruise] + ([args.variant] if args.variant else [])
+    for s in sets:
+        sim_args += ["--set", s]
+    for p in args.platform:
+        sim_args += ["--platform", p]
+    for s in args.subsystem:
+        sim_args += ["--subsystem", s]
+    files = [Path(f).resolve() for f in args.test_file] or missiontest.test_files(mission)
+    for f in files:
+        if not f.is_file():
+            raise MissionError(f"no test file {f}")
+    return missiontest.run(mission, layout, selection, files, sim_args, args.wait, args.goby,
+                           args.goby_args)
+
+
 def _selection_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--platform", action="append", default=[], metavar="P",
                         help="only this platform (repeatable)")
@@ -269,6 +293,18 @@ def parser() -> argparse.ArgumentParser:
     _launch_arguments(s)
     s.set_defaults(func=cmd_run)
 
+    s = sub.add_parser("test", help="run the cruise's goby test files against it; "
+                                    "arguments after -- go to `goby test run`",
+                       usage="%(prog)s [options] cruise [variant] [-- goby test run options]")
+    _mission_arguments(s)
+    _selection_arguments(s)
+    s.add_argument("--test-file", action="append", default=[], metavar="FILE",
+                   help="run this test file (repeatable; default: the cruise's test/ directory)")
+    s.add_argument("--wait", type=float, default=60, metavar="SECONDS",
+                   help="how long processes may take to reach RUNNING (default 60)")
+    s.add_argument("--goby", default="goby", help="the goby tool (default: goby on PATH)")
+    s.set_defaults(func=cmd_test, goby_args=[])
+
     s = sub.add_parser("status", help="show the state of every process of the running missions")
     s.add_argument("instance", nargs="?")
     s.set_defaults(func=cmd_status)
@@ -287,7 +323,14 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     p = parser()
+    argv = list(sys.argv[1:] if argv is None else argv)
+    passed: list[str] = []
+    if argv and argv[0] == "test" and "--" in argv:
+        i = argv.index("--")
+        argv, passed = argv[:i], argv[i + 1:]
     args = p.parse_args(argv)
+    if passed:
+        args.goby_args = passed
     if not getattr(args, "func", None):
         p.print_help()
         return 0

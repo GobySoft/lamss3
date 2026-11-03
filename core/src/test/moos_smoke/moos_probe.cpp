@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 #include <MOOS/libMOOS/Comms/MOOSAsyncCommClient.h>
@@ -63,7 +64,8 @@ int main(int argc, char** argv)
 
     MOOS::MOOSAsyncCommClient comms;
     comms.SetQuiet(true);
-    comms.Run("localhost", port, "moos_probe");
+    // MOOSDB refuses a second client with a name already connected
+    comms.Run("localhost", port, ("moos_probe_" + std::to_string(getpid())).c_str());
 
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     while (!comms.IsConnected())
