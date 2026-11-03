@@ -1,0 +1,29 @@
+import "dccl/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
+
+message SonarProcessingCommand { 
+    
+    optional ProcessingObjectiveEnum processing_objective = 3 [default = TARGET];
+    enum ProcessingObjectiveEnum {
+         NOISE = 1;
+         TARGET =2;
+    }
+    optional string filename = 4;
+    optional double transmit_elevation_angle = 5;
+    optional double recordtime = 6;
+    optional double pingtime = 7;
+    optional WaveformEnum waveform = 8;
+    enum WaveformEnum {
+       WAVEFORM_CW = 1;
+       WAVEFORM_FM = 2;
+       }
+    optional double proc_offset = 9;
+    optional double proc_duration = 10;
+    optional double ping_x = 11;
+    optional double ping_y = 12;
+    optional double ping_depth = 13;
+    optional double ping_heading = 14;
+    optional double ping_pitch = 15;
+    optional double ping_speed = 16;
+    optional double sound_speed =17;
+} 

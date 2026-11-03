@@ -1,0 +1,39 @@
+import "dccl/protobuf/option_extensions.proto";
+import "goby/protobuf/option_extensions.proto";
+
+message LAMSS_TRANSIT { 
+	option (dccl.msg).id = 17;
+	option (dccl.msg).max_bytes = 32;
+        option (dccl.msg).codec_version = 4;
+	optional double _time = 1 [(dccl.field).codec="_time", (dccl.field).in_head=true];
+	optional int32 _src_id = 2 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional int32 _rcv_id = 3 [(dccl.field).max=31, (dccl.field).min=0, (dccl.field).in_head=true];
+	optional string MessageType = 4 [default="LAMSS_TRANSIT", (dccl.field).static_value="LAMSS_TRANSIT", (dccl.field).codec="_static"];
+	optional Transit_ModeEnum Transit_Mode = 5 [default=TRANSIT_MODE_DIRECT];
+	enum Transit_ModeEnum{ 
+		 TRANSIT_MODE_DIRECT = 0; 
+		 TRANSIT_MODE_ROUTE = 1; 
+	} 
+	optional double Transit_Depth = 6 [default=5.0, (dccl.field).max=500.0, (dccl.field).min=0.0, (dccl.field).precision=0];
+	optional double Transit_Speed = 7 [default=1.5, (dccl.field).max=3.0, (dccl.field).min=0.0, (dccl.field).precision=1];
+        repeated TransitWPT wpt = 8 [(dccl.field).max_repeat=4];
+        message TransitWPT
+          {
+	    oneof east {
+            	  double x = 1 [(dccl.field).max=20470.000000,
+		                (dccl.field).min=-20470.000000,
+				(dccl.field).precision=-1];
+                  double lon = 51 [(dccl.field).max = 180,
+                                   (dccl.field).min = -180,
+                                   (dccl.field).precision = 4 ];
+	   }
+	   oneof north {
+                  double y = 2 [(dccl.field).max=20470.000000,
+		                (dccl.field).min=-20470.000000,
+				(dccl.field).precision=-1];
+                  double lat = 52 [(dccl.field).max = 90,
+                                   (dccl.field).min = -90,
+                                   (dccl.field).precision = 4 ];
+				   }
+          }
+} 
