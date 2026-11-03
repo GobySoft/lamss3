@@ -1,36 +1,7 @@
-///////////////////////////////////////////////////////////////////////////
-//
-//   MOOS - Mission Oriented Operating Suite
-//
-//   A suit of Applications and Libraries for Mobile Robotics Research
-//   Copyright (C) 2001-2005 Massachusetts Institute of Technology and
-//   Oxford University.
-//
-//   This software was written by Paul Newman at MIT 2001-2002 and Oxford
-//   University 2003-2005. email: pnewman@robots.ox.ac.uk.
-//
-//   This file is part of a  MOOS Utility Component.
-//
-//   This program is free software; you can redistribute it and/or
-//   modify it under the terms of the GNU General Public License as
-//   published by the Free Software Foundation; either version 2 of the
-//   License, or (at your option) any later version.
-//
-//   This program is distributed in the hope that it will be useful,
-//   but WITHOUT ANY WARRANTY; without even the implied warranty of
-//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-//   General Public License for more details.
-//
-//   You should have received a copy of the GNU General Public License
-//   along with this program; if not, write to the Free Software
-//   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-//   02111-1307, USA.
-//
-//////////////////////////    END_GPL    //////////////////////////////////
+// Copyright 2001-2005 Massachusetts Institute of Technology and Oxford University
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-// SixDOFAUV.cpp: implementation of the CSixDOFAUV class.
-//
-//////////////////////////////////////////////////////////////////////
 #ifdef _WIN32
 #pragma warning(disable : 4786)
 #endif
@@ -256,7 +227,7 @@ bool CSixDOFAUV::Initialise()
 //////////////////////////////////////////////////////////////////////
 // Run vehicle dynamic model
 //////////////////////////////////////////////////////////////////////
-bool CSixDOFAUV::Iterate(double dfTimeNow, double dfDT)
+bool CSixDOFAUV::Iterate(double /*dfTimeNow*/, double dfDT)
 {
     DoModel(dfDT);
 
@@ -329,11 +300,9 @@ bool CSixDOFAUV::DoModel(double dfDT)
 //////////////////////////////////////////////////////////////////////
 // Non-linear state-derivative calculations
 //////////////////////////////////////////////////////////////////////
-void CSixDOFAUV::Derivatives(double t, ColumnVector& Zvec, ColumnVector& Zdot)
+void CSixDOFAUV::Derivatives(double /*t*/, ColumnVector& Zvec, ColumnVector& Zdot)
 {
     // LOCAL state components
-    double x = Zvec(1);
-    double y = Zvec(2);
     double z = Zvec(3);
     double pitch = Zvec(4);
     double yaw = Zvec(5);

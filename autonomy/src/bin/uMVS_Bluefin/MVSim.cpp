@@ -1,36 +1,7 @@
-///////////////////////////////////////////////////////////////////////////
-//
-//   MOOS - Mission Oriented Operating Suite
-//
-//   A suit of Applications and Libraries for Mobile Robotics Research
-//   Copyright (C) 2001-2005 Massachusetts Institute of Technology and
-//   Oxford University.
-//
-//   This software was written by Paul Newman at MIT 2001-2002 and Oxford
-//   University 2003-2005. email: pnewman@robots.ox.ac.uk.
-//
-//   This file is part of a  MOOS Utility Component.
-//
-//   This program is free software; you can redistribute it and/or
-//   modify it under the terms of the GNU General Public License as
-//   published by the Free Software Foundation; either version 2 of the
-//   License, or (at your option) any later version.
-//
-//   This program is distributed in the hope that it will be useful,
-//   but WITHOUT ANY WARRANTY; without even the implied warranty of
-//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-//   General Public License for more details.
-//
-//   You should have received a copy of the GNU General Public License
-//   along with this program; if not, write to the Free Software
-//   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-//   02111-1307, USA.
-//
-//////////////////////////    END_GPL    //////////////////////////////////
+// Copyright 2001-2005 Massachusetts Institute of Technology and Oxford University
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-// SimpleAUVSim.cpp: implementation of the CMVSim class.
-//
-//////////////////////////////////////////////////////////////////////
 #include "MVSim.h"
 #include "AcousticResponder.h"
 #include "MBUtils.h"
@@ -279,7 +250,7 @@ bool CMVSim::OnNewMail(MOOSMSG_LIST& NewMail)
         if (rMsg.m_sKey == "GPS_UPDATE_RECEIVED")
         {
             double dummy;
-            if (gps_update = MOOSValFromString(dummy, rMsg.m_sVal, "Timestamp"))
+            if ((gps_update = MOOSValFromString(dummy, rMsg.m_sVal, "Timestamp")))
             {
                 double nav_lon, nav_lat;
                 MOOSValFromString(nav_lat, rMsg.m_sVal, "Latitude");
@@ -731,18 +702,6 @@ void CMVSim::PostResults()
             double dfTowVelX = pAUV->GetTowVelX();
             double dfTowVelY = pAUV->GetTowVelY();
             double dfTowVelZ = pAUV->GetTowVelZ();
-            double dfPos1X = pAUV->GetPos1X();
-            double dfPos1Y = pAUV->GetPos1Y();
-            double dfPos1Z = pAUV->GetPos1Z();
-            double dfPos2X = pAUV->GetPos2X();
-            double dfPos2Y = pAUV->GetPos2Y();
-            double dfPos2Z = pAUV->GetPos2Z();
-            double dfPos3X = pAUV->GetPos3X();
-            double dfPos3Y = pAUV->GetPos3Y();
-            double dfPos3Z = pAUV->GetPos3Z();
-            double dfPos4X = pAUV->GetPos4X();
-            double dfPos4Y = pAUV->GetPos4Y();
-            double dfPos4Z = pAUV->GetPos4Z();
 
             std::string sP = pAUV->m_sOutputPrefix;
 
@@ -954,7 +913,7 @@ bool CMVSim::MakeAUV(std::string sConfig)
         //store it
         m_Entities.push_front(pAUV);
     }
-    catch (CMOOSException e)
+    catch (CMOOSException& e)
     {
         delete pAUV;
         return MOOSFail(e.m_sReason);
@@ -1043,7 +1002,7 @@ bool CMVSim::MakeBeacon(std::string sConfig)
 
         m_Entities.push_front(pBeacon);
     }
-    catch (CMOOSException e)
+    catch (CMOOSException& e)
     {
         delete pBeacon;
         return MOOSFail(e.m_sReason);

@@ -1,3 +1,4 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
 apt:
-  all: []
+  all:
+    - libnewmat10-dev  # uMVS_Bluefin
