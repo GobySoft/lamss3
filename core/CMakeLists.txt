@@ -6,7 +6,11 @@ project(lamss_core CXX)
 include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/LamssToolbox.cmake)
 lamss_toolbox(NAME core)
 
-install(FILES ${LAMSS_CMAKE_DIR}/LamssToolbox.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lamss_core)
+install(FILES
+  ${LAMSS_CMAKE_DIR}/LamssToolbox.cmake
+  ${LAMSS_CMAKE_DIR}/lamss_dccl_test.h
+  ${LAMSS_DCCL_IDS_MD}
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lamss_core)
 
 add_subdirectory(src/lib/protobuf)
 add_subdirectory(src/lib/henrik_util)

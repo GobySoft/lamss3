@@ -1,9 +1,17 @@
-import "dccl/protobuf/option_extensions.proto";
-import "goby/protobuf/option_extensions.proto";
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.sonar;
 
 message LAMSS_SIMULATE_TARGET
 {
-    option (dccl.msg).id = 29;
+    option (dccl.msg).id = 5133;
+    // 32 bytes fit one Micro-Modem rate 0 frame; with a two-byte DCCL ID that
+    // needs tgt_dep in whole metres and tgt_freq in tens of Hz
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).codec_version = 4;
     optional double tgt_utc = 1
@@ -49,7 +57,7 @@ message LAMSS_SIMULATE_TARGET
     optional double tgt_dep = 7 [
         (dccl.field).max = 6000.0,
         (dccl.field).min = 0.0,
-        (dccl.field).precision = 1
+        (dccl.field).precision = 0
     ];
     optional double tgt_hdg = 8 [
         (dccl.field).max = 359,
@@ -64,7 +72,7 @@ message LAMSS_SIMULATE_TARGET
     optional double tgt_freq = 10 [
         (dccl.field).max = 16000,
         (dccl.field).min = 0,
-        (dccl.field).precision = 0
+        (dccl.field).precision = -1
     ];
     optional double tgt_bw = 11 [
         (dccl.field).max = 4000,

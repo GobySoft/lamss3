@@ -1,7 +1,11 @@
-import "dccl/option_extensions.proto";
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
 
 import "goby/protobuf/option_extensions.proto";
-import "goby/acomms/protobuf/mm_driver.proto";
+
+package lamss.virtual_ocean;
 
 message TransmitResponse
 {

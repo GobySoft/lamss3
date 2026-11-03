@@ -130,6 +130,14 @@ jobs:
           condition:
             equal: [core, << parameters.toolbox >>]
           steps:
+            - run:
+                name: Install the toolboxes << parameters.toolbox >> requires
+                # activation listed them before << parameters.toolbox >>, each after its own requirements
+                command: |
+                  for tb in $(grep -v '^#' .lamss/toolboxes | grep -vx '<< parameters.toolbox >>'); do
+                    cmake -S $tb -B build/standalone/$tb -G Ninja -DLAMSS_WERROR=ON
+                    cmake --build build/standalone/$tb --target install
+                  done
             - cmake-build:
                 toolbox: << parameters.toolbox >>
 

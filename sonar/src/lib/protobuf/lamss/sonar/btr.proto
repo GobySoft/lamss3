@@ -1,11 +1,15 @@
-import "dccl/protobuf/option_extensions.proto";
-import "goby/protobuf/option_extensions.proto";
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
 
-package lamss.protobuf;
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.sonar;
 
 message BTR
 {
-    option (dccl.msg).id = 0x1402;
+    option (dccl.msg).id = 5130;
     option (dccl.msg).max_bytes = 64;
     option (dccl.msg).codec_version = 4;
 

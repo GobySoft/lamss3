@@ -1,9 +1,15 @@
-import "dccl/protobuf/option_extensions.proto";
-import "goby/protobuf/option_extensions.proto";
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.autonomy;
 
 message LAMSS_TRANSIT
 {
-    option (dccl.msg).id = 17;
+    option (dccl.msg).id = 5125;
     option (dccl.msg).max_bytes = 32;
     option (dccl.msg).codec_version = 4;
     optional double _time = 1

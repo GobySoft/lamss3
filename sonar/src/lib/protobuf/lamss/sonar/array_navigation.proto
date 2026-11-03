@@ -1,5 +1,9 @@
-import "dccl/protobuf/option_extensions.proto";
-import "goby/protobuf/option_extensions.proto";
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+package lamss.sonar;
 
 message ArrayNavigation
 {

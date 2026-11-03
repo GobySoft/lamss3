@@ -110,6 +110,25 @@ Each step is one PR. Step `c` is the Phase 1 exit criterion for protobuf.
 - lamss3 holds the public DCCL ID blocks 20–23 and 5120–5375 (migration step `d`). The three status messages keep 20–22; the view and environment messages moved to 5120–5123. [`DCCL_IDS.md`](../../../lib/protobuf/lamss/DCCL_IDS.md) is the registry for every toolbox; `lamss_core_protobuf_dccl` loads every core message into one `dccl::Codec` and checks each ID against that table and the blocks.
 - Imports use `dccl/option_extensions.proto` (the `dccl/protobuf/` path is a deprecated forwarder), and unused `goby/protobuf/option_extensions.proto` imports are dropped; only `tagged_acomms.proto` needs Goby (`goby.acomms.protobuf.ModemTransmission`).
 
+## Phase 2 status
+
+*This section written by Claude*
+
+Migration step `e` for the M1 apps: `lamss_autonomy_protobuf`, `lamss_sonar_protobuf` and `lamss_virtual_ocean_protobuf` hold the sixteen files those apps include or load by name, imported with their history from `lib_lamss_protobuf`. Their DCCL messages took 5124–5133 in [`DCCL_IDS.md`](../../../lib/protobuf/lamss/DCCL_IDS.md).
+
+| Toolbox | Files | Requires |
+|---|---|---|
+| autonomy | `deploy`, `transit`, `prosecute`, `stovepipe`, `ixblue_ins_data` | core |
+| sonar | `contact`, `track`, `btr`, `processing`, `pinger`, `targetsim`, `array_navigation`, `beamforming_vars`, `sonar_processing_command`, `active_sonar_parameters` | core, autonomy |
+| virtual_ocean | `modem_sim` | core, autonomy, sonar |
+
+- Files are not merged (`array.proto`, `frontseat.proto` stay one file per old file), as in Phase 1; CamelCase names become snake_case and `lamss_pinger_command` becomes `pinger`.
+- `REQUIRES` follows the M1 apps, not only the proto imports (no proto imports another toolbox's yet): `pLamssCBF` uses `LAMSS_DEPLOY` and `LAMSS_PROSECUTE`; `uSimTargets` and `uSimPassiveSonar` use `LAMSS_SIMULATE_TARGET` and `LAMSS_PINGER_COMMAND`, which the target diagram puts in sonar; `uSimPhinsINS` uses `IXBlueINSData`, which it puts in autonomy. So `virtual_ocean` depends on more than core, against the diagram; the alternative is moving those three messages to core.
+- `IXBlueINSData` keeps its sub-messages (`Header`, `Position`, `Attitude`, ...) nested inside it, so they do not take generic names in `lamss.autonomy`. Its rotation rates use `udunits = "degree/s"`, since the DCCL code generator rejects the old `angle::degree` system with a time dimension.
+- With two-byte IDs, `LAMSS_SIMULATE_TARGET` no longer fit 32 bytes (one Micro-Modem rate 0 frame): `tgt_dep` is now whole metres and `tgt_freq` tens of Hz. The other messages still fit their `max_bytes`.
+- Not ported, as no M1 app uses them: `lamss_enumerates`, `lamss_initial_deploy`, `lamss_surface_deploy`, `lamss_survey_path`, `surface_deploy`, `lamss_sonarcontrol`, `lamss_sonar_contacts`, `lamss_sonar_tracks`, `lamss_mcm_tracks`, `lamss_active_process_control`, `model_param`, ADCP/CTD samples, `hybrid_uuv_frontseat`; `platform_info` (only filled, never published, by `pLamssMissionManager`) goes to attic; ICEX and HydroMAN protos wait for M3 and M2. Today's `pAcommsHandler.plug` also sends `LAMSS_STATUS_FILL_IN` every 30 s (built by `pAcommsHandler` itself from `NAV_*`) and loads `ACOUSTIC_MOOS_POKE`; neither belongs to an M1 app, so whether they stay (in core) or go to attic is decided with the `mbat` acomms templates.
+- Every toolbox's test uses `lamss_add_dccl_test` and `cmake/lamss_dccl_test.h` (installed with core, beside `DCCL_IDS.md`), and also fails when a row of `DCCL_IDS.md` names a message its toolbox does not load.
+
 ## Open questions for the human plan
 
 - No fielded platform needs the old DCCL IDs (decided).
