@@ -1,0 +1,10 @@
+ProcessConfig = uSimGPS
+{
+   AppTick = 1
+   CommsTick = 1
+
+   gps_depth = 2.0
+   gps_interval = 2
+   min_gps_time = 10
+}
+
