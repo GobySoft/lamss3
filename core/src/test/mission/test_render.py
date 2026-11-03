@@ -40,7 +40,9 @@ def generate(root, *args):
     return root / "extra" / "missions" / "build"
 
 
-def test_golden(checkout):
+def test_golden(checkout, monkeypatch):
+    # the socket stays in the run directory however long the temporary path is
+    monkeypatch.setattr(render, "MAX_SOCKET_PATH", 4096)
     out = tree(generate(checkout, "harbor"), checkout)
     if os.environ.get("LAMSS_UPDATE_GOLDEN"):
         shutil.rmtree(EXPECTED, ignore_errors=True)
