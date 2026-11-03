@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <dlfcn.h>
 
@@ -43,9 +42,9 @@ LamssAEL* LamssAEL::get_instance()
 LamssAEL::LamssAEL(LamssAELConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
+      new_origin_(false),
       nav_count_(0),
       filt_set_(false),
-      new_origin_(false),
       got_nav_(false)
 {
     set_ignore_stale(false);
@@ -234,13 +233,13 @@ ArrayNavigation LamssAEL::computeAEL()
             glog.is(DEBUG1) && glog << "looking back" << time_ago << " seconds" << std::endl;
             // First prune nav record to include nav at array offset point
             std::vector<Nav> nav_buf;
-            for (int i = 0; i < nav_hist.size(); i++)
+            for (int i = 0; i < (int)nav_hist.size(); i++)
             {
                 if (curr_time - time_ago < nav_hist[i].nav_utc)
                 {
                     glog.is(DEBUG1) && glog << "Pruning nav older than " << time_ago << "seconds"
                                             << std::endl;
-                    for (int j = i; j < nav_hist.size(); j++) nav_buf.push_back(nav_hist[j]);
+                    for (int j = i; j < (int)nav_hist.size(); j++) nav_buf.push_back(nav_hist[j]);
                     nav_hist = nav_buf;
                     glog.is(DEBUG1) && glog << "nav record length " << nav_hist.size() << std::endl;
                     // now take oldest and use as ael

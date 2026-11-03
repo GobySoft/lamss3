@@ -1,7 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LamssAEL20151221H
 #define LamssAEL20151221H
@@ -13,10 +11,15 @@
 #include "goby/middleware/frontseat/bluefin/bluefin.pb.h"
 #include "goby/middleware/protobuf/frontseat.pb.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "lamss/lib_henrik_util/CMeasAvg.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
 
 #include "LamssAEL_config.pb.h"
-#include "lamss/lib_lamss_protobuf/ArrayNavigation.pb.h"
+#include "lamss/sonar/array_navigation.pb.h"
+
+using lamss::core::CAngleAvg;
+using lamss::core::CRadianAvg;
+using lamss::sonar::ArrayNavigation;
+using lamss::sonar::LamssAELConfig;
 
 class AELException : public std::runtime_error
 {
