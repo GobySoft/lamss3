@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LamssBearingTracker20171117H
 #define LamssBearingTracker20171117H
@@ -8,8 +7,8 @@
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
 
-#include "lamss/lib_newmat10D/newmatap.h"
 #include "math.h"
+#include "newmat/newmatap.h"
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -24,18 +23,22 @@
 #include "LamssBearingTracker_config.pb.h"
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/CTrack.h>
+#include "lamss/sonar/henrik_util/CTrack.h"
 // Lamss protobuf messages
-#include "lamss/lib_lamss_protobuf/ArrayNavigation.pb.h"
-#include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
+#include "lamss/sonar/array_navigation.pb.h"
+#include "lamss/sonar/beamforming_vars.pb.h"
 
 #define NO_TRACK 0
 #define LR_TRACK 1
 #define TRACKING 2
 #define MAX_PREVIEW 512
 
-//using namespace NEWMAT;
+using namespace NEWMAT;
 using namespace std;
+using lamss::sonar::ArrayNavigation;
+using lamss::sonar::BeamformingVars;
+using lamss::sonar::CTrack;
+using lamss::sonar::LamssBearingTrackerConfig;
 
 class TargetsException : public std::runtime_error
 {

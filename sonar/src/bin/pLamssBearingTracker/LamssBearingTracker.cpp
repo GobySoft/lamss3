@@ -1,7 +1,6 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
-// goby::moos::GobyMOOSApp Version of pBearingTracker
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 /*--------------------------------------------------------------------------
 
 File:        pBearingTracker.cpp
@@ -35,7 +34,6 @@ Revisions:   JPI/DHG/SAIC 2006/07/06 Accomdate new VSA
 #include "goby/util/debug_logger.h"
 
 #include "LamssBearingTracker.h"
-#include "lamss/lib_anrp_util/sliva_parse.h"
 
 #define SAIC_DEBUG 0
 
@@ -81,30 +79,30 @@ LamssBearingTracker* LamssBearingTracker::get_instance()
 LamssBearingTracker::LamssBearingTracker(LamssBearingTrackerConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
+      last_slow_loop_t_(0),
       new_btr(false),
       new_cosines(false),
       new_sampling(false),
-      ael_pitch_(0.0),
-      det_count(0),
-      lrcount(0),
-      sonar_on(false),
-      processing_on(false),
-      tracking(true),
-      noise_var_set(false),
-      dcount(0),
-      detect_mode(false),
-      prosecute_mode(1),
-      bbb(0),
-      thethat1(0),
-      thethat1n(0),
-      IPS(-100),
-      overiter(0),
       got_heading(false),
       got_pitch(false),
       got_beamforming_vars(false),
-      ambiguous(false),
       initialized(false),
-      last_slow_loop_t_(0)
+      ael_pitch_(0.0),
+      ambiguous(false),
+      thethat1n(0),
+      thethat1(0),
+      IPS(-100),
+      det_count(0),
+      lrcount(0),
+      bbb(0),
+      overiter(0),
+      tracking(true),
+      noise_var_set(false),
+      sonar_on(false),
+      processing_on(false),
+      detect_mode(false),
+      dcount(0),
+      prosecute_mode(1)
 {
     set_ignore_stale(false);
 
@@ -360,10 +358,6 @@ void LamssBearingTracker::slow_loop(double curr_time)
 
 bool LamssBearingTracker::initialize()
 {
-    bool silent = true;
-    double freq, temp;
-    int k, z, m;
-
     //beam tracking constants
     //calculate a bunch of constants
 
@@ -457,7 +451,6 @@ bool LamssBearingTracker::Process_Data()
                 if (!Track_Bearing())
                 {
                     string msg;
-                    char buff[200];
                     reset_tracking();
                     IPS = -100;
                 }
@@ -466,7 +459,6 @@ bool LamssBearingTracker::Process_Data()
         else
         {
             string msg;
-            char buff[200];
             if (IPS >= -1)
             {
                 reset_tracking();
@@ -636,7 +628,7 @@ bool LamssBearingTracker::Track_Bearing()
             endfire = 1;
             DEN_SV = 0;
         }
-        else if (beam_no = num_beams)
+        else if ((beam_no = num_beams))
         {
             glog.is(DEBUG2) && glog << "Debug 0 => endfire" << std::endl;
             endfire = -1;
@@ -955,7 +947,6 @@ int LamssBearingTracker::track_lr()
     enfidx = (int)floor(lridx * 1.5);
 
     string msg;
-    char buff[200];
     double ambig_angle = acos(Beam_cosines[maxidx]) * 180.0 / M_PI;
 
     class_features.clear();
@@ -1060,7 +1051,7 @@ bool LamssBearingTracker::detection()
         else if (detector_type == 1)
         {
             glog.is(DEBUG2) && glog << "In Detector Type 1 " << std::endl;
-            int idum = asort(num_beams, P, P_indx, P_sorted, P_indx_sorted);
+            asort(num_beams, P, P_indx, P_sorted, P_indx_sorted);
 
             for (i = detector_first_bin; i <= (detector_first_bin + detector_num_bins - 1); i++)
                 mean_sum += P_sorted[i];
@@ -1088,7 +1079,7 @@ bool LamssBearingTracker::detection()
         else //if (detector_type==2)
         {
             glog.is(DEBUG2) && glog << "In Detector Type 2 " << std::endl;
-            int idum = asort(num_beams, P, P_indx, P_sorted, P_indx_sorted);
+            asort(num_beams, P, P_indx, P_sorted, P_indx_sorted);
             mean_sum = 0.0;
             for (i = detector_first_bin; i <= (detector_first_bin + detector_num_bins - 1); i++)
                 mean_sum += P_sorted[i];
@@ -1432,7 +1423,7 @@ int LamssBearingTracker::str2dbl_vec(string msg, vector<double>& values)
 bool LamssBearingTracker::dbl_vec2str(vector<double> numbers, string& output)
 {
     output = "";
-    for (int i = 0; i < numbers.size(); i++)
+    for (int i = 0; i < (int)numbers.size(); i++)
     {
         if (i > 0)
             output += ",";
