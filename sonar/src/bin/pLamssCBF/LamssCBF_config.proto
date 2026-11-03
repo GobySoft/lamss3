@@ -1,6 +1,12 @@
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
 
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
+
+package lamss.sonar;
 
 message LamssCBFConfig
 {
@@ -15,7 +21,6 @@ message LamssCBFConfig
         VSA = 1;
         DURIP = 2;
         HYD = 3;
-        SLITA = 4;
         SINGLE = 5;
         DUAL = 6;
         TEE = 7;

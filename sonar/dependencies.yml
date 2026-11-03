@@ -1,4 +1,5 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
 apt:
   all:
+    - libboost-thread-dev
     - libnewmat10-dev

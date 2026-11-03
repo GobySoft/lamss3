@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LAMSSCBF_FSM20151106H
 #define LAMSSCBF_FSM20151106H
@@ -29,14 +28,14 @@
 
 #include "LamssCBF_config.pb.h"
 //#include "lamss/lib_lamss_protobuf/lamss_status.pb.h"
-//#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h" // DCCL message
-//#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h" // DCCL message
+//#include "lamss/autonomy/deploy.pb.h" // DCCL message
+//#include "lamss/autonomy/prosecute.pb.h" // DCCL message
 //#include "lamss/lib_lamss_protobuf/lamss_contact.pb.h" // DCCL message
 //#include "lamss/lib_lamss_protobuf/lamss_track.pb.h" // DCCL message
 
 namespace lamss
 {
-namespace shared
+namespace sonar
 {
 namespace fsm
 {
@@ -202,7 +201,7 @@ struct Tones : boost::statechart::simple_state<Tones, Processing>,
 };
 
 } // namespace fsm
-} // namespace shared
+} // namespace sonar
 } // namespace lamss
 
 #endif

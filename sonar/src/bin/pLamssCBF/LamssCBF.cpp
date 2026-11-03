@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <dlfcn.h>
 
@@ -15,9 +14,8 @@
 #include "LamssCBF.h"
 
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "lamss/lib_anrp_util/sliva_parse.h"
 
-using namespace lamss::shared::fsm;
+using namespace lamss::sonar::fsm;
 using namespace goby::util::logger;
 using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
@@ -35,8 +33,8 @@ LamssCBF* LamssCBF::get_instance()
 {
     if (!inst_)
     {
-        lamss::shared::fsm::cfg_.reset(new LamssCBFConfig);
-        inst_ = new LamssCBF(*lamss::shared::fsm::cfg_);
+        lamss::sonar::fsm::cfg_.reset(new LamssCBFConfig);
+        inst_ = new LamssCBF(*lamss::sonar::fsm::cfg_);
     }
     return inst_;
 }
@@ -46,21 +44,21 @@ LamssCBF::LamssCBF(LamssCBFConfig& cfg)
       cfg_(cfg),
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssCBFFSM>()),
+      last_slow_loop_t_(0),
+      prev_steering_pitch_(0),
+      filt_set_(false),
+      got_pitch_(false),
+      filter_length_(15),
       sonar_on_(false),
       processing_on_(false),
+      got_filename_(false),
       frame_number_(0),
       buff_index_(0),
       end_data_(0),
       num_blocks_integrated_(0),
       num_files_processed_(0),
-      got_filename_(false),
       sound_speed_(cfg_.sound_speed()),
-      homing_mode_active_(false),
-      filter_length_(15),
-      filt_set_(false),
-      got_pitch_(false),
-      prev_steering_pitch_(0),
-      last_slow_loop_t_(0)
+      homing_mode_active_(false)
 {
     goby::glog.set_lock_action(goby::util::logger_lock::lock);
     goby::glog.add_group("fsm", goby::util::Colors::lt_magenta);
@@ -483,7 +481,6 @@ void LamssCBF::array_configuration()
     {
         vector<double> spacings;
         spacings.push_back(0.0); //why is this here? Because #sensors = #spacings+1. HS
-        double spac;
         if (curr_cfg_.number_spacing_groups() > 0)
         {
             for (int i = 0; i < curr_cfg_.number_spacings_group_1(); i++)
@@ -745,8 +742,7 @@ bool LamssCBF::generate_spatial_window()
         for (int k = 1; k <= num_elements_used_; k++)
             win_spatial(k) = win_spatial_temp(array_elements_used[k]);
     }
-    else if (curr_cfg_.array_type() == LamssCBFConfig::SLITA ||
-             curr_cfg_.array_type() == LamssCBFConfig::HYD ||
+    else if (curr_cfg_.array_type() == LamssCBFConfig::HYD ||
              curr_cfg_.array_type() == LamssCBFConfig::DURIP ||
              curr_cfg_.array_type() == LamssCBFConfig::VSA)
     {
@@ -1091,7 +1087,7 @@ void LamssCBF::compute_steering_vectors()
     double pitch = pitch_filter.getAvg();
     glog.is(DEBUG1) && glog << "Seeking Steering Vectors, pitch = " << pitch
                             << ", ssp = " << sound_speed_ << std::endl;
-    while (iter < SteeringVectors.size() && !got_it)
+    while (iter < (int)SteeringVectors.size() && !got_it)
     {
         got_it = SteeringVectors[iter].get(pitch, sound_speed_, steering_vector_real,
                                            steering_vector_imag);
@@ -1283,131 +1279,99 @@ bool LamssCBF::LoadData(std::string filename)
         end_data_ = curr_cfg_.number_samples();
     }
 
-    if (curr_cfg_.array_type() == LamssCBFConfig::SLITA)
+    //open sample file
+    if ((fp = fopen(fnamechar, "rb")) == NULL)
     {
-        glog.is(DEBUG2) && glog << "Reading SLITA File" << std::endl;
-        SlivaReader* sr;
-        try
-        {
-            sr = new SlivaReader(filename);
-        }
-        catch (const exception& e)
-        {
-            glog.is(DEBUG1) && glog << "Couldn't load SLITA file " << filename << std::endl;
-            return false;
-        }
+        glog.is(DEBUG1) && glog << "Could not open sample file " << filename << std::endl;
+        return false;
+    }
 
-        glog.is(DEBUG2) && glog << "Sample rate " << intToString(sr->fs) << ", ch sz "
-                                << intToString(sr->channel_data[1].size()) << std::endl;
-
+    // signals from all channels
+    if (curr_cfg_.array_type() == LamssCBFConfig::VSA ||
+        curr_cfg_.array_type() == LamssCBFConfig::DURIP ||
+        curr_cfg_.array_type() == LamssCBFConfig::HYD)
+    {
+        temp_data = new float[curr_cfg_.number_samples()];
         for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
         {
+            fread(temp_data, sizeof(float), curr_cfg_.number_samples(), fp);
             for (int jj = leftover; jj < end_data_; jj++)
             {
-                Array_Data(jj + 1, kk + 1) = (float)sr->channel_data[kk + 1][jj - leftover].data;
+                Array_Data(jj + 1, kk + 1) = temp_data[jj - leftover];
             }
         }
-
-        delete sr;
-
-        glog.is(DEBUG2) && glog << "Done Reading SLITA File" << std::endl;
+        delete[] temp_data;
     }
-    else
+    else if (curr_cfg_.array_type() == LamssCBFConfig::SINGLE ||
+             curr_cfg_.array_type() == LamssCBFConfig::DUAL ||
+             curr_cfg_.array_type() == LamssCBFConfig::TEE)
     {
-        //open sample file
-        if ((fp = fopen(fnamechar, "rb")) == NULL)
+        temp_int = new short[curr_cfg_.number_samples()];
+        //read the two timetags out of the file
+        fread(&time0, sizeof(int), 1, fp);
+        fread(&time1, sizeof(int), 1, fp);
+        for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
         {
-            glog.is(DEBUG1) && glog << "Could not open sample file " << filename << std::endl;
-            return false;
-        }
-
-        // signals from all channels
-        if (curr_cfg_.array_type() == LamssCBFConfig::VSA ||
-            curr_cfg_.array_type() == LamssCBFConfig::DURIP ||
-            curr_cfg_.array_type() == LamssCBFConfig::HYD)
-        {
-            temp_data = new float[curr_cfg_.number_samples()];
-            for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
-            {
-                fread(temp_data, sizeof(float), curr_cfg_.number_samples(), fp);
-                for (int jj = leftover; jj < end_data_; jj++)
-                {
-                    Array_Data(jj + 1, kk + 1) = temp_data[jj - leftover];
-                }
-            }
-            delete[] temp_data;
-        }
-        else if (curr_cfg_.array_type() == LamssCBFConfig::SINGLE ||
-                 curr_cfg_.array_type() == LamssCBFConfig::DUAL ||
-                 curr_cfg_.array_type() == LamssCBFConfig::TEE)
-        {
-            temp_int = new short[curr_cfg_.number_samples()];
-            //read the two timetags out of the file
-            fread(&time0, sizeof(int), 1, fp);
-            fread(&time1, sizeof(int), 1, fp);
-            for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
-            {
-                fread(temp_int, sizeof(short), curr_cfg_.number_samples(), fp);
-                for (int jj = leftover; jj < end_data_; jj++)
-                {
-                    Array_Data(jj + 1, kk + 1) = temp_int[jj - leftover];
-                }
-            }
-            delete[] temp_int;
-        }
-
-        fclose(fp);
-
-        glog.is(DEBUG2) && glog << "Done reading sample file " << filename << std::endl;
-
-        // F. Baralli Data file is cancelled after reading to save disk space
-        //	if(bDelFileAfterProc==true)
-        //	{
-        //		int iRet = 0;
-        //		string sTmp = "rm ";
-        //
-        //		sTmp.append(fnamechar, strlen(fnamechar));
-        //		iRet = system(sTmp.c_str());
-        //		if(iRet==0)
-        //			MOOSTrace("Data file %s cancelled\n",fnamechar);
-        //		else
-        //			MOOSTrace("Failed cancelling %s data file\n",fnamechar);
-        //	}
-        //	End F. Baralli
-
-        // Following code added by K. Cockrell on Aug 6 2008,
-        // to eliminate bad DURIP array data.
-        // When data is bad, many consecutive zeros occur on all channels at once,
-        // preceded by a large spike.
-        // So here, we'll choose a arbitrary channel, and if we find consecutive zeros,
-        // then we'll output a moos variable letting us know it is bad,
-        // and replace the spike. This code only runs if
-        // def_check_for_consec_zeros is set to true in the .moos file
-        if (curr_cfg_.check_consecutive_zeros())
-        {
-            // Choose an arbitrary channel to look for consecutive zeros.
-            int arb_channel = 1;
-            int cons_zero = 0;
-            int max_zeros = 10;
-            // Loop through each time sample on channel arb_channel looking
-            // for consecutive zeros.
-            // AJP Changed "leftover + 1" to "leftover", 26 NOV 2010
+            fread(temp_int, sizeof(short), curr_cfg_.number_samples(), fp);
             for (int jj = leftover; jj < end_data_; jj++)
             {
-                if (Array_Data(jj + 1, arb_channel) == 0)
-                    cons_zero = cons_zero + 1;
-                else
-                    cons_zero = 0;
+                Array_Data(jj + 1, kk + 1) = temp_int[jj - leftover];
+            }
+        }
+        delete[] temp_int;
+    }
 
-                if (cons_zero > 10)
-                {
-                    glog.is(DEBUG1) && glog << "Warning: Acoustic data contains more "
-                                            << "than 10 consecutive zeros" << std::endl;
-                    jj = end_data_; // If we have lots of zeros, then just stop checking.
-                }
+    fclose(fp);
+
+    glog.is(DEBUG2) && glog << "Done reading sample file " << filename << std::endl;
+
+    // F. Baralli Data file is cancelled after reading to save disk space
+    //	if(bDelFileAfterProc==true)
+    //	{
+    //		int iRet = 0;
+    //		string sTmp = "rm ";
+    //
+    //		sTmp.append(fnamechar, strlen(fnamechar));
+    //		iRet = system(sTmp.c_str());
+    //		if(iRet==0)
+    //			MOOSTrace("Data file %s cancelled\n",fnamechar);
+    //		else
+    //			MOOSTrace("Failed cancelling %s data file\n",fnamechar);
+    //	}
+    //	End F. Baralli
+
+    // Following code added by K. Cockrell on Aug 6 2008,
+    // to eliminate bad DURIP array data.
+    // When data is bad, many consecutive zeros occur on all channels at once,
+    // preceded by a large spike.
+    // So here, we'll choose a arbitrary channel, and if we find consecutive zeros,
+    // then we'll output a moos variable letting us know it is bad,
+    // and replace the spike. This code only runs if
+    // def_check_for_consec_zeros is set to true in the .moos file
+    if (curr_cfg_.check_consecutive_zeros())
+    {
+        // Choose an arbitrary channel to look for consecutive zeros.
+        int arb_channel = 1;
+        int cons_zero = 0;
+        // Loop through each time sample on channel arb_channel looking
+        // for consecutive zeros.
+        // AJP Changed "leftover + 1" to "leftover", 26 NOV 2010
+        for (int jj = leftover; jj < end_data_; jj++)
+        {
+            if (Array_Data(jj + 1, arb_channel) == 0)
+                cons_zero = cons_zero + 1;
+            else
+                cons_zero = 0;
+
+            if (cons_zero > 10)
+            {
+                glog.is(DEBUG1) && glog << "Warning: Acoustic data contains more "
+                                        << "than 10 consecutive zeros" << std::endl;
+                jj = end_data_; // If we have lots of zeros, then just stop checking.
             }
         }
     }
+
     glog.is(DEBUG2) && glog << "Done with LoadData" << std::endl;
 
     return true;
@@ -1422,17 +1386,6 @@ bool LamssCBF::LoadData(std::string filename)
 //***************************************************************************
 bool LamssCBF::Process_Data()
 {
-    int n = 0;
-    int n_max = 0;
-    bool timing = false;
-    bool detect_flag;
-    char bpwr_file[70];
-    char buff1[50 * curr_cfg_.number_beams()];
-    char buff1_max[50 * curr_cfg_.number_beams()];
-    char cc[30];
-    char cc_max[30];
-    char* dd;
-    char* dd_max;
     std::string stft_file = sonar_basename_ + ".stft";
     ;
 
@@ -1440,13 +1393,9 @@ bool LamssCBF::Process_Data()
 
     Real P_real, P_imag, temp2;
     ColumnVector s_real, s_imag;
-    double elapsed;
-    double maxsum = 0;
 
     int w = 0;
     int z = 0;
-
-    double pitch = pitch_filter.getAvg();
 
     buff_index_ = 0;
 
@@ -1525,13 +1474,11 @@ bool LamssCBF::Process_Data()
         if (num_blocks_integrated_ == int_blocks_)
         {
             double max_power = 0;
-            bool nan_in_BTR = false;
-            double best_ang = 0;
             string P_string_dB = "";
             string P_string_linear = "";
             BTRPower btr_power;
             BTRPower::ArrayBeam* array_beam = 0;
-            lamss::protobuf::BTR btr_msg;
+            lamss::sonar::BTR btr_msg;
             std::string serialized;
             if (curr_cfg_.angular_steering_type() == LamssCBFConfig::ARRAY_ANGLE)
                 btr_msg.set_ambiguous(true);
@@ -1557,8 +1504,6 @@ bool LamssCBF::Process_Data()
                     {
                         max_power = tk;
                     }
-                    if (isnan(tk))
-                        nan_in_BTR = true;
                     if (tk > max_power)
                         max_power = tk;
                     P_string_linear += doubleToString(tk);
@@ -1592,7 +1537,7 @@ bool LamssCBF::Process_Data()
             else
                 db_msg = beam_power_db;
 
-            for (int i = 0; i < db_msg.size(); i++) btr_msg.add_beam_power_db(db_msg[i]);
+            for (int i = 0; i < (int)db_msg.size(); i++) btr_msg.add_beam_power_db(db_msg[i]);
             serialize_for_moos(&serialized, btr_msg);
             publish("BTR_DATA_DB", serialized);
             btr_power.set_utc_time(MOOSTime() -
@@ -1928,7 +1873,7 @@ int LamssCBF::str2dbl_vec(std::string msg, std::vector<double>& values)
 bool LamssCBF::dbl_vec2str(std::vector<double> numbers, std::string& output)
 {
     output = "";
-    for (int i = 0; i < numbers.size(); i++)
+    for (int i = 0; i < (int)numbers.size(); i++)
     {
         if (i > 0)
             output += ",";

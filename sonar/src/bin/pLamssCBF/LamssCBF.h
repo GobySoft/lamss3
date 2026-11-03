@@ -1,7 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LamssCBF20150402H
 #define LamssCBF20150402H
@@ -10,19 +8,32 @@
 #include "MBUtils.h"
 #include "boost/multi_array.hpp"
 #include "goby/moos/goby_moos_app.h"
-#include "lamss/lib_newmat10D/newmatap.h"
+#include "newmat/newmatap.h"
 #include <boost/circular_buffer.hpp>
 
-#include "lamss/lib_henrik_util/CMeasAvg.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_lamss_protobuf/lamss_btr.pb.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
+#include "lamss/sonar/btr.pb.h"
 
-#include "lamss/lib_lamss_protobuf/ActiveSonarParameters.pb.h"
-#include "lamss/lib_lamss_protobuf/BeamformingVars.pb.h"
-#include "lamss/lib_lamss_protobuf/SonarProcessingCommand.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_deploy.pb.h"     // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_processing.pb.h" // DCCL message
-#include "lamss/lib_lamss_protobuf/lamss_prosecute.pb.h"  // DCCL message
+#include "lamss/autonomy/deploy.pb.h"    // DCCL message
+#include "lamss/autonomy/prosecute.pb.h" // DCCL message
+#include "lamss/sonar/active_sonar_parameters.pb.h"
+#include "lamss/sonar/beamforming_vars.pb.h"
+#include "lamss/sonar/processing.pb.h" // DCCL message
+#include "lamss/sonar/sonar_processing_command.pb.h"
+
+using namespace NEWMAT;
+using lamss::autonomy::LAMSS_DEPLOY;
+using lamss::autonomy::LAMSS_PROSECUTE;
+using lamss::core::CAngleAvg;
+using lamss::core::CmyVectorUtils;
+using lamss::core::CRadianAvg;
+using lamss::sonar::ActiveSonarParameters;
+using lamss::sonar::BeamformingVars;
+using lamss::sonar::BTRPower;
+using lamss::sonar::LAMSS_PROCESSING;
+using lamss::sonar::LamssCBFConfig;
+using lamss::sonar::SonarProcessingCommand;
 
 class CBFException : public std::runtime_error
 {
