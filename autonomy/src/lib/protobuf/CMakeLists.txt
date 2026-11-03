@@ -4,7 +4,6 @@
 lamss_add_proto(protobuf
   PROTOS
     lamss/autonomy/deploy.proto
-    lamss/autonomy/ixblue_ins_data.proto
     lamss/autonomy/prosecute.proto
     lamss/autonomy/stovepipe.proto
     lamss/autonomy/transit.proto)

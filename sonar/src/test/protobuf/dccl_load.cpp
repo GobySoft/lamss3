@@ -15,10 +15,8 @@
 #include "lamss/sonar/beamforming_vars.pb.h"
 #include "lamss/sonar/btr.pb.h"
 #include "lamss/sonar/contact.pb.h"
-#include "lamss/sonar/pinger.pb.h"
 #include "lamss/sonar/processing.pb.h"
 #include "lamss/sonar/sonar_processing_command.pb.h"
-#include "lamss/sonar/targetsim.pb.h"
 #include "lamss/sonar/track.pb.h"
 #include "lamss_dccl_test.h"
 
@@ -39,10 +37,8 @@ int main()
              lamss::sonar::BeamformingVars::descriptor(),
              lamss::sonar::BTR::descriptor(),
              lamss::sonar::LAMSS_CONTACT::descriptor(),
-             lamss::sonar::LAMSS_PINGER_COMMAND::descriptor(),
              lamss::sonar::LAMSS_PROCESSING::descriptor(),
              lamss::sonar::SonarProcessingCommand::descriptor(),
-             lamss::sonar::LAMSS_SIMULATE_TARGET::descriptor(),
              lamss::sonar::LAMSS_TRACK::descriptor(),
          })
         check.load_file(desc->file());

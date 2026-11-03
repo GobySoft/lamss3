@@ -5,7 +5,6 @@
 // DCCL_IDS.md (see lamss_dccl_test.h), then round-trips a LAMSS_DEPLOY to check the encoding end to end.
 
 #include "lamss/autonomy/deploy.pb.h"
-#include "lamss/autonomy/ixblue_ins_data.pb.h"
 #include "lamss/autonomy/prosecute.pb.h"
 #include "lamss/autonomy/stovepipe.pb.h"
 #include "lamss/autonomy/transit.pb.h"
@@ -30,7 +29,6 @@ int main()
              lamss::core::VIEW_POLYGON::descriptor(),
              lamss::core::VIEW_SEGLIST::descriptor(),
              lamss::autonomy::LAMSS_DEPLOY::descriptor(),
-             lamss::autonomy::IXBlueINSData::descriptor(),
              lamss::autonomy::LAMSS_PROSECUTE::descriptor(),
              lamss::autonomy::LAMSS_STOVEPIPE::descriptor(),
              lamss::autonomy::LAMSS_TRANSIT::descriptor(),

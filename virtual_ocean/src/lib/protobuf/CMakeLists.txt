@@ -3,4 +3,6 @@
 
 lamss_add_proto(protobuf
   PROTOS
-    lamss/virtual_ocean/modem_sim.proto)
+    lamss/virtual_ocean/modem_sim.proto
+    lamss/virtual_ocean/pinger.proto
+    lamss/virtual_ocean/targetsim.proto)

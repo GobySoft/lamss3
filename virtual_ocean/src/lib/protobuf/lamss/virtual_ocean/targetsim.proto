@@ -5,7 +5,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 
-package lamss.sonar;
+package lamss.virtual_ocean;
 
 message LAMSS_SIMULATE_TARGET
 {

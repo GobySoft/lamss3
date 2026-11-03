@@ -29,5 +29,5 @@ IDs below 128 cost one byte on the wire instead of two, so 20–23 are kept for 
 | 5129 | `lamss.sonar.LAMSS_TRACK` | sonar |
 | 5130 | `lamss.sonar.BTR` | sonar |
 | 5131 | `lamss.sonar.LAMSS_PROCESSING` | sonar |
-| 5132 | `lamss.sonar.LAMSS_PINGER_COMMAND` | sonar |
-| 5133 | `lamss.sonar.LAMSS_SIMULATE_TARGET` | sonar |
+| 5132 | `lamss.virtual_ocean.LAMSS_PINGER_COMMAND` | virtual_ocean |
+| 5133 | `lamss.virtual_ocean.LAMSS_SIMULATE_TARGET` | virtual_ocean |

@@ -8,7 +8,7 @@ if(NOT _in_tree)
   find_package(lamss_core REQUIRED)
   include(LamssToolbox)
 endif()
-lamss_toolbox(NAME virtual_ocean REQUIRES core autonomy sonar)
+lamss_toolbox(NAME virtual_ocean REQUIRES core)
 
 add_subdirectory(src/lib/protobuf)
 if(BUILD_TESTING)

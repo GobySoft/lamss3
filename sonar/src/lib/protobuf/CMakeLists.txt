@@ -8,8 +8,6 @@ lamss_add_proto(protobuf
     lamss/sonar/beamforming_vars.proto
     lamss/sonar/btr.proto
     lamss/sonar/contact.proto
-    lamss/sonar/pinger.proto
     lamss/sonar/processing.proto
     lamss/sonar/sonar_processing_command.proto
-    lamss/sonar/targetsim.proto
     lamss/sonar/track.proto)
