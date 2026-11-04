@@ -352,6 +352,10 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 
 Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (`supervisord -c ... -n` dry parse).
 
+*This section written by Claude*
+
+Status: steps 1–3 are built, and step 4 without the MBAT content: `core/missions/` has the `interprocess` (gobyd, MOOSDB, `lamss_goby_moos_gateway`; `moos: false` drops the last two), `logging` (goby_logger), `health` (goby_coroner, expecting each process created with `health=True`) and `view_message` (pViewMessage) components, the `auv`, `topside` and `mooring` platforms, a `synthetic` environment and an `example` cruise (`example_fleet`: one topside) whose `test/example.yml` checks `gobyd`, `goby_logger`, `goby_coroner` and `goby_moos_gateway` are healthy and that a `NODE_REPORT` makes the round trip Goby → gateway → MOOS → gateway → Goby. ctest runs it (`lamss_core_mission_example`), and the `mission` CI job runs `lamss mission sim|status|test|stop example`. The shared Goby templates include `app.pb.cfg.j2` (glog verbosity, sim time when `warp` ≠ 1, interprocess block). `gui/missions/component/viewer` adds goby_liaison and, when it is installed and a display is set (or `marine_viewer: true`), pMarineViewer; the topside lists it as `optional("viewer")`. Not built yet: pLogger, the supervisord event listener for process health (goby_coroner covers the Goby apps meanwhile), `lamss mission install-service`, `freeze`, `--remote`.
+
 ## Open questions for the human plan
 
 - Context is a plain dict (decided), dumped to `context.yaml` for debugging.

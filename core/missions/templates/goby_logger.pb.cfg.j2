@@ -1,0 +1,8 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{% include "app.pb.cfg.j2" %}
+log_dir: {{ paths.log | pb_string }}
+group_regex: {{ component.logging.group_regex | pb_string }}
+type_regex: {{ component.logging.type_regex | pb_string }}
+{%- for lib in paths.proto_libs %}
+load_shared_library: {{ lib | pb_string }}
+{%- endfor %}

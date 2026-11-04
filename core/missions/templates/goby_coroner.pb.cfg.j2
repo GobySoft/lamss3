@@ -1,0 +1,8 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{% include "app.pb.cfg.j2" %}
+{%- for name in component.health.expected %}
+expected_name: {{ name | pb_string }}
+{%- endfor %}
+request_interval: {{ component.health.request_interval }}
+response_timeout: {{ component.health.response_timeout }}
+auto_add_new_apps: true

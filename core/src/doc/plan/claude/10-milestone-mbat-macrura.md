@@ -68,6 +68,11 @@ flowchart LR
 ```
 
 1. **Topside only**: proves the framework, supervisord output, gateway plugin build, and the core protos. Liaison shows the topside platform.
+
+   *This section written by Claude*
+
+   Status: the framework half is done with `core`'s `example` cruise (a topside with gobyd, MOOSDB, the gateway, goby_logger, goby_coroner, pViewMessage and, with `gui` active, goby_liaison; see [06](06-missions-framework.md#implementation-plan)). What remains for this step is the MBAT environment, the `resolution` platform and the `mbat` cruise, whose toolbox is still an open question.
+
 2. **Macrura main + frontseat_sim**: the vehicle drives a LOITER at 15 m / 1.8 m/s (the `mbat` deploy defaults) in `uMVS_Bluefin`; pMarineViewer shows it; the mission manager transitions `DEPLOY`.
 3. **Acomms**: topside sends `LAMSS_DEPLOY` over netsim, vehicle replies with `LAMSS_STATUS`; `pViewMessage` carries the op box.
 4. **Passive sonar**: `uSimTargets` + `uSimPassiveSonar` produce BTR, the chain produces a track, `pLamssTrackManager` publishes a contact report to topside.
