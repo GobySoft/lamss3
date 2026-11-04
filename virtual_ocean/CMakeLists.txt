@@ -21,7 +21,7 @@ lamss_export_code(
   "find_package(Boost REQUIRED COMPONENTS filesystem)"
   "include(\"\${CMAKE_CURRENT_LIST_DIR}/LamssFindNetCDF.cmake\")")
 
-# Ubuntu 26.04 has no netsim package; the apps that need it are built only where it is installed.
+# The apps that need netsim are built only where it is installed.
 # netsim's package refers to Boost::serialization without finding it.
 find_package(Boost QUIET COMPONENTS serialization)
 if(TARGET Boost::serialization)

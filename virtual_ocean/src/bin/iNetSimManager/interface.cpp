@@ -38,7 +38,7 @@ class InterfaceNetSimManager : public goby::moos::GobyMOOSApp
     const InterfaceNetSimManagerConfig& cfg_;
     static InterfaceNetSimManager* inst_;
 
-    boost::asio::io_service io_;
+    boost::asio::io_context io_;
     std::shared_ptr<netsim::tcp_client> client_;
 
     int request_id_{0};

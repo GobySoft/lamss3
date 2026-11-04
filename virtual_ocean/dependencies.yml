@@ -1,15 +1,9 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
-# netsim has no package for resolute; without it uSimModemNetwork and iNetSimManager are not built.
 apt:
   all:
     - libgsl-dev
     - libnetcdf-dev
     - libboost-filesystem-dev
-  jammy:
     - libnetsim-dev
-    - libb64-dev
-    - libboost-serialization-dev
-  noble:
-    - libnetsim-dev
-    - libb64-dev
-    - libboost-serialization-dev
+    - libb64-dev  # netsim's tcp_session.h includes it
+    - libboost-serialization-dev  # netsim's CMake package needs it, and libnetsim-dev does not depend on it
