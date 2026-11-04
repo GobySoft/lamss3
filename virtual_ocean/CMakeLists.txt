@@ -10,20 +10,16 @@ if(NOT _in_tree)
 endif()
 lamss_toolbox(NAME virtual_ocean REQUIRES core)
 
-# lamss::core_henrik_util links these by name
+# lamss::core_henrik_util links these by name; in a joint build core found them in its own scope
 lamss_find_moos()
 lamss_find_ivp(mbutil)
 
 find_package(Boost REQUIRED COMPONENTS filesystem)
-find_package(netCDF CONFIG QUIET)
-if(NOT TARGET netCDF::netcdf)
-  find_library(LAMSS_NETCDF_LIBRARY netcdf REQUIRED)
-  find_path(LAMSS_NETCDF_INCLUDE_DIR netcdf.h REQUIRED)
-  add_library(netCDF::netcdf UNKNOWN IMPORTED)
-  set_target_properties(netCDF::netcdf PROPERTIES
-    IMPORTED_LOCATION "${LAMSS_NETCDF_LIBRARY}"
-    INTERFACE_INCLUDE_DIRECTORIES "${LAMSS_NETCDF_INCLUDE_DIR}")
-endif()
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/LamssFindNetCDF.cmake)
+install(FILES cmake/LamssFindNetCDF.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/lamss_virtual_ocean)
+lamss_export_code(
+  "find_package(Boost REQUIRED COMPONENTS filesystem)"
+  "include(\"\${CMAKE_CURRENT_LIST_DIR}/LamssFindNetCDF.cmake\")")
 
 # Ubuntu 26.04 has no netsim package; the apps that need it are built only where it is installed.
 # netsim's package refers to Boost::serialization without finding it.

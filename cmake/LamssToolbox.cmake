@@ -10,6 +10,7 @@
 #   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY] [MOOS])
 #   lamss_find_moos()
 #   lamss_find_ivp(<lib>...)
+#   lamss_export_code(<cmake code>...)
 #   lamss_add_python(<package_dir>)
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_add_dccl_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
@@ -138,6 +139,7 @@ function(lamss_find_moos)
   if(NOT TARGET goby_moos)
     find_package(GOBY 3.6 REQUIRED COMPONENTS moos)
   endif()
+  lamss_export_code("lamss_find_moos()")
 endfunction()
 
 # MOOS-IvP installs static libraries and headers but no CMake package: each <lib> becomes IvP::<lib>.
@@ -154,6 +156,18 @@ function(lamss_find_ivp)
       IMPORTED_LOCATION "${LAMSS_IVP_${_lib}_LIBRARY}"
       INTERFACE_INCLUDE_DIRECTORIES "${LAMSS_IVP_INCLUDE_DIR}")
   endforeach()
+  foreach(_lib IN LISTS ARGN)
+    lamss_export_code("lamss_find_ivp(${_lib})")
+  endforeach()
+endfunction()
+
+# Adds CMake code to the toolbox's installed package config, run before its targets are imported,
+# so that the targets its exported libraries link (MOOS::MOOS, IvP::*, ...) exist downstream.
+# lamss_find_moos() and lamss_find_ivp() add themselves.
+function(lamss_export_code)
+  if(LAMSS_TOOLBOX)
+    set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORT_CODE ${ARGN})
+  endif()
 endfunction()
 
 # Runs protoc (and the DCCL plugin when present) on PROTOS, keeping each file's path relative to
@@ -331,6 +345,17 @@ function(lamss_toolbox_export)
   foreach(_req IN LISTS _requires)
     file(APPEND "${_config}" "find_dependency(lamss_${_req} ${LAMSS_VERSION})\n")
   endforeach()
+  get_property(_code GLOBAL PROPERTY LAMSS_${_tb}_EXPORT_CODE)
+  if(_code)
+    list(REMOVE_DUPLICATES _code)
+    file(APPEND "${_config}"
+      "if(NOT COMMAND lamss_export_code)\n"
+      "  include(\"\${CMAKE_CURRENT_LIST_DIR}/../lamss_core/LamssToolbox.cmake\")\n"
+      "endif()\n")
+    foreach(_line IN LISTS _code)
+      file(APPEND "${_config}" "${_line}\n")
+    endforeach()
+  endif()
   file(APPEND "${_config}"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/lamss_${_tb}Targets.cmake\" OPTIONAL)\n"
     "list(APPEND CMAKE_MODULE_PATH \"\${CMAKE_CURRENT_LIST_DIR}\")\n")
