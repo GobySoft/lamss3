@@ -1,0 +1,94 @@
+// Copyright 2026 GobySoft, LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// One instance of every behavior in lamss_autonomy_behaviors, with the parameters the missions use.
+
+initialize MODE = SMOKE
+
+Behavior = BHV_SmartYoyo
+{
+  name = smart_yoyo
+  min_depth = 10
+  max_depth = 20
+  min_altitude = 5
+  period = 120
+  period_segments = 60
+  depth_function = sine
+  condition = MODE == SMOKE
+}
+Behavior = BHV_MinAltitude
+{
+  name = min_altitude
+  pwt = 1000
+  min_altitude = 6.0
+  condition = MODE == SMOKE
+}
+Behavior = BHV_ConstantAltitude
+{
+  name = constant_altitude
+  altitude = 0.5
+  condition = MODE == SMOKE
+}
+Behavior = BHV_ConstantBuoyancy
+{
+  name = constant_buoyancy
+  buoyancy = -5.0
+  condition = MODE == SMOKE
+}
+Behavior = BHV_RaceTrack
+{
+  name = racetrack
+  track_length = 400
+  track_width = 100
+  distance_tolerance = 10
+  approach_angle = 60
+  heading = 270
+  speed = 1.5
+  peak_width = 30
+  summit_delta = 50
+  points = 500.0, 200.0
+  clockwise = true
+  condition = MODE == SMOKE
+}
+Behavior = BHV_MaintainBearing
+{
+  name = maintain_bearing
+  width = 60
+  heading_variable = NAV_HEADING
+  bearing_variable = BEARING_STAT
+  desired_angle = 45
+  bearing_mode = dual
+  alternate_interval = 450
+  bearing_rate_threshold = 3.0
+  condition = MODE == SMOKE
+}
+Behavior = BHV_WiggleTail
+{
+  name = wiggle_tail
+  turn_angle = 30
+  heading_variable = NAV_HEADING
+  bearing_variable = BEARING_STAT
+  condition = MODE == SMOKE
+}
+Behavior = BHV_LamssZigZag
+{
+  name = zigzag
+  speed = 1.5
+  period = 300
+  amplitude = 30
+  heading = 135
+  zigzag_function = linear
+  condition = MODE == SMOKE
+}
+Behavior = BHV_OptAcommsDepth
+{
+  name = opt_acomms_depth
+  contact = topside
+  look_ahead_seconds = 120
+  calculate_interval = 17
+  depth_min = 10
+  depth_max = 200
+  number_depths = 20
+  optimize = snr
+  condition = MODE == SMOKE
+}
