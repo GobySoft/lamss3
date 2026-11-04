@@ -1,7 +1,7 @@
-// Copyright 2014 
+// Copyright 2014
 // Henrik Schmidt
-// Toby Schneider 
-// Massachusetts Institute of Technology 
+// Toby Schneider
+// Massachusetts Institute of Technology
 
 //#include "goby/util/debug_logger.h"
 //#include "goby/time/legacy.h"
@@ -17,14 +17,13 @@ boost::shared_ptr<LamssTrackManagerConfig> lamss::shared::fsm::cfg_;
 
 BearingTrackEnum lamss::shared::fsm::state_ = TRACKING_IDLE;
 
-
 std::deque<CMOOSMsg> lamss::shared::fsm::publish_queue_;
 boost::mutex lamss::shared::fsm::moos_mutex_;
 
-boost::condition_variable lamss::shared::fsm::dclt_cond_;  
-//boost::condition_variable lamss::shared::fsm::blackout_cond_;  
-//boost::condition_variable lamss::shared::fsm::operation_radius_cond_;  
-//boost::condition_variable lamss::shared::fsm::operation_box_cond_;  
+boost::condition_variable lamss::shared::fsm::dclt_cond_;
+//boost::condition_variable lamss::shared::fsm::blackout_cond_;
+//boost::condition_variable lamss::shared::fsm::operation_radius_cond_;
+//boost::condition_variable lamss::shared::fsm::operation_box_cond_;
 
 int lamss::shared::fsm::vehicle_id_ = 0;
 
@@ -54,5 +53,3 @@ double lamss::shared::fsm::m_xy_sigma_ = 100;
 bool lamss::shared::fsm::cue_in_range_ = false;
 bool lamss::shared::fsm::cue_too_close_ = false;
 bool lamss::shared::fsm::prosecute_pending_ = false;
-
-

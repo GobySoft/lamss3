@@ -4,36 +4,39 @@ import "goby/protobuf/option_extensions.proto";
 
 message LamssTrackManagerConfig
 {
-  optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [(goby.field).description="Configuration common to all Goby MOOS applications"]; // see goby_moos_app.proto
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
 
-  optional int32  priority_threshold = 2 [default = 5];
-  optional int32  filter_length   = 3 [default = 1];
-  optional bool   auto_prosecute  = 4 [default = false];
-  optional double track_delay  = 5 [default = 30];
-  optional double track_report_time  = 6 [default = 1200];
-  optional double bearing_rate_threshold  = 7 [default = 20];
-  optional double min_search_range  = 8 [default = 500];
-  optional double max_search_range  = 9 [default = 5000];
-  optional double min_tracking_time  = 10 [default = 30];
-  optional double max_tracking_time  = 11 [default = 1200];
-  optional double max_classify_time  = 12 [default = 600];
-  optional int32  buffer_length_single  = 13 [default = 20];
-  optional double xy_sigma_single  = 14 [default = 100];
-  optional int32  buffer_length_multiple  = 15 [default = 5];
-  optional double xy_sigma_multiple  = 16 [default = 50];
-  optional DeployLocationEnum deploy_location = 17 [default = STATION];
-  enum DeployLocationEnum {
-     STATION = 1;
-     CURRENT = 2;
-  }
-  optional double orbit_radius = 18 [default = 500];
-  optional double auto_prosecute_range  = 19 [default = 2000];
-  optional double auto_prosecute_speed  = 20 [default = 0];
-  optional double auto_prosecute_duration  = 21 [default = 1800];
-  optional double auto_prosecute_array_angle  = 22 [default = 80];
-  optional double auto_prosecute_center_frequency  = 23 [default = 900];
-  optional double auto_prosecute_bandwidth  = 24 [default = 200];
+    optional int32 priority_threshold = 2 [default = 5];
+    optional int32 filter_length = 3 [default = 1];
+    optional bool auto_prosecute = 4 [default = false];
+    optional double track_delay = 5 [default = 30];
+    optional double track_report_time = 6 [default = 1200];
+    optional double bearing_rate_threshold = 7 [default = 20];
+    optional double min_search_range = 8 [default = 500];
+    optional double max_search_range = 9 [default = 5000];
+    optional double min_tracking_time = 10 [default = 30];
+    optional double max_tracking_time = 11 [default = 1200];
+    optional double max_classify_time = 12 [default = 600];
+    optional int32 buffer_length_single = 13 [default = 20];
+    optional double xy_sigma_single = 14 [default = 100];
+    optional int32 buffer_length_multiple = 15 [default = 5];
+    optional double xy_sigma_multiple = 16 [default = 50];
+    optional DeployLocationEnum deploy_location = 17 [default = STATION];
+    enum DeployLocationEnum
+    {
+        STATION = 1;
+        CURRENT = 2;
+    }
+    optional double orbit_radius = 18 [default = 500];
+    optional double auto_prosecute_range = 19 [default = 2000];
+    optional double auto_prosecute_speed = 20 [default = 0];
+    optional double auto_prosecute_duration = 21 [default = 1800];
+    optional double auto_prosecute_array_angle = 22 [default = 80];
+    optional double auto_prosecute_center_frequency = 23 [default = 900];
+    optional double auto_prosecute_bandwidth = 24 [default = 200];
 
-  optional bool use_geo_commands = 60 [default = false];
- }
-
+    optional bool use_geo_commands = 60 [default = false];
+}
