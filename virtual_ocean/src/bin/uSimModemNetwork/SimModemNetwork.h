@@ -16,7 +16,7 @@
 #include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
 #include "netsim/messages/netsim.pb.h"
-#include <lamss/virtual_ocean/henrik_util/CEigenRays.h>
+#include <lamss/core/henrik_util/CEigenRays.h>
 #include <math.h>
 #include <string>
 #include <vector>

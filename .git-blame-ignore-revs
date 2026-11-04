@@ -15,6 +15,18 @@ c57e6d7af35bd18255036492bffd439209079c48
 6855d975a1ccd768f0a4e78ccd6dff5596670904
 # Format the M1 autonomy, sonar and virtual_ocean protos with clang-format
 e13a0686d10baf72c462eba2805c584397c759d4
+# Format henrik_util's CVectorUtils, CEigenRays and CRapRays with clang-format
+9395a40fa5b599f68ac8753f276badbd3ae06f4e
+# Format pLamssMissionManager with clang-format
+7e4f007055380e516e54a0675719487a0669b9e7
+# Format pTetraHoming with clang-format
+4e320d12af86af20a3df6eb026e5266636049aba
+# Format pGateway with clang-format
+0c876e95af9fdb387804a16070196e0b89063039
+# Format uMVS_Bluefin with clang-format
+4f6836f697c427886f17b3ac4f609f167ef6d0a5
+# Format the IvP behaviors with clang-format
+1b73535269f7207359e058c6b15022e734378d37
 # Format henrik_util's generic math and target/noise helpers with clang-format
 f03eea47cf9460504196de482cc699b61ce2b70a
 # Format iNoaaBathy, uSimCTD, uSimGPS and henrik_util's acoustics with clang-format

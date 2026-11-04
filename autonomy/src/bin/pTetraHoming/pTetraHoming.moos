@@ -1,0 +1,21 @@
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = pTetraHoming
+{
+   AppTick   = 4
+   CommsTick = 4
+
+   VALID_AZIMUTH_STDDEV = 7.0         // azimuth std. dev. must be < to update homing/abort
+   VALID_RANGE_STDDEV = 10.0          // range std. dev. must be < to update homing/abort
+   LOITER_X = 0.0                     // initial loiter position for homing
+   LOITER_Y = 0.0
+   RETURN_UPDATE_VAR = HOMING_CONFIG  // update homing loiter position to this MOOSVar
+   ABORT_UPDATE_VAR = ABORT_HEADING   // update homing abort heading to this MOOSVar
+}

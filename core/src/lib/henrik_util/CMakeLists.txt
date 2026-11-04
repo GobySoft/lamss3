@@ -7,8 +7,10 @@ lamss_add_library(henrik_util
   SOURCES
     CBessel.cpp
     CCovMat.cpp
+    CEigenRays.cpp
     CMeasAvg.cpp
     CNoiseCovariance.cpp
+    CRapRays.cpp
     CTarget.cpp
     CVectorUtils.cpp
     Random.cpp

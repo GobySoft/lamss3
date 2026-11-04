@@ -1,13 +1,13 @@
 // Copyright 2011-2026 Massachusetts Institute of Technology
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lamss/virtual_ocean/henrik_util/CRapRays.h"
+#include "lamss/core/henrik_util/CRapRays.h"
 
 using namespace std;
 
 namespace lamss
 {
-namespace virtual_ocean
+namespace core
 {
 
 bool CRapRays::setEnv(double c_surface, double c_gradient, double water_depth, double z_rap_max)
@@ -209,8 +209,8 @@ bool CRapRays::rapDipRange(double z0, double z, double tau, double& th0_deg, dou
         return (true);
 }
 
-bool CRapRays::rapRange([[maybe_unused]] double x0, [[maybe_unused]] double y0, double z0, double z,
-                        double th0_deg, double& r_rap)
+bool CRapRays::rapRange(double /*x0*/, double /*y0*/, double z0, double z, double th0_deg,
+                        double& r_rap)
 {
     double th0 = M_PI * th0_deg / 180.0;
     double cth0 = cos(th0);
@@ -326,5 +326,5 @@ bool CRapRays::rapGeoTrack(double x0, double y0, double hdg0, double spd0, doubl
     return (true);
 }
 
-} // namespace virtual_ocean
+} // namespace core
 } // namespace lamss

@@ -1,13 +1,15 @@
 // Copyright 2011-2026 Massachusetts Institute of Technology
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "lamss/virtual_ocean/henrik_util/CEigenRays.h"
+#include "lamss/core/henrik_util/CEigenRays.h"
+
+#include "MOOS/libMOOS/MOOSLib.h"
 
 using namespace std;
 
 namespace lamss
 {
-namespace virtual_ocean
+namespace core
 {
 
 bool CEigenRayTable::readEigenRayTable(string arr_file_path, int max_num_bounces)
@@ -293,5 +295,5 @@ std::vector<CEigenRay> CEigenRayTable::getEigenRayTable(string arr_file_path, in
     return (eigenray_table);
 }
 
-} // namespace virtual_ocean
+} // namespace core
 } // namespace lamss

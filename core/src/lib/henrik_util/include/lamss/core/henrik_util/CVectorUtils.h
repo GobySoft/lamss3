@@ -4,10 +4,6 @@
 #ifndef __CVECTORUTILS_HEADER
 #define __CVECTORUTILS_HEADER
 
-#include "MBUtils.h"
-#include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
-
 #include <complex>
 #include <iostream>
 #include <math.h>

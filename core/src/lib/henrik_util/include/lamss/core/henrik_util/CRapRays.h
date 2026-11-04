@@ -4,15 +4,12 @@
 #ifndef __CRAPRAYS_h__
 #define __CRAPRAYS_h__
 
-#include "MOOS/libMOOS/MOOSLib.h"
-// #include "AngleUtils.h"
-
 #include <math.h>
 #include <vector>
 
 namespace lamss
 {
-namespace virtual_ocean
+namespace core
 {
 
 class CRapRays
@@ -41,7 +38,7 @@ class CRapRays
     double z_max;
 };
 
-} // namespace virtual_ocean
+} // namespace core
 } // namespace lamss
 
 #endif /* __CRAPRAYS_h__ */

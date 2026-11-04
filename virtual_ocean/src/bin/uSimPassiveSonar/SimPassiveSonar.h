@@ -21,8 +21,8 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
-#include <lamss/virtual_ocean/henrik_util/CEigenRays.h>
-#include <lamss/virtual_ocean/henrik_util/CRapRays.h>
+#include <lamss/core/henrik_util/CEigenRays.h>
+#include <lamss/core/henrik_util/CRapRays.h>
 #include <math.h>
 #include <string>
 #include <vector>

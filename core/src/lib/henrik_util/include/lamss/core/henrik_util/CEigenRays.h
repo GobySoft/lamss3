@@ -4,9 +4,6 @@
 #ifndef __CEIGENRAYS_h__
 #define __CEIGENRAYS_h__
 
-#include "MOOS/libMOOS/MOOSLib.h"
-// #include "AngleUtils.h"
-
 #include <complex>
 #include <fstream>
 #include <math.h>
@@ -16,7 +13,7 @@
 
 namespace lamss
 {
-namespace virtual_ocean
+namespace core
 {
 
 class CRay
@@ -69,7 +66,7 @@ class CEigenRayTable
     std::vector<CEigenRay> eigenray_table;
 };
 
-} // namespace virtual_ocean
+} // namespace core
 } // namespace lamss
 
 #endif /* __CEIGENRAYS_h__ */
