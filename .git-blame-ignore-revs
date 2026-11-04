@@ -17,3 +17,5 @@ c57e6d7af35bd18255036492bffd439209079c48
 e13a0686d10baf72c462eba2805c584397c759d4
 # Format henrik_util's generic math and target/noise helpers with clang-format
 f03eea47cf9460504196de482cc699b61ce2b70a
+# Format iNoaaBathy, uSimCTD, uSimGPS and henrik_util's acoustics with clang-format
+64ab5518182cb4d2a71eaae1eb344ce2cc86d243

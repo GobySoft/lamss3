@@ -1,16 +1,16 @@
-// Copyright 2018 Henrik Schmidt
-//                Laboratory for Autonoimous marine Sensing Systems
-//                Massachusetts Institute of Technology
-//
-// Created: June 2018
-// Opens and reads selected values of temperature, salinity or sound speed from
-// NetCdf files extracted from the GDEM database.
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "CLamssNetcdf.h"
+#include "lamss/virtual_ocean/henrik_util/CLamssNetcdf.h"
 #include "strnatcmp.hpp"
 #include <boost/filesystem.hpp>
 #include <math.h>
 #include <sys/types.h>
+
+namespace lamss
+{
+namespace virtual_ocean
+{
 
 bool LamssNetCdf::open_nc_file(std::string nc_file_)
 {
@@ -95,7 +95,8 @@ void LamssNetCdf::initialize_gdem_nc(std::string nc_file, double lat_origin, dou
 }
 
 void LamssNetCdf::initialize_noaa_nc(std::string nc_file, double lat_origin, double lon_origin,
-                                     double moos_start, bool fixed_start)
+                                     [[maybe_unused]] double moos_start,
+                                     [[maybe_unused]] bool fixed_start)
 {
     nc_is_open_ = false;
     if (open_noaa_nc(nc_file))
@@ -106,7 +107,8 @@ void LamssNetCdf::initialize_noaa_nc(std::string nc_file, double lat_origin, dou
 }
 
 void LamssNetCdf::initialize_gebco_nc(std::string nc_file, double lat_origin, double lon_origin,
-                                      double moos_start, bool fixed_start)
+                                      [[maybe_unused]] double moos_start,
+                                      [[maybe_unused]] bool fixed_start)
 {
     nc_is_open_ = false;
     if (open_gebco_nc(nc_file))
@@ -155,7 +157,7 @@ void LamssNetCdf::initialize_hycom_nc(std::string nc_file, std::string nc_type, 
 {
     nc_is_open_ = false;
     nc_vars = nc_type; // 'ts' or 'uv'
-    if (boost::filesystem::is_regular(nc_file))
+    if (boost::filesystem::is_regular_file(nc_file))
     {
         boost::filesystem::path entry(nc_file);
         // Check if file name in the path object has extension
@@ -419,8 +421,6 @@ void LamssNetCdf::get_hycom_varnames()
 {
     // >>>>>>>>>> HYCOM variable names
 
-    char ch[NC_MAX_NAME + 1];
-
     // >>>>>>>>>> Varid 5 is temperature or u-vel	 - NOT ALWAYS
     //    status = nc_inq_varname(ncid_, 5 , ch);
     if (nc_vars == "ts")
@@ -544,7 +544,6 @@ void LamssNetCdf::get_times()
     std::cout << "times: " << time_vec_[0] << " , " << time_vec_[time_vec_.size() - 1] << std::endl;
     // Gewt time units
     size_t t_len;
-    size_t vr_len;
     //status = nc_inq_attlen (ncid_, time_varid_, "valid_range", &vr_len);
     //if (status != NC_NOERR)       std::cout<<nc_strerror(status)<<std::endl;
     status = nc_inq_attlen(ncid_, time_varid_, "units", &t_len);
@@ -933,7 +932,7 @@ std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
     svp.resize(dep_vec_.size());
 
     double default_ssp = std::numeric_limits<double>::quiet_NaN(); // NaN
-    for (int i = 0; i < svp.size(); i++) svp[i] = default_ssp;
+    for (int i = 0; i < (int)svp.size(); i++) svp[i] = default_ssp;
 
     //convert lat/lon position to local UTM
 
@@ -952,7 +951,7 @@ std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
     if (!closest_lat_lon(lat_, lon_, min_lat_val, min_lon_val, x, y, min_ilat, min_ilon))
     {
         svp_out.resize(dep_.size());
-        for (int i = 0; i < svp_out.size(); i++) svp_out[i] = default_ssp;
+        for (int i = 0; i < (int)svp_out.size(); i++) svp_out[i] = default_ssp;
         return (svp_out);
     }
     else
@@ -961,7 +960,7 @@ std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
         double max_depth = vecUtils.vmax(dep_);
 
         int dep_indx_1 = dep_vec_.size() - 1;
-        for (int i = 0; i < dep_vec_.size(); i++)
+        for (int i = 0; i < (int)dep_vec_.size(); i++)
             if (dep_vec_[i] <= min_depth)
                 dep_indx_1 = i;
         int dep_indx_2 = dep_indx_1;
@@ -1003,7 +1002,6 @@ std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
                 {
                     // time indexing. For GDEM current month
                     double curr_time = moos_start_time;
-                    double mission_time = curr_time - moos_start_time;
                     double utc_ref;
                     if (fixed_model_start) // Mission start at file start
                     {
@@ -1061,20 +1059,24 @@ std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
             // check for invalid numbers
             for (int i = 0; i < 3; i++)
                 if (z[i] < 0)
+                {
                     if (i == 0)
                         z[i] = default_ssp;
                     else
                         z[i] = z[i - 1];
+                }
 
             //get lat/lon/bathy of closest grid point
             svp[i_dep] = interp_triangle(lat_m, lon_m, x, y, z);
         }
         // Interpolate in depth
-        if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
+        if (dep_indx_1 >= 0 && dep_indx_1 < (int)dep_vec_.size())
+        {
             if (dep_indx_1 == dep_indx_2)
-                for (int i = 0; i < dep_.size(); i++) svp_out[i] = svp[dep_indx_1];
+                for (int i = 0; i < (int)dep_.size(); i++) svp_out[i] = svp[dep_indx_1];
             else
-                bool ok = vecUtils.interp(dep_vec_, svp, dep_, svp_out);
+                vecUtils.interp(dep_vec_, svp, dep_, svp_out);
+        }
         return (svp_out);
     }
 }
@@ -1083,7 +1085,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
                                     double curr_time, std::vector<double>& temp,
                                     std::vector<double>& salt)
 {
-    int status;
+    int status = NC_NOERR;
 
     double lat_m;
     double lon_m;
@@ -1124,7 +1126,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
     std::vector<double> nc_salt;
     nc_salt.resize(dep_vec_.size());
     double default_val = std::numeric_limits<double>::quiet_NaN(); // NaN
-    for (int i = 0; i < dep_vec_.size(); i++)
+    for (int i = 0; i < (int)dep_vec_.size(); i++)
     {
         nc_temp[i] = default_val;
         nc_salt[i] = default_val;
@@ -1147,7 +1149,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
     {
         temp.resize(dep_.size());
         salt.resize(dep_.size());
-        for (int i = 0; i < temp.size(); i++)
+        for (int i = 0; i < (int)temp.size(); i++)
         {
             temp[i] = default_val;
             salt[i] = default_val;
@@ -1155,9 +1157,6 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
     }
     else
     {
-        double min_depth = vecUtils.vmin(dep_); // requested
-        double max_depth = vecUtils.vmax(dep_); // requested
-
         /*int dep_indx_1 = dep_vec_.size()-1;
     	for  (int i=0; i<dep_vec_.size(); i++)
     		if (dep_vec_[i] <= min_depth)
@@ -1171,7 +1170,6 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         int dep_indx_2 = dep_vec_.size() - 1;
 
         // time indexing
-        double mission_time = curr_time - moos_start_time;
         double utc_ref;
         if (fixed_model_start) // Mission start at file start
         {
@@ -1190,7 +1188,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         int real_file_no2 = real_file_no;            // for idx1 - time index1 comes from which file
         int indx_1 = floor(utc_rdcd / nc_utc_delta); // time idx into the netcdf file
         int indx_2 = indx_1 + 1;                     // grab 2
-        if (indx_2 >= utc_vec_.size())
+        if (indx_2 >= (int)utc_vec_.size())
         {
             // now we need to index into the next file
             // or restartin current file if there is only one file
@@ -1200,8 +1198,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         if (debug)
             std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl;
 
-        double saltVal, tempVal;
-        for (int i_dep = 0; i_dep < dep_vec_.size(); i_dep++)
+        for (int i_dep = 0; i_dep < (int)dep_vec_.size(); i_dep++)
         {
             int status_s_1, status_s_2, status_t_1, status_t_2;
             short int temp_val_1, salt_val_1;
@@ -1281,7 +1278,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         // find the indices where the salt and temp values start becoming Nan
         // those values are only NaN when the depth is below the actual depth at that lat lon point
         int temp_NaN_idx = nc_temp.size();
-        for (int i_temp = 0; i_temp < nc_temp.size(); i_temp++)
+        for (int i_temp = 0; i_temp < (int)nc_temp.size(); i_temp++)
         {
             if (isnan(nc_temp[i_temp]))
             {
@@ -1291,7 +1288,7 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         }
 
         int salt_NaN_idx = nc_salt.size();
-        for (int i_salt = 0; i_salt < nc_salt.size(); i_salt++)
+        for (int i_salt = 0; i_salt < (int)nc_salt.size(); i_salt++)
         {
             if (isnan(nc_salt[i_salt]))
             {
@@ -1304,19 +1301,19 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
         temp.resize(dep_.size());
         salt.resize(dep_.size());
         if (dep_indx_1 == dep_indx_2)
-            for (int i = 0; i < dep_.size(); i++)
+            for (int i = 0; i < (int)dep_.size(); i++)
             {
                 temp[i] = nc_temp[dep_indx_1];
                 salt[i] = nc_salt[dep_indx_1];
             }
         else
         {
-            bool ok = vecUtils.interp(dep_vec_, nc_temp, dep_, temp);
+            [[maybe_unused]] bool ok = vecUtils.interp(dep_vec_, nc_temp, dep_, temp);
             ok = vecUtils.interp(dep_vec_, nc_salt, dep_, salt);
         }
         // time to check if any of the selected depths are deeper than the depth at that location
         // ie. salt and temp values are NaN
-        for (int idx = 0; idx < dep_.size(); idx++)
+        for (int idx = 0; idx < (int)dep_.size(); idx++)
         {
             if (isnan(salt[idx]) && dep_[idx] >= nc_salt[salt_NaN_idx - 1])
             {
@@ -1404,12 +1401,12 @@ bool LamssNetCdf::closest_lat_lon(double lat_, double lon_, std::vector<double>&
         // GDEM,HYCOM, NOAA use a regular grid W->E, S->N,
         // so we can first narrow down 4 closest grid points
 
-        for (int k = 0; k < lon_len - 1; k++)
+        for (int k = 0; (size_t)k < lon_len - 1; k++)
             if (lon_ - lon_vec_[k] >= 0)
                 lon_indx_1 = k;
         lon_indx_2 = lon_indx_1 + 1;
 
-        for (int j = 0; j < lat_len - 1; j++)
+        for (int j = 0; (size_t)j < lat_len - 1; j++)
             if (lat_ - lat_vec_[j] >= 0)
                 lat_indx_1 = j;
         lat_indx_2 = lat_indx_1 + 1;
@@ -1419,9 +1416,9 @@ bool LamssNetCdf::closest_lat_lon(double lat_, double lon_, std::vector<double>&
     {
         double mindist = std::numeric_limits<double>::max();
 
-        for (size_t j = lat_indx_1; j <= lat_indx_2; j++)
+        for (size_t j = lat_indx_1; j <= (size_t)lat_indx_2; j++)
         {
-            for (size_t k = lon_indx_1; k <= lon_indx_2; k++)
+            for (size_t k = lon_indx_1; k <= (size_t)lon_indx_2; k++)
             {
                 double dist_sq;
                 double grid_val_lon;
@@ -1479,8 +1476,6 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
                                     std::vector<double>& salt)
 
 {
-    int status;
-
     double lat_m;
     double lon_m;
     std::vector<int> min_ilat, min_ilon;
@@ -1506,7 +1501,7 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
     {
         nc_temp[i].resize(dep_.size());
         nc_salt[i].resize(dep_.size());
-        for (int j = 0; j < dep_.size(); j++)
+        for (int j = 0; j < (int)dep_.size(); j++)
         {
             nc_temp[i][j] = default_val;
             nc_salt[i][j] = default_val;
@@ -1517,7 +1512,7 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
 
     temp.resize(dep_.size());
     salt.resize(dep_.size());
-    for (int j = 0; j < dep_.size(); j++)
+    for (int j = 0; j < (int)dep_.size(); j++)
     {
         temp[j] = default_val;
         salt[j] = default_val;
@@ -1543,7 +1538,6 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
     else
     {
         // time indexing
-        double mission_time = curr_time - moos_start_time;
         double utc_ref;
         if (fixed_model_start) // Mission start at file start
         {
@@ -1562,7 +1556,7 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
 
         int indx_1 = floor(utc_rdcd / nc_utc_delta);
         int indx_2 = indx_1 + 1;
-        if (indx_2 >= utc_vec_.size())
+        if (indx_2 >= (int)utc_vec_.size())
             indx_2 = 0;
         if (debug)
             std::cout << "indx_1,indx_2: " << indx_1 << ", " << indx_2 << std::endl;
@@ -1576,7 +1570,7 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
             temp_buf.resize(dep_len);
             salt_buf.resize(dep_len);
 
-            for (int i_dep = 0; i_dep < dep_len; i_dep++)
+            for (int i_dep = 0; i_dep < (int)dep_len; i_dep++)
             {
                 size_t dep_ind[] = {static_cast<size_t>(min_ilat[n]),
                                     static_cast<size_t>(min_ilon[n]),
@@ -1636,13 +1630,13 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
             } // end of depth loop.
             // Interpolate onto requested depth grid
             std::vector<double> buf;
-            bool ok = vecUtils.interp(dep_vec_, temp_buf, dep_, buf);
+            [[maybe_unused]] bool ok = vecUtils.interp(dep_vec_, temp_buf, dep_, buf);
             nc_temp[n] = buf;
             ok = vecUtils.interp(dep_vec_, salt_buf, dep_, buf);
             nc_salt[n] = buf;
         } // end of n loop
 
-        for (int i_dep = 0; i_dep < dep_.size(); i_dep++)
+        for (int i_dep = 0; i_dep < (int)dep_.size(); i_dep++)
         {
             // check for invalid numbers
             for (int i = 0; i < 3; i++)
@@ -1651,15 +1645,19 @@ void LamssNetCdf::get_mseas_profile(double lat_, double lon_, const std::vector<
                 z_sal[i] = nc_salt[i][i_dep];
 
                 if (z_tmp[i] < 0)
+                {
                     if (i == 0)
                         z_tmp[i] = default_val;
                     else
                         z_tmp[i] = z_tmp[i - 1];
+                }
                 if (z_sal[i] < 0)
+                {
                     if (i == 0)
                         z_sal[i] = default_val;
                     else
                         z_sal[i] = z_sal[i - 1];
+                }
             }
             if (debug)
                 std::cout << "done with z_tmp,z_sal" << std::endl;
@@ -1786,7 +1784,6 @@ double LamssNetCdf::get_noaa_bathy(double lat_, double lon_)
     std::vector<double> min_lon_val;
     std::vector<double> x, y, z;
     double bathy_z;
-    bool debug = false;
 
     z.resize(3);
 
@@ -1841,7 +1838,6 @@ double LamssNetCdf::get_gebco_bathy(double lat_, double lon_)
     std::vector<double> min_lon_val;
     std::vector<double> x, y, z;
     double bathy_z;
-    bool debug = false;
 
     z.resize(3);
 
@@ -1898,15 +1894,15 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
     double hours = 0;
     double mins = 0;
     double secs = 0;
-    for (int i = 0; i < date_vec.size(), i < 6; i++)
+    for (int i = 0; i < 6; i++)
     {
         switch (i)
         {
-            case 0: year = date_vec[i];
-            case 1: month = date_vec[i];
-            case 2: day = date_vec[i];
-            case 3: hours = date_vec[i];
-            case 4: mins = date_vec[i];
+            case 0: year = date_vec[i]; [[fallthrough]];
+            case 1: month = date_vec[i]; [[fallthrough]];
+            case 2: day = date_vec[i]; [[fallthrough]];
+            case 3: hours = date_vec[i]; [[fallthrough]];
+            case 4: mins = date_vec[i]; [[fallthrough]];
             case 5: secs = date_vec[i];
         }
     }
@@ -1919,16 +1915,16 @@ double LamssNetCdf::datenum(const std::vector<int>& date_vec)
         // add previous months
         switch (mm)
         {
-            case 2: month_days += 31;
-            case 3: month_days += 28 + (int)leap;
-            case 4: month_days += 31;
-            case 5: month_days += 30;
-            case 6: month_days += 31;
-            case 7: month_days += 30;
-            case 8: month_days += 31;
-            case 9: month_days += 31;
-            case 10: month_days += 30;
-            case 11: month_days += 31;
+            case 2: month_days += 31; [[fallthrough]];
+            case 3: month_days += 28 + (int)leap; [[fallthrough]];
+            case 4: month_days += 31; [[fallthrough]];
+            case 5: month_days += 30; [[fallthrough]];
+            case 6: month_days += 31; [[fallthrough]];
+            case 7: month_days += 30; [[fallthrough]];
+            case 8: month_days += 31; [[fallthrough]];
+            case 9: month_days += 31; [[fallthrough]];
+            case 10: month_days += 30; [[fallthrough]];
+            case 11: month_days += 31; [[fallthrough]];
             case 12: month_days += 30;
         }
     }
@@ -2220,7 +2216,7 @@ void LamssNetCdf::get_eof_depths()
     }
 
     std::cout << "depths: ";
-    for (int ij = 0; ij < dep_vec_.size(); ij++) { std::cout << dep_vec_[ij] << ", "; }
+    for (int ij = 0; ij < (int)dep_vec_.size(); ij++) { std::cout << dep_vec_[ij] << ", "; }
     std::cout << std::endl;
 }
 
@@ -2245,7 +2241,7 @@ void LamssNetCdf::get_eof_weights()
     }
 
     std::cout << "weights: ";
-    for (int ij = 0; ij < weights_vec_.size(); ij++) { std::cout << weights_vec_[ij] << ", "; }
+    for (int ij = 0; ij < (int)weights_vec_.size(); ij++) { std::cout << weights_vec_[ij] << ", "; }
     std::cout << std::endl;
     // Save as baseline weights for internal wave simulations
     baseline_weights_vec_ = weights_vec_;
@@ -2272,7 +2268,7 @@ void LamssNetCdf::get_eof_basevals()
         exit(EXIT_FAILURE);
     }
 
-    for (int k = 0; k < dep_len; k++)
+    for (int k = 0; k < (int)dep_len; k++)
     {
         std::cout << std::endl << " baseval[" << k << "]:" << eof_baseval_values[k];
     }
@@ -2368,7 +2364,8 @@ void LamssNetCdf::get_eofs()
     }
 }
 
-std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_,
+std::vector<double> LamssNetCdf::get_eof_profile([[maybe_unused]] double lat_,
+                                                 [[maybe_unused]] double lon_,
                                                  std::vector<double> dep_request)
 {
     bool debug = false;
@@ -2428,7 +2425,7 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_,
     }
     // int dep_indx_1 = dep_vec_.size()-1;
     int dep_indx_1 = 0;
-    for (int i = 0; i < dep_vec_.size(); i++)
+    for (int i = 0; i < (int)dep_vec_.size(); i++)
         if (dep_vec_[i] <= min_depth)
             dep_indx_1 = i;
 
@@ -2443,11 +2440,13 @@ std::vector<double> LamssNetCdf::get_eof_profile(double lat_, double lon_,
                   << dep_indx_2 << "]" << std::endl;
     }
 
-    if (dep_indx_1 >= 0 && dep_indx_1 < dep_vec_.size())
+    if (dep_indx_1 >= 0 && dep_indx_1 < (int)dep_vec_.size())
+    {
         if (dep_indx_1 == dep_indx_2)
-            for (int i = 0; i < dep_request.size(); i++) svp_out[i] = svp[dep_indx_1];
+            for (int i = 0; i < (int)dep_request.size(); i++) svp_out[i] = svp[dep_indx_1];
         else
-            bool ok = vecUtils.interp(dep_vec_, svp, dep_request, svp_out);
+            vecUtils.interp(dep_vec_, svp, dep_request, svp_out);
+    }
     if (debug)
     {
         std::cout << std::endl;
@@ -2463,7 +2462,7 @@ bool LamssNetCdf::handle_eof_weight_update_message(int index, double weight_upda
 {
     //let's do some error checking such as index makes sense?
     //must be between 0 and (size-1)
-    if (weights_vec_.empty() || index < 0 || index >= weights_vec_.size())
+    if (weights_vec_.empty() || index < 0 || index >= (int)weights_vec_.size())
     {
         return false;
     }
@@ -2483,7 +2482,7 @@ void LamssNetCdf::internal_wave_eof_weight(int index, double x, double y, double
                                            double wavelength, double heading,
                                            double amplitude_factor)
 {
-    if (index >= 0 && index < weights_vec_.size() && index < baseline_weights_vec_.size())
+    if (index >= 0 && index < (int)weights_vec_.size() && index < (int)baseline_weights_vec_.size())
     {
         double k = 2 * M_PI / wavelength;
         double k_x = k * sin(heading * M_PI / 180);
@@ -2495,3 +2494,6 @@ void LamssNetCdf::internal_wave_eof_weight(int index, double x, double y, double
     else
         std::cout << "Internal wave error: Non-existant EOF " << index + 1 << std::endl;
 }
+
+} // namespace virtual_ocean
+} // namespace lamss

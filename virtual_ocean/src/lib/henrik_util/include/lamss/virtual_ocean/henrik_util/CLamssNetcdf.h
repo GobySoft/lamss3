@@ -1,15 +1,12 @@
-// Copyright 2018 Henrik Schmidt
-//                Laboratory for Autonoimous marine Sensing Systems
-//                Massachusetts Institute of Technology
-//
-// Created: June 2018
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef CGDEMNETCDF
 #define CGDEMNETCDF
 
 #include "goby/moos/moos_geodesy.h"
 #include "goby/util/sci.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
 #include <cmath>
 #include <ctime>
 #include <iostream>
@@ -18,6 +15,11 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+namespace lamss
+{
+namespace virtual_ocean
+{
 
 // Date number of Netcdf time origin
 #define MSEAS_TIME_ORIGIN 730486 // datenum 2000-1-1-00.00.00
@@ -111,7 +113,7 @@ class LamssNetCdf
     size_t eof_len;
 
     goby::moos::CMOOSGeodesy geodesy_;
-    CmyVectorUtils vecUtils;
+    lamss::core::CmyVectorUtils vecUtils;
 
     ///////
     // GDEM specific functions and variables
@@ -206,5 +208,8 @@ class LamssNetCdf
     std::vector<std::string> files;
     bool isLonNeg = false;
 };
+
+} // namespace virtual_ocean
+} // namespace lamss
 
 #endif
