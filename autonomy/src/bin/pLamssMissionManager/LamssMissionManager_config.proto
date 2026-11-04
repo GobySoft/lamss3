@@ -1,0 +1,85 @@
+
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+import "lamss/autonomy/deploy.proto";
+import "lamss/autonomy/transit.proto";
+
+package lamss.autonomy;
+
+message LamssMissionManagerConfig
+{
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
+
+    optional double min_opbox_distance = 2 [default = 500];
+    optional double operation_radius = 3 [default = 10000];
+    optional double operation_radius_percent = 4 [default = 95];
+
+    optional bool dynamic_opregion = 5 [default = false];
+    optional bool dynamic_utm = 6 [default = false];
+    optional double update_offset = 9 [default = 1000];
+    optional int32 opregion_update_period_sec = 8 [default = 600];
+
+    repeated OpBoxVertex opbox_vertex = 7;
+    message OpBoxVertex
+    {
+        required double x = 1;
+        required double y = 2;
+    }
+
+    optional double deploy_duration = 10 [default = 1000];
+    optional double prosecute_duration = 11 [default = 1200];
+    optional DeployLocationEnum deploy_location = 12 [default = STATION];
+    enum DeployLocationEnum
+    {
+        STATION = 1;
+        CURRENT = 2;
+    }
+    optional int32 topside_id = 13 [default = 1];
+    optional string topside_name = 14 [default = "camp_sargo"];
+    optional double minimum_altitude = 15 [default = 5];
+    optional double touchdown_altitude = 16 [default = 1.25];
+    optional double abort_x_offset = 20 [default = 0];
+    optional double abort_y_offset = 21 [default = 0];
+    optional double abort_depth = 22 [default = 30];
+    optional double abort_speed = 23 [default = 1.5];
+    optional LAMSS_DEPLOY initial_deploy = 24;
+    optional LAMSS_TRANSIT initial_transit = 25;
+    optional HomingArrayEnum homing_array = 30 [default = NONE];
+    enum HomingArrayEnum
+    {
+        USBL = 1;
+        TOWED = 2;
+        NONE = 3;
+    }
+    optional double homing_beacon_frequency = 31 [default = 0];
+    optional double homing_interval = 32 [default = 600];
+    optional double homing_duration = 33 [default = 300];
+    optional double prosecute_center_frequency = 40 [default = 900];
+    optional double prosecute_bandwidth = 41 [default = 200];
+    optional bool navigating_with_hydroman = 42 [default = false];
+
+    repeated uint32 additional_modem_id = 60;
+
+    optional bool auto_depth_adaptation = 80 [default = false];
+
+    message GlideParameters
+    {
+        required double slope = 1;
+        required double speed = 2;
+        optional double utility = 3 [default = 100];
+    }
+
+    repeated GlideParameters glide_parameters = 52;
+
+    optional bool use_geo_commands = 61 [default = false];
+
+    reserved 34, 35, 50, 51, 70;
+}

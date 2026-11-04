@@ -3,6 +3,8 @@
 
 #include "lamss/core/henrik_util/CVectorUtils.h"
 
+#include <limits>
+
 #include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 
@@ -601,7 +603,7 @@ void CmyVectorUtils::vpair_sort(std::vector<double> x, std::vector<double> y,
     for (int i = 0; i < n; i++)
     {
         double minx = 1e200;
-        int minj;
+        int minj = 0;
         for (int j = 0; j < n; j++)
         {
             if (!done[i] && x[j] < minx)
@@ -706,7 +708,7 @@ vector<vector<complex<double>>> CmyVectorUtils::cmmul(const vector<vector<comple
     // Matrix x matrix multiplication using c++ vector<vector> indexing
     int rows_A = A.size();
     int cols_A = B.size();
-    int cols_B;
+    int cols_B = 0;
     if (A.size() < 1 || A[0].size() != B.size())
     {
         cout << "cmmul: Dimension mismatch" << std::endl;
@@ -835,8 +837,9 @@ vector<double> CmyVectorUtils::tukey(int N, double r) //creates tukey window of 
 int CmyVectorUtils::NN(double num, vector<double> myvec) //Find Nearest Neighbor
 //myvec must be monotonically INCREASING
 {
-    double dif1, dif2;
-    int index;
+    // NaN when num is outside myvec, so neither comparison holds and dflt is returned
+    double dif1 = std::numeric_limits<double>::quiet_NaN(), dif2 = dif1;
+    int index = 0;
     int dflt = myvec.size();
     //Nearester neighbor - resturns index in vector
     for (unsigned int i = 0; i < myvec.size() - 1; i++)
