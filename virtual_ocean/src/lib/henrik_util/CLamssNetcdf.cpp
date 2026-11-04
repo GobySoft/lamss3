@@ -3,6 +3,7 @@
 
 #include "lamss/virtual_ocean/henrik_util/CLamssNetcdf.h"
 #include "strnatcmp.hpp"
+#include <algorithm>
 #include <boost/filesystem.hpp>
 #include <iomanip>
 #include <math.h>

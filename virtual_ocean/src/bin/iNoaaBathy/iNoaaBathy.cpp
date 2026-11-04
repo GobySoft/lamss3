@@ -23,7 +23,7 @@ CiNoaaBathy::~CiNoaaBathy() {}
 // has arrived.
 bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST& NewMail)
 {
-    double dfLatOrigin, dfLongOrigin;
+    double dfLatOrigin = 0, dfLongOrigin = 0;
     bool new_origin = false;
 
     for (MOOSMSG_LIST::iterator p = NewMail.begin(); p != NewMail.end(); p++)
