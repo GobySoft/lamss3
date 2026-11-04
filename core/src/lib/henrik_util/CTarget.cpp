@@ -1,28 +1,14 @@
-// H. Schmidt, henrik@mit.edu 01.20.10
-// Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology
-//
-// CTarget.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "CTarget.h"
+#include "lamss/core/henrik_util/CTarget.h"
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 //
 // CTarget methods and functions
@@ -78,7 +64,7 @@ bool CTarget::getTargetValues(int& tgt_num, bool& tgt_on, vector<double>& values
     values.push_back(target_freq);
     values.push_back(target_bw);
     values.push_back(target_str);
-    for (int i = 0; i < tone_freq.size(); i++)
+    for (int i = 0; i < (int)tone_freq.size(); i++)
     {
         values.push_back(tone_freq[i]);
         values.push_back(tone_dbl[i]);
@@ -94,7 +80,7 @@ string CTarget::printTargetValues()
        << ",dep=" << target_dep << ",spl=" << target_spl << ",str=" << target_str
        << ",freq=" << target_freq << ",bw=" << target_bw;
 
-    for (int i = 0; i < tone_freq.size(); i++)
+    for (int i = 0; i < (int)tone_freq.size(); i++)
     {
         cc << ",tone" << i + 1 << "=" << tone_freq[i] << ",db=" << tone_dbl[i];
     }
@@ -155,7 +141,7 @@ string CTarget::target_state()
     output += doubleToString(target_str, 2);
     output += ",";
 
-    for (int i = 0; i < tone_freq.size(); i++)
+    for (int i = 0; i < (int)tone_freq.size(); i++)
     {
         output += doubleToString(tone_freq[i]);
         output += ",";
@@ -165,3 +151,6 @@ string CTarget::target_state()
 
     return (output);
 }
+
+} // namespace core
+} // namespace lamss

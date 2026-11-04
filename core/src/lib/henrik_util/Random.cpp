@@ -1,8 +1,16 @@
-#include "Random.h"
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+#include "lamss/core/henrik_util/Random.h"
 
 #include <chrono>
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 CRandom::CRandom()
 {
     phase = 0;
@@ -129,3 +137,6 @@ complex<double> CRandom::gauss_cmplx(double mu, double sigma)
 }
 
 double CRandom::rand() { return (ran2(iseed)); }
+
+} // namespace core
+} // namespace lamss

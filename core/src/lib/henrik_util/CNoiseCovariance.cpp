@@ -1,26 +1,7 @@
-// H. Schmidt, henrik@mit.edu 01.20.10
-// Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology
-//
-// CNoiseCovariance.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "CNoiseCovariance.h"
+#include "lamss/core/henrik_util/CNoiseCovariance.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/assign.hpp>
 #include <boost/foreach.hpp>
@@ -28,6 +9,11 @@
 #include <boost/math/special_functions.hpp>
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 //
 // Noise Covariance class
@@ -58,7 +44,7 @@ bool ComputeCovariance::initialize(double freq, double sound_speed, vector<doubl
     k_z.clear();
     k_r.clear();
     S.clear();
-    for (unsigned int i = 0; i < n_th; i++)
+    for (int i = 0; i < n_th; i++)
     {
         k_z.push_back(k * cos(theta[i]));
         k_r.push_back(k * sin(theta[i]));
@@ -77,7 +63,7 @@ bool ComputeCovariance::hydCovariance(double delta_R, double delta_z, complex<do
     vector<complex<double>> cex;
     vector<double> arg;
 
-    for (unsigned int i = 0; i < n_th; i++)
+    for (int i = 0; i < n_th; i++)
     {
         cfun.push_back(pfac * S[i] * besgen.bessel_J(0, k_r[i] * delta_R));
 
@@ -98,7 +84,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
 
     vector<complex<double>> cex;
     vector<double> arg;
-    for (unsigned int i = 0; i < n_th; i++)
+    for (int i = 0; i < n_th; i++)
     {
         cex.push_back(complex<double>(cos(k_z[i] * delta_z), sin(k_z[i] * delta_z)));
         arg.push_back(k_z[i] * delta_z);
@@ -110,7 +96,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
 
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(pfac * S[i] * besgen.bessel_J(0, k_r[i] * delta_R));
         }
@@ -124,7 +110,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         double fac = -0.5 / (rho * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(fac * S[i] * k_r[i] * besgen.bessel_J(1, k_r[i] * delta_R));
         }
@@ -137,7 +123,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         complex<double> fac = 0.5 * complex<double>(0, 1) / (rho * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(fac * S[i] * k_z[i] * besgen.bessel_J(0, k_r[i] * delta_R));
         }
@@ -155,7 +141,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         complex<double> fac = -0.5 * complex<double>(0, 1) / (pow(rho, 2) * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(fac * S[i] * k_r[i] * k_z[i] * besgen.bessel_J(1, k_r[i] * delta_R));
         }
@@ -169,7 +155,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         double fac = -0.5 / (pow(rho, 2) * k * delta_R);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(fac * S[i] * k_r[i] * besgen.bessel_J(1, k_r[i] * delta_R));
         }
@@ -180,7 +166,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         complex<double> fac = -0.25 / (pow(rho, 2) * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++) { cfun.push_back(fac * S[i] * pow(k_r[i], 2)); }
+        for (int i = 0; i < n_th; i++) { cfun.push_back(fac * S[i] * pow(k_r[i], 2)); }
         cov[indx(2, 2)] = filon(k_z, cfun, cex, arg);
     }
     //
@@ -189,7 +175,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         double fac = -0.25 / (pow(rho, 2) * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(
                 fac * S[i] * pow(k_r[i], 2) *
@@ -203,7 +189,7 @@ bool ComputeCovariance::vsaCovariance(double delta_R, double delta_z, vector<com
         double fac = -0.5 / (pow(rho, 2) * k);
         vector<complex<double>> cfun;
 
-        for (unsigned int i = 0; i < n_th; i++)
+        for (int i = 0; i < n_th; i++)
         {
             cfun.push_back(fac * S[i] * pow(k_z[i], 2) * besgen.bessel_J(0, k_r[i] * delta_R));
         }
@@ -301,3 +287,6 @@ complex<double> ComputeCovariance::filon(vector<double> x, vector<complex<double
     }
     return (csum);
 }
+
+} // namespace core
+} // namespace lamss

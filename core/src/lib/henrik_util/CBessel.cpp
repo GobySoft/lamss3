@@ -1,28 +1,14 @@
-// H. Schmidt, henrik@mit.edu 07.02.10
-// Laboratory for Autonomous Marine Sensing Systems (LAMSS)
-// Massachusetts Institute of Technology
-//
-// CBessel.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "CBessel.h"
+#include "lamss/core/henrik_util/CBessel.h"
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 double CBesTable::interp(double x)
 {
@@ -37,7 +23,7 @@ double CBesTable::interp(double x)
     {
         double rindex = (x - x_min) * onodx;
         int index = int(rindex - 0.5);
-        if (index > value.size() - 3)
+        if ((size_t)index > value.size() - 3)
             index = value.size() - 3;
         if (index < 1)
             index = 1;
@@ -61,7 +47,7 @@ double CBessel::bessel_J(int m, double x)
         {
             vector<double> besfun;
             bessjn(bes_table.size(), ix * bes_table[0].dx, besfun);
-            for (int m = 0; m < bes_table.size(); m++)
+            for (int m = 0; m < (int)bes_table.size(); m++)
             {
                 bes_table[m].x_max = nx * bes_table[0].dx;
                 bes_table[m].value.push_back(besfun[m]);
@@ -180,7 +166,7 @@ void CBessel::bessjn(int n, double x, vector<double>& bjn)
     if (fabs(x) < 1e-12)
     {
         bjn.push_back(1.0);
-        for (unsigned int i = 1; i <= n; i++) bjn.push_back(0.0);
+        for (int i = 1; i <= n; i++) bjn.push_back(0.0);
     }
     else if (n == 0)
         bjn.push_back(bessj0(x));
@@ -194,7 +180,7 @@ void CBessel::bessjn(int n, double x, vector<double>& bjn)
         double tox = 2.0 / x;
         bjn.push_back(bessj0(x));
         bjn.push_back(bessj1(x));
-        for (unsigned int i = 1; i < n; i++)
+        for (int i = 1; i < n; i++)
         {
             double rec = i * tox * bjn[i] - bjn[i - 1];
             bjn.push_back(rec);
@@ -205,7 +191,6 @@ void CBessel::bessjn(int n, double x, vector<double>& bjn)
         // MOOSTrace("bessjn - entering  Miller n=%d, x=%f\n",n,x);
         double tox = 2.0 / x;
         int m = 2 * int(n + sqrt(double(iacc * n)) / 2.0);
-        double bessj = 0.0;
         double jsum = 0;
         double sum = 0.0;
         double bjp1 = 0.0;
@@ -224,20 +209,20 @@ void CBessel::bessjn(int n, double x, vector<double>& bjn)
                 // MOOSTrace("bessjn - loop i=%d - scaling\n",i);
                 bj *= bigni;
                 bjp1 *= bigni;
-                for (unsigned int j = i + 2; j <= n + 1; j++) bjn[j - 1] *= bigni;
+                for (int j = i + 2; j <= n + 1; j++) bjn[j - 1] *= bigni;
                 sum *= bigni;
             }
             if (jsum != 0.0)
                 sum += bj;
             jsum = 1 - jsum;
-            if (i <= n)
+            if (i <= (unsigned int)n)
                 bjn[i] = bjp1;
         }
         // MOOSTrace("bessjn - loop i done\n");
 
         bjn[0] = bj;
         sum = 2.0 * sum - bj;
-        for (unsigned int j = 0; j <= n; j++)
+        for (int j = 0; j <= n; j++)
         {
             // MOOSTrace("bessjn - loop j=%d\n",j);
             bjn[j] /= sum;
@@ -285,7 +270,7 @@ void CBessel::sphbesjn(int n, double x, vector<double>& bjn)
     if (fabs(x) < 1e-12)
     {
         bjn.push_back(1.0);
-        for (unsigned int i = 1; i <= n; i++) bjn.push_back(0.0);
+        for (int i = 1; i <= n; i++) bjn.push_back(0.0);
     }
     else if (n == 0)
         bjn.push_back(sin(x) / x);
@@ -299,7 +284,7 @@ void CBessel::sphbesjn(int n, double x, vector<double>& bjn)
         double onox = 1.0 / x;
         bjn.push_back(sin(x) / x);
         bjn.push_back(sin(x) / pow(x, 2) - cos(x) / x);
-        for (unsigned int i = 2; i <= n; i++)
+        for (int i = 2; i <= n; i++)
         {
             double rec = (2 * (i - 1) + 1) * onox * bjn[i - 1] - bjn[i - 2];
             bjn.push_back(rec);
@@ -321,15 +306,15 @@ void CBessel::sphbesjn(int n, double x, vector<double>& bjn)
             {
                 bj *= bigni;
                 bjp1 *= bigni;
-                for (unsigned int j = i + 2; j <= n + 1; j++) bjn[j - 1] *= bigni;
+                for (int j = i + 2; j <= n + 1; j++) bjn[j - 1] *= bigni;
             }
-            if (i <= n)
+            if (i <= (unsigned int)n)
                 bjn[i] = bjp1;
         }
 
         bjn[0] = bj;
         double scale = sin(x) / (x * bj);
-        for (unsigned int j = 0; j <= n; j++) bjn[j] *= scale;
+        for (int j = 0; j <= n; j++) bjn[j] *= scale;
     }
     return;
 }
@@ -345,7 +330,7 @@ double CBessel::sphbes_j(int m, double x)
         {
             vector<double> besfun;
             sphbesjn(sphbes_table.size(), ix * sphbes_table[0].dx, besfun);
-            for (int m = 0; m <= sphbes_table.size(); m++)
+            for (int m = 0; m <= (int)sphbes_table.size(); m++)
             {
                 sphbes_table[m].x_max = nx * sphbes_table[0].dx;
                 sphbes_table[m].value.push_back(besfun[m]);
@@ -354,3 +339,6 @@ double CBessel::sphbes_j(int m, double x)
     }
     return (sphbes_table[m].interp(x));
 }
+
+} // namespace core
+} // namespace lamss

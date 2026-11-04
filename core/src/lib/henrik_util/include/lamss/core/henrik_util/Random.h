@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 #ifndef __CRandom_h__
 #define __CRandom_h__
 
@@ -5,6 +8,11 @@
 #include <math.h>
 #include <random>
 #include <vector>
+
+namespace lamss
+{
+namespace core
+{
 #define IM1 2147483563
 #define IM2 2147483399
 #define IA1 40014
@@ -43,5 +51,8 @@ class CRandom
     int phase;
     int iseed;
 };
+
+} // namespace core
+} // namespace lamss
 
 #endif /* __Random_h__ */

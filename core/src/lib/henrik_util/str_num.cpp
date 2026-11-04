@@ -1,6 +1,14 @@
-#include "str_num.h"
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "lamss/core/henrik_util/str_num.h"
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 int str2int_vec(string msg, vector<int>& values)
 {
@@ -16,7 +24,7 @@ int str2int_vec(string msg, vector<int>& values)
         nz++;
     }
     // MOOSTrace("number of values = %d\n",nz);
-    if (nz == values.size())
+    if (nz == (int)values.size())
         values = buf;
     else
     {
@@ -29,7 +37,7 @@ int str2int_vec(string msg, vector<int>& values)
 bool int_vec2str(vector<int> numbers, string& output)
 {
     output = "";
-    for (int i = 0; i < numbers.size(); i++)
+    for (int i = 0; i < (int)numbers.size(); i++)
     {
         if (i > 0)
             output += ",";
@@ -53,7 +61,7 @@ int str2dbl_vec(string msg, vector<double>& values)
         nz++;
     }
     // MOOSTrace("number of values = %d\n",nz);
-    if (nz == values.size())
+    if (nz == (int)values.size())
         values = buf;
     else
     {
@@ -67,7 +75,7 @@ int str2dbl_vec(string msg, vector<double>& values)
 bool dbl_vec2str(vector<double> numbers, string& output)
 {
     output = "";
-    for (int i = 0; i < numbers.size(); i++)
+    for (int i = 0; i < (int)numbers.size(); i++)
     {
         if (i > 0)
             output += ",";
@@ -76,3 +84,6 @@ bool dbl_vec2str(vector<double> numbers, string& output)
     }
     return (true);
 }
+
+} // namespace core
+} // namespace lamss

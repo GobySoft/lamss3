@@ -1,7 +1,15 @@
-#include "parse_stat.h"
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "lamss/core/henrik_util/parse_stat.h"
 #include <string>
 
 using namespace std;
+
+namespace lamss
+{
+namespace core
+{
 
 bool parse_tgt_stat(std::string val, int& tgt_num, double& tgt_x, double& tgt_y, double& tgt_dep,
                     double& tgt_hdg, double& tgt_spd, double& tgt_utc, double& tgt_frq,
@@ -76,3 +84,6 @@ bool parse_track_stat(std::string val, int& node, int& state, double& x, double&
     else
         return (false);
 }
+
+} // namespace core
+} // namespace lamss
