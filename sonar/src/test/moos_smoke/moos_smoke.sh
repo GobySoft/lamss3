@@ -2,7 +2,8 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Starts each sonar MOOS app with its example .moos file and checks that it connects, then runs
+# Starts each sonar MOOS app with its example .moos file and checks that it connects and (where
+# that needs no sonar data) responds, then runs
 # pLamssAEL -> pLamssCBF -> pLamssBearingTracker on a synthetic plane wave and checks the
 # beamformer's peak and the tracker's detector. Tool and target paths come from the environment
 # (see CMakeLists.txt). Every MOOSDB gets this run's own port, so parallel runs and other MOOS
@@ -58,7 +59,7 @@ failed=1
 step "Every app starts from its example and connects"
 write_moos examples_db "$examples_port" ""
 start MOOSDB_examples "$LAMSS_MOOSDB" "$work/examples_db.moos" --moos_port="$examples_port"
-for app in pLamssCBF pLamssAEL pLamssBearingTracker pGeoTracker; do
+for app in pLamssCBF pLamssAEL pLamssBearingTracker pGeoTracker pLamssTrackManager; do
     sed "s/^ServerPort *=.*/ServerPort = $examples_port/" "$LAMSS_SONAR_BIN/$app/$app.moos" \
         >"$work/example_$app.moos"
 done
@@ -67,11 +68,17 @@ start example_pLamssAEL "$LAMSS_PLAMSSAEL" "$work/example_pLamssAEL.moos"
 start example_pLamssBearingTracker "$LAMSS_PLAMSSBEARINGTRACKER" \
     "$work/example_pLamssBearingTracker.moos"
 start example_pGeoTracker "$LAMSS_PGEOTRACKER" "$work/example_pGeoTracker.moos"
+start example_pLamssTrackManager "$LAMSS_PLAMSSTRACKMANAGER" "$work/example_pLamssTrackManager.moos"
 probe "$examples_port" 15 '?DB_CLIENTS~pLamssCBF' '?DB_CLIENTS~pLamssAEL' \
-    '?DB_CLIENTS~pLamssBearingTracker' '?DB_CLIENTS~pGeoTracker'
+    '?DB_CLIENTS~pLamssBearingTracker' '?DB_CLIENTS~pGeoTracker' '?DB_CLIENTS~pLamssTrackManager'
 
 step "pGeoTracker: starts out of close range"
 probe "$examples_port" 10 '?CLOSE_RANGE~FALSE'
+
+step "pLamssTrackManager: idle, then looks for tracks once deployed with the sonar on"
+probe "$examples_port" 10 '?TRACKING~IDLE' '?BEARING_STAT'
+probe "$examples_port" 10 MISSION_STATE=DEPLOY SONAR_CONTROL=ON '?TRACKING~NO_TRACK' \
+    '?TRACKER_COMMAND~ON'
 
 # 16 elements 0.75 m apart (half a wavelength at 1 kHz); 31 beams equally spaced in cos(angle)
 # from 1 to -1, so a wave from acos(1/3) = 70.53 degrees falls on beam 10 (counting from 0)

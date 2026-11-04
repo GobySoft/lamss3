@@ -19,6 +19,7 @@ if(LAMSS_MOOSDB)
       LAMSS_PLAMSSAEL=$<TARGET_FILE:pLamssAEL>
       LAMSS_PLAMSSBEARINGTRACKER=$<TARGET_FILE:pLamssBearingTracker>
       LAMSS_PGEOTRACKER=$<TARGET_FILE:pGeoTracker>
+      LAMSS_PLAMSSTRACKMANAGER=$<TARGET_FILE:pLamssTrackManager>
       ${CMAKE_CURRENT_SOURCE_DIR}/moos_smoke.sh)
   set_tests_properties(lamss_sonar_moos_smoke PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
 endif()
