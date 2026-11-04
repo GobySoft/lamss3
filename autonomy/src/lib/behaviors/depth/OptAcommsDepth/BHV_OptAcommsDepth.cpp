@@ -599,17 +599,17 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
             range.clear();
             elev_angle.clear();
             double min_pitch_required = 100;
-            double range_opt;
-            double depth_opt;
-            double min_tl_opt;
-            double mean_tl_opt;
+            double range_opt = 0;
+            double depth_opt = 0;
+            double min_tl_opt = 0;
+            double mean_tl_opt = 0;
             bool done = false;
             valid_tl = false;
             for (int j = 0; j < num_ranges && !done; j++)
             {
                 double max_tl = -1e6;
                 double min_tl = 1e6;
-                double min_tl_dep;
+                double min_tl_dep = 0;
                 double mean_power = 0;
                 double closest_tl = 0;
                 double depth_diff = 1e6;
@@ -638,7 +638,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
                     double power = 1e-30;
 
                     int iray_max = 0;
-                    double max_tau;
+                    double max_tau = 0;
                     double max_power_bounces = 0;
                     for (int iray = 0; iray < eig.num_rays; iray++)
                     {
@@ -978,8 +978,8 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
         // Find limits of elevation angles in table
         double max_theta = -360;
         double min_theta = 360;
-        int indx_max_theta;
-        int indx_min_theta;
+        int indx_max_theta = 0;
+        int indx_min_theta = 0;
         for (int j = 0; j < static_cast<int>(dom_ag.size()); j++)
         {
             double d = dom_ag[j];

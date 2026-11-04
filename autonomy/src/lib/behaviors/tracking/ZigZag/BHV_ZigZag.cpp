@@ -241,7 +241,7 @@ IvPFunction* BHV_ZigZag::onRunState()
 
 double BHV_ZigZag::currentCompensatedHeading(double desired_heading, double u)
 {
-    double theta;
+    double theta = 0;
     double phi = headingToRadians(desired_heading);
 
     double b = -2 * (east_current_spd * cos(phi) + north_current_spd * sin(phi));

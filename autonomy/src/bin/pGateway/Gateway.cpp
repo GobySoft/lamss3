@@ -21,8 +21,8 @@ bool CGateway::OnStartUp()
 {
     //Initialize m_Geodesy from lat lon origin in .moos file
     string sVal;
-    double dfLatOrigin;
-    double dfLongOrigin;
+    double dfLatOrigin = 0;
+    double dfLongOrigin = 0;
 
     if (m_MissionReader.GetValue("LatOrigin", sVal))
     {
@@ -168,7 +168,7 @@ bool CGateway::OnNewMail(MOOSMSG_LIST& NewMail)
 {
     CMOOSMsg Msg;
 
-    double dfLatOrigin, dfLongOrigin;
+    double dfLatOrigin = 0, dfLongOrigin = 0;
     bool new_origin = false;
 
     MOOSMSG_LIST::reverse_iterator p;
