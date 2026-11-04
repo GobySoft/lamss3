@@ -27,3 +27,5 @@ a1330f76d7ed2fa0fd572d8072c0fdef3feaf36b
 c512d1ab16f2c7ed4302fe9b8b00d6f4034e4b75
 # Format pGeoTracker with clang-format
 e77e91e9efbcb09cc8196341f6725ad789acd63a
+# Format pLamssTrackManager with clang-format
+22461e104c26c02c81b615ca5ab2d1cf978f7a46

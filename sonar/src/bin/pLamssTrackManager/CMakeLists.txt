@@ -1,23 +1,11 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                  pLamssTrackManager
-# Author(s):                               Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} )
-
-set(SRC LamssTrackManager.cpp  LamssTrackManager_fsm.cpp)
-
-ADD_EXECUTABLE(pLamssTrackManager ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
-      
-TARGET_LINK_LIBRARIES(pLamssTrackManager 
-  ${Boost_LIBRARIES}
-  ${MOOS_LIBRARIES}
-  ${GOBY_LIBRARIES}
-  ${LAMSS_PROTOBUF_LIBRARY}
-  ${PROTOBUF_LIBRARIES}
-  ${IVP_MBUTIL_LIBRARY}
-  ${LAMSS_HENRIK_UTIL_LIBRARY}
-  )
+find_package(Boost REQUIRED COMPONENTS thread)
+lamss_find_ivp(mbutil)
+lamss_add_app(pLamssTrackManager MOOS
+  SOURCES LamssTrackManager.cpp LamssTrackManager_fsm.cpp
+  PROTOS LamssTrackManager_config.proto
+  LINK_LIBRARIES
+    lamss::sonar_protobuf lamss::sonar_henrik_util lamss::autonomy_protobuf
+    lamss::core_protobuf lamss::core_henrik_util IvP::mbutil Boost::thread)

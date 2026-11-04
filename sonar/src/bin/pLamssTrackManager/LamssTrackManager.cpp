@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <dlfcn.h>
 
@@ -16,7 +15,7 @@
 
 #include "goby/moos/moos_protobuf_helpers.h"
 
-using namespace lamss::shared::fsm;
+using namespace lamss::sonar::fsm;
 using namespace goby::util::logger;
 using namespace goby::util::logger_lock;
 namespace gpb = goby::moos::protobuf;
@@ -34,38 +33,38 @@ LamssTrackManager* LamssTrackManager::get_instance()
 {
     if (!inst_)
     {
-        lamss::shared::fsm::cfg_.reset(new LamssTrackManagerConfig);
-        inst_ = new LamssTrackManager(*lamss::shared::fsm::cfg_);
+        lamss::sonar::fsm::cfg_.reset(new LamssTrackManagerConfig);
+        inst_ = new LamssTrackManager(*lamss::sonar::fsm::cfg_);
     }
     return inst_;
 }
 
 LamssTrackManager::LamssTrackManager(LamssTrackManagerConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
+      new_origin_(false),
       cfg_(cfg),
       scheduler_(true),
       fsm_(scheduler_.create_processor<LamssTrackManagerFSM>()),
-      num_tracks(0),
-      tgt_track_id(0),
-      node(0),
-      collab_num_tracks(0),
-      filt_set(false),
-      trk_beamno(0),
-      track_delay(cfg_.track_delay()),
-      prev_highest(-1),
-      priority_threshold(0),
-      collaborator_id(-1),
-      collaborator_name(""),
-      close_range_(false),
       mission_active_(false),
       deploy_mode_active_(false),
       abort_mode_active_(false),
       prosecute_mode_active_(false),
       auto_prosecute_(cfg_.auto_prosecute()),
+      last_slow_loop_t_(0),
       active_track_trail(false),
-      new_origin_(false),
+      tgt_track_id(0),
+      collaborator_id(-1),
+      collaborator_name(""),
+      collab_num_tracks(0),
+      trk_beamno(0),
+      num_tracks(0),
+      filt_set(false),
+      priority_threshold(0),
+      track_delay(cfg_.track_delay()),
+      prev_highest(-1),
+      node(0),
       reset_pending_(false),
-      last_slow_loop_t_(0)
+      close_range_(false)
 {
     goby::glog.set_lock_action(lock);
     goby::glog.add_group("fsm", goby::util::Colors::lt_magenta);
@@ -357,13 +356,11 @@ void LamssTrackManager::handle_track_report(const CMOOSMsg& msg)
     if (track_report.node() == collaborator_id)
     {
         last_track_report_ = track_report;
-        int track_id = track_report.tgt_num();
         last_track_lon_ = track_report.lon();
         last_track_lat_ = track_report.lat();
         m_Geodesy.LatLong2LocalUTM(last_track_lat_, last_track_lon_, last_track_y_, last_track_x_);
         double track_heading = track_report.heading();
         double track_speed = track_report.speed();
-        double track_utc = track_report.time();
         glog.is(VERBOSE) && glog << "received TRACK_REPORT from collaborator" << std::endl;
         if (deploy_mode_active_ && cfg_.auto_prosecute())
         {
@@ -972,7 +969,6 @@ void LamssTrackManager::reset_tracking()
 
 bool LamssTrackManager::postStateVars()
 {
-    char buff[200];
     std::string msg;
     double current = MOOSTime();
 
@@ -1190,7 +1186,6 @@ bool LamssTrackManager::postStateVars()
 
 bool LamssTrackManager::postStateCollab()
 {
-    char buff[200];
     std::string msg;
     double current = MOOSTime();
 
@@ -1207,11 +1202,7 @@ bool LamssTrackManager::postStateCollab()
     double trk_rate;
     double trk_rate_sigma;
     double trk_snr;
-    int trk_nfeat;
-    int trk_beamno;
     std::vector<double> class_features;
-
-    int track_count = 0;
 
     int highest_prio = 0;
     int highest_index = -1;
@@ -1293,7 +1284,7 @@ int LamssTrackManager::str2dbl_vec(std::string msg, std::vector<double>& values)
 bool LamssTrackManager::dbl_vec2str(std::vector<double> numbers, std::string& output)
 {
     output = "";
-    for (int i = 0; i < numbers.size(); i++)
+    for (int i = 0; i < (int)numbers.size(); i++)
     {
         if (i > 0)
             output += ",";
@@ -1374,7 +1365,7 @@ int LamssTrackManager::updateTrackBuffer(double track_utc, double track_x, doubl
     double track_xdot = track_spd * cos(rhead);
     double track_ydot = track_spd * sin(rhead);
 
-    if (m_track_utc.size() >= m_buffer_length_)
+    if ((int)m_track_utc.size() >= m_buffer_length_)
     {
         for (i = 1; i < m_buffer_length_; i++)
         {
@@ -1459,8 +1450,7 @@ double LamssTrackManager::computeSigma()
 }
 
 std::string LamssTrackManager::NodeReport(std::string trk_name, std::string trk_type, double trk_x,
-                                          double trk_y, double trk_spd, double trk_hdg,
-                                          double trk_dep)
+                                          double trk_y, double trk_spd, double trk_hdg, double)
 {
     double trk_lat;
     double trk_lon;

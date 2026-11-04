@@ -1,7 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2015-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef LamssTrackManager20150402H
 #define LamssTrackManager20150402H
@@ -11,12 +9,21 @@
 #include "MBUtils.h"
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
-#include "lamss/lib_henrik_util/CMeasAvg.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
 #include <boost/circular_buffer.hpp>
 
 // From lib_henrik_util
-#include <lamss/lib_henrik_util/CTrack.h>
-#include <lamss/lib_henrik_util/Measurement.h>
+#include "lamss/core/henrik_util/Measurement.h"
+#include "lamss/sonar/henrik_util/CTrack.h"
+
+using lamss::autonomy::LAMSS_DEPLOY;
+using lamss::autonomy::LAMSS_PROSECUTE;
+using lamss::core::CAngleAvg;
+using lamss::core::parse_brng_stat;
+using lamss::sonar::CTrack;
+using lamss::sonar::LAMSS_CONTACT;
+using lamss::sonar::LAMSS_TRACK;
+using lamss::sonar::LamssTrackManagerConfig;
 
 #define NO_TRACK 0
 #define RELATIVE 1
