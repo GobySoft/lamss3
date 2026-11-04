@@ -1,0 +1,35 @@
+pSimpleAcousticSim 
+Kevin Cockrell October 2008
+(code based on H. Schmidt's code)
+
+(This program requires the GNU scientific Library. This library can be installed using apt-get, yum, or a
+package manager. The library is called "gsl" and "gsl-devel").
+
+pSimpleAcousticSim is a simple acoustic simulator for hydrophone arrays.
+
+It assumes the source is emitting a sinusoidal tones in addition to a flat broadband spectrum. 
+It takes into account frequency independent spreading loss (spherical to the waveguide depth, cylindrical there after). 
+The wave impinging upon the hydrophone is a cylindrical wave originating at the source (this of course looks like a plane wave for large distances compared to wavelength). 
+Because it is a cylindrical wave, the depth of each hydrophone does not matter. 
+
+The frequencies and amplitudes of the tones are set in the .moos file. Set
+the amplitude to zero if you don't want them. 
+
+The source's location must be in the MOOSDB as  SIM_TARGET_XPOS and SIM_TARGET_YPOS (doubles). 
+Also the source's on/off status must be in the MOOSDB as T_SOURCE. (string), "ON" or "OFF" 
+
+Properties for the broadband part of the source must be in the MOOSDB as:
+T_BW (double)    (bandwidth)
+T_FREQ (double) (center frequency)
+T_SPL (double)  (spectrum level in dB) 
+These values can change with time. 
+
+The "range" and "TL" reported in the output window is from the source location to the last element of the hydrophone array (that is, the last element of HYDROPHONE_[X, Y, and Z]
+Shortcomings:
+
+-Some approximations are made to simplify the math which will make the transmission loss inaccurate for distances less than one waveguide depth.
+-The signal will be discontinuous across files. 
+-For VSA files, the time stamp in the acoustic file is zero.  
+- pSimpleAcousticSim will write a file if it has been longer than number_samples/sampling_frequency since the last file. It will not try to make up for "lost time" because this is not desirable in all cases (i.e. when the hydrophone or source position(s) stop being published to the MOOSDB, and then start again). If the processing chain relies on a file being published at very precise intervals, pSImpleAcousticSim will have to be modified. 
+
+
