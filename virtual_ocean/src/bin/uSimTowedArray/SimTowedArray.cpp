@@ -4719,7 +4719,7 @@ bool CArrayModel::find_configf(vector<double> yold, vector<double> y, int nt, do
         // find delta
         ftol = 0;
 
-        int ntol, jtol;
+        int ntol = 0, jtol = 0;
         for (int n = 1; n <= Nseg + 1; n++)
             for (int j = 1; j <= 6; j++)
                 if (fabs(bigy[indx(6, j, n)]) > 1e-7)

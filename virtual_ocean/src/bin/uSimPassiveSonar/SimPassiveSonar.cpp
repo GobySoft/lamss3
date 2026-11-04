@@ -225,7 +225,9 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     unsigned int const v = num_samples;
     // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
     float f = (float)(v - 1);
-    nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
+    unsigned int f_bits;
+    std::memcpy(&f_bits, &f, sizeof f_bits);
+    nfft = 1 << ((f_bits >> 23) - 126);
     glog.is(VERBOSE) && glog << "nfft = " << nfft << std::endl;
     // Build the dft of the signal in a format similar to
     // matlab (same as gsl), described in
@@ -446,7 +448,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
     number_of_targets = str2int_vec(msg.m_sVal, m_target_number);
     glog.is(VERBOSE) && glog << "Number of targets = " << number_of_targets << endl;
 
-    CTarget Empty;
+    CTarget Empty{};
     if (number_of_targets != old_number_of_targets)
     {
         Targets.clear();
@@ -1900,7 +1902,7 @@ bool SimPassiveSonar::write_hyd_file()
         // I think this can be made faster by writing the entire time series
         // with one fwrite. I think gsl has a function to do that.
 
-        FILE* hydrophone_file;
+        FILE* hydrophone_file = nullptr;
         if (array_type == "VSA")
         {
             // Hydrophone only file
@@ -1990,7 +1992,7 @@ bool SimPassiveSonar::write_hyd_file()
             sync_cmd = "rsync " + acoustic_filename + " " + sync_path + "/";
 
         glog.is(DEBUG2) && glog << "Synching with: " << sync_cmd.c_str() << endl;
-        system(sync_cmd.c_str());
+        [[maybe_unused]] int sync_status = system(sync_cmd.c_str());
     }
 
     m_Comms.Notify("SONAR_FILENAME", acoustic_filename_buff);
@@ -2165,7 +2167,7 @@ bool SimPassiveSonar::write_nas_file(double timestamp)
                 sync_cmd = "rsync " + nonacoustic_filename + " " + sync_path + "/";
 
             glog.is(DEBUG2) && glog << "Synching with: " << sync_cmd.c_str() << endl;
-            system(sync_cmd.c_str());
+            [[maybe_unused]] int sync_status = system(sync_cmd.c_str());
         }
     }
     return true;
@@ -2315,7 +2317,7 @@ bool SimPassiveSonar::write_nas_file_verbose(double timestamp)
                 sync_cmd = "rsync " + nonacoustic_filename + " " + sync_path + "/";
 
             glog.is(DEBUG2) && glog << "Synching with: " << sync_cmd.c_str() << endl;
-            system(sync_cmd.c_str());
+            [[maybe_unused]] int sync_status = system(sync_cmd.c_str());
         }
     }
 
@@ -2800,7 +2802,7 @@ void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 double SimPassiveSonar::getAmbientNoise(double depth, vector<double> dom_nl,
                                         vector<double> noise_db)
 {
-    double nl;
+    double nl = noise_level;
 
     if (noise_profile)
     {
@@ -3103,23 +3105,23 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
     else
     {
         glog.is(DEBUG2) && glog << "Start reading file" << endl;
-        fread(&t_req, sizeof(double), 1, cov_data_file);
+        [[maybe_unused]] size_t n_read = fread(&t_req, sizeof(double), 1, cov_data_file);
 
         double nl_req;
-        fread(&nl_req, sizeof(double), 1, cov_data_file);
+        n_read = fread(&nl_req, sizeof(double), 1, cov_data_file);
         double facamp = pow(10.0, (nl_now - nl_req) / 20.0);
         double faccov = facamp * facamp;
         double f_min, f_max, df;
-        fread(&f_min, sizeof(double), 1, cov_data_file);
-        fread(&f_max, sizeof(double), 1, cov_data_file);
-        fread(&df, sizeof(double), 1, cov_data_file);
+        n_read = fread(&f_min, sizeof(double), 1, cov_data_file);
+        n_read = fread(&f_max, sizeof(double), 1, cov_data_file);
+        n_read = fread(&df, sizeof(double), 1, cov_data_file);
         int i_first, i_last;
-        fread(&i_first, sizeof(int), 1, cov_data_file);
-        fread(&i_last, sizeof(int), 1, cov_data_file);
+        n_read = fread(&i_first, sizeof(int), 1, cov_data_file);
+        n_read = fread(&i_last, sizeof(int), 1, cov_data_file);
 
         int num_sensors;
 
-        fread(&num_sensors, sizeof(int), 1, cov_data_file);
+        n_read = fread(&num_sensors, sizeof(int), 1, cov_data_file);
         glog.is(DEBUG2) && glog << "Done reading header, i_first=" << i_first
                                 << ", i_last=" << i_last << ", num-sensors=" << num_sensors << endl;
         double min_val = 1e15;
@@ -3130,16 +3132,16 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
             vector<complex<double>> chollow;
             double f;
 
-            fread(&f, sizeof(double), 1, cov_data_file);
+            n_read = fread(&f, sizeof(double), 1, cov_data_file);
 
             int num = num_sensors * (num_sensors + 1) / 2;
             for (int i = 0; i < num; i++)
             {
                 double rr, ri;
-                fread(&rr, sizeof(double), 1, cov_data_file);
+                n_read = fread(&rr, sizeof(double), 1, cov_data_file);
                 max_val = std::max(max_val, rr);
                 min_val = std::min(min_val, rr);
-                fread(&ri, sizeof(double), 1, cov_data_file);
+                n_read = fread(&ri, sizeof(double), 1, cov_data_file);
                 max_val = std::max(max_val, ri);
                 min_val = std::min(min_val, ri);
                 covmat.push_back(faccov * complex<double>(rr, ri));
@@ -3148,10 +3150,10 @@ bool SimPassiveSonar::read_covmat_file(string covmat_file, double nl_now, double
             for (int i = 0; i < num; i++)
             {
                 double rr, ri;
-                fread(&rr, sizeof(double), 1, cov_data_file);
+                n_read = fread(&rr, sizeof(double), 1, cov_data_file);
                 max_val = std::max(max_val, rr);
                 min_val = std::min(min_val, rr);
-                fread(&ri, sizeof(double), 1, cov_data_file);
+                n_read = fread(&ri, sizeof(double), 1, cov_data_file);
                 max_val = std::max(max_val, ri);
                 min_val = std::min(min_val, ri);
                 chollow.push_back(facamp * complex<double>(rr, ri));
@@ -3186,13 +3188,14 @@ bool SimPassiveSonar::read_weight_file(string src_wgt_file)
         int num_freq;
         double fmin, df;
 
-        fread(&num_freq, sizeof(int), 1, wgt_file);
-        fread(&fmin, sizeof(double), 1, wgt_file);
-        fread(&df, sizeof(double), 1, wgt_file);
+        [[maybe_unused]] size_t n_read;
+        n_read = fread(&num_freq, sizeof(int), 1, wgt_file);
+        n_read = fread(&fmin, sizeof(double), 1, wgt_file);
+        n_read = fread(&df, sizeof(double), 1, wgt_file);
 
         int num_sources;
 
-        fread(&num_sources, sizeof(int), 1, wgt_file);
+        n_read = fread(&num_sources, sizeof(int), 1, wgt_file);
         glog.is(DEBUG2) && glog << "Done reading header, fmin= " << fmin << ", df =" << df
                                 << ", num_freq=" << num_freq << ", num_sources=" << num_sources
                                 << endl;
@@ -3209,8 +3212,8 @@ bool SimPassiveSonar::read_weight_file(string src_wgt_file)
             for (int f_iter = 0; f_iter < num_freq; f_iter++)
             {
                 double mag, phase;
-                fread(&mag, sizeof(double), 1, wgt_file);
-                fread(&phase, sizeof(double), 1, wgt_file);
+                n_read = fread(&mag, sizeof(double), 1, wgt_file);
+                n_read = fread(&phase, sizeof(double), 1, wgt_file);
                 // Sign change tested 03222019
                 phase = -phase;
                 // Unwrap phase for interpolation

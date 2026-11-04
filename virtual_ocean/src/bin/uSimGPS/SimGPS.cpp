@@ -132,7 +132,7 @@ bool CSimGPS::Iterate()
 
 bool CSimGPS::OnNewMail(MOOSMSG_LIST& NewMail)
 {
-    double dfLatOrigin, dfLongOrigin;
+    double dfLatOrigin = 0, dfLongOrigin = 0;
     bool new_origin = false;
 
     MOOSMSG_LIST::iterator p;

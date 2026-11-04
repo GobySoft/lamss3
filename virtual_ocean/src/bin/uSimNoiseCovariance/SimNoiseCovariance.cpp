@@ -214,7 +214,9 @@ bool CSimNoiseCovariance::OnStartUp()
         unsigned int const v = num_samples;
         // Put the result here. (So v=3 -> r=4; v=8 -> r=8)
         float f = (float)(v - 1);
-        nfft = 1 << ((*(unsigned int*)(&f) >> 23) - 126);
+        unsigned int f_bits;
+        std::memcpy(&f_bits, &f, sizeof f_bits);
+        nfft = 1 << ((f_bits >> 23) - 126);
         MOOSTrace("nfft = %u\n", nfft);
         // Build the dft of the signal in a format similar to
         // matlab (same as gsl), described in
@@ -451,7 +453,7 @@ int CSimNoiseCovariance::str2int_vec(string msg, vector<int>& values)
 double CSimNoiseCovariance::computeNoiseCovariance(double depth, vector<double> dom_nl,
                                                    vector<double> noise_db)
 {
-    double nl;
+    double nl = noise_level;
 
     if (noise_profile)
     {

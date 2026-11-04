@@ -231,7 +231,7 @@ double CovMat::gasdev()
     // before each pair.
 
     double rsq = 0.0;
-    double v1, v2;
+    double v1 = 0, v2 = 0;
     double res;
 
     if (iset == 0)

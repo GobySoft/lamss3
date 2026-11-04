@@ -319,7 +319,7 @@ void SimTargets::updateTargetList()
     vector<double> values;
     values.clear();
 
-    CTarget Empty;
+    CTarget Empty{};
 
     for (i = 0; i < Targets.size(); i++)
     {

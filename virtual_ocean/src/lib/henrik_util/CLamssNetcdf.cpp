@@ -4,6 +4,7 @@
 #include "lamss/virtual_ocean/henrik_util/CLamssNetcdf.h"
 #include "strnatcmp.hpp"
 #include <boost/filesystem.hpp>
+#include <iomanip>
 #include <math.h>
 #include <sys/types.h>
 
@@ -915,7 +916,7 @@ void LamssNetCdf::init_timebase(double m_start_time, double utc_start, double ut
 std::vector<double> LamssNetCdf::get_gdem_profile(double lat_, double lon_,
                                                   std::vector<double> dep_, int month)
 {
-    int status;
+    int status = NC_NOERR;
 
     double lat_m;
     double lon_m;
@@ -1200,7 +1201,8 @@ void LamssNetCdf::get_hycom_profile(double lat_, double lon_, std::vector<double
 
         for (int i_dep = 0; i_dep < (int)dep_vec_.size(); i_dep++)
         {
-            int status_s_1, status_s_2, status_t_1, status_t_2;
+            int status_s_1 = NC_NOERR, status_s_2 = NC_NOERR, status_t_1 = NC_NOERR,
+                status_t_2 = NC_NOERR;
             short int temp_val_1, salt_val_1;
             short int temp_val_2, salt_val_2;
             std::vector<double> z_tmp, z_sal;

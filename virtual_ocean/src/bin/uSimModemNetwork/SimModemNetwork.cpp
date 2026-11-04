@@ -585,7 +585,7 @@ void SimModemNetwork::handle_noise_vert_dir(const CMOOSMsg& msg)
 double SimModemNetwork::get_ambient_noise(double depth, vector<double> dom_nl,
                                           vector<double> noise_db)
 {
-    double nl;
+    double nl = cfg_.noise_level();
 
     if (noise_profile)
     {
@@ -1876,8 +1876,8 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp)
     double power = 1e-30;
 
     int iray_max = 0;
-    double max_tau;
-    double max_power_bounces;
+    double max_tau = 0;
+    double max_power_bounces = 0;
     for (int iray = 0; iray < eig.num_rays; iray++)
     {
         double pow_ray = pow(eig.bundle[iray].amp, 2);
