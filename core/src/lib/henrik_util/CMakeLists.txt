@@ -8,5 +8,6 @@ lamss_add_library(henrik_util
     CMeasAvg.cpp
     CVectorUtils.cpp
     Measurement.cpp
-    parse_stat.cpp
-  LINK_LIBRARIES MOOS::MOOS IvP::mbutil)
+    parse_stat.cpp)
+# private, so that downstream toolboxes need not find MOOS to use the installed library
+target_link_libraries(lamss_core_henrik_util PRIVATE MOOS::MOOS IvP::mbutil)

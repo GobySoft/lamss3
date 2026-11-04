@@ -3,6 +3,10 @@
 
 #include "lamss/sonar/henrik_util/CTrack.h"
 
+#include "MBUtils.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+
 using namespace std;
 
 namespace lamss

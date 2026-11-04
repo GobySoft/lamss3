@@ -4,10 +4,6 @@
 #ifndef __MEASUREMENT_h__
 #define __MEASUREMENT_h__
 
-#include "MBUtils.h"
-#include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
-
 #include <math.h>
 #include <string.h>
 #include <string>

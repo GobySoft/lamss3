@@ -3,6 +3,10 @@
 
 #include "lamss/core/henrik_util/CVectorUtils.h"
 
+#include "MBUtils.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
+
 using namespace std;
 
 namespace lamss
