@@ -27,5 +27,5 @@ apt:
     - python3-pytest  # tests only
 apt_repositories:
   - name: gobysoft
-    url: http://packages.gobysoft.org/ubuntu/release/
+    url: http://packages.gobysoft.org/ubuntu/continuous/
     key: cmake/keys/gobysoft.asc

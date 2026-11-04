@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Runs MOOSDB, gobyd, goby_moos_gateway with the lamss plugin and the core MOOS apps together, and
-# checks that data passes through each of them. Tool and target paths come from the environment
-# (see CMakeLists.txt). Every process gets this run's own ports and Goby platform, so parallel runs
-# and other MOOS communities on the machine are left alone.
+# checks that data passes through each of them: MOOS-side with moos_probe, Goby-side with
+# `goby test run gateway.yml`. Tool and target paths come from the environment (see
+# CMakeLists.txt). Every process gets this run's own ports and Goby platform, so parallel runs and
+# other MOOS communities on the machine are left alone.
 
 set -euo pipefail
 
@@ -147,24 +148,12 @@ sleep 1
 "$LAMSS_MOOS_PROBE" "$remote_db_port" 10 SMOKE_REMOTE_OUT=inbound
 wait "$probe_pid"
 
-step "goby_moos_gateway: NODE_REPORT from MOOS to Goby"
-"$LAMSS_GOBY" zeromq subscribe --interprocess "$interprocess" \
-    -l "$LAMSS_CORE_PROTOBUF" -g '^lamss::moos::NODE_REPORT$' >"$work/subscribe.log" 2>&1 &
-pids+=($!)
-sleep 1
-probe 'NODE_REPORT=NAME=smoke,TYPE=auv,UTC_TIME=1793277319,X=10,Y=20,SPD=1,HDG=90,DEPTH=5'
-for _ in $(seq 50); do
-    grep -q 'name: "smoke"' "$work/subscribe.log" && break
-    sleep 0.1
-done
-grep 'name: "smoke"' "$work/subscribe.log"
-
-step "goby_moos_gateway: NODE_REPORT from Goby to MOOS"
+step "goby_moos_gateway: NODE_REPORT both ways (goby test)"
 probe '?NODE_REPORT~=topside' &
 probe_pid=$!
-sleep 1
-"$LAMSS_GOBY" zeromq publish --interprocess "$interprocess" -l "$LAMSS_CORE_PROTOBUF" \
-    'lamss::moos::NODE_REPORT::out' PROTOBUF/lamss.core.LegacyNodeReport 'name: "topside" x: 1 y: 2'
+"$LAMSS_GOBY" test run "$LAMSS_GATEWAY_TEST" -l "$LAMSS_CORE_PROTOBUF" --log_dir "$work/goby_test" \
+    -D PLATFORM="$platform" -D SOCKET_NAME="$work/gobyd.manager" \
+    -D MOOS_PROBE="$LAMSS_MOOS_PROBE" -D MOOS_PORT="$db_port"
 wait "$probe_pid"
 
 failed=0

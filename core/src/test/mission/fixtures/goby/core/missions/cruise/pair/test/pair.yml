@@ -1,0 +1,15 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+test:
+  name: two gobyd, kept apart
+  default_timeout: 5
+  require_app:
+    - { endpoint: alpha_main, name: [gobyd], timeout: 20 }
+    - { endpoint: beta_main, name: [gobyd], timeout: 20 }
+  run:
+    - name: alpha hears itself, beta hears nothing
+      publish:
+        - { endpoint: alpha_main, group: hello, type: JSON/Hello, value: '{"cruise": "${LAMSS_CRUISE}", "port_base": ${CRUISE_port_base}}', delay: 0.5 }
+      expect:
+        - { endpoint: alpha_main, group: hello, type: JSON/Hello, match: '{"cruise": "pair"}' }
+        - { endpoint: beta_main, group: hello, count: 0, timeout: 2 }

@@ -40,7 +40,7 @@ lamss::tool::Command lamss::tool::mission_command()
 {
     Command mission{"mission",
                     {"m"},
-                    "Generate and run missions (`lamss mission --help`)",
+                    "Generate, run and test missions (`lamss mission --help`)",
                     {},
                     {{"args", "Passed to python3 -m lamss.mission", false, true}},
                     {},
