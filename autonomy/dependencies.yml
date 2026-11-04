@@ -3,8 +3,5 @@ apt:
   all:
     - libnewmat10-dev  # uMVS_Bluefin
     - moos-ivp-apps  # pHelmIvP, which loads lamss_autonomy_behaviors
-  # BHV_OptAcommsDepth is built only with netsim, which resolute does not have
-  jammy:
-    - libnetsim-dev
-  noble:
-    - libnetsim-dev
+    - libnetsim-dev  # BHV_OptAcommsDepth
+    - libboost-serialization-dev  # netsim's CMake package needs it, and libnetsim-dev does not depend on it
