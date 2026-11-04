@@ -4,10 +4,6 @@
 #ifndef __tgt_decode_h__
 #define __tgt_decode_h__
 
-#include "MBUtils.h"
-#include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
-
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

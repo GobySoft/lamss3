@@ -1,0 +1,25 @@
+// Copyright 2026 GobySoft, LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Single-vehicle target motion analysis from BEARING_STAT bearings, with the mbat target limits;
+// publishes TRACK_STAT, TARGET_X/Y/HEADING/SPEED and CLOSE_RANGE.
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = sonar
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = pGeoTracker
+{
+  AppTick   = 2
+  CommsTick = 4
+
+  range_max = 6000
+  speed_max = 10.0
+  range_guess = 3000
+  init_meas = 8
+  min_measurements = 30
+  Z_length = 40
+  sampling_theta = 0.6
+}

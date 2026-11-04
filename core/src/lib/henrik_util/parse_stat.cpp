@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lamss/core/henrik_util/parse_stat.h"
+
+#include "MBUtils.h"
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include <string>
 
 using namespace std;

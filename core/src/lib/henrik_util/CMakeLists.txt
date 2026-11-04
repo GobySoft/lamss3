@@ -13,6 +13,7 @@ lamss_add_library(henrik_util
     CRapRays.cpp
     CTarget.cpp
     CVectorUtils.cpp
+    Measurement.cpp
     Random.cpp
     parse_stat.cpp
     str_num.cpp
