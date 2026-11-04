@@ -1294,7 +1294,9 @@ bool LamssCBF::LoadData(std::string filename)
         temp_data = new float[curr_cfg_.number_samples()];
         for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
         {
-            fread(temp_data, sizeof(float), curr_cfg_.number_samples(), fp);
+            if (fread(temp_data, sizeof(float), curr_cfg_.number_samples(), fp) !=
+                (size_t)curr_cfg_.number_samples())
+                glog.is(DEBUG1) && glog << "Short read from " << filename << std::endl;
             for (int jj = leftover; jj < end_data_; jj++)
             {
                 Array_Data(jj + 1, kk + 1) = temp_data[jj - leftover];
@@ -1308,11 +1310,15 @@ bool LamssCBF::LoadData(std::string filename)
     {
         temp_int = new short[curr_cfg_.number_samples()];
         //read the two timetags out of the file
-        fread(&time0, sizeof(int), 1, fp);
-        fread(&time1, sizeof(int), 1, fp);
+        if (fread(&time0, sizeof(int), 1, fp) != 1)
+            glog.is(DEBUG1) && glog << "Short read from " << filename << std::endl;
+        if (fread(&time1, sizeof(int), 1, fp) != 1)
+            glog.is(DEBUG1) && glog << "Short read from " << filename << std::endl;
         for (int kk = 0; kk < curr_cfg_.number_elements(); kk++)
         {
-            fread(temp_int, sizeof(short), curr_cfg_.number_samples(), fp);
+            if (fread(temp_int, sizeof(short), curr_cfg_.number_samples(), fp) !=
+                (size_t)curr_cfg_.number_samples())
+                glog.is(DEBUG1) && glog << "Short read from " << filename << std::endl;
             for (int jj = leftover; jj < end_data_; jj++)
             {
                 Array_Data(jj + 1, kk + 1) = temp_int[jj - leftover];

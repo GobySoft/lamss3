@@ -704,7 +704,7 @@ void Contact_List::update_contact(int cid, Measurement* Meas)
 
 bool Contact_List::Add_Measurement(int cid, Measurement* Meas)
 {
-    double dt;
+    double dt = 0;
 
     if (Contacts[cid].num_meas == 0)
     {

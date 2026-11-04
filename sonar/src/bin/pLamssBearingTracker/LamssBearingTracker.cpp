@@ -591,7 +591,7 @@ int LamssBearingTracker::Sign(double num)
 
 bool LamssBearingTracker::Track_Bearing()
 {
-    double f, df, bmid, bleft, bright, denom;
+    double f, df, bmid = 0, bleft = 0, bright = 0, denom;
     int nmid, iter;
     double relative_az; //ADDED AJP 17NOV2006
 

@@ -412,7 +412,7 @@ dbl CGeoTrack::theta_2(dbl* xinit, dbl* d, dbl p2, dbl ro)
 dbl CGeoTrack::Wolfe_line_search(dbl* xinit, dbl* d)
 {
     int k;
-    dbl t1, t2, ro, dro, a, b;
+    dbl t1, t2, ro, dro, a = 0, b = 0;
     dbl finit, p1, p2;
 
     ro = 1;

@@ -438,7 +438,7 @@ dbl	x[];
 	int	i;
 	
 	for (i=0; i<n; i++) {
-		fscanf(fd, format, x+i);
+		{ int r = fscanf(fd, format, x+i); (void)r; }
 	}
 }
 
@@ -466,7 +466,7 @@ dbl	a[];
 	
 	for (i=0; i<m; i++) {
 		for (j=0; j<n; j++) {
-			fscanf(fd, format, a+n*i+j);
+			{ int r = fscanf(fd, format, a+n*i+j); (void)r; }
 		}
 	}
 }
@@ -488,7 +488,7 @@ dbl	**pa;
 	*pa = a = allc(dbl, m*n);
 	for (i=0; i<m; i++) {
 		for (j=0; j<n; j++) {
-			fscanf(fd, format, a++);
+			{ int r = fscanf(fd, format, a++); (void)r; }
 		}
 	}
 }
