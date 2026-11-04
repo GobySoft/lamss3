@@ -1,26 +1,5 @@
-// H. Schmidt 3/9/2018 Using iMseasbathy as template
-// s. petillo spetillo@mit.edu 03.27.09
-// ocean engineering graduate student - mit / whoi joint program
-// massachusetts institute of technology (mit)
-// laboratory for autonomous marine sensing systems (lamss)
-//
-// this is iNoaaBathy.cpp
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "iNoaaBathy.h"
 #include "goby/moos/moos_protobuf_helpers.h"
@@ -85,10 +64,12 @@ bool CiNoaaBathy::OnNewMail(MOOSMSG_LIST& NewMail)
             auv_y_ = dval;
             //cout<<"auv_y_="<<auv_y_<<endl;
         }
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
         else if (MOOSStrCmp(key, "BATHY_REQUEST"))
         {
             handle_outside_bathy_request(msg);
         }
+#endif
     }
 
     if (new_origin)
@@ -128,6 +109,7 @@ bool CiNoaaBathy::Iterate()
     }
 
     // get bathy for uSimSoundVelocityMSEAS upon request
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
     if (got_bathy_request_)
     {
         std::cout << "Got BATHY_REQUEST " << std::endl;
@@ -135,6 +117,7 @@ bool CiNoaaBathy::Iterate()
         std::cout << "Sent BATHY_RESPONSE " << std::endl;
         got_bathy_request_ = false;
     }
+#endif
 
     return true;
 }
@@ -154,7 +137,9 @@ void CiNoaaBathy::RegisterVariables()
     m_Comms.Register("LONG_ORIGIN", 0);
     m_Comms.Register("NAV_X", 0);
     m_Comms.Register("NAV_Y", 0);
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
     m_Comms.Register("BATHY_REQUEST", 0);
+#endif
 }
 
 // ReadConfiguration: reads in configuration values from the .moos file
@@ -213,6 +198,7 @@ bool CiNoaaBathy::ReadConfiguration()
     return true;
 }
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 void CiNoaaBathy::handle_outside_bathy_request(const CMOOSMsg& msg)
 {
     // BATHY_REQUEST = "request_id=,lat=,lon="
@@ -265,3 +251,4 @@ void CiNoaaBathy::send_bathy_response()
 
     bathy_response_sent_ = true;
 }
+#endif

@@ -1,25 +1,5 @@
-// s. petillo spetillo@mit.edu 03.27.09
-// ocean engineering graduate student - mit / whoi joint program
-// massachusetts institute of technology (mit)
-// laboratory for autonomous marine sensing systems (lamss)
-//
-// this is iNoaaBathy.h
-//
-// see the readme file within this directory for information
-// pertaining to usage and purpose of this script.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef iNoaaBathyH
 #define iNoaaBathyH
@@ -27,12 +7,14 @@
 #include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "goby/moos/moos_geodesy.h"
-#include "lamss/lib_henrik_util/CLamssNetcdf.h"
+#include "lamss/virtual_ocean/henrik_util/CLamssNetcdf.h"
 #include <cfloat>
 #include <cmath>
 #include <netcdf.h>
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#endif
 
 class CiNoaaBathy : public CMOOSApp
 {
@@ -87,7 +69,7 @@ class CiNoaaBathy : public CMOOSApp
     double start_time_;
     int publish_count_;
 
-    LamssNetCdf NOAAbathy;
+    lamss::virtual_ocean::LamssNetCdf NOAAbathy;
     goby::moos::CMOOSGeodesy geodesy_;
 };
 

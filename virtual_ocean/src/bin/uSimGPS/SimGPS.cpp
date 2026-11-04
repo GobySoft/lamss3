@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "SimGPS.h"
 #include <iostream>
 #include <sstream>

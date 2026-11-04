@@ -1,3 +1,12 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
 ProcessConfig = uSimGPS
 {
    AppTick = 1
@@ -7,4 +16,3 @@ ProcessConfig = uSimGPS
    gps_interval = 2
    min_gps_time = 10
 }
-

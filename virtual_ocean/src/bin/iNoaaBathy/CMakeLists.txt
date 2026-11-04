@@ -1,20 +1,10 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                 iNoaaBathy
-# Author(s):                              Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(iNoaaBathy ${SRC})
-      
-TARGET_LINK_LIBRARIES(iNoaaBathy
-  ${MOOS_LIBRARIES}
-  ${IVP_MBUTIL_LIBRARY}
-  ${GOBY_LIBRARIES}
-  ${Boost_LIBRARIES}
-  henrik_util
-  netsim_acousticstoolbox
-  netcdf
-)
+lamss_add_app(iNoaaBathy MOOS
+  SOURCES iNoaaBathy.cpp iNoaaBathyMain.cpp
+  LINK_LIBRARIES lamss::virtual_ocean_henrik_util IvP::mbutil)
+if(NETSIM_FOUND)
+  target_link_libraries(iNoaaBathy PRIVATE netsim_acousticstoolbox)
+  target_compile_definitions(iNoaaBathy PRIVATE LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM)
+endif()

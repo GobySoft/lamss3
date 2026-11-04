@@ -1,15 +1,4 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                         uSimGPS
-# Author(s):                               Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(uSimGPS ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimGPS
-  ${MOOS_LIBRARIES}
-    goby_moos
-)
-
-
+lamss_add_app(uSimGPS MOOS SOURCES SimGPS.cpp SimGPSMain.cpp)

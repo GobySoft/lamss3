@@ -1,11 +1,4 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                        uSimCTD
-# Author(s):                                 Raymond Lum
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(uSimCTD ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimCTD
-  ${MOOS_LIBRARIES})
+lamss_add_app(uSimCTD MOOS NO_GOBY SOURCES uSimCTD.cpp uSimCTDMain.cpp)
