@@ -1,19 +1,5 @@
-// copyright 2010 H. Schmidt henrik@mit.edu
-//
-// this file is part of lib_behaviors-henrik, a collection of pHelmIvP behaviors
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef BHV_OPTCOHACOUSTDEPTH_HEADER
 #define BHV_OPTCOHACOUSTDEPTH_HEADER
@@ -22,12 +8,17 @@
 #include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
 
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <fstream>
+#include <string>
+#include <vector>
+
 #include "ConditionalParam.h"
 #include "IvPBehavior.h"
-#include <lamss/lib_henrik_util/CEigenRays.h>
-#include <lamss/lib_henrik_util/CRapRays.h>
+#include "lamss/core/henrik_util/CEigenRays.h"
+#include "lamss/core/henrik_util/CRapRays.h"
 
-std::ostream& operator<<(std::ostream& out, const std::vector<double>& t)
+inline std::ostream& operator<<(std::ostream& out, const std::vector<double>& t)
 {
     for (std::vector<double>::const_iterator it = t.begin(), nt = t.end(); it != nt; ++it)
     {
@@ -37,6 +28,11 @@ std::ostream& operator<<(std::ostream& out, const std::vector<double>& t)
     }
     return out;
 }
+
+namespace lamss
+{
+namespace autonomy
+{
 
 class BHV_OptAcommsDepth : public IvPBehavior
 {
@@ -109,13 +105,13 @@ class BHV_OptAcommsDepth : public IvPBehavior
     double dip_min;
     double dip_max;
     // Eigenrays
-    CEigenRayTable eigenray_table;
-    CEigenRay eig;
+    lamss::core::CEigenRayTable eigenray_table;
+    lamss::core::CEigenRay eig;
     // Rap acoustics
     double surface_sound_speed;
     double sound_speed_gradient;
     double water_depth;
-    CRapRays rap_trace;
+    lamss::core::CRapRays rap_trace;
 
     // SVP updates
     goby::moos::CMOOSGeodesy m_Geodesy;
@@ -138,12 +134,7 @@ class BHV_OptAcommsDepth : public IvPBehavior
     std::ofstream file_out_;
 };
 
-extern "C"
-{
-    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
-    {
-        return new BHV_OptAcommsDepth(domain);
-    }
-}
+} // namespace autonomy
+} // namespace lamss
 
 #endif

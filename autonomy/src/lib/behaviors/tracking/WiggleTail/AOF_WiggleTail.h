@@ -1,8 +1,5 @@
-/***********************************************************/
-/*    Author: Don Eickstedt and Henrik Schmidt             */
-/*    FILE:   AOF_WiggleTail.h                         */
-/*    DATE:   18. March 2011                               */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef AOF_WIGGLETAIL_HEADER
 #define AOF_WIGGLETAIL_HEADER
@@ -13,6 +10,11 @@
 #define OPT 2
 
 class IvPDomain;
+namespace lamss
+{
+namespace autonomy
+{
+
 class AOF_WiggleTail : public AOF
 {
   public:
@@ -29,5 +31,8 @@ class AOF_WiggleTail : public AOF
     double crsBase;
     double crsDelta;
 };
+
+} // namespace autonomy
+} // namespace lamss
 
 #endif

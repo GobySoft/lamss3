@@ -1,24 +1,5 @@
-/*****************************************************************/
-/*    NAME: M.Benjamin, H.Schmidt, J. Leonard                    */
-/*    ORGN: NAVSEA Newport RI and MIT Cambridge MA               */
-/*    FILE: ZAIC_Vector.cpp                                      */
-/*    DATE: Apr 30th, 2010                                       */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2016-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ZAIC_Vector.h"
 #include "BuildUtils.h"
@@ -28,6 +9,11 @@
 #include <math.h>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //-------------------------------------------------------------
 // Procedure: Constructor
@@ -216,7 +202,6 @@ void ZAIC_Vector::convertValues()
         while (!done)
         {
             unsigned int idom = tmp_idomain_vals.front();
-            double irng = tmp_irange_vals.front();
             if (idom != idomain)
                 done = true;
             else
@@ -302,8 +287,6 @@ PDMap* ZAIC_Vector::setPDMap()
     }
 
     vector<IvPBox*> pieces;
-
-    unsigned int prev_idom = 0;
 
     unsigned int i, vsize = m_idomain_vals.size();
     for (i = 0; i < vsize - 1; i++)
@@ -406,3 +389,6 @@ void ZAIC_Vector::print()
         cout << "  [" << k << "]:" << m_idomain_vals[k] << ", " << m_irange_vals[k] << endl;
     }
 }
+
+} // namespace autonomy
+} // namespace lamss

@@ -1,9 +1,5 @@
-/***********************************************************/
-/*    Author: Don Eickstedt                                */
-/*    FILE:   BHV_WiggleTail.cpp                       */
-/*    DATE:   18. March 2011                               */
-/*    MODIFIED: 20. feb. 2007, 18. March 2011              */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "BHV_WiggleTail.h"
 #include "AngleUtils.h"
@@ -17,6 +13,11 @@
 #include <string>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //-----------------------------------------------------------
 // Procedure: Constructor
@@ -106,9 +107,9 @@ IvPFunction* BHV_WiggleTail::onRunState()
     double osCourse = getBufferDoubleVal(heading_variable, ok1);
     // double osCourse = getBufferDoubleVal("NAV_HEADING", ok1);
     //get current x
-    double osX = getBufferDoubleVal("NAV_X", ok2);
+    getBufferDoubleVal("NAV_X", ok2);
     //get current heading
-    double osY = getBufferDoubleVal("NAV_Y", ok3);
+    getBufferDoubleVal("NAV_Y", ok3);
     //get current tracking state
     string tState = getBufferStringVal(bearing_variable, ok4);
     double cue_hdg = getBufferDoubleVal("PROSECUTE_HEADING", ok5);
@@ -129,10 +130,6 @@ IvPFunction* BHV_WiggleTail::onRunState()
             course_lr_init = osCourse;
 
         curr_turn = 0;
-        //    double b_ang = (90.0-osCourse)*M_PI/180.0;
-        double b_ang = headingToRadians(osCourse);
-        double x_b = cos(b_ang);
-        double y_b = sin(b_ang);
         //    double h_ang=(90.0-heading)*M_PI/180.0;
         double h_ang = headingToRadians(heading);
         double x_h = cos(h_ang);
@@ -239,3 +236,6 @@ int BHV_WiggleTail::decode(string status)
 
     return (state);
 }
+
+} // namespace autonomy
+} // namespace lamss

@@ -2,3 +2,9 @@
 apt:
   all:
     - libnewmat10-dev  # uMVS_Bluefin
+    - moos-ivp-apps  # pHelmIvP, which loads lamss_autonomy_behaviors
+  # BHV_OptAcommsDepth is built only with netsim, which resolute does not have
+  jammy:
+    - libnetsim-dev
+  noble:
+    - libnetsim-dev

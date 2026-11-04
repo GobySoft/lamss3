@@ -1,24 +1,5 @@
-/*****************************************************************/
-/*    NAME: Henrik Schmidt                                       */
-/*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: BHV_RaceTrack.h                                   */
-/*    DATE: Mar 3, 2007                                          */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef BHV_RACETRACK_HEADER
 #define BHV_RACETRACK_HEADER
@@ -32,6 +13,11 @@
 #include "XYPolygon.h"
 
 class IvPDomain;
+namespace lamss
+{
+namespace autonomy
+{
+
 class BHV_RaceTrack : public IvPBehavior
 {
   public:
@@ -107,12 +93,7 @@ class BHV_RaceTrack : public IvPBehavior
     double m_pty; // Curr waypt   y/lat (mtrs)
 };
 
-extern "C"
-{
-    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
-    {
-        return new BHV_RaceTrack(domain);
-    }
-}
+} // namespace autonomy
+} // namespace lamss
 
 #endif

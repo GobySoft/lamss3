@@ -1,24 +1,5 @@
-/*****************************************************************/
-/*    NAME: Henrik Schmidt                                       */
-/*    ORGN: MIT Cambridge MA                                     */
-/*    FILE: BHV_ZigZag.cpp                                 */
-/*    DATE: Mar. 3, 2007                                         */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifdef _WIN32
 #pragma warning(disable : 4786)
@@ -34,6 +15,11 @@
 #include <stdlib.h>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //-----------------------------------------------------------
 // Procedure: Constructor
@@ -159,9 +145,7 @@ bool BHV_ZigZag::setParam(string g_param, string g_val)
 
 IvPFunction* BHV_ZigZag::onRunState()
 {
-    double curr_ang, head_1, head_2;
-
-    bool ok, ok1, ok2, ok3, ok4;
+    bool ok, ok1, ok3, ok4;
     double curr_x = getBufferDoubleVal("NAV_X", ok);
     double curr_y = getBufferDoubleVal("NAV_Y", ok1);
 
@@ -284,3 +268,6 @@ double BHV_ZigZag::currentCompensatedHeading(double desired_heading, double u)
     }
     return (radToHeading(theta));
 }
+
+} // namespace autonomy
+} // namespace lamss

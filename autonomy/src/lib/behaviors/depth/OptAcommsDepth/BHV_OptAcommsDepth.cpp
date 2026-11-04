@@ -1,21 +1,5 @@
-// copyright 2010 H. Schmidt henrik@mit.edu
-//
-// this file is part of lib_behaviors-henrik, a collection of pHelmIvP behaviors
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
-
-// skeleton from tes' BHV_AcommsDepth for TL. Subtracting ambient noise profile
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <algorithm>
 #include <cmath>
@@ -28,20 +12,9 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "goby/version.h"
-#if GOBY_VERSION_MAJOR >= 2
-#include "goby/moos/moos_string.h"
-using goby::moos::val_from_string;
-#include "goby/time/legacy.h"
-using goby::common::goby_time;
 #include "goby/moos/moos_protobuf_helpers.h"
-#else
-#include "goby/util/string.h"
-using goby::util::val_from_string;
-#include "goby/util/time.h"
-using goby::util::goby_time;
-#include "goby/moos/libmoos_util/moos_protobuf_helpers.h"
-#endif
+#include "goby/moos/moos_string.h"
+#include "goby/time/system_clock.h"
 
 #include "BuildUtils.h"
 #include "MBUtils.h"
@@ -49,62 +22,77 @@ using goby::util::goby_time;
 
 #include "BHV_OptAcommsDepth.h"
 
+using goby::moos::val_from_string;
 using goby::util::as;
+using namespace std;
+
+namespace
+{
+boost::posix_time::ptime goby_time()
+{
+    return goby::time::SystemClock::now<boost::posix_time::ptime>();
+}
+} // namespace
+
+namespace lamss
+{
+namespace autonomy
+{
 
 BHV_OptAcommsDepth::BHV_OptAcommsDepth(IvPDomain gdomain)
     : IvPBehavior(gdomain),
       last_calc_time_(goby_time()),
       calculate_interval_(boost::posix_time::seconds(10)),
+      current_range(10000),
+      current_rate(10),
       look_ahead_seconds_(120),
       depth_envelope_(1000),
       depth_uncertainty_(50),
       departure_range_(20000),
       approach_range_(30000),
       range_max(45000),
-      max_pitch(20.0 * M_PI / 180.0),
-      current_range(10000),
-      current_rate(10),
+      peak_filter_(true),
       num_forecast_ranges(10),
+      log_open(false),
+      active_region(true),
+      optimize_se(false),
+      optimize_snr(false),
+      optimize_tl(true),
+      optimize_nl(false),
+      valid_ivp(false),
+      valid_tl(false),
+      debug(true),
+      debug2(false),
+      new_tl(false),
+      new_ivp(false),
+      tl_factor(1),
+      adapt_tl_threshold(0.5),
+      tl_threshold(0.5),
+      multipath_penalty(0),
+      bounce_penalty(0),
+      max_number_bounces(6),
       depth_min(2000.0),
       depth_max(5000.0),
       number_depths(301),
       theta_min(-60.0),
       theta_max(60.0),
       number_theta(1000),
-      max_number_bounces(6),
-      tl_factor(1),
-      adapt_tl_threshold(0.5),
-      tl_threshold(0.5),
-      active_region(true),
-      peak_filter_(true),
-      optimize_tl(true),
-      optimize_snr(false),
-      optimize_se(false),
-      optimize_nl(false),
-      multipath_penalty(0),
-      bounce_penalty(0),
-      log_open(false),
-      svp_depth_resolution(5.0),
-      svp_range_resolution(200.0),
-      mseas_update_interval(41),
-      last_svp_request_(0),
-      svp_ready(false),
-      svp_requested(false),
-      got_lat_origin(false),
-      got_long_origin(false),
-      geo_init(false),
-      valid_tl(false),
-      new_tl(false),
-      new_ivp(false),
-      valid_ivp(false),
-      water_depth(6000.0),
-      surface_sound_speed(1480.0),
-      sound_speed_gradient(0.016),
+      max_pitch(20.0 * M_PI / 180.0),
       beam_width(6.0),
       dip_min(-10.0),
       dip_max(10.0),
-      debug(true),
-      debug2(false)
+      surface_sound_speed(1480.0),
+      sound_speed_gradient(0.016),
+      water_depth(6000.0),
+      svp_ready(false),
+      svp_requested(false),
+      last_svp_request_(0),
+      svp_depth_resolution(5.0),
+      svp_range_resolution(200.0),
+      mseas_update_interval(41),
+      got_lat_origin(false),
+      got_long_origin(false),
+      geo_init(false)
 {
     this->setParam("descriptor", "bhv_optcohacoustdepth");
 
@@ -330,7 +318,9 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
         std::string log_dir = getBufferStringVal("LOGGER_DIRECTORY", ok_log);
         std::string log_name;
         std::stringstream ss;
-        ss << "BHV_OptAcommsDepth_" << goby::common::goby_file_timestamp() << ".txt";
+        ss << "BHV_OptAcommsDepth_"
+           << boost::posix_time::to_iso_string(boost::posix_time::second_clock::universal_time())
+           << ".txt";
         if (ok_log)
             log_name = log_dir + "/../" + ss.str();
         else
@@ -361,7 +351,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
     }
     bool ok_dep;
     double current_depth = getBufferDoubleVal("NAV_DEPTH", ok_dep);
-    double current_speed = getBufferDoubleVal("NAV_SPEED", ok_dep);
+    getBufferDoubleVal("NAV_SPEED", ok_dep);
 
     // file_out_ << goby_time() << "goby_time(): "  << goby_time()  << std::endl;
     // file_out_ << goby_time() << "last_calc_time_: "  << last_calc_time_  << std::endl;
@@ -608,7 +598,6 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
             dom.clear();
             range.clear();
             elev_angle.clear();
-            double max_pitch_required = -100;
             double min_pitch_required = 100;
             double range_opt;
             double depth_opt;
@@ -649,7 +638,6 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
                     double power = 1e-30;
 
                     int iray_max = 0;
-                    double pow_ratio = 1;
                     double max_tau;
                     double max_power_bounces = 0;
                     for (int iray = 0; iray < eig.num_rays; iray++)
@@ -839,15 +827,8 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
 
         std::string depths_nl, nls;
         val_from_string(depths_nl, noise_in, "depths");
-        bool delta;
-        if (val_from_string(nls, noise_in, "NL"))
-        {
-            delta = false;
-        }
-        else if (val_from_string(nls, noise_in, "delta"))
-        {
-            delta = true;
-        }
+        if (!val_from_string(nls, noise_in, "NL"))
+            val_from_string(nls, noise_in, "delta");
 
         std::vector<std::string> depth_nl_vec;
         std::vector<std::string> nl_vec;
@@ -913,7 +894,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
                     range[i] += range_nl[m - 1];
                 else
                 {
-                    for (int j = 1; j < dom_nl.size(); j++)
+                    for (int j = 1; j < static_cast<int>(dom_nl.size()); j++)
                     {
                         if (dom[i] <= dom_nl[j] && dom[i] > dom_nl[j - 1])
                             range[i] += range_nl[j - 1] + (dom[i] - dom_nl[j - 1]) /
@@ -999,7 +980,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
         double min_theta = 360;
         int indx_max_theta;
         int indx_min_theta;
-        for (int j = 0; j < dom_ag.size(); j++)
+        for (int j = 0; j < static_cast<int>(dom_ag.size()); j++)
         {
             double d = dom_ag[j];
             if (d > max_theta)
@@ -1123,7 +1104,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
         // renormalize
         double maxval = 0;
         double maxval_depth = 0;
-        for (int i = 0; i < dom.size(); i++)
+        for (int i = 0; i < static_cast<int>(dom.size()); i++)
         {
             if (range[i] > maxval)
             {
@@ -1132,7 +1113,7 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
             }
         }
         double scale_fac = 100.0 / maxval;
-        for (int i = 0; i < dom.size(); i++) range[i] *= scale_fac;
+        for (int i = 0; i < static_cast<int>(dom.size()); i++) range[i] *= scale_fac;
 
         // Henrik hack to make it work with limited depth interval
         if (dom[0] > 0.0)
@@ -1150,23 +1131,23 @@ IvPFunction* BHV_OptAcommsDepth::onRunState()
         }
 
         // Check for nan
-        bool found_nan = false;
-        for (int i = 0; i < dom.size(); i++)
+        for (int i = 0; i < static_cast<int>(dom.size()); i++)
             if (isnan(dom[i]) || isnan(range[i]))
             {
-                found_nan = true;
                 file_out_ << goby_time() << "Found nan: dom=" << dom[i] << std::endl;
             }
         // Filter out nan's
-        for (int i = 0; i < dom.size(); i++)
+        for (int i = 0; i < static_cast<int>(dom.size()); i++)
         {
             if (isnan(range[i]))
+            {
                 if (i == 0)
                     range[i] = range[i + 1];
-                else if (i == dom.size() - 1)
+                else if (i == static_cast<int>(dom.size()) - 1)
                     range[i] = range[i + 1];
                 else
                     range[i] = 0.5 * (range[i - 1] + range[i + 1]);
+            }
         }
 
         std::stringstream ss;
@@ -1285,3 +1266,6 @@ bool BHV_OptAcommsDepth::handleSVPResponse(std::string serialized_svp_response)
     svp_requested = false;
     return (svp_ready);
 }
+
+} // namespace autonomy
+} // namespace lamss

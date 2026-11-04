@@ -1,8 +1,5 @@
-/***********************************************************/
-/*    NAME: Henrik Schmidt                                  */
-/*    FILE: BHV_MaintainBearing.cpp                             */
-/*    DATE: March 12 2009                                   */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "BHV_MaintainBearing.h"
 #include "BuildUtils.h"
@@ -13,6 +10,11 @@
 #include <stdlib.h>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //-----------------------------------------------------------
 // Procedure: Constructor
@@ -130,7 +132,7 @@ IvPFunction* BHV_MaintainBearing::onRunState()
         return (0);
     }
 
-    int new_state = decode(tState);
+    decode(tState);
     double current_angle;
     if (bearing_state == 2)
     {
@@ -324,3 +326,6 @@ double BHV_MaintainBearing::getRelevance()
     //for now, this behavior is fully relevant when it is active
     return (1.0);
 }
+
+} // namespace autonomy
+} // namespace lamss

@@ -1,24 +1,5 @@
-/*****************************************************************/
-/*    NAME: Henrik Schmidt                                       */
-/*    ORGN: MIT Cambridge MA               */
-/*    FILE: BHV_MinAltitude.cpp                                 */
-/*    DATE: Mar. 3, 2007                                         */
-/*                                                               */
-/* This program is free software; you can redistribute it and/or */
-/* modify it under the terms of the GNU General Public License   */
-/* as published by the Free Software Foundation; either version  */
-/* 2 of the License, or (at your option) any later version.      */
-/*                                                               */
-/* This program is distributed in the hope that it will be       */
-/* useful, but WITHOUT ANY WARRANTY; without even the implied    */
-/* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR       */
-/* PURPOSE. See the GNU General Public License for more details. */
-/*                                                               */
-/* You should have received a copy of the GNU General Public     */
-/* License along with this program; if not, write to the Free    */
-/* Software Foundation, Inc., 59 Temple Place - Suite 330,       */
-/* Boston, MA 02111-1307, USA.                                   */
-/*****************************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifdef _WIN32
 #pragma warning(disable : 4786)
@@ -35,6 +16,11 @@
 #include <stdlib.h>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //-----------------------------------------------------------
 // Procedure: Constructor
@@ -98,10 +84,7 @@ bool BHV_MinAltitude::setParam(string g_param, string g_val)
 
 IvPFunction* BHV_MinAltitude::onRunState()
 {
-    double curr_ang;
-    double curr_time = getBufferCurrTime();
-
-    bool ok, ok1, ok2;
+    bool ok, ok1;
     double curr_depth = getBufferDoubleVal("NAV_DEPTH", ok);
     double curr_altitude = getBufferDoubleVal("NAV_ALTITUDE", ok1);
     // use only if valid, i.e. != 0
@@ -130,7 +113,6 @@ IvPFunction* BHV_MinAltitude::onRunState()
             // if necessary
             double curr_water_depth = curr_depth + curr_altitude;
             max_depth_local = curr_water_depth - min_altitude;
-            double mid_depth = 0.5 * max_depth_local;
 
             ZAIC_PEAK zaic_depth(m_domain, "depth");
             zaic_depth.setSummit(0.0);
@@ -150,3 +132,6 @@ IvPFunction* BHV_MinAltitude::onRunState()
     }
     return (0);
 }
+
+} // namespace autonomy
+} // namespace lamss

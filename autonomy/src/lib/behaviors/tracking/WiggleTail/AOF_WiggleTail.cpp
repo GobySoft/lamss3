@@ -1,8 +1,5 @@
-/***********************************************************/
-/*    Author: Don Eickstedt and Henrik Schmidt             */
-/*    FILE:   AOF_WiggleTail.cpp                       */
-/*    DATE:   18. March 2011                               */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "AOF_WiggleTail.h"
 #include "AngleUtils.h"
@@ -12,6 +9,11 @@
 #include <math.h>
 
 using namespace std;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 //----------------------------------------------------------
 // Procedure: Constructor
@@ -99,3 +101,6 @@ double AOF_WiggleTail::lrmetric(double evalCRS) const
 
     return mval;
 }
+
+} // namespace autonomy
+} // namespace lamss

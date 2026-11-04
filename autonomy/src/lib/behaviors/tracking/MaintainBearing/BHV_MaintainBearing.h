@@ -1,7 +1,5 @@
-/***********************************************************/
-/*    NAME: Henrik Schmidt                                 */
-/*    FILE: MaintainBearing.h                            */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef BHV_MAINTAINBEARING_HEADER
 #define BHV_MAINTAINBEARING_HEADER
@@ -9,11 +7,16 @@
 #include <string>
 
 #include "IvPBehavior.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
 
 //using namespace std;
 
 class IvPDomain;
+
+namespace lamss
+{
+namespace autonomy
+{
 
 class BHV_MaintainBearing : public IvPBehavior
 {
@@ -49,15 +52,10 @@ class BHV_MaintainBearing : public IvPBehavior
     bool absolute_bearing;
     std::string bearing_mode;
 
-    CmyVectorUtils vec;
+    lamss::core::CmyVectorUtils vec;
 };
 
-extern "C"
-{
-    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
-    {
-        return new BHV_MaintainBearing(domain);
-    }
-}
+} // namespace autonomy
+} // namespace lamss
 
 #endif

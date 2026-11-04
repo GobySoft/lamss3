@@ -1,9 +1,5 @@
-/***********************************************************/
-/*    Author: Don Eickstedt                                */
-/*    FILE:   BHV_WiggleTail.h                             */
-/*    DATE:   18. March 2011                               */
-/*    MODIFIED: 20. feb. 2007, 18. March 2011              */
-/***********************************************************/
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef BHV_WIGGLETAIL_HEADER
 #define BHV_WIGGLETAIL_HEADER
@@ -17,6 +13,11 @@
 using namespace std;
 
 class IvPDomain;
+namespace lamss
+{
+namespace autonomy
+{
+
 class BHV_WiggleTail : public IvPBehavior
 {
   public:
@@ -40,12 +41,8 @@ class BHV_WiggleTail : public IvPBehavior
     std::string heading_variable;
     std::string bearing_variable;
 };
-extern "C"
-{
-    IvPBehavior* createBehavior(std::string name, IvPDomain domain)
-    {
-        return new BHV_WiggleTail(domain);
-    }
-}
+
+} // namespace autonomy
+} // namespace lamss
 
 #endif
