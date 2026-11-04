@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
                  "Build, configure and run lamss3.",
                  {},
                  {},
-                 {build_command(), toolbox_command(), dependencies_command(), env_command(),
-                  clean_command()}};
+                 {build_command(), toolbox_command(), dependencies_command(), mission_command(),
+                  env_command(), clean_command()}};
     return dispatch(root, argc, argv);
 }

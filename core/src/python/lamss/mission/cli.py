@@ -5,12 +5,13 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from typing import Any, Optional, Sequence
 
 import yaml
 
-from . import workspace
+from . import render, supervisor, workspace
 from .errors import MissionError
 from .registry import Registry
 from .resolve import Mission, resolve
@@ -99,6 +100,139 @@ def cmd_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def _layout(args: argparse.Namespace, mission: Mission, suffix: Optional[str] = None) -> render.Layout:
+    root = workspace.find_root()
+    instance = args.instance or render.instance_name(mission.name, mission.variant, suffix)
+    return render.layout_for(mission, root, workspace.prefix(root), instance)
+
+
+def _generate(args: argparse.Namespace, mode: str, suffix: Optional[str] = None,
+              sets: Sequence[str] = ()) -> tuple[Mission, render.Layout]:
+    mission = resolve(load_registry(), args.cruise, args.variant, mode, list(args.sets) + list(sets))
+    for note in mission.notes:
+        print(f"note: {note}", file=sys.stderr)
+    layout = _layout(args, mission, suffix)
+    if getattr(args, "func", None) in (cmd_sim, cmd_run) and not args.generate and supervisor.running(layout):
+        raise MissionError(f"{layout.instance} is already running; `lamss mission stop {layout.instance}` first")
+    if not getattr(args, "execute", False):
+        render.generate(mission, layout, args.platform, args.subsystem)
+        print(f"generated {layout.build}", file=sys.stderr)
+    elif not layout.supervisord_conf(mode).exists():
+        raise MissionError(f"--execute: {layout.supervisord_conf(mode)} has not been generated")
+    return mission, layout
+
+
+def cmd_generate(args: argparse.Namespace) -> int:
+    if args.explain:
+        mission = _resolve(args, args.mode)
+        print("\n".join(explain(mission, key) for key in args.explain))
+        return 0
+    _generate(args, args.mode)
+    return 0
+
+
+def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) -> int:
+    selected = render.select(mission, args.platform, args.subsystem)
+    supervisor.prepare(layout, [(s.platform.name, s.subsystem.name) for s in selected])
+    conf = layout.supervisord_conf(mission.mode)
+    if args.foreground:
+        return supervisor.run_foreground(layout, conf, args.wait)
+    programs = supervisor.start(layout, conf, args.wait)
+    print(f"{layout.instance}: {len(programs)} processes RUNNING")
+    print(f"  logs:    {(layout.run / 'log').resolve()}")
+    print(f"  status:  lamss mission status {layout.instance}")
+    print(f"  stop:    lamss mission stop {layout.instance}")
+    return 0
+
+
+def cmd_sim(args: argparse.Namespace) -> int:
+    mission, layout = _generate(args, "sim")
+    return 0 if args.generate else launch(args, mission, layout)
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    if not args.platform:
+        raise MissionError("run needs --platform")
+    mission, layout = _generate(args, "run")
+    return 0 if args.generate else launch(args, mission, layout)
+
+
+def _running_layout(instance: Optional[str]) -> render.Layout:
+    root = workspace.find_root()
+    layouts = supervisor.find_running([t.missions for t in workspace.toolboxes(root)])
+    if instance:
+        layouts = [l for l in layouts if l.instance == instance]
+        if not layouts:
+            raise MissionError(f"{instance} is not running")
+    if not layouts:
+        raise MissionError("no mission is running")
+    if len(layouts) > 1:
+        raise MissionError("several missions are running; name one: "
+                           + ", ".join(l.instance for l in layouts))
+    return layouts[0]
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    root = workspace.find_root()
+    layouts = supervisor.find_running([t.missions for t in workspace.toolboxes(root)])
+    if args.instance:
+        layouts = [l for l in layouts if l.instance == args.instance]
+    if not layouts:
+        print(f"{args.instance} is not running" if args.instance else "no mission is running")
+        return 3
+    status = 0
+    for layout in layouts:
+        print(f"{layout.instance} ({layout.run}):")
+        for s in supervisor.states(layout) or []:
+            print(f"  {s.name:<40} {s.state:<9} {s.description}")
+            status = status if s.state == supervisor.GOOD else 3
+    return status
+
+
+def cmd_stop(args: argparse.Namespace) -> int:
+    layout = _running_layout(args.instance)
+    supervisor.stop(layout)
+    print(f"stopped {layout.instance}")
+    return 0
+
+
+def cmd_tail(args: argparse.Namespace) -> int:
+    layout = _running_layout(args.instance)
+    if not args.program:
+        log = layout.run / "log" / "supervisord.log"
+        cmd = ["tail", "-n", "40"] + (["-f"] if args.follow else []) + [str(log)]
+        return subprocess.call(cmd)
+    names = [s.name for s in supervisor.states(layout) or []]
+    matches = [n for n in names if n == args.program or n.endswith(":" + args.program)
+               or n.replace("_", "/", 1).startswith(args.program.replace(":", "/"))]
+    if args.program in names:
+        matches = [args.program]
+    if len(matches) != 1:
+        raise MissionError(f"'{args.program}' matches {', '.join(matches) or 'nothing'}; programs: "
+                           + ", ".join(names))
+    return supervisor.supervisorctl(layout, "tail", *(["-f"] if args.follow else []), matches[0],
+                                    capture=False).returncode
+
+
+def _selection_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--platform", action="append", default=[], metavar="P",
+                        help="only this platform (repeatable)")
+    parser.add_argument("--subsystem", action="append", default=[], metavar="S",
+                        help="only this subsystem (repeatable)")
+    parser.add_argument("--instance", metavar="NAME",
+                        help="name of the output and run directories (default: <cruise>[_<variant>])")
+
+
+def _launch_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--generate", action="store_true", help="only generate, do not start")
+    parser.add_argument("--execute", action="store_true",
+                        help="start what was generated before, without generating")
+    parser.add_argument("--foreground", action="store_true",
+                        help="run supervisord in the foreground until interrupted")
+    parser.add_argument("--wait", type=float, default=60, metavar="SECONDS",
+                        help="how long processes may take to reach RUNNING (default 60)")
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="lamss mission",
                                 description="Generate, run and test lamss3 missions.")
@@ -114,6 +248,40 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--explain", metavar="KEY", action="append", default=[],
                    help="print every layer that sets KEY and which one wins (repeatable)")
     s.set_defaults(func=cmd_show)
+
+    s = sub.add_parser("generate", help="write the configuration without starting anything")
+    _mission_arguments(s)
+    s.add_argument("--mode", choices=("sim", "run"), default="sim")
+    _selection_arguments(s)
+    s.add_argument("--explain", metavar="KEY", action="append", default=[],
+                   help="print where KEY's value comes from instead of generating (repeatable)")
+    s.set_defaults(func=cmd_generate)
+
+    s = sub.add_parser("sim", help="generate and start a simulation of the whole fleet on this machine")
+    _mission_arguments(s)
+    _selection_arguments(s)
+    _launch_arguments(s)
+    s.set_defaults(func=cmd_sim)
+
+    s = sub.add_parser("run", help="generate and start one platform's subsystems on this machine")
+    _mission_arguments(s)
+    _selection_arguments(s)
+    _launch_arguments(s)
+    s.set_defaults(func=cmd_run)
+
+    s = sub.add_parser("status", help="show the state of every process of the running missions")
+    s.add_argument("instance", nargs="?")
+    s.set_defaults(func=cmd_status)
+
+    s = sub.add_parser("stop", help="stop a running mission and all its processes")
+    s.add_argument("instance", nargs="?", help="needed when more than one is running")
+    s.set_defaults(func=cmd_stop)
+
+    s = sub.add_parser("tail", help="print a process's output (or supervisord's log)")
+    s.add_argument("program", nargs="?", help="e.g. gobyd or topside_main:gobyd")
+    s.add_argument("-f", "--follow", action="store_true")
+    s.add_argument("--instance", metavar="NAME", help="needed when more than one is running")
+    s.set_defaults(func=cmd_tail)
     return p
 
 

@@ -1,0 +1,8 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+ServerHost = {{ subsystem.host }}
+ServerPort = {{ subsystem.ports.moosdb }}
+Community  = {{ platform.name }}_{{ subsystem.name }}
+LatOrigin  = {{ cruise.datum.lat }}
+LongOrigin = {{ cruise.datum.lon }}
+{% for fragment in fragments.get("last.moos", []) %}
+{{ fragment }}{% endfor %}
