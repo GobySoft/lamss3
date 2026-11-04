@@ -5,7 +5,6 @@
 
 #include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOS/Utils/MOOSUtils.h"
 
 using namespace std;
 
@@ -36,7 +35,7 @@ int CmyVectorUtils::str2dbl_vec(string msg, vector<double>& values)
 bool CmyVectorUtils::dbl_vec2str(vector<double> numbers, string& output)
 {
     output = "";
-    for (int i = 0; i < (int)numbers.size(); i++)
+    for (int i = 0; i < static_cast<int>(numbers.size()); i++)
     {
         if (i > 0)
             output += ",";
@@ -71,7 +70,7 @@ double CmyVectorUtils::mean(const vector<double>& values)
 bool CmyVectorUtils::vshift(vector<double> in, int indx_in, vector<double>& out, int indx_out,
                             int len)
 {
-    if (indx_in == 0 && indx_out == 0 && len == (int)in.size())
+    if (indx_in == 0 && indx_out == 0 && len == static_cast<int>(in.size()))
     {
         // simple copy, clear out first
         out.clear();
@@ -79,7 +78,8 @@ bool CmyVectorUtils::vshift(vector<double> in, int indx_in, vector<double>& out,
     }
     else
     {
-        if (indx_in + len > (int)in.size() || indx_out + len > (int)out.size())
+        if (indx_in + len > static_cast<int>(in.size()) ||
+            indx_out + len > static_cast<int>(out.size()))
             return (false);
         // Make sure it works if in and out same vector (shifting)
         if (indx_in >= indx_out)
@@ -98,7 +98,7 @@ bool CmyVectorUtils::cumsum(vector<double> in, vector<double>& out)
 {
     double sum = 0.0;
     out.resize(in.size());
-    for (int i = 0; i < (int)in.size(); i++)
+    for (int i = 0; i < static_cast<int>(in.size()); i++)
     {
         sum += in[i];
         out[i] = sum;
@@ -130,7 +130,7 @@ bool CmyVectorUtils::cumtrapz(vector<double> x, vector<double> y, vector<double>
 double CmyVectorUtils::sum(const vector<double>& in)
 {
     double sum = 0.0;
-    for (int i = 0; i < (int)in.size(); i++) { sum += in[i]; }
+    for (int i = 0; i < static_cast<int>(in.size()); i++) { sum += in[i]; }
 
     return (sum);
 }
@@ -138,7 +138,7 @@ double CmyVectorUtils::sum(const vector<double>& in)
 int CmyVectorUtils::intsum(const vector<int>& in)
 {
     int sum = 0;
-    for (int i = 0; i < (int)in.size(); i++) { sum += in[i]; }
+    for (int i = 0; i < static_cast<int>(in.size()); i++) { sum += in[i]; }
 
     return (sum);
 }
@@ -164,7 +164,7 @@ bool CmyVectorUtils::vmul(vector<double> a, vector<double> b, vector<double>& c)
         return (false);
 
     c.resize(a.size());
-    for (int i = 0; i < (int)a.size(); i++) c[i] = a[i] * b[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = a[i] * b[i];
 
     return (true);
 }
@@ -175,7 +175,7 @@ bool CmyVectorUtils::vadd(vector<double> a, vector<double> b, vector<double>& c)
         return (false);
 
     c.resize(a.size());
-    for (int i = 0; i < (int)a.size(); i++) c[i] = a[i] + b[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = a[i] + b[i];
 
     return (true);
 }
@@ -186,7 +186,7 @@ bool CmyVectorUtils::vsub(vector<double> a, vector<double> b, vector<double>& c)
         return (false);
 
     c.resize(a.size());
-    for (int i = 0; i < (int)a.size(); i++) c[i] = a[i] - b[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = a[i] - b[i];
 
     return (true);
 }
@@ -194,7 +194,7 @@ bool CmyVectorUtils::vsub(vector<double> a, vector<double> b, vector<double>& c)
 bool CmyVectorUtils::vneg(vector<double> a, vector<double>& c)
 {
     c.resize(a.size());
-    for (int i = 0; i < (int)a.size(); i++) c[i] = -a[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = -a[i];
 
     return (true);
 }
@@ -203,7 +203,7 @@ bool CmyVectorUtils::vsmul(vector<double> a, double b, vector<double>& c)
 {
     c.resize(a.size());
 
-    for (int i = 0; i < (int)a.size(); i++) c[i] = b * a[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = b * a[i];
 
     return (true);
 }
@@ -211,7 +211,7 @@ bool CmyVectorUtils::vsmul(vector<double> a, double b, vector<double>& c)
 bool CmyVectorUtils::vmov(vector<double> a, vector<double>& c)
 {
     c.resize(a.size());
-    for (int i = 0; i < (int)a.size(); i++) c[i] = a[i];
+    for (int i = 0; i < static_cast<int>(a.size()); i++) c[i] = a[i];
 
     return (true);
 }
@@ -219,7 +219,7 @@ bool CmyVectorUtils::vmov(vector<double> a, vector<double>& c)
 double CmyVectorUtils::vmax(const vector<double>& in)
 {
     double maxval = -1e300;
-    for (int i = 0; i < (int)in.size(); i++)
+    for (int i = 0; i < static_cast<int>(in.size()); i++)
     {
         if (in[i] > maxval)
             maxval = in[i];
@@ -231,7 +231,7 @@ double CmyVectorUtils::vmax(const vector<double>& in)
 double CmyVectorUtils::vmin(const vector<double>& in)
 {
     double minval = 1e300;
-    for (int i = 0; i < (int)in.size(); i++)
+    for (int i = 0; i < static_cast<int>(in.size()); i++)
     {
         if (in[i] < minval)
             minval = in[i];
@@ -350,7 +350,7 @@ vector<vector<complex<double>>> CmyVectorUtils::cminv(vector<vector<complex<doub
         for (int i = k + 1; i < dim; i++)
         {
             complex<double> fac = -A[i][k] * A[k][k];
-            A[i][k] = complex<double>(0, 0);
+            A[i][k] = 0;
             for (int j = k + 1; j < dim; j++) A[i][j] += A[k][j] * fac;
             for (int j = 0; j < dim; j++) C[i][j] += C[k][j] * fac;
         }
@@ -455,7 +455,7 @@ double CmyVectorUtils::bsolve(vector<double> a, int dim, int bw, vector<double>&
 
     double cond = 0.0;
 
-    if ((int)b.size() < dim * bcols)
+    if (static_cast<int>(b.size()) < dim * bcols)
     {
         MOOSTrace("bsolve: dimension problems with RHS\n");
         return (1e100);
@@ -545,7 +545,7 @@ bool CmyVectorUtils::interp(const vector<double>& x, const vector<double>& y,
                             const vector<double>& x_int, vector<double>& y_int)
 {
     y_int = zeros(x_int.size(), 1);
-    for (int i = 0; i < (int)x_int.size(); i++)
+    for (int i = 0; i < static_cast<int>(x_int.size()); i++)
     {
         if (x_int[i] <= x[0])
             y_int[i] = y[0];
@@ -556,7 +556,7 @@ bool CmyVectorUtils::interp(const vector<double>& x, const vector<double>& y,
         else
         {
             bool done = false;
-            for (int j = 1; j < (int)x.size() && !done; j++)
+            for (int j = 1; j < static_cast<int>(x.size()) && !done; j++)
             {
                 if (x_int[i] < x[j])
                 {
@@ -643,17 +643,18 @@ bool CmyVectorUtils::cholesky(vector<complex<double>> a, int dim, vector<complex
     c = zzeros(dim, dim);
     double arg = a[indx(1, 1)].real();
     c[indx(1, 1)] = sqrt(arg);
-    for (int k = 1; k <= nrows; k++)
+    for (unsigned int k = 1; k <= static_cast<unsigned int>(nrows); k++)
     {
         complex<double> sum = complex<double>(0, 0);
-        for (int l = 1; l <= nrows - 1; l++) sum = sum + zmul(c[indx(k, l)], conjg(c[indx(k, l)]));
+        for (unsigned int l = 1; l <= static_cast<unsigned int>(nrows - 1); l++)
+            sum = sum + zmul(c[indx(k, l)], conjg(c[indx(k, l)]));
         c[indx(k, k)] = sqrt(arg);
         if (c[indx(k, k)].real() == 0.0)
             return (false);
-        for (int i = k + 1; i <= nrows; i++)
+        for (unsigned int i = k + 1; i <= static_cast<unsigned int>(nrows); i++)
         {
             complex<double> sum_l = complex<double>(0, 0);
-            for (int l = 1; l < k; l++) sum_l += zmul(c[indx(i, l)], conjg(c[indx(k, l)]));
+            for (unsigned int l = 1; l < k; l++) sum_l += zmul(c[indx(i, l)], conjg(c[indx(k, l)]));
             // Lower triangular
             c[indx(i, k)] = (a[indx(i, k)] - sum_l) / c[indx(k, k)].real();
         }
@@ -680,9 +681,9 @@ vector<double> CmyVectorUtils::conv(const vector<double>& A, const vector<double
 {
     vector<double> C;
     C.resize(A.size() + B.size());
-    for (int i = 0; i < (int)C.size(); i++) C[i] = 0.0;
-    for (int t = 0; t < (int)A.size(); t++)
-        for (int tau = 0; tau < (int)B.size(); tau++) C[t + tau] += A[t] * B[tau];
+    for (int i = 0; i < static_cast<int>(C.size()); i++) C[i] = 0.0;
+    for (int t = 0; t < static_cast<int>(A.size()); t++)
+        for (int tau = 0; tau < static_cast<int>(B.size()); tau++) C[t + tau] += A[t] * B[tau];
     return (C);
 }
 
@@ -691,10 +692,10 @@ vector<complex<double>> CmyVectorUtils::conv(const vector<complex<double>>& A,
 {
     vector<complex<double>> C;
     C.resize(A.size() + B.size());
-    for (int i = 0; i < (int)C.size(); i++) C[i] = complex<double>(0, 0);
+    for (int i = 0; i < static_cast<int>(C.size()); i++) C[i] = complex<double>(0, 0);
 
-    for (int t = 0; t < (int)A.size(); t++)
-        for (int tau = 0; tau < (int)B.size(); tau++) C[t + tau] += A[t] * B[tau];
+    for (int t = 0; t < static_cast<int>(A.size()); t++)
+        for (int tau = 0; tau < static_cast<int>(B.size()); tau++) C[t + tau] += A[t] * B[tau];
     return (C);
 }
 
@@ -756,10 +757,10 @@ vector<vector<complex<double>>> CmyVectorUtils::transp(const vector<vector<compl
     if (A.size() > 0)
     {
         C.resize(A[0].size());
-        for (int i = 0; i < (int)C.size(); i++)
+        for (int i = 0; i < static_cast<int>(C.size()); i++)
         {
             C[i].resize(A.size());
-            for (int j = 0; j < (int)C[i].size(); j++) C[i][j] = conjg(A[j][i]);
+            for (int j = 0; j < static_cast<int>(C[i].size()); j++) C[i][j] = conjg(A[j][i]);
         }
     }
     return (C);
@@ -771,10 +772,10 @@ vector<vector<double>> CmyVectorUtils::transp(const vector<vector<double>>& A)
     if (A.size() > 0)
     {
         C.resize(A[0].size());
-        for (int i = 0; i < (int)C.size(); i++)
+        for (int i = 0; i < static_cast<int>(C.size()); i++)
         {
             C[i].resize(A.size());
-            for (int j = 0; j < (int)C[i].size(); j++) C[i][j] = A[j][i];
+            for (int j = 0; j < static_cast<int>(C[i].size()); j++) C[i][j] = A[j][i];
         }
     }
     return (C);
