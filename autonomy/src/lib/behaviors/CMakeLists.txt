@@ -65,6 +65,7 @@ set_target_properties(lamss_autonomy_behaviors PROPERTIES
 
 # pHelmIvP (ivp_behavior_dir or IVP_BEHAVIOR_DIRS) and IvPico load each libBHV_<name>.so in a directory
 set(LAMSS_AUTONOMY_BEHAVIOR_DIR "${CMAKE_CURRENT_BINARY_DIR}/ivp_behaviors" PARENT_SCOPE)
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LIBDIR}/lamss/ivp_behaviors)
 set(_links)
 foreach(_bhv IN LISTS LAMSS_AUTONOMY_BEHAVIORS)
   list(APPEND _links COMMAND ${CMAKE_COMMAND} -E create_symlink
@@ -78,4 +79,3 @@ add_custom_command(TARGET lamss_autonomy_behaviors POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/ivp_behaviors"
   ${_links}
   VERBATIM)
-install(DIRECTORY DESTINATION ${CMAKE_INSTALL_LIBDIR}/lamss/ivp_behaviors)
