@@ -1,9 +1,5 @@
-/****************************************************************/
-/*   NAME: Supun Randeni                                             */
-/*   ORGN: MIT Cambridge MA                                     */
-/*   FILE: SimPhinsINS_Info.cpp                               */
-/*   DATE: Dec 29th 1963                                        */
-/****************************************************************/
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimPhinsINS_Info.h"
 #include "ColorParse.h"

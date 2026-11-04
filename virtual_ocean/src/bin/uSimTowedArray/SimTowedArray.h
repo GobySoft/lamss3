@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include <iostream>
@@ -6,8 +9,10 @@
 #include <vector>
 
 // From lib_henrik_util
-#include <lamss/lib_henrik_util/CVectorUtils.h>
-#include <lamss/lib_henrik_util/str_num.h>
+#include <lamss/core/henrik_util/CVectorUtils.h>
+#include <lamss/core/henrik_util/str_num.h>
+
+using namespace lamss::core;
 
 #ifndef SIMTOWEDARRAY_HEADER
 #define SIMTOWEDARRAY_HEADER

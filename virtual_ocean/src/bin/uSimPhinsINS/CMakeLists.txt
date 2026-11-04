@@ -1,23 +1,6 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                       uSimPhinsINS
-# Author(s):                              Supun Randeni
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-SET(SRC
-  SimPhinsINS.cpp
-  SimPhinsINS_Info.cpp
-  main.cpp
-)
-
-ADD_EXECUTABLE(uSimPhinsINS ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimPhinsINS
-   ${MOOS_LIBRARIES}
-   ${GOBY_LIBRARIES}
-   ${LAMSS_PROTOBUF_LIBRARY}
-   ${LAMSS_HENRIK_UTIL_LIBRARY} 
-   boost_system
-   mbutil
-   m
-   pthread)
-
+lamss_add_app(uSimPhinsINS MOOS
+  SOURCES SimPhinsINS.cpp SimPhinsINS_Info.cpp main.cpp
+  LINK_LIBRARIES lamss::core_protobuf lamss::core_henrik_util IvP::mbutil)

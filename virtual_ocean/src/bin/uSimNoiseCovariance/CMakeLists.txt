@@ -1,18 +1,8 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                  uSimNoiseCovariance
-# Author(s):                               H. Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-  FILE(GLOB SRC *.cpp)
-  
-  ADD_EXECUTABLE(uSimNoiseCovariance ${SRC})
-  
-  TARGET_LINK_LIBRARIES(uSimNoiseCovariance
-  ${MOOS_LIBRARIES}
-  ${LAMSS_HENRIK_UTIL_LIBRARY}
-  ${IVP_MBUTIL_LIBRARY}
-  ${IVP_GEOMETRY_LIBRARY} 
-    gsl
-    gslcblas
-    )
-
+find_package(GSL REQUIRED)
+lamss_find_ivp(geometry)
+lamss_add_app(uSimNoiseCovariance MOOS
+  SOURCES SimNoiseCovariance.cpp SimNoiseCovarianceMain.cpp
+  LINK_LIBRARIES lamss::core_henrik_util IvP::mbutil IvP::geometry GSL::gsl)

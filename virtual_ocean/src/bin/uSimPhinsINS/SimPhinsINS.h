@@ -1,9 +1,5 @@
-/************************************************************/
-/*    NAME: Supun Randeni                                              */
-/*    ORGN: MIT                                             */
-/*    FILE: SimPhinsINS.h                                          */
-/*    DATE:                                                 */
-/************************************************************/
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef SimPhinsINS_HEADER
 #define SimPhinsINS_HEADER
@@ -11,8 +7,8 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
-#include "lamss/lib_henrik_util/CMeasAvg.h"
-#include "lamss/lib_lamss_protobuf/IXBlueINSData.pb.h"
+#include "lamss/core/henrik_util/CMeasAvg.h"
+#include "lamss/core/ixblue_ins_data.pb.h"
 #include <boost/asio.hpp>
 
 using boost::asio::ip::udp;
@@ -125,9 +121,9 @@ class SimPhinsINS : public CMOOSApp
     bool utm_update;
 
     // Measurement filters
-    CMeasAvg roll_rate_filter;
-    CMeasAvg pitch_rate_filter;
-    CMeasAvg heading_rate_filter;
+    lamss::core::CMeasAvg roll_rate_filter;
+    lamss::core::CMeasAvg pitch_rate_filter;
+    lamss::core::CMeasAvg heading_rate_filter;
 };
 
 #endif

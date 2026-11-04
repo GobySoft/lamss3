@@ -1,7 +1,13 @@
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
 
 import "goby/moos/protobuf/goby_moos_app.proto";
 import "goby/protobuf/option_extensions.proto";
-import "lamss_targetsim.proto";
+import "lamss/virtual_ocean/targetsim.proto";
+
+package lamss.virtual_ocean;
 
 message SimTargetsConfig
 {

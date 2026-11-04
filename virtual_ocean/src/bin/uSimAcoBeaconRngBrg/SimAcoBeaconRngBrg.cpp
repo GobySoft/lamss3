@@ -1,9 +1,5 @@
-/************************************************************/
-/*    NAME: Nick Rypkema                                    */
-/*    ORGN: MIT                                             */
-/*    FILE: SimAcoBeaconRngBrg.cpp                          */
-/*    DATE: April 2017                                      */
-/************************************************************/
+// Copyright 2020-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimAcoBeaconRngBrg.h"
 #include "AngleUtils.h"

@@ -1,9 +1,5 @@
-/************************************************************/
-/*    NAME: Supun Randeni                                              */
-/*    ORGN: MIT                                             */
-/*    FILE: SimDVL.cpp                                        */
-/*    DATE:                                                 */
-/************************************************************/
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimDVL.h"
 #include "MBUtils.h"

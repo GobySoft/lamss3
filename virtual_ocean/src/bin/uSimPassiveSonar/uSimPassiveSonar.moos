@@ -1,51 +1,31 @@
-// This is an example MOOS file with a config block 
-// for this particular MOOS application.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 ServerHost = localhost
 ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
+// `uSimPassiveSonar -e` lists every field
 ProcessConfig = uSimPassiveSonar
 {
-  AppTick =   25           // should be > 10 
-  CommsTick = 5                 
+  water_depth: 100           # used for spherical spreading (m)
+  noise_level: 60            # dB re 1 uPa
+  ray_acoustics: false       # true: Bellhop (iBellhop, netsim builds only)
+  rap_acoustics: false       # RAP raytracing (c(z) linear); both false: cylindrical
+                             # spreading and bottom loss
 
-  // Source Parameters
-  tone_freqs = 500,700     // comma-delimited list of the tone frequencies (Hz) 
-  tone_amps =  120,130     // comma-delimited list of tone amplitudes 
-			//(dB re: 1 uPa @ 1m)
-  
-  // Environmental Parameters
-  water_depth = 100             // used for spherical spreading (m)
-  water_c = 1500                // Speed of sound in water (m/s)
-  bottom_loss = 10.0             // Bottom loss in dB/km
-  noise_level = 60              // dB re 1 uPa
-  minimum_frequency = 800       // Minimum frequency of processing
-  maximum_frequency = 1000      // Maximum frequency of processing
-  isotropic_noise = true        // Use isotropic noise model  
-  ray_acoustics   = true        // Use Bellhop for propagation modeling
-  rap_acoustics   = false       // RAP raytracing (c(z) linear)
-                                // If ray_ and rap_acoustics == false
-                                // code uses simple cylindrical spreading+bottom loss
+  array_type: ARRAY_TYPE_DURIP
+  num_array_elements: 32
+  sampling_frequency: 4000   # Hz
+  num_samples: 8000          # per file
+  hydrophone_gain: 180       # dB, conversion from Pascals to float
 
-  // Array and sampling parameters
-  array_type = DURIP                 // DURIP or VSA
-  num_array_elements = 32           // number of elements in the array
-  sampling_frequency = 4000       // Hz
-  num_samples = 8000              // number of samples per file
-// HS: 11/10/10: Changed to dB 
-  hydrophone_gain = 180        // conversion from Pascals to float
-
-  // Output file location and name
-  // The output filename will be: 
-  // [filename_prefix][frame_number][filename_suffix]
-  
-  acoustic_filename_prefix = ACO                     // Prefix of the file name
-  acoustic_filename_suffix = .DAT                      
-  nonacoustic_filename_prefix = NAS                      
-  nonacoustic_filename_suffix = .DAT                      
-  // Everything after the framenumber, including the period.
-  base_dir_name = /home/cockrell/DURIP/  
-  // absolute path including initial and final forward slash.  
-  
+  # files are [prefix][frame number][suffix] under base_dir_name
+  acoustic_filename_prefix: "ACO"
+  acoustic_filename_suffix: ".DAT"
+  nonacoustic_filename_prefix: "NAS"
+  nonacoustic_filename_suffix: ".DAT"
+  base_dir_name: "./"
 }
-

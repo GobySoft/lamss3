@@ -1,28 +1,14 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                  uSimPassiveSonar
-# Author(s):                               H. Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-#set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} )
-
-set(SRC SimPassiveSonar.cpp)
-
-ADD_EXECUTABLE(uSimPassiveSonar ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
-      
-  TARGET_LINK_LIBRARIES(uSimPassiveSonar
-  ${GOBY_LIBRARIES}
-  ${MOOS_LIBRARIES}
-  ${LAMSS_HENRIK_UTIL_LIBRARY}
-  ${IVP_MBUTIL_LIBRARY}
-  ${IVP_GEOMETRY_LIBRARY} 
-  ${LAMSS_PROTOBUF_LIBRARY}
-  ${PROTOBUF_LIBRARIES}
-  ${Boost_LIBRARIES}
-    gsl
-    gslcblas
-    netsim_acousticstoolbox
-    )
-
+find_package(GSL REQUIRED)
+lamss_find_ivp(geometry)
+lamss_add_app(uSimPassiveSonar MOOS
+  SOURCES SimPassiveSonar.cpp
+  PROTOS SimPassiveSonar_config.proto
+  LINK_LIBRARIES lamss::virtual_ocean_henrik_util lamss::virtual_ocean_protobuf lamss::core_henrik_util
+    IvP::mbutil IvP::geometry GSL::gsl)
+if(NETSIM_FOUND)
+  target_link_libraries(uSimPassiveSonar PRIVATE netsim_acousticstoolbox)
+  target_compile_definitions(uSimPassiveSonar PRIVATE LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM)
+endif()

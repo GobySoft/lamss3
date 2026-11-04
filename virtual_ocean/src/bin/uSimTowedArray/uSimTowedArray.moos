@@ -1,15 +1,19 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // This is an example minimal MOOS file with a config block 
 // for this particular MOOS application.
 
 ServerHost = localhost
 //ServerHost = 192.168.1.104
 ServerPort = 9000
+Community  = example
 
 // GLINT'08 Pianosa Area B 
  LatOrigin = 42.5
  LongOrigin = 10.08333
 
-ProcessConfig = SimTowedArray
+ProcessConfig = uSimTowedArray
 {
   AppTick =   2
   CommsTick = 4

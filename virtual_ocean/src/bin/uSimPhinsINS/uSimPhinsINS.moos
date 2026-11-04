@@ -1,18 +1,23 @@
-//------------------------------------------------
-// uSimPhinsINS config block
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
 ProcessConfig = uSimPhinsINS
 {
    AppTick   = 20
    CommsTick = 20
 
-   phins_ip=127.0.0.1
-   phins_port=14000
+   phins_ip = 127.0.0.1
+   phins_port = 14000
 
-   ins_bias_udot=0.003
-   ins_bias_vdot=0.002
-   ins_bias_wdot=0.001
-   ins_scale_err=0.005
-   ins_stdev=0.01
+   ins_bias_udot = 0.003
+   ins_bias_vdot = 0.002
+   ins_bias_wdot = 0.001
+   ins_scale_err = 0.005
+   ins_stdev = 0.01
 }
-

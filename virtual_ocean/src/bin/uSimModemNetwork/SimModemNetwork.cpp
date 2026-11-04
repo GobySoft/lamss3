@@ -1,20 +1,5 @@
-// copyright 2010 H. Schmidt henrik@mit.edu
-//
-// this file is part of lamss-shared-shared, a collection of MOOS
-// processes for underwater acoustic simulation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimModemNetwork.h"
 #include <boost/algorithm/string.hpp>
@@ -59,20 +44,20 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
       new_origin_(false),
-      max_number_bounces(cfg_.max_number_bounces()),
       mseas_svp_updates(cfg_.mseas_svp_updates()),
       mseas_update_interval(cfg_.mseas_update_interval()),
-      svp_requested(false),
       svp_range_resolution(cfg_.svp_range_resolution()),
       svp_depth_resolution(cfg_.svp_depth_resolution()),
+      svp_requested(false),
       sound_speed(1500.0),
       acomms_frequency(cfg_.acomms_frequency()),
       replica_path(cfg_.test_replica()),
       noise_profile(false),
       noise_direct(false),
+      ISOTROPIC(false),
+      max_number_bounces(cfg_.max_number_bounces()),
       mae_sampling_frequency(4 * cfg_.acomms_frequency()),
-      mae_nfft(4096),
-      ISOTROPIC(false)
+      mae_nfft(4096)
 {
     set_ignore_stale(false);
 
@@ -117,11 +102,11 @@ SimModemNetwork::SimModemNetwork(SimModemNetworkConfig& cfg)
     // fixed to 2 nodes, generalize for dynamic allocation
     Nodes.resize(cfg_.node_size());
     acoustic_contacts.clear();
-    for (int i = 0; i < Nodes.size(); i++)
+    for (int i = 0; i < (int)Nodes.size(); i++)
     {
         Nodes[i].name = cfg_.node(i);
         Nodes[i].ok_info = false;
-        for (int j = 0; j < Nodes.size(); j++)
+        for (int j = 0; j < (int)Nodes.size(); j++)
         {
             if (i != j)
             {
@@ -187,7 +172,7 @@ void SimModemNetwork::handle_lon_origin(const CMOOSMsg& msg)
 void SimModemNetwork::handle_transmit_test(const CMOOSMsg& msg)
 {
     int cn = msg.GetDouble();
-    if (cn < acoustic_contacts.size())
+    if (cn < (int)acoustic_contacts.size())
     {
         TransmitRequest transmit_request;
         transmit_request.set_source(acoustic_contacts[cn].ownship);
@@ -206,7 +191,7 @@ void SimModemNetwork::handle_bellhop_response(const CMOOSMsg& msg)
     netsim::protobuf::iBellhopResponse bellhop_response;
     std::string serialized_bellhop_response = msg.GetString();
     parse_for_moos(serialized_bellhop_response, &bellhop_response);
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         bool my_resp =
             (bellhop_response.requestor() == "uSimModemNetwork") &&
@@ -246,9 +231,9 @@ void SimModemNetwork::handle_node_report(const CMOOSMsg& msg)
 {
     std::string node_report = msg.GetString();
     std::string node_name;
-    bool got_node_name = MOOSValFromString(node_name, node_report, "NAME") ||
-                         MOOSValFromString(node_name, node_report, "name");
-    for (int i = 0; i < Nodes.size(); i++)
+    (void)(MOOSValFromString(node_name, node_report, "NAME") ||
+           MOOSValFromString(node_name, node_report, "name"));
+    for (int i = 0; i < (int)Nodes.size(); i++)
     {
         if (MOOSStrCmp(tolower(node_name), tolower(Nodes[i].name)))
         {
@@ -382,12 +367,12 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
         if (delay.size() > 0)
         {
             netsim::protobuf::ImpulseResponse::RayTrace* raytrace = 0;
-            for (int j = 0; j < delay.size(); j++)
+            for (int j = 0; j < (int)delay.size(); j++)
             {
                 raytrace = message.add_raytrace();
                 //raytrace -> set_delay(delay[0][j]);
                 netsim::protobuf::ImpulseResponse::RayTrace::ArrayElementDelay* element_delay = 0;
-                for (int i = 0; i < delay[j].size(); i++)
+                for (int i = 0; i < (int)delay[j].size(); i++)
                 {
                     element_delay = raytrace->add_element();
                     element_delay->set_delay(delay[j][i]);
@@ -418,7 +403,7 @@ void SimModemNetwork::handle_impulse_request(const CMOOSMsg& msg)
                                        ael_z))
             {
                 std::string covmat_path = cfg_.base_dir_name() + acoustic_contacts[con].ownship +
-                                          "_" + goby::common::goby_file_timestamp() + ".cov";
+                                          "_" + goby::time::file_str() + ".cov";
                 write_covmat_file(covmat_path, acoustic_contacts[con].noise_level);
                 message.set_covariance_file(covmat_path);
             }
@@ -587,7 +572,7 @@ void SimModemNetwork::handle_noise_vert_dir(const CMOOSMsg& msg)
         noise_dir_theta.resize(dom_noise_dir.size());
         noise_dir_power.resize(dom_noise_dir.size());
 
-        for (int i = 0; i < dom_noise_dir.size(); i++)
+        for (int i = 0; i < (int)dom_noise_dir.size(); i++)
         {
             noise_dir_theta[i] = dom_noise_dir[i] * M_PI / 180.0;
             noise_dir_power[i] = pow(10.0, noise_dir_db[i] / 10);
@@ -645,6 +630,7 @@ void SimModemNetwork::loop()
 
     //  if (cfg_.depth_performance_prediction())
     if (false)
+    {
         if (test_count >= 30)
         {
             test_performance_request();
@@ -652,6 +638,7 @@ void SimModemNetwork::loop()
         }
         else
             test_count++;
+    }
 
     // process some events at a slower rate
     //const int slow_loop_period = 10;
@@ -667,7 +654,7 @@ void SimModemNetwork::slow_loop(double curr_time)
     {
         m_Comms.Notify("SVP_REQUEST", svp_requests[0]);
         glog << "Published SVP_REQUEST id " << (int)svp_request_id[0] << endl;
-        for (int i = 0; i < svp_requests.size() - 1; i++)
+        for (int i = 0; (size_t)i < svp_requests.size() - 1; i++)
         {
             svp_requests[i] = svp_requests[i + 1];
             svp_request_id[i] = svp_request_id[i + 1];
@@ -679,7 +666,7 @@ void SimModemNetwork::slow_loop(double curr_time)
 
     // Update all acoustic contacts and extract requested impulse responses
 
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         bool got_info = getNodeInfo(acoustic_contacts[i].ownship, ownship_x, ownship_y,
                                     ownship_depth, ownship_heading, ownship_speed) &&
@@ -850,10 +837,6 @@ void SimModemNetwork::modem_ray_arrivals(
     double deg2rad = M_PI / 180;
     double hdg_ang = ownship_heading * deg2rad;
     double pitch_ang = ownship_pitch;
-    double vs_costh = cos(hdg_ang);
-    double vs_sinth = sin(hdg_ang);
-    double vs_cosel = cos(pitch_ang);
-    double vs_sinel = sin(pitch_ang);
 
     double range_x = (ownship_x - contact_x);
     double range_y = (ownship_y - contact_y);
@@ -908,9 +891,6 @@ void SimModemNetwork::modem_ray_arrivals(
 
     double depth_req = ownship_depth;
     eigenray_table.getEigenRays(range, depth_req, range_ref, depth_ref, eig);
-    double range_ray = eig.range;
-    double depth_ray = eig.receiver_depth;
-    int num_rays = eig.num_rays;
     glog.is(DEBUG1) && glog << "Source range= " << range << " Raytracing range = " << eig.range
                             << endl;
     glog.is(DEBUG1) && glog << "Receiver depth= " << depth_req
@@ -1057,7 +1037,7 @@ void SimModemNetwork::ray_doppler_vel(double v_S, double a_S, double e_S, double
 bool SimModemNetwork::getNodeInfo(std::string node_name, double& node_x, double& node_y,
                                   double& node_depth, double& node_heading, double& node_speed)
 {
-    for (int i = 0; i < Nodes.size(); i++)
+    for (int i = 0; i < (int)Nodes.size(); i++)
         if (MOOSStrCmp(node_name, Nodes[i].name) && Nodes[i].ok_info)
         {
             node_name = Nodes[i].name;
@@ -1077,7 +1057,7 @@ bool SimModemNetwork::getNodeInfo(std::string node_name, double& node_x, double&
 
 int SimModemNetwork::findAcousticContact(std::string os, std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1094,7 +1074,7 @@ bool SimModemNetwork::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_
     if (svp_response.request_id() == 0)
     {
         // initial water column published by iBellhop
-        for (int i = 0; i < acoustic_contacts.size(); i++)
+        for (int i = 0; i < (int)acoustic_contacts.size(); i++)
         {
             glog.is(DEBUG1) && glog << "Initializing water column for all contacts " << endl;
             acoustic_contacts[i].svp_response = svp_response;
@@ -1105,7 +1085,7 @@ bool SimModemNetwork::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_
     }
     else
     {
-        for (int i = 0; i < acoustic_contacts.size(); i++)
+        for (int i = 0; i < (int)acoustic_contacts.size(); i++)
         {
             glog.is(DEBUG1) && glog << "Checking " << (int)svp_response.request_id() << endl;
             glog.is(DEBUG1) && glog << "request_id " << (int)acoustic_contacts[i].svp_request_id
@@ -1124,7 +1104,7 @@ bool SimModemNetwork::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_
 
 bool SimModemNetwork::getAcousticContact(std::string os, std::string cn, CEigenRayTable& eig_table)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn) && acoustic_contacts[i].ready)
@@ -1142,7 +1122,7 @@ bool SimModemNetwork::getAcousticContact(std::string os, std::string cn, CEigenR
 bool SimModemNetwork::getAcousticContactSVP(std::string os, std::string cn,
                                             netsim::SVP::protobuf::Response& svp_response)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1161,7 +1141,7 @@ bool SimModemNetwork::getAcousticContactSVP(std::string os, std::string cn,
 
 bool SimModemNetwork::readyAcousticContact(std::string os, std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1174,7 +1154,7 @@ bool SimModemNetwork::readyAcousticContact(std::string os, std::string cn)
 
 bool SimModemNetwork::readyAcousticContactSVP(std::string os, std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1187,9 +1167,9 @@ bool SimModemNetwork::readyAcousticContactSVP(std::string os, std::string cn)
 
 bool SimModemNetwork::requestRayTrace(std::string os, std::string cn, double r_min, double r_max,
                                       int num_r, double dep_min, double dep_max, int num_dep,
-                                      double freq)
+                                      [[maybe_unused]] double freq)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1269,7 +1249,7 @@ bool SimModemNetwork::requestRayTrace(std::string os, std::string cn, double r_m
 
 bool SimModemNetwork::requestSVPUpdate(std::string os, std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].ownship, os) &&
             MOOSStrCmp(acoustic_contacts[i].contact, cn))
@@ -1414,7 +1394,7 @@ bool SimModemNetwork::parseNoiseDirectionality(string noise_in, vector<double>& 
     else
         return (false);
 
-    bool got_it = false;
+    [[maybe_unused]] bool got_it = false;
     if (val_from_string(nls, noise_in, "S"))
     {
         got_it = true;
@@ -1546,7 +1526,6 @@ bool SimModemNetwork::computeNoiseCovariance(double nl, double water_c, std::vec
                                              std::vector<double> array_z)
 {
     double p_intens = pow(10.0, nl / 10) * sampling_frequency * 0.5 * nfft;
-    double rho = 1000;
     // Compute correlated noise only for spectrum of
     // interest
     double num_freqs = nfft / 2 + 1;
@@ -1782,7 +1761,7 @@ void SimModemNetwork::create_cross_spectral_density()
     glog.is(DEBUG1) && glog << "h_lpf_length= " << h_lpf_length << std::endl;
     vector<complex<double>> integration_kernel;
     integration_kernel.resize(2 * h_lpf_length - 1); //vector
-    for (int i = 0; i < integration_kernel.size(); i++)
+    for (int i = 0; i < (int)integration_kernel.size(); i++)
         integration_kernel[i] = complex<double>(0, 0);
 
     complex<double> ci = complex<double>(0, 1);
@@ -1804,11 +1783,10 @@ void SimModemNetwork::create_cross_spectral_density()
                             << std::endl;
     // Cross-spectral density
     int max_delay_samps_at_Fs = (num_ff_tabs - 1) * dsfactor + h_lpf_length;
-    double arg = 2 * M_PI;
     vector<vector<complex<double>>> invFT; // (Nfreq x max_delay_samps)
     vector<double> jvec;
     jvec.resize(max_delay_samps_at_Fs);
-    for (int j = 0; j < jvec.size(); j++) jvec[j] = j;
+    for (int j = 0; j < (int)jvec.size(); j++) jvec[j] = j;
     invFT.resize(Nfreq);
     for (int i = 0; i < Nfreq; i++)
     {
@@ -1844,15 +1822,15 @@ void SimModemNetwork::create_cross_spectral_density()
                             << Rv_spatial_temporal[0][0].size() << std::endl;
     //Correlation of baseband and downsampled noise covariance
     Rv_bbds.resize(Narray * num_ff_tabs);
-    for (int kk1 = 0; kk1 < Rv_bbds.size(); kk1++) Rv_bbds[kk1].resize(Narray * num_ff_tabs);
+    for (int kk1 = 0; kk1 < (int)Rv_bbds.size(); kk1++) Rv_bbds[kk1].resize(Narray * num_ff_tabs);
 
-    for (int kk1 = 0; kk1 < Rv_bbds.size(); kk1++)
+    for (int kk1 = 0; kk1 < (int)Rv_bbds.size(); kk1++)
     {
         int ary_ind1 = kk1 % Narray;
         int delay1 = (kk1 - ary_ind1) / Narray; // int index?
         false && glog.is(DEBUG2) &&
             glog << "ary_ind1,delay1= " << ary_ind1 << " , " << delay1 << std::endl;
-        for (int kk2 = kk1; kk2 < Rv_bbds[kk1].size(); kk2++)
+        for (int kk2 = kk1; kk2 < (int)Rv_bbds[kk1].size(); kk2++)
         {
             int ary_ind2 = kk2 % Narray;
             int delay2 = (kk2 - ary_ind2) / Narray; // = int index?
@@ -1862,7 +1840,7 @@ void SimModemNetwork::create_cross_spectral_density()
                      << ", delayoffset=" << delayoffset_at_Fs << std::endl;
             complex<double> temp1 = complex<double>(0, 0);
             for (int i = delayoffset_at_Fs; i < delayoffset_at_Fs + 2 * h_lpf_length - 1 &&
-                                            i < Rv_spatial_temporal[ary_ind1][ary_ind2].size();
+                                            i < (int)Rv_spatial_temporal[ary_ind1][ary_ind2].size();
                  i++)
             {
                 /*	      glog.is(DEBUG2) && glog << "i, i-delay_offset="
@@ -1893,12 +1871,11 @@ void SimModemNetwork::compute_tl(CEigenRay eig, double& tl, double& mpp)
         tl = sqrt(-1);
         mpp = tl;
     }
-    double elev = 0;
+    [[maybe_unused]] double elev = 0;
     double pow_max = 1e-30;
     double power = 1e-30;
 
     int iray_max = 0;
-    double pow_ratio = 1;
     double max_tau;
     double max_power_bounces;
     for (int iray = 0; iray < eig.num_rays; iray++)
@@ -1959,8 +1936,8 @@ void SimModemNetwork::test_performance_request()
     nodes.push_back("h3");
     nodes.push_back("h4");
 
-    for (int i = 0; i < test_depth.size(); i++)
-        for (int j = 0; j < nodes.size(); j++)
+    for (int i = 0; i < (int)test_depth.size(); i++)
+        for (int j = 0; j < (int)nodes.size(); j++)
         {
             receiver = message.add_receiver();
             receiver->set_depth(test_depth[i]);
@@ -2066,7 +2043,7 @@ double SimModemNetwork::compute_MAE(int con)
     {
         glog.is(DEBUG2) && glog << "No rays" << std::endl;
         ts.resize(num_array_elements);
-        for (int i_elem = 0; i_elem < ts.size(); i_elem++)
+        for (int i_elem = 0; i_elem < (int)ts.size(); i_elem++)
         {
             ts[i_elem].resize(nfft);
             ts[i_elem].assign(nfft, 0.0);
@@ -2074,7 +2051,7 @@ double SimModemNetwork::compute_MAE(int con)
     }
     else
     {
-        if (delay[0].size() != num_array_elements)
+        if ((int)delay[0].size() != num_array_elements)
         {
             glog << "Number of array element mismatch"
                  << "delay[].size, num_array_elements: " << delay[0].size() << ", "
@@ -2084,8 +2061,8 @@ double SimModemNetwork::compute_MAE(int con)
 
         double min_delay = 1e8;
         double max_delay = 0;
-        for (int i_ray = 0; i_ray < delay.size(); i_ray++)
-            for (int i_elem = 0; i_elem < delay[i_ray].size(); i_elem++)
+        for (int i_ray = 0; i_ray < (int)delay.size(); i_ray++)
+            for (int i_elem = 0; i_elem < (int)delay[i_ray].size(); i_elem++)
             {
                 max_delay = std::max(max_delay, delay[i_ray][i_elem]);
                 min_delay = std::min(min_delay, delay[i_ray][i_elem]);
@@ -2093,7 +2070,6 @@ double SimModemNetwork::compute_MAE(int con)
 
         int number_samples = (max_delay - min_delay) * sampling_frequency + nfft;
 
-        double source_strength = pow(10.0, cfg_.source_level() / 20.0);
         std::vector<double> imp_res;
 
         ts.resize(num_array_elements);
@@ -2105,7 +2081,7 @@ double SimModemNetwork::compute_MAE(int con)
 
         std::vector<double> surface_jitter;
         surface_jitter.assign(delay.size(), 0);
-        for (int i_ray = 0; i_ray < delay.size(); i_ray++)
+        for (int i_ray = 0; i_ray < (int)delay.size(); i_ray++)
         {
             // doppler scaled waveform, sampled at sampling_frequency
             double center_frequency = cfg_.acomms_frequency() / doppler[i_ray];
@@ -2130,7 +2106,7 @@ double SimModemNetwork::compute_MAE(int con)
             // generate doppler shifted passband impulse response
             banded_impulse_response(center_frequency, bandwidth, sampling_frequency, nfft, imp_res);
 
-            for (int i_elem = 0; i_elem < ts.size(); i_elem++)
+            for (int i_elem = 0; i_elem < (int)ts.size(); i_elem++)
             {
                 double t1 = delay[i_ray][i_elem] - min_delay;
                 int indx_1 = t1 * sampling_frequency + jit;
@@ -2140,7 +2116,7 @@ double SimModemNetwork::compute_MAE(int con)
                     int indx_offset = -indx_1;
                     indx_1 = std::max(indx_1, 0);
                     indx_2 = std::min(indx_2, number_samples - 1);
-                    for (int i = indx_1; i <= indx_2 && i + indx_offset < imp_res.size(); i++)
+                    for (int i = indx_1; i <= indx_2 && i + indx_offset < (int)imp_res.size(); i++)
                         ts[i_elem][i] += imp_res[i + indx_offset] * amplitude[i_ray];
                 }
             }
@@ -2162,8 +2138,6 @@ void SimModemNetwork::banded_impulse_response(double center_frequency, double ba
                                               double sampling_frequency, int num_samples,
                                               std::vector<double>& sig)
 {
-    double max_frequency = center_frequency + 0.5 * bandwidth;
-    double min_frequency = center_frequency - 0.5 * bandwidth;
     double a = 0.5 * bandwidth;
 
     sig.resize(num_samples);
@@ -2299,7 +2273,7 @@ double SimModemNetwork::predicted_MAE(double nl_here)
     double source_amp = pow(10.0, cfg_.source_level() / 20.0);
     glog.is(DEBUG2) && glog << "scaling bbds with source amp " << source_amp << std::endl;
     for (int i = 0; i < Narray; i++)
-        for (int j = 0; j < bbds_cir[i].size(); j++) bbds_cir[i][j] *= source_amp;
+        for (int j = 0; j < (int)bbds_cir[i].size(); j++) bbds_cir[i][j] *= source_amp;
 
     // Populate baseband, downsample Green's function
     // Note that here (c++) syncpoint is 1 less than jim's (matlab)
@@ -2334,7 +2308,7 @@ double SimModemNetwork::predicted_MAE(double nl_here)
                 samprateGrow.push_back(bbds_cir[i][j]);
             for (int j = 0; j < numsamprateGcolumns - bbdslength - curfftab; j++)
                 samprateGrow.push_back(complex<double>(0, 0));
-            for (int j = 0; j < samprateGcolumnsforsymrateG.size(); j++)
+            for (int j = 0; j < (int)samprateGcolumnsforsymrateG.size(); j++)
             {
                 G[curGrow][j] = samprateGrow[samprateGcolumnsforsymrateG[j]];
                 maxG = std::max(maxG, fabs(G[curGrow][j]));
@@ -2384,7 +2358,7 @@ double SimModemNetwork::predicted_MAE(double nl_here)
         Go[irow].clear();
         for (int j = 0; j < Gsynccolumn - cfg_.num_fb_tabs() - 1; j++)
             Go[irow].push_back(G[irow][j]);
-        for (int j = Gsynccolumn + 1; j < G[irow].size(); j++) Go[irow].push_back(G[irow][j]);
+        for (int j = Gsynccolumn + 1; j < (int)G[irow].size(); j++) Go[irow].push_back(G[irow][j]);
     }
     glog.is(DEBUG2) && glog << "Go size: " << Go.size() << ", " << Go[0].size() << std::endl;
 

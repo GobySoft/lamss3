@@ -1,6 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Massachusetts Institute of Technology
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <dlfcn.h>
 
@@ -43,17 +42,17 @@ SimTargets* SimTargets::get_instance()
 SimTargets::SimTargets(SimTargetsConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
-      new_origin_(false),
-      source_control(true),
-      target_number(0),
+      last_slow_loop_t_(0),
+      target_set(false),
       target_init(false),
       auv_x(0),
       auv_y(0),
+      target_number(0),
+      t_num(0),
+      source_control(true),
       got_x(false),
       got_y(false),
-      t_num(0),
-      target_set(false),
-      last_slow_loop_t_(0)
+      new_origin_(false)
 {
     if (cfg_.has_max_range())
     {
@@ -125,7 +124,7 @@ void SimTargets::loop()
     {
         //Calculate target position and range
 
-        for (int i = 0; i < Targets.size(); i++)
+        for (int i = 0; i < (int)Targets.size(); i++)
         {
             time_now = MOOSTime();
             elapsed = time_now - Targets[i].target_utc;
@@ -170,7 +169,7 @@ void SimTargets::slow_loop(double curr_time)
     // Publish node report
     if (target_set)
     {
-        for (int i = 0; i < Targets.size(); i++) { publish("NODE_REPORT", target_AIS(i)); }
+        for (int i = 0; i < (int)Targets.size(); i++) { publish("NODE_REPORT", target_AIS(i)); }
     }
 
     last_slow_loop_t_ = curr_time;
@@ -226,7 +225,7 @@ void SimTargets::reinitialize_targets()
 
     time_now = MOOSTime();
     // First make table of current target lat/longs
-    for (int i = 0; i < Targets.size(); i++)
+    for (int i = 0; i < (int)Targets.size(); i++)
     {
         double target_lat, target_lon;
         elapsed = time_now - Targets[i].target_utc;
@@ -240,7 +239,7 @@ void SimTargets::reinitialize_targets()
     }
     m_Geodesy.Initialise(lat_origin_, lon_origin_);
     // Restart targets at currfent time and location in new UTM
-    for (int i = 0; i < Targets.size(); i++)
+    for (int i = 0; i < (int)Targets.size(); i++)
     {
         m_Geodesy.LatLong2LocalUTM(tgt_lat[i], tgt_lon[i], target_y, target_x);
         Targets[i].target_x = target_x;
@@ -315,8 +314,6 @@ void SimTargets::update_target(LAMSS_SIMULATE_TARGET tgt_msg)
 
 void SimTargets::updateTargetList()
 {
-    double moos_time = MOOSTime();
-
     unsigned int i;
 
     vector<double> values;
@@ -338,7 +335,7 @@ void SimTargets::updateTargetList()
             values.push_back(target_freq);
             values.push_back(target_bw);
             values.push_back(target_str);
-            for (int j = 0; j < tone_freq.size(); j++)
+            for (int j = 0; j < (int)tone_freq.size(); j++)
             {
                 values.push_back(tone_freq[j]);
                 values.push_back(tone_dbl[j]);
@@ -362,7 +359,7 @@ void SimTargets::updateTargetList()
     values.push_back(target_freq);
     values.push_back(target_bw);
     values.push_back(target_str);
-    for (int j = 0; j < tone_freq.size(); j++)
+    for (int j = 0; j < (int)tone_freq.size(); j++)
     {
         values.push_back(tone_freq[j]);
         values.push_back(tone_dbl[j]);
@@ -379,15 +376,14 @@ void SimTargets::cancelTarget(string target_name)
 {
     target_name = toupper(stripBlankEnds(target_name));
 
-    double moos_time = MOOSTime();
     glog.is(DEBUG1) && glog << "Entering cancelTarget, target " << target_name << endl;
 
-    for (int j = 0; j < Targets.size(); j++)
+    for (int j = 0; j < (int)Targets.size(); j++)
     {
         if (Targets[j].target_id() == target_name)
         {
             glog.is(DEBUG1) && glog << "Removing target " << target_name << endl;
-            for (int i = j; i < Targets.size() - 1; i++)
+            for (int i = j; (size_t)i < Targets.size() - 1; i++)
             {
                 glog.is(DEBUG1) && glog << "Shifting target " << Targets[i + 1].target_id() << endl;
                 Targets[i] = Targets[i + 1];
@@ -407,8 +403,6 @@ void SimTargets::cancelTarget(string target_name)
 
 void SimTargets::postTargetList()
 {
-    double moos_time = MOOSTime();
-
     int vsize = Targets.size();
 
     string target_list_string;

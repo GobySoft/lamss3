@@ -1,3 +1,6 @@
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef SIMMODEMNETWORK_HEADER
 #define SIMMODEMNETWORK_HEADER
 
@@ -9,24 +12,27 @@
 #include "goby/moos/modem_id_convert.h"
 #include "goby/moos/moos_geodesy.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "lamss/lib_newmat10D/newmatap.h"
 #include "netsim/acousticstoolbox/environment.h"
 #include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
 #include "netsim/messages/netsim.pb.h"
-#include <lamss/lib_henrik_util/CEigenRays.h>
+#include <lamss/virtual_ocean/henrik_util/CEigenRays.h>
 #include <math.h>
 #include <string>
 #include <vector>
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/CTarget.h>
-#include <lamss/lib_henrik_util/str_num.h>
+#include <lamss/core/henrik_util/CTarget.h>
+#include <lamss/core/henrik_util/str_num.h>
 
-#include "lamss/lib_henrik_util/CCovMat.h"
-#include "lamss/lib_henrik_util/CNoiseCovariance.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_henrik_util/Random.h"
+#include "lamss/core/henrik_util/CCovMat.h"
+#include "lamss/core/henrik_util/CNoiseCovariance.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/Random.h"
+
+using namespace std;
+using namespace lamss::core;
+using namespace lamss::virtual_ocean;
 
 class CAcousticNode
 {

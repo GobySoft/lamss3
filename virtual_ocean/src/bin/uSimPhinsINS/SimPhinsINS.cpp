@@ -1,9 +1,5 @@
-/************************************************************/
-/*    NAME: Supun Randeni                                              */
-/*    ORGN: MIT                                             */
-/*    FILE: SimPhinsINS.cpp                                        */
-/*    DATE:                                                 */
-/************************************************************/
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimPhinsINS.h"
 #include "MBUtils.h"
@@ -265,7 +261,7 @@ bool SimPhinsINS::Iterate()
     // Converting body-frame to earth-frame
     double ins_calc_ydot;
     double ins_calc_xdot;
-    double ins_calc_zdot;
+    [[maybe_unused]] double ins_calc_zdot;
     ins_calc_ydot =
         m_ins_calc_u * cos(m_current_nav_heading * M_PI / 180) *
             cos(m_current_nav_pitch * M_PI / 180) +
@@ -366,7 +362,6 @@ bool SimPhinsINS::Iterate()
     m_prev_auv_v = auv_v;
     m_prev_auv_w = auv_w;
     m_prev_u_time = m_current_u_time;
-    m_current_u_received == false;
     return (true);
 }
 
@@ -487,7 +482,7 @@ void SimPhinsINS::RegisterVariables()
 
 void SimPhinsINS::PublishPhinsDataMOOSVar()
 {
-    lamss::hydroman::protobuf::IXBlueINSData phins_data;
+    lamss::core::IXBlueINSData phins_data;
     // Set headers - Just setting values to fill the placeholder (EXCEPT FOR 'navigation_data_validity_time_100us')
     phins_data.mutable_header()->set_protocol_version(3);
     phins_data.mutable_header()->set_navigation_bit_mask(2145648639);

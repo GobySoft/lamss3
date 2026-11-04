@@ -1,22 +1,6 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                         pArraySim
-# Author(s):                               Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(uSimTowedArray ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimTowedArray
-  MOOS
-#  ${MOOS_LIBRARIES}
-  ${LAMSS_HENRIK_UTIL_LIBRARY}
-  ${IVP_MBUTIL_LIBRARY}
-  goby
-  goby_moos
-)
-
-
+lamss_add_app(uSimTowedArray MOOS
+  SOURCES SimTowedArray.cpp SimTowedArrayMain.cpp
+  LINK_LIBRARIES lamss::core_henrik_util IvP::mbutil)

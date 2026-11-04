@@ -1,9 +1,6 @@
-//======================================================================
-// uSimTowedArray
-// Copyright Henrik Schmidt, MIT
-// Towed array simulator
-// Translated from matlab version ArraySim.m
-//
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "MBUtils.h"
 // #include "AngleUtils.h"
 #include "SimTowedArray.h"
@@ -308,7 +305,7 @@ bool CSimTowedArray::OnStartUp()
             {
                 string param;
                 string svalues;
-                char buff[12];
+                char buff[32];
                 sprintf(buff, "sector_%1d", i + 1);
                 param = buff;
                 bool sec_info = m_MissionReader.GetConfigurationParam(param, svalues);
@@ -316,7 +313,7 @@ bool CSimTowedArray::OnStartUp()
                 {
                     MOOSTrace("Reading %s \n", param.c_str());
 
-                    int nparam = vecUtils.str2dbl_vec(svalues, m_buffer);
+                    vecUtils.str2dbl_vec(svalues, m_buffer);
                     CSector Sect;
                     if (Sect.setSectorValues(m_buffer))
                     {
@@ -354,7 +351,7 @@ bool CSimTowedArray::OnStartUp()
                 string svalues;
                 if (m_MissionReader.GetConfigurationParam("towbody_parameters", svalues))
                 {
-                    int nparam = vecUtils.str2dbl_vec(svalues, m_buffer);
+                    vecUtils.str2dbl_vec(svalues, m_buffer);
                     CTowbody Towb;
                     if (Towb.setTowbodyValues(m_buffer))
                     {
@@ -466,7 +463,7 @@ bool CSimTowedArray::OnStartUp()
                 {
                     string param;
                     string svalues;
-                    char buff[24];
+                    char buff[32];
                     sprintf(buff, "spacing_group_%1d", i + 1);
                     param = buff;
                     if (m_MissionReader.GetConfigurationParam(param, svalues))
@@ -568,7 +565,7 @@ bool CSimTowedArray::OnConnectToServer()
 bool CSimTowedArray::Iterate()
 {
     // first check that we got all nav and compute tow point dynamics
-    if (towing = (ok_x && ok_y && ok_z && ok_spd && ok_yaw && ok_pitch))
+    if ((towing = (ok_x && ok_y && ok_z && ok_spd && ok_yaw && ok_pitch)))
     {
         double cy = cos(nav_yaw);
         double sy = sin(nav_yaw);
@@ -596,14 +593,14 @@ bool CSimTowedArray::Iterate()
     //filter_v = int(history_time/iterate_time);
     prev_time = curr_time;
 
-    while (vx_hist.size() > filter_v)
+    while ((int)vx_hist.size() > filter_v)
     {
         vx_hist.pop_back();
         vy_hist.pop_back();
         vz_hist.pop_back();
     }
 
-    while (vx_hist.size() < filter_v)
+    while ((int)vx_hist.size() < filter_v)
     {
         if (int ll = vx_hist.size() > 0)
         {
@@ -743,7 +740,7 @@ bool CSimTowedArray::Iterate()
             vecUtils.vmov(Array.array_head, a_head_buf);
 
             // for ih=2:length(array_head)
-            for (int ih = 1; ih < Array.array_head.size(); ih++)
+            for (int ih = 1; ih < (int)Array.array_head.size(); ih++)
             {
                 while (a_head_buf[ih] - a_head_buf[ih - 1] > 180.0)
                     a_head_buf[ih] = a_head_buf[ih] - 360;
@@ -837,7 +834,7 @@ bool CSimTowedArray::Iterate()
                 local_dir_x.clear();
                 local_dir_y.clear();
                 local_dir_z.clear();
-                for (unsigned int i = 0; i < nelm; i++)
+                for (int i = 0; i < nelm; i++)
                 {
                     local_dir_x.push_back(0.0);
                     local_dir_y.push_back(0.0);
@@ -1172,8 +1169,9 @@ int CArrayModel::indx(int n_rows, int row, int col)
 }
 
 bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y, double tow_pos_z,
-                                 double tow_vel_x, double tow_vel_y, double tow_vel_z,
-                                 double nav_yaw, double& ael_heading, double& ael_pitch)
+                                 double tow_vel_x, double tow_vel_y,
+                                 [[maybe_unused]] double tow_vel_z, double nav_yaw,
+                                 double& ael_heading, double& ael_pitch)
 {
     // This function is a simple model that assumes the array straight behind the vehicle at a prescribed pitch angle.
 
@@ -1192,7 +1190,7 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y, double tow_
     compass_offset_full.clear();
     depth_offset_full.clear();
     pitch_offset_full.clear();
-    for (int i = 0; i < phone_offset.size(); i++)
+    for (int i = 0; i < (int)phone_offset.size(); i++)
     {
         compass_offset_full.push_back(phone_offset[i]);
         depth_offset_full.push_back(phone_offset[i]);
@@ -1233,7 +1231,7 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y, double tow_
         array_pitch.push_back(ael_pitch);
     }
 
-    for (int i = 0; i < sr.size(); i++)
+    for (int i = 0; i < (int)sr.size(); i++)
     {
         x1.push_back(tow_pos_x - sr[i] * cos(array_angle) * cos(ael_pitch));
         y1.push_back(tow_pos_y - sr[i] * sin(array_angle) * cos(ael_pitch));
@@ -1267,17 +1265,15 @@ bool CArrayModel::straight_array(double tow_pos_x, double tow_pos_y, double tow_
     return (true);
 }
 
-bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, double vx, double vy,
-                                  double vz)
+bool CArrayModel::function_steady([[maybe_unused]] double xtowp, [[maybe_unused]] double ytowp,
+                                  double ztowp, double vx, double vy, [[maybe_unused]] double vz)
 {
     var_sus = 5; //number of variables subscribed
 
     double cvx = vx;
     double cvy = vy;
-    double cvz = vz;
 
     double dt = 0.8; // update rate for model (sec)
-    double dt1 = dt;
     deltim = dt;
 
     over_extrap = 0;
@@ -1302,12 +1298,6 @@ bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, doub
 
     if (radheadstart < 0)
         radheadstart = 2 * M_PI + radheadstart;
-
-    double towpx =
-        ytowp; // reverse towpx and towpy because be consistent with the speed coordinates
-    double towpy =
-        xtowp; // reverse towpx and towpy because be consistent with the speed coordinates
-    double towpz = ztowp; // ztowp and towpz are positive values
 
     //****************************************************************************
     //		INPUT CABLE AND BODY PROPERTIES
@@ -1345,7 +1335,7 @@ bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, doub
     poly_curr_grad_ith_auv(ith_order);
 
     int start_ind_curr = -1;
-    for (int i = 0; i < currtim.size(); i++)
+    for (int i = 0; i < (int)currtim.size(); i++)
     {
         if (start_ind_curr < 0 && currtim[i] >= minT)
             start_ind_curr = i;
@@ -1474,7 +1464,7 @@ bool CArrayModel::function_steady(double xtowp, double ytowp, double ztowp, doub
     compass_offset_full.clear();
     depth_offset_full.clear();
     pitch_offset_full.clear();
-    for (int i = 0; i < phone_offset.size(); i++)
+    for (int i = 0; i < (int)phone_offset.size(); i++)
     {
         compass_offset_full.push_back(phone_offset[i]);
         depth_offset_full.push_back(phone_offset[i]);
@@ -1652,7 +1642,6 @@ bool CArrayModel::steady_state(double towvel, double radheadstart)
         tss1 = sqrt(pow(drag, 2) + pow(wgt, 2));
         double arg = wgt / drag;
         phiss1 = atan(arg) + pi;
-        double critang = 180.0 * phiss1 / pi;
     }
     else
     {
@@ -1675,7 +1664,6 @@ bool CArrayModel::steady_state(double towvel, double radheadstart)
                      (2.0 * norfac);
         phiss1 = acos(arg);
         phiss1 = 2 * pi - phiss1;
-        double critang = 180.0 * phiss1 / pi;
 
         // Estimate the tension a short way up the cable from the zero tension
 
@@ -1846,7 +1834,7 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
     if (Array_init == true)
         deltim = time - old_time;
 
-    if (dt_hist.size() < dtfilt_length)
+    if ((int)dt_hist.size() < dtfilt_length)
         dt_hist.push_back(deltim);
     else
     {
@@ -1864,10 +1852,6 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
         prob = 1;
         return (false);
     }
-
-    double towpz = ztowp;
-    double tim = time;
-    double tim_curr = time;
 
     //  !!!! vx and vy have to be reversed when they refer to the model inertial coordinates !!!!
 
@@ -1918,7 +1902,7 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
         xsprime.push_back(cos(yc[indx(6, 5, j)]) * cos(yc[indx(6, 6, j)]));
 
     vecUtils.cumtrapz(sr, xsprime, xs);
-    for (int i = 0; i < sr.size(); i++) xs[i] += xtowp;
+    for (int i = 0; i < (int)sr.size(); i++) xs[i] += xtowp;
 
     vector<double> ysprime;
     vector<double> ys;
@@ -1929,7 +1913,7 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
         ysprime.push_back(-sin(yc[indx(6, 5, j)]) * cos(yc[indx(6, 6, j)]));
 
     vecUtils.cumtrapz(sr, ysprime, ys);
-    for (int i = 0; i < sr.size(); i++) ys[i] += ytowp;
+    for (int i = 0; i < (int)sr.size(); i++) ys[i] += ytowp;
 
     vector<double> zsprime;
     vector<double> zs;
@@ -1939,7 +1923,7 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
     for (int j = 1; j <= Nseg + 1; j++) zsprime.push_back(-sin(yc[indx(6, 6, j)]));
 
     vecUtils.cumtrapz(sr, zsprime, zs);
-    for (int i = 0; i < sr.size(); i++) zs[i] += ztowp;
+    for (int i = 0; i < (int)sr.size(); i++) zs[i] += ztowp;
 
     // xs, ys and zs give the position of the cable in the inertial coordinate
 
@@ -2092,7 +2076,7 @@ bool CArrayModel::function_cable(int& nt, bool Array_init, double xtowp, double 
     for (int i = 0; i < m_nelm; i++) buf_xi.push_back(offset_to_array + phone_offset[i]);
 
     // add topw point offset
-    for (int i = 0; i < xss1.size(); i++)
+    for (int i = 0; i < (int)xss1.size(); i++)
     {
         xss1[i] += xtowp;
         yss1[i] += ytowp;
@@ -2196,7 +2180,7 @@ bool CArrayModel::dyssdt(double sd, vector<double> yss, vector<double>& dydt)
     int nsd;
 
     int nlt = -1;
-    for (int i = 0; i < cablel.size() && nlt < 0; i++)
+    for (int i = 0; i < (int)cablel.size() && nlt < 0; i++)
     {
         if (sd <= cablel[i])
             nlt = i;
@@ -2241,7 +2225,7 @@ bool CArrayModel::cable_ode45(vector<double> x, vector<double> y_init, vector<do
     vecUtils.vmov(y_init, y);
     vecUtils.vmov(y_init, yold);
 
-    for (int i = 1; i < x.size(); i++)
+    for (int i = 1; i < (int)x.size(); i++)
     {
         double h = x[i] - x[i - 1];
         dyssdt(x[i - 1], yold, buf);
@@ -2268,7 +2252,7 @@ bool CArrayModel::cable_ode45(vector<double> x, vector<double> y_init, vector<do
         vecUtils.vsmul(ybuf, 0.16666667, ybuf);
         vecUtils.vadd(yold, ybuf, ybuf);
 
-        for (int j = 0; j < ybuf.size(); j++) y.push_back(ybuf[j]);
+        for (int j = 0; j < (int)ybuf.size(); j++) y.push_back(ybuf[j]);
 
         vecUtils.vmov(ybuf, yold);
     }
@@ -3004,7 +2988,7 @@ bool CArrayModel::find_configf(vector<double> yold, vector<double> y, int nt, do
 
             MOOSTrace("nt = %d, icount =%d, Max_residual= %f\n", nt, icount, Max_residual);
             //        resvect(1+N6+3:3+N6+3)=body_resvect;
-            for (int j = 0; j < body_resvect.size(); j++) resvect.push_back(body_resvect[j]);
+            for (int j = 0; j < (int)body_resvect.size(); j++) resvect.push_back(body_resvect[j]);
         }
         else
         {
@@ -4725,7 +4709,7 @@ bool CArrayModel::find_configf(vector<double> yold, vector<double> y, int nt, do
         vecUtils.vmov(resvectt, dely);
         MOOSTrace("dely.size = %d\n", dely.size());
         MOOSTrace("resvect.size = %d\n", resvectt.size());
-        double get_back = vecUtils.bsolve(Jacob, dimJacob, bw, dely, 1);
+        vecUtils.bsolve(Jacob, dimJacob, bw, dely, 1);
 
         vecUtils.vmov(y, bigy);
         vecUtils.vadd(y, dely, y);
@@ -4864,11 +4848,13 @@ bool CArrayModel::find_configf(vector<double> yold, vector<double> y, int nt, do
 }
 
 bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y, double tow_pos_z,
-                                   double tow_vel_x, double tow_vel_y, double tow_vel_z,
-                                   vector<double> local_x, vector<double> local_y,
-                                   vector<double> local_z, vector<double> local_dir_x,
-                                   vector<double> local_dir_y, vector<double> local_dir_z,
-                                   double nav_yaw, double& ael_heading, double& ael_pitch)
+                                   [[maybe_unused]] double tow_vel_x,
+                                   [[maybe_unused]] double tow_vel_y,
+                                   [[maybe_unused]] double tow_vel_z, vector<double> local_x,
+                                   vector<double> local_y, vector<double> local_z,
+                                   vector<double> local_dir_x, vector<double> local_dir_y,
+                                   vector<double> local_dir_z, double nav_yaw, double& ael_heading,
+                                   double& ael_pitch)
 {
     // This function is a simple model that assumes the array straight behind the vehicle at a prescribed pitch angle.
 
@@ -4878,7 +4864,6 @@ bool CArrayModel::volumetric_array(double tow_pos_x, double tow_pos_y, double to
 
     // Array locations along array
 
-    double array_angle;
     ael_heading = angleUtils.angle360(-nav_yaw * 180 / PI);
     MOOSTrace("ael_heading = %f\n");
 

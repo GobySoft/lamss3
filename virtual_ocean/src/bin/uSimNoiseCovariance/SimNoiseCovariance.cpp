@@ -1,20 +1,5 @@
-// copyright 2011 H. Schmidt henrik@mit.edu
-//
-// this file is part of lamss-shared, a collection of MOOS
-// processes for underwater autonomy and acoustic simulation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimNoiseCovariance.h"
 #include <boost/algorithm/string.hpp>
@@ -405,7 +390,7 @@ bool CSimNoiseCovariance::OnNewMail(MOOSMSG_LIST& NewMail)
                 theta.clear();
                 S.clear();
 
-                for (int i = 0; i < theta_deg.size(); i++)
+                for (int i = 0; i < (int)theta_deg.size(); i++)
                 {
                     theta.push_back(theta_deg[i] * M_PI / 180.0);
                     S.push_back(pow(10.0, S_dB[i] / 10));
@@ -504,7 +489,6 @@ double CSimNoiseCovariance::computeNoiseCovariance(double depth, vector<double> 
         // 1e-12 factor removed for compatibility with active simulator
         //      double p_intens = 1e-12 * pow(10.0,nl/10) * sampling_frequency * 0.5 * nfft;
         double p_intens = pow(10.0, nl / 10) * sampling_frequency * 0.5 * nfft;
-        double rho = 1000;
         // Compute correlated noise only for spectrum of
         // interest
         double delta_f = sampling_frequency / nfft;
@@ -723,7 +707,7 @@ bool CSimNoiseCovariance::parseNoiseDirectionality(string noise_in, vector<doubl
     else
         return (false);
 
-    bool got_it = false;
+    [[maybe_unused]] bool got_it = false;
     bool delta = false;
     if (val_from_string(nls, noise_in, "S"))
     {

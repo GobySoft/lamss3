@@ -19,3 +19,5 @@ e13a0686d10baf72c462eba2805c584397c759d4
 f03eea47cf9460504196de482cc699b61ce2b70a
 # Format iNoaaBathy, uSimCTD, uSimGPS and henrik_util's acoustics with clang-format
 64ab5518182cb4d2a71eaae1eb344ce2cc86d243
+# Format the lamss-shared M1 simulators with clang-format
+1b0d189df46c1df5ee06700efde7ee54949996f9

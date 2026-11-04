@@ -1,19 +1,6 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                       uSimDVL
-# Author(s):                              Supun Randeni
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-SET(SRC
-  SimDVL.cpp
-  SimDVL_Info.cpp
-  main.cpp
-)
-
-ADD_EXECUTABLE(uSimDVL ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimDVL
-   ${MOOS_LIBRARIES}
-   mbutil
-   m
-   pthread)
-
+lamss_add_app(uSimDVL MOOS NO_GOBY
+  SOURCES SimDVL.cpp SimDVL_Info.cpp main.cpp
+  LINK_LIBRARIES IvP::mbutil)

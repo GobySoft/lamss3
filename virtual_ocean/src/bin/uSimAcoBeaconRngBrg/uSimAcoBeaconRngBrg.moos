@@ -1,7 +1,13 @@
-//------------------------------------------------
-// pSimAcoBeaconRngBrg config block
+// Copyright 2020-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-ProcessConfig = pSimAcoBeaconRngBrg
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = uSimAcoBeaconRngBrg
 {
    AppTick   = 4
    CommsTick = 4
@@ -18,4 +24,3 @@ ProcessConfig = pSimAcoBeaconRngBrg
    NUM_PARTICLES = 100        // number of particles
    UPDATES = BEACON_UPDATE    // allows update of beacon position (e.g. BEACON_UPDATE = beacon_x=4.0, beacon_y=-12.0)
 }
-

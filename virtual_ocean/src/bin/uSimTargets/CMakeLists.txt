@@ -1,25 +1,7 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:                  uSimTargets
-# Author(s):                               Henrik Schmidt
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-file(GLOB PROTOS *.proto)  
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} ${PROTOS} )
-
-set(SRC SimTargets.cpp)
-
-ADD_EXECUTABLE(uSimTargets ${SRC} ${PROTO_HDRS} ${PROTO_SRCS})
-      
-TARGET_LINK_LIBRARIES(uSimTargets 
-  ${Boost_LIBRARIES}
-  ${MOOS_LIBRARIES}
-  ${GOBY_LIBRARIES}
-  ${LAMSS_PROTOBUF_LIBRARY}
-  ${PROTOBUF_LIBRARIES}
-  ${IVP_MBUTIL_LIBRARY}
-  ${LAMSS_HENRIK_UTIL_LIBRARY}
-  ${LAMSS_ANRP_UTIL_LIBRARY}
-  ${LAMSS_NEWMAT_LIBRARY}
-  )
+lamss_add_app(uSimTargets MOOS
+  SOURCES SimTargets.cpp
+  PROTOS SimTargets_config.proto
+  LINK_LIBRARIES lamss::virtual_ocean_protobuf lamss::core_henrik_util IvP::mbutil goby_frontseat_bluefin)

@@ -1,17 +1,5 @@
-// t. schneider
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "goby/acomms/protobuf/mm_driver.pb.h"
 #include "goby/acomms/protobuf/modem_message.pb.h"
@@ -25,6 +13,7 @@
 #include "config.pb.h"
 
 using goby::glog;
+using lamss::virtual_ocean::InterfaceNetSimManagerConfig;
 using namespace goby::util::logger;
 
 boost::shared_ptr<InterfaceNetSimManagerConfig> master_config;

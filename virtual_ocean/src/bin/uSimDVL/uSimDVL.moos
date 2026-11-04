@@ -1,14 +1,18 @@
-//------------------------------------------------
-// uSimDVL config block
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
 ProcessConfig = uSimDVL
 {
-AppTick   = 4
-CommsTick = 4
-dvl_update_frequency = 1
-dvl_std = 0.005
-dvl_bias_err = 0.002
-ice_tracking_mode = 1 // ice tracking mode = 1, bottom-tracking mode = 0
-dvl_bottom_lock = 0 // bottom lock = 1, no bottom lock = 0
+  AppTick   = 4
+  CommsTick = 4
+  dvl_update_frequency = 1
+  dvl_std = 0.005
+  dvl_bias_err = 0.002
+  ice_tracking_mode = 1 // ice tracking mode = 1, bottom-tracking mode = 0
 }
-

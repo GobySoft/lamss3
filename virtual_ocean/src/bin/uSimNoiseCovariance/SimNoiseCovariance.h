@@ -1,22 +1,27 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef SIMNOISECOVARIANCE_HEADER
 #define SIMNOISECOVARIANCE_HEADER
 
 #include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
-#include "lamss/lib_newmat10D/newmatap.h"
 #include <math.h>
 #include <string>
 #include <vector>
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/str_num.h>
+#include <lamss/core/henrik_util/str_num.h>
 
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_henrik_util/Random.h"
-//#include "lamss/lib_henrik_util/CBessel.h"
-#include "lamss/lib_henrik_util/CCovMat.h"
-#include "lamss/lib_henrik_util/CNoiseCovariance.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/Random.h"
+//#include "lamss/core/henrik_util/CBessel.h"
+#include "lamss/core/henrik_util/CCovMat.h"
+#include "lamss/core/henrik_util/CNoiseCovariance.h"
+
+using namespace std;
+using namespace lamss::core;
 
 /*
 class ComputeCovariance

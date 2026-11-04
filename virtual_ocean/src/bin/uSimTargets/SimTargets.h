@@ -1,7 +1,5 @@
-// Copyright 2015
-// Henrik Schmidt
-// Toby Schneider
-// Massachusetts Institute of Technology
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef SimTargets20171006H
 #define SimTargets20171006H
@@ -15,13 +13,16 @@
 #include "goby/moos/moos_protobuf_helpers.h"
 
 #include "SimTargets_config.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
-#include "lamss/lib_lamss_protobuf/lamss_targetsim.pb.h" // DCCL message for self noise
+#include "lamss/virtual_ocean/pinger.pb.h"
+#include "lamss/virtual_ocean/targetsim.pb.h" // DCCL message for self noise
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/CTarget.h>
-#include <lamss/lib_henrik_util/parse_stat.h>
-#include <lamss/lib_henrik_util/str_num.h>
+#include <lamss/core/henrik_util/CTarget.h>
+#include <lamss/core/henrik_util/parse_stat.h>
+#include <lamss/core/henrik_util/str_num.h>
+
+using namespace lamss::core;
+using namespace lamss::virtual_ocean;
 
 using namespace std;
 

@@ -1,3 +1,6 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #ifndef SIMPASSIVESONAR_HEADER
 #define SIMPASSIVESONAR_HEADER
 
@@ -8,28 +11,33 @@
 #include "goby/moos/goby_moos_app.h"
 #include "goby/moos/moos_geodesy.h"
 #include "goby/moos/moos_protobuf_helpers.h"
-#include "lamss/lib_lamss_protobuf/lamss_pinger_command.pb.h"
-#include "lamss/lib_newmat10D/newmatap.h"
+#include "lamss/virtual_ocean/pinger.pb.h"
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 #include "netsim/acousticstoolbox/iBellhop_messages.pb.h"
 #include "netsim/acousticstoolbox/svp_request_response.pb.h"
+#endif
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_fft_halfcomplex.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
-#include <lamss/lib_henrik_util/CEigenRays.h>
-#include <lamss/lib_henrik_util/CRapRays.h>
+#include <lamss/virtual_ocean/henrik_util/CEigenRays.h>
+#include <lamss/virtual_ocean/henrik_util/CRapRays.h>
 #include <math.h>
 #include <string>
 #include <vector>
 
 // from lib_henrik_util
-#include <lamss/lib_henrik_util/CTarget.h>
-#include <lamss/lib_henrik_util/str_num.h>
+#include <lamss/core/henrik_util/CTarget.h>
+#include <lamss/core/henrik_util/str_num.h>
 
-#include "lamss/lib_henrik_util/CCovMat.h"
-#include "lamss/lib_henrik_util/CVectorUtils.h"
-#include "lamss/lib_henrik_util/Random.h"
+#include "lamss/core/henrik_util/CCovMat.h"
+#include "lamss/core/henrik_util/CVectorUtils.h"
+#include "lamss/core/henrik_util/Random.h"
+
+using namespace std;
+using namespace lamss::core;
+using namespace lamss::virtual_ocean;
 
 class CSensor
 {
@@ -62,7 +70,9 @@ class CAcousticContact
     int svp_request_id;
     double last_svp_request;
     CEigenRayTable ray_table;
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
     netsim::SVP::protobuf::Response svp_response;
+#endif
 };
 
 class CPinger
@@ -206,13 +216,17 @@ class SimPassiveSonar : public goby::moos::GobyMOOSApp
                                   std::vector<double>& S_dB);
     bool requestSVPUpdate(std::string cn, int target_number);
     bool readyAcousticContactSVP(std::string cn);
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
     bool putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response);
     bool getAcousticContactSVP(std::string cn, netsim::SVP::protobuf::Response& svp_response);
+#endif
     bool handleSVPResponse(const CMOOSMsg& msg);
     bool defineRayTracingBox(CAcousticContact& target, double& r_min, double& r_max,
                              double& dep_min, double& dep_max, int& num_r, int& num_dep);
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
     double get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column,
                          double depth);
+#endif
 
     bool noise_profile;
     std::vector<double> depth_nl;

@@ -1,33 +1,7 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:             uSimAcoBeaconRngBrg
-# Author(s):                                 Nick Rypkema
-# Changes by                               Henrik Schmidt
-# 2/20/2020
-# Moved to lamss-shared from -internal
-# renamed from pAcoBearingRngBrgSim to uSimAcoBearingRngBrg
-# Getting true nav from IFS_DATA_IN instead of NAV_
-#--------------------------------------------------------
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-# FILE(GLOB SRC *.cpp)
-
-SET(SRC
-  SimAcoBeaconRngBrg.cpp
-  SimAcoBeaconRngBrg_Info.cpp
-  main.cpp
-)
-
-
-
-ADD_EXECUTABLE(uSimAcoBeaconRngBrg ${SRC})
-
-TARGET_LINK_LIBRARIES(uSimAcoBeaconRngBrg
-   ${MOOS_LIBRARIES}
-   ${GOBY_LIBRARIES}
-   ${IVP_GEOMETRY_LIBRARY}
-   ${IVP_MBUTIL_LIBRARY}
-   ${IVP_CONTACTS_LIBRARY}
-   ${IVP_APPUTIL_LIBRARY}
-   m
-   pthread
-   goby_frontseat_bluefin)
-
+lamss_find_ivp(geometry contacts apputil)
+lamss_add_app(uSimAcoBeaconRngBrg MOOS
+  SOURCES SimAcoBeaconRngBrg.cpp SimAcoBeaconRngBrg_Info.cpp main.cpp
+  LINK_LIBRARIES IvP::geometry IvP::contacts IvP::apputil IvP::mbutil goby_frontseat_bluefin)

@@ -1,20 +1,5 @@
-// copyright 2010 H. Schmidt henrik@mit.edu
-//
-// this file is part of lamss-shared-shared, a collection of MOOS
-// processes for underwater acoustic simulation
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This software is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this software.  If not, see <http://www.gnu.org/licenses/>.
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "SimPassiveSonar.h"
 #include <boost/algorithm/string.hpp>
@@ -59,23 +44,24 @@ SimPassiveSonar* SimPassiveSonar::get_instance()
 SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     : goby::moos::GobyMOOSApp(&cfg),
       cfg_(cfg),
+      sonar_on_(false),
       new_origin_(false),
-      max_number_bounces(cfg_.max_number_bounces()),
-      num_array_elements(cfg_.num_array_elements()),
-      c_0(cfg_.svp_surface()),
-      c_grad(cfg_.svp_gradient()),
-      z_max(cfg_.max_rap_depth()),
-      water_c(cfg_.svp_surface()),
-      water_depth(cfg_.water_depth()),
-      bottom_loss(cfg_.bottom_loss()),
-      ray_acoustics(cfg_.ray_acoustics()),
-      rap_acoustics(cfg_.rap_acoustics()),
-      sampling_frequency(cfg_.sampling_frequency()),
-      noise_level(cfg_.noise_level()),
       svp_updates(cfg_.svp_updates()),
       svp_update_interval(cfg_.svp_update_interval()),
       svp_range_resolution(cfg_.svp_range_resolution()),
       svp_depth_resolution(cfg_.svp_depth_resolution()),
+      water_depth(cfg_.water_depth()),
+      water_c(cfg_.svp_surface()),
+      c_0(cfg_.svp_surface()),
+      c_grad(cfg_.svp_gradient()),
+      z_max(cfg_.max_rap_depth()),
+      rap_acoustics(cfg_.rap_acoustics()),
+      ray_acoustics(cfg_.ray_acoustics()),
+      max_number_bounces(cfg_.max_number_bounces()),
+      bottom_loss(cfg_.bottom_loss()),
+      noise_level(cfg_.noise_level()),
+      num_array_elements(cfg_.num_array_elements()),
+      sampling_frequency(cfg_.sampling_frequency()),
       base_dir_name(cfg_.base_dir_name()),
       acoustic_filename_prefix(cfg_.acoustic_filename_prefix()),
       acoustic_filename_suffix(cfg_.acoustic_filename_suffix()),
@@ -85,10 +71,7 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
       surface_rms_roughness(cfg_.surface_rms_roughness()),
       surface_roughness_loss(cfg_.surface_roughness_loss()),
       bottom_rms_roughness(cfg_.bottom_rms_roughness()),
-      bottom_roughness_loss(cfg_.bottom_roughness_loss()),
-      sonar_on_(false)
-//,
-//  sync_password(cfg_.sync_password())
+      bottom_roughness_loss(cfg_.bottom_roughness_loss())
 {
     set_ignore_stale(false);
 
@@ -118,6 +101,12 @@ SimPassiveSonar::SimPassiveSonar(SimPassiveSonarConfig& cfg)
     subscribe("LAMSS_PINGER_COMMAND_IN", &SimPassiveSonar::handle_pinger_command, this);
     //
     glog.is(VERBOSE) && glog << cfg_.DebugString() << std::endl;
+#ifndef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
+    if (ray_acoustics || svp_updates)
+        glog.is(DIE) &&
+            glog << "ray_acoustics and svp_updates need iBellhop, and this build has no netsim"
+                 << std::endl;
+#endif
     //
     // Initialize
     //
@@ -451,7 +440,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
     vector<int> old_targets;
     old_targets.clear();
 
-    for (int i = 0; i < m_target_number.size(); i++) old_targets.push_back(m_target_number[i]);
+    for (int i = 0; i < (int)m_target_number.size(); i++) old_targets.push_back(m_target_number[i]);
     int old_number_of_targets = old_targets.size();
 
     number_of_targets = str2int_vec(msg.m_sVal, m_target_number);
@@ -478,7 +467,7 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
     for (int i = 0; i < number_of_targets; i++)
     {
         bool register_done = false;
-        for (int j = 0; j < old_targets.size() && !register_done; j++)
+        for (int j = 0; j < (int)old_targets.size() && !register_done; j++)
             register_done = (old_targets[j] == m_target_number[i]);
 
         if (!register_done)
@@ -622,7 +611,7 @@ void SimPassiveSonar::loop()
         {
             array_dir.resize(num_array_elements);
             // set directionality logic
-            for (unsigned int i = 0; i < num_array_elements; i++)
+            for (int i = 0; i < num_array_elements; i++)
                 array_dir[i] =
                     (pow(array_dir_x[i], 2) + pow(array_dir_y[i], 2) + pow(array_dir_z[i], 2) >
                      1e-6);
@@ -630,7 +619,7 @@ void SimPassiveSonar::loop()
         else
         {
             array_dir.resize(num_array_elements);
-            for (unsigned int i = 0; i < num_array_elements; i++) array_dir[i] = false;
+            for (int i = 0; i < num_array_elements; i++) array_dir[i] = false;
         }
 
         double t_now = MOOSTime();
@@ -723,7 +712,7 @@ void SimPassiveSonar::loop()
                                                 << Targets[i].target_id() << endl;
                         icnt_rot = int((t_now - start_time) / 7) % number_of_targets;
                         //		  if(got_source_loc && i == icnt_rot)
-                        if (got_source_loc && i == Targets.size() - 1)
+                        if (got_source_loc && (size_t)i == Targets.size() - 1)
                         {
                             // Publish simulated target position rotating through targets
                             m_Comms.Notify("TARGET_XPOS", source_pos_x);
@@ -1003,7 +992,6 @@ bool SimPassiveSonar::defineRayTracingBox(CAcousticContact& target, double& r_mi
 
 bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
 {
-    bool debug = false;
     if (got_source_loc && source_status && got_source_bb_info)
     {
         double f_upper = source_bb_freq + source_bb_bw / 2;
@@ -1200,7 +1188,7 @@ bool SimPassiveSonar::generate_signal_spectrum(int tgt_count)
                         vec_z.spectrum[nfft - f_iter] += z_mag * sin(z_pha);
                     }
                     // Add tone if in current bin
-                    for (int tone_iter = 0; tone_iter < tone_freqs.size(); tone_iter++)
+                    for (int tone_iter = 0; tone_iter < (int)tone_freqs.size(); tone_iter++)
                     {
                         if (int(tone_freqs[tone_iter] / delta_f) == f_iter)
                         {
@@ -1281,9 +1269,6 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double>>& delay
     if (got_source_loc && source_status)
     {
         // Snapshot starting time for tone continuity
-        double t0 = frame_number * num_samples / sampling_frequency;
-        double delta_f = sampling_frequency / nfft;
-        double tone_fac = nfft * 0.5;
         delays.resize(num_array_elements);
         amplitudes.resize(num_array_elements);
         doppler.resize(num_array_elements);
@@ -1295,14 +1280,6 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double>>& delay
         for (int phone_iter = 0; phone_iter < num_array_elements; phone_iter++)
         {
             // Project absolute vs response onto physical orientation
-            double deg2rad = M_PI / 180;
-            double hd_ang = array_heading.at(phone_iter) * deg2rad;
-            double el_ang = array_pitch.at(phone_iter);
-            double vs_costh = cos(hd_ang);
-            double vs_sinth = sin(hd_ang);
-            double vs_cosel = cos(el_ang);
-            double vs_sinel = sin(el_ang);
-
             double range_x = (array_x.at(phone_iter) - source_pos_x);
             double range_y = (array_y.at(phone_iter) - source_pos_y);
             double range = sqrt(range_x * range_x + range_y * range_y);
@@ -1313,9 +1290,6 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double>>& delay
 
             double depth_req = -array_z.at(phone_iter);
             eigenray_table.getEigenRays(range, depth_req, range_ref, depth_ref, eig);
-            double range_ray = eig.range;
-            double depth_ray = eig.receiver_depth;
-            int num_rays = eig.num_rays;
             glog.is(DEBUG2) && glog << "Receiver " << phone_iter << endl;
             glog.is(DEBUG2) && glog << "Source range= " << range
                                     << " Raytracing range = " << eig.range << endl;
@@ -1327,13 +1301,7 @@ void SimPassiveSonar::array_ray_arrivals(std::vector<std::vector<double>>& delay
 
             array_ray_table.push_back(eig);
 
-            double delta_r = range - range_ray;
-            double delta_dep = -array_z.at(phone_iter) - depth_ray;
-            double delta_z = -delta_dep;
-
             // Computing vector components in absolute coordinates
-            double costh = cos(atan2(range_y, range_x));
-            double sinth = sin(atan2(range_y, range_x));
             // Get eigenray delays for sensor
             std::vector<double> ray_delays;
             std::vector<double> ray_amplitudes;
@@ -1483,7 +1451,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
         else
         {
             source_window.clear();
-            for (int k = 0; k < t_src.size(); k++) { source_window.push_back(1); }
+            for (int k = 0; k < (int)t_src.size(); k++) { source_window.push_back(1); }
         }
 
         //--create waveform depending on type ---
@@ -1498,7 +1466,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
         if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_CW)
         {
             glog.is(DEBUG2) && glog << "Generating CW waveform" << endl;
-            for (int k = 0; k < t_src.size(); k++)
+            for (int k = 0; k < (int)t_src.size(); k++)
             {
                 source_waveform[k] = sin(2 * M_PI * dop_center_frequency * t_src[k]) *
                                      source_strength * source_window[k];
@@ -1509,7 +1477,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
             glog.is(DEBUG2) && glog << "Generating LFM waveform" << endl;
             double max_lfm_frequency = dop_center_frequency + 0.5 * dop_bandwidth;
             double min_lfm_frequency = dop_center_frequency - 0.5 * dop_bandwidth;
-            for (int k = 0; k < t_src.size(); k++)
+            for (int k = 0; k < (int)t_src.size(); k++)
             {
                 double K = (max_lfm_frequency - min_lfm_frequency) / dop_pulsewidth;
                 source_waveform[k] =
@@ -1523,7 +1491,7 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
             double dop_min_hfm_frequency = dop_center_frequency - 0.5 * dop_bandwidth;
             double r = (dop_max_hfm_frequency - dop_min_hfm_frequency) / dop_pulsewidth;
             double p1 = dop_min_hfm_frequency * dop_max_hfm_frequency / r;
-            for (int k = 0; k < t_src.size(); k++)
+            for (int k = 0; k < (int)t_src.size(); k++)
             {
                 source_waveform[k] =
                     sin(2 * PI * (-p1 * log(1 - r / dop_max_hfm_frequency * t_src[k]))) *
@@ -1532,10 +1500,8 @@ void SimPassiveSonar::generate_doppler_waveform(std::vector<double>& source_wave
         }
         else if (pinger[indx].waveform == LAMSS_PINGER_COMMAND::WAVEFORM_IMP)
         {
-            double dop_max_hfm_frequency = dop_center_frequency + 0.5 * dop_bandwidth;
-            double dop_min_hfm_frequency = dop_center_frequency - 0.5 * dop_bandwidth;
             double a = 0.5 * dop_bandwidth;
-            for (int k = 0; k < t_src.size(); k++)
+            for (int k = 0; k < (int)t_src.size(); k++)
             {
                 double w;
                 if (k == 0)
@@ -1606,11 +1572,7 @@ bool SimPassiveSonar::generate_corr_noise_spectrum()
     for (int elem_iter = 0; elem_iter < num_array_elements; elem_iter++)
     {
         // Project absolute vs response onto physical orientation
-        double deg2rad = M_PI / 180;
-        double hd_ang = array_heading.at(elem_iter) * deg2rad;
         double el_ang = array_pitch.at(elem_iter);
-        double vs_costh = cos(hd_ang);
-        double vs_sinth = sin(hd_ang);
         double vs_cosel = cos(el_ang);
         double vs_sinel = sin(el_ang);
 
@@ -1717,8 +1679,8 @@ bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
         double max_amp = 0;
         double max_ping = 0;
         double file_duration = num_samples / sampling_frequency;
-        for (int i_elem = 0; i_elem < arr_delays.size(); i_elem++)
-            for (int i_ray = 0; i_ray < arr_delays[i_elem].size(); i_ray++)
+        for (int i_elem = 0; i_elem < (int)arr_delays.size(); i_elem++)
+            for (int i_ray = 0; i_ray < (int)arr_delays[i_elem].size(); i_ray++)
             {
                 min_delay = std::min(min_delay, arr_delays[i_elem][i_ray]);
                 max_delay = std::max(max_delay, arr_delays[i_elem][i_ray]);
@@ -1729,14 +1691,14 @@ bool SimPassiveSonar::add_pinger_timeseries(unsigned int indx)
         {
             double source_strength = pow(10.0, pinger[indx].db / 20.0);
             glog.is(DEBUG2) && glog << "source strength in Pa: " << source_strength << endl;
-            for (int i_elem = 0; i_elem < arr_delays.size(); i_elem++)
+            for (int i_elem = 0; i_elem < (int)arr_delays.size(); i_elem++)
             {
                 std::vector<double> ts_hyd;
                 ts_hyd.assign(num_samples, 0);
                 for (int i_samp = 0; i_samp < num_samples; i_samp++)
                     ts_hyd[i_samp] = gsl_matrix_get(sum_of_timeseries, i_elem, i_samp);
 
-                for (int i_ray = 0; i_ray < arr_delays[i_elem].size(); i_ray++)
+                for (int i_ray = 0; i_ray < (int)arr_delays[i_elem].size(); i_ray++)
                 {
                     // doppler scaled waveform, sampled at sampling_frequency
                     /*
@@ -1884,7 +1846,7 @@ bool SimPassiveSonar::initialize_spectrum()
 
 bool SimPassiveSonar::print_vec(vector<double> temp)
 {
-    for (int i = 0; i < temp.size(); i++)
+    for (int i = 0; i < (int)temp.size(); i++)
         glog.is(DEBUG2) && glog << "i:" << i << " temp(i):" << temp.at(i) << endl;
 
     //  MOOSTrace("--done--\n");
@@ -1902,8 +1864,6 @@ bool SimPassiveSonar::print_array(double a[], int l)
 
 bool SimPassiveSonar::write_hyd_file()
 {
-    double deg2rad = M_PI / 180;
-    double rad2deg = 180.0 / M_PI;
     char acoustic_filename_buff[1000];
     char hydrophone_filename_buff[1000];
 
@@ -2414,7 +2374,7 @@ bool SimPassiveSonar::getPingerInfo(unsigned int indx)
 bool SimPassiveSonar::getTargetInfo(int i)
 {
     //  MOOSTrace("entering getTargetInfo. i=%d\n",i);
-    if (i >= 0 && i < Targets.size() && ok_target_info[i])
+    if (i >= 0 && i < (int)Targets.size() && ok_target_info[i])
     {
         source_status = Targets[i].target_on;
         source_pos_x = Targets[i].target_x;
@@ -2434,7 +2394,7 @@ bool SimPassiveSonar::getTargetInfo(int i)
         tone_amps.clear();
         tone_ks.clear();
         tone_amps_Pa.clear();
-        for (int j = 0; j < Targets[i].tone_freq.size(); j++)
+        for (int j = 0; j < (int)Targets[i].tone_freq.size(); j++)
         {
             tone_freqs.push_back(Targets[i].tone_freq[j]);
             tone_amps.push_back(Targets[i].tone_dbl[j]);
@@ -2459,7 +2419,7 @@ bool SimPassiveSonar::getTargetInfo(int i)
 bool SimPassiveSonar::putAcousticContact(std::string cn, double cn_x, double cn_y, double cn_depth,
                                          CEigenRayTable eig_table)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2494,7 +2454,7 @@ bool SimPassiveSonar::putAcousticContact(std::string cn, double cn_x, double cn_
 
 int SimPassiveSonar::findAcousticContact(std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2505,9 +2465,10 @@ int SimPassiveSonar::findAcousticContact(std::string cn)
     return (-1);
 }
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 bool SimPassiveSonar::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_response)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (svp_response.request_id() == acoustic_contacts[i].svp_request_id)
         {
@@ -2518,10 +2479,11 @@ bool SimPassiveSonar::putAcousticContactSVP(netsim::SVP::protobuf::Response svp_
     }
     return (false);
 }
+#endif
 
 bool SimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_table)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2535,10 +2497,11 @@ bool SimPassiveSonar::getAcousticContact(std::string cn, CEigenRayTable& eig_tab
     return (false);
 }
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 bool SimPassiveSonar::getAcousticContactSVP(std::string cn,
                                             netsim::SVP::protobuf::Response& svp_response)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2553,10 +2516,11 @@ bool SimPassiveSonar::getAcousticContactSVP(std::string cn,
     }
     return (false);
 }
+#endif
 
 bool SimPassiveSonar::readyAcousticContact(std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2568,7 +2532,7 @@ bool SimPassiveSonar::readyAcousticContact(std::string cn)
 
 bool SimPassiveSonar::readyAcousticContactSVP(std::string cn)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2578,11 +2542,12 @@ bool SimPassiveSonar::readyAcousticContactSVP(std::string cn)
     return (false);
 }
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 bool SimPassiveSonar::requestRayTrace(std::string cn, double r_min, double r_max, int num_r,
                                       double dep_min, double dep_max, int num_dep, double freq,
                                       int target_number)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2652,10 +2617,18 @@ bool SimPassiveSonar::requestRayTrace(std::string cn, double r_min, double r_max
     }
     return (false);
 }
+#else
+bool SimPassiveSonar::requestRayTrace(std::string, double, double, int, double, double, int, double,
+                                      int)
+{
+    return (false);
+}
+#endif
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 bool SimPassiveSonar::requestSVPUpdate(std::string cn, int contact_number)
 {
-    for (int i = 0; i < acoustic_contacts.size(); i++)
+    for (int i = 0; i < (int)acoustic_contacts.size(); i++)
     {
         if (MOOSStrCmp(acoustic_contacts[i].contact, cn))
         {
@@ -2693,7 +2666,11 @@ bool SimPassiveSonar::requestSVPUpdate(std::string cn, int contact_number)
     }
     return (false);
 }
+#else
+bool SimPassiveSonar::requestSVPUpdate(std::string, int) { return (false); }
+#endif
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 bool SimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
 {
     std::string serialized_svp_response = msg.GetString();
@@ -2707,6 +2684,9 @@ bool SimPassiveSonar::handleSVPResponse(const CMOOSMsg& msg)
     else
         return (false);
 }
+#else
+bool SimPassiveSonar::handleSVPResponse(const CMOOSMsg&) { return (false); }
+#endif
 
 void SimPassiveSonar::handle_pinger_command(const CMOOSMsg& msg)
 {
@@ -2909,7 +2889,7 @@ double SimPassiveSonar::getAmbientNoise(double depth, vector<double> dom_nl,
         theta.clear();
         S.clear();
 
-        for (int i = 0; i < theta_deg.size(); i++)
+        for (int i = 0; i < (int)theta_deg.size(); i++)
         {
             theta.push_back(theta_deg[i] * M_PI / 180.0);
             S.push_back(pow(10.0, S_dB[i] / 10));
@@ -3037,7 +3017,7 @@ bool SimPassiveSonar::parseNoiseDirectionality(string noise_in, vector<double>& 
         return (false);
     }
 
-    bool got_it = false;
+    [[maybe_unused]] bool got_it = false;
     bool delta = false;
     if (val_from_string(nls, noise_in, "S"))
     {
@@ -3277,6 +3257,7 @@ std::vector<double> SimPassiveSonar::read_replica(std::string replica_path)
     }
 }
 
+#ifdef LAMSS_VIRTUAL_OCEAN_HAVE_NETSIM
 double
 SimPassiveSonar::get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColumn* water_column,
                                double depth)
@@ -3310,6 +3291,7 @@ SimPassiveSonar::get_ssp_value(netsim::bellhop::protobuf::Environment::WaterColu
     }
     return (0.0);
 }
+#endif
 
 // Sensor class
 
@@ -3332,7 +3314,7 @@ bool CSensor::clearSpectrum()
 
 bool CSensor::putSpectrum(vector<double> spec_in)
 {
-    if (nfft == spec_in.size())
+    if (nfft == (int)spec_in.size())
         spectrum = spec_in;
     else
         return (false);
@@ -3341,7 +3323,7 @@ bool CSensor::putSpectrum(vector<double> spec_in)
 
 bool CSensor::addToSpectrum(vector<double> spec_in)
 {
-    if (nfft == spec_in.size())
+    if (nfft == (int)spec_in.size())
     {
         for (int i = 0; i < nfft; i++) spectrum[i] += spec_in[i];
     }
