@@ -17,13 +17,11 @@ class UDPClient
 {
   public:
     //UDPClient();
-    UDPClient(boost::asio::io_service& io_service, const std::string& host, const std::string& port)
-        : io_service_(io_service), socket_(io_service, udp::endpoint(udp::v4(), 0))
+    UDPClient(boost::asio::io_context& io_context, const std::string& host, const std::string& port)
+        : io_context_(io_context), socket_(io_context, udp::endpoint(udp::v4(), 0))
     {
-        udp::resolver resolver(io_service_);
-        udp::resolver::query query(udp::v4(), host, port);
-        udp::resolver::iterator iter = resolver.resolve(query);
-        endpoint_ = *iter;
+        udp::resolver resolver(io_context_);
+        endpoint_ = *resolver.resolve(udp::v4(), host, port).begin();
     }
 
     ~UDPClient() { socket_.close(); }
@@ -35,7 +33,7 @@ class UDPClient
     }
 
   private:
-    boost::asio::io_service& io_service_;
+    boost::asio::io_context& io_context_;
     udp::socket socket_;
     udp::endpoint endpoint_;
 };
@@ -109,7 +107,7 @@ class SimPhinsINS : public CMOOSApp
     double m_ins_calc_y;
 
     // UDP client related
-    boost::asio::io_service m_io;
+    boost::asio::io_context m_io;
     UDPClient* m_udp_client;
     const u_char* startOfData;
     size_t dataLength;
