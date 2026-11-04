@@ -103,6 +103,15 @@ flowchart LR
 
 **Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`; `uSimPassiveSonar` (4k lines) is the lab's most actively edited app, so port it early and in one piece to avoid merge pain with ongoing work in `lamss-shared`.
 
+**Phase 2 status (M1 apps)**
+
+*This section written by Claude*
+
+- In `virtual_ocean/src/bin/` with their history, still MOOS apps: `iNoaaBathy`, `uSimCTD`, `uSimGPS` (from lamss); `uSimDVL`, `uSimPhinsINS`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, `uSimModemNetwork`, `iNetSimManager` (from lamss-shared). Config protos are private to each app, in `package lamss.virtual_ocean`.
+- `CRapRays`, `CEigenRays` and `CLamssNetcdf` are `lamss_virtual_ocean_henrik_util` (`lamss::virtual_ocean`). `CAcousticModel` is not ported: no M1 app uses it, and it needs netsim. `CTarget` and `CNoiseCovariance`, which the split above gives to sonar, are in core's `henrik_util` with `CVectorUtils`, `Random`, `CCovMat`, `CBessel`, `str_num` and `parse_stat`, because the simulators need them and virtual_ocean requires only core.
+- netsim is optional. Without it (resolute) `uSimModemNetwork` and `iNetSimManager` are not built, `uSimPassiveSonar` refuses `ray_acoustics` and `svp_updates` (its Bellhop and SVP requests), and `iNoaaBathy` does not answer `BATHY_REQUEST`.
+- `CLamssNetcdf` uses NetCDF's C API (`libnetcdf-dev`), so the C++ API change in the risk above does not apply. None of these apps needs newmat.
+
 ## gui
 
 *This section written by Claude*
