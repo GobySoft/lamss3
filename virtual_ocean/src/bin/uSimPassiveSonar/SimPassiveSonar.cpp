@@ -910,12 +910,12 @@ bool SimPassiveSonar::generate_eigenray_table(int cn_num, CAcousticContact& acou
 
 void SimPassiveSonar::request_eigenrays(int cn_num, CAcousticContact& acoustic_contact)
 {
-    double range_min;
-    double range_max;
-    double depth_min;
-    double depth_max;
-    int num_ranges;
-    int num_depths;
+    double range_min = 0;
+    double range_max = 0;
+    double depth_min = 0;
+    double depth_max = 0;
+    int num_ranges = 0;
+    int num_depths = 0;
     defineRayTracingBox(acoustic_contact, range_min, range_max, depth_min, depth_max, num_ranges,
                         num_depths);
     requestRayTrace(acoustic_contact.contact, range_min, range_max, num_ranges, depth_min,
