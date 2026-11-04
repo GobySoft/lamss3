@@ -1,0 +1,33 @@
+// Copyright 2026 GobySoft, LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Track manager as the mbat missions configure it (no automatic prosecution): turns
+// pLamssBearingTracker's BEARING_TRACKS into BEARING_STAT for pGeoTracker, TARGET_BEARING, TRACKING
+// and SURVEY_COMPLETED for pLamssMissionManager, and CONTACT_REPORT and TRACK_REPORT for the
+// acoustic link.
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = sonar
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = pLamssTrackManager
+{
+  common { app_tick: 1 comm_tick: 10 }
+
+  priority_threshold: 5
+  filter_length: 1
+  buffer_length_single: 10
+  xy_sigma_single: 100
+  auto_prosecute: false
+  auto_prosecute_duration: 3600
+  track_report_time: 3600
+  auto_prosecute_range: 2000
+  auto_prosecute_speed: 0
+  auto_prosecute_array_angle: 60
+  auto_prosecute_center_frequency: 800
+  auto_prosecute_bandwidth: 400
+  max_tracking_time: 3600
+  min_tracking_time: 60
+}
