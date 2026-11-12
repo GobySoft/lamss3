@@ -3,6 +3,7 @@ title: pViewMessage
 toolbox: core
 kind: goby-moos-app
 source: core/src/bin/pViewMessage/
+inferred_by: Claude
 inferred_from: d5d5346
 status: inferred
 reviewed_by:
@@ -12,8 +13,9 @@ launched_by: [core view_message component]
 
 # pViewMessage
 
-!!! warning "Inferred documentation"
-    Written from the source at `d5d5346`, not from a design document or by the app's authors.
+!!! warning "Inferred by Claude"
+    Written by Claude from the source at `d5d5346`, not from a design document or by the app's
+    authors.
     Each statement below is tagged: **[code]** read from the code, **[test]** observed in a test or
     a run, **[guess]** inferred intent that nobody has confirmed. Corrections are welcome; a
     maintainer sets `status: reviewed` once the page has been checked.

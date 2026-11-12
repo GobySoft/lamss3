@@ -5,6 +5,7 @@ title: <app name>
 toolbox: <core | autonomy | sonar | virtual_ocean | gui | mit | ...>
 kind: <moos-app | goby-moos-app | goby-app | ivp-behavior | library | script>
 source: <toolbox>/src/bin/<app>/          # directory documented
+inferred_by: <agent, e.g. Claude>          # who wrote the page from the code
 inferred_from: <short commit hash>         # commit the page was written against
 status: inferred                           # inferred -> reviewed (only a maintainer changes this)
 reviewed_by:                               # GitHub username, set together with status: reviewed
@@ -14,8 +15,9 @@ launched_by: [<mission component(s) that run it, or "none yet">]
 
 # <app name>
 
-!!! warning "Inferred documentation"
-    Written from the source at `<commit>`, not from a design document or by the app's authors.
+!!! warning "Inferred by <agent>"
+    Written by <agent> from the source at `<commit>`, not from a design document or by the app's
+    authors.
     Each statement below is tagged: **[code]** read from the code, **[test]** observed in a test or
     a run, **[guess]** inferred intent that nobody has confirmed. Corrections are welcome; a
     maintainer sets `status: reviewed` once the page has been checked.

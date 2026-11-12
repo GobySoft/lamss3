@@ -75,8 +75,8 @@ Most of the ported code has no documentation beyond its source. Its interface (w
 
 [`core/src/doc/templates/inferred-app.md`](../../templates/inferred-app.md), with a worked example in [`core/src/doc/apps/pViewMessage.md`](../../apps/pViewMessage.md). Every page has:
 
-- **Front matter:** `toolbox`, `kind` (MOOS app, GobyMOOSApp, Goby app, IvP behavior, library), `source`, `inferred_from` (the commit it was written against), `status` (`inferred` or `reviewed`), `reviewed_by` and `reviewed_on`, and `launched_by` (the mission components that run it).
-- **A banner** on every page whose status is `inferred`, explaining the tags.
+- **Front matter:** `toolbox`, `kind` (MOOS app, GobyMOOSApp, Goby app, IvP behavior, library), `source`, `inferred_by` (the agent or person who wrote it from the code, e.g. Claude), `inferred_from` (the commit it was written against), `status` (`inferred` or `reviewed`), `reviewed_by` and `reviewed_on`, and `launched_by` (the mission components that run it).
+- **A banner** on every page whose status is `inferred`, naming who inferred it ("Inferred by Claude") and explaining the tags. It replaces the `*This section written by <agent>*` line for the whole page.
 - **Purpose:** one paragraph.
 - **Interfaces:** subscribes, publishes, configuration, and files, devices and external programs. The first three are tables between `BEGIN/END GENERATED` markers.
 - **Behaviour:** filters, state machines (a Mermaid `stateDiagram`), timing.
