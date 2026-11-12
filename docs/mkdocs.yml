@@ -1,0 +1,84 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Base configuration. `lamss docs` assembles the pages into build/docs/stage and writes a
+# mkdocs.yml there that inherits this one and adds docs_dir, nav (from nav.yml) and the hook.
+site_name: lamss3
+site_description: Laboratory for Autonomous Marine Sensing Systems, version 3
+repo_url: https://github.com/GobySoft/lamss3
+repo_name: GobySoft/lamss3
+# per-page edit links come from hooks/lamss.py, since staged paths differ from the repository's
+edit_uri: ""
+copyright: Copyright 2011-2026 Massachusetts Institute of Technology and GobySoft, LLC
+
+theme:
+  name: material
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      # GitHub's anchors, so links between pages work there and here alike
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search
+
+extra:
+  version:
+    provider: mike
+  # the front matter `status` of inferred pages; hooks/links.py drops it once reviewed
+  status:
+    inferred: Inferred from the code, not yet reviewed
+
+extra_css:
+  - stylesheets/extra.css
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn

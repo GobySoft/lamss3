@@ -1,0 +1,7 @@
+# Installed into build/docs-venv by `lamss docs`; pinned so every build renders alike.
+mkdocs==1.6.1
+mkdocs-material==9.8.1
+pymdown-extensions==13.1
+mike==2.2.0
+protobuf==7.36.2
+PyYAML==6.0.3

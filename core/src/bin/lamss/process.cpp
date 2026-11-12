@@ -151,6 +151,20 @@ int run_process(const Argv& command, const RunOptions& options)
     return wait_child(pid);
 }
 
+void exec_process(const Argv& command)
+{
+    if (command.empty())
+        throw Error("empty command");
+    log_command(command, {});
+    std::cout.flush();
+    std::cerr.flush();
+    std::vector<char*> argv;
+    for (const auto& arg : command) argv.push_back(const_cast<char*>(arg.c_str()));
+    argv.push_back(nullptr);
+    execvp(argv[0], argv.data());
+    throw Error("cannot run " + command[0] + ": " + std::strerror(errno));
+}
+
 Captured capture_output(const Argv& command, const RunOptions& options)
 {
     if (command.empty())

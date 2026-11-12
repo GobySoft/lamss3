@@ -65,6 +65,8 @@ flowchart LR
   lamss --> docs
   docs --> db[build]
   docs --> ds[serve]
+  docs --> dst[stage]
+  docs --> dd[deploy]
   docs --> dx[extract]
   docs --> dc[check]
   lamss --> clean
@@ -157,7 +159,7 @@ Shells load the **active** checkout from one file, so nobody has to `eval` anyth
 
 `env.sh` is static shell rather than a call to the tool, so shells start without running the binary and still start when a build is broken. Non-interactive contexts (CI, cron, supervisord) source `env.sh` or use `lamss env show` explicitly rather than relying on `~/.bashrc`. Only POSIX shells (bash, zsh, dash) are supported.
 
-### `lamss docs build|serve|extract|check`
+### `lamss docs build|serve|stage|deploy|extract|check`
 
 *This section written by Claude*
 
@@ -165,10 +167,12 @@ Shells load the **active** checkout from one file, so nobody has to `eval` anyth
 |---|---|
 | `build` | Stages `docs/` and every active toolbox's `src/doc/`, runs the reference generators, then `mkdocs build --strict` into `build/site` |
 | `serve` | The same, then `mkdocs serve` with live reload |
+| `stage` | Only assembles `build/docs/stage` |
+| `deploy <version> [alias...]` | Publishes a version to the `gh-pages` branch with `mike` (`--push`, `--set-default`) |
 | `extract <app>` | Rewrites the generated interface tables of the app's inferred page from its sources |
 | `check` | Runs `extract` on every page without writing and fails if a generated table differs (the `docs-check` CI job) |
 
-Like `mission`, it execs a Python module (`python3 -m lamss.docs`) and holds no logic of its own. mkdocs comes from a venv under `build/docs-venv` made from `docs/requirements.txt` on first use. See [11](11-documentation.md).
+Like `mission`, it execs a Python module (`python3 -m lamss.docs`, from the checkout's `core/src/python`, so no build is needed) and holds no logic of its own. mkdocs comes from a venv under `build/docs-venv` made from `docs/requirements.txt` on first use. `extract` and `check` come with the extractor (D2 in [11](11-documentation.md#sequence)).
 
 ### `lamss clean`
 

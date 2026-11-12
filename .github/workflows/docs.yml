@@ -1,0 +1,46 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Publishes the documentation site to the gh-pages branch, served by GitHub Pages: main as
+# version `dev`, each v<version> tag as <version> with the alias `latest`. Pull requests are
+# checked by the CircleCI `docs` job instead.
+name: docs
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch gh-pages
+        run: git fetch origin gh-pages:gh-pages || true
+      - name: ./init.sh --yes
+        run: ./init.sh --yes
+      - name: Publish
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          . "$HOME/.config/lamss/env.sh"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$REF_TYPE" = tag ]; then
+            lamss docs deploy "${REF_NAME#v}" latest --push --set-default latest
+          elif git show gh-pages:versions.json 2>/dev/null | grep -q '"latest"'; then
+            lamss docs deploy dev --push
+          else
+            lamss docs deploy dev --push --set-default dev
+          fi

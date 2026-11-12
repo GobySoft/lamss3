@@ -35,9 +35,9 @@ flowchart LR
   - Each toolbox keeps its pages under `<toolbox>/src/doc/`: `apps/`, `libraries/`, `behaviors/`, `missions/`, `guide/`.
   - Site-wide pages and `mkdocs.yml` live in `docs/` at the top level.
   - The plans stay in `core/src/doc/plan/` and are published under "Project".
-- **Assembly:** `lamss docs build|serve` collects `docs/` and every active toolbox's `src/doc/` into one staging tree, runs the generators, and then runs `mkdocs`.
-  - This mirrors how the build collects toolboxes. A user with a private toolbox sees its pages in their local site.
-  - The published site is built with every in-tree toolbox active.
+- **Assembly:** `lamss docs build|serve` collects `docs/`, every in-tree toolbox's `src/doc/` and every active submodule toolbox's `src/doc/` into one staging tree, runs the generators, and then runs `mkdocs`.
+  - In-tree pages are always included, whether the toolbox is active or not, so the site and its links do not depend on what is built.
+  - A user with a private (submodule) toolbox sees its pages in their local site.
 - **Publishing:** a `docs` CI job builds the site with `--strict` on every PR, so broken links and missing pages fail.
   - On `main` it publishes to GitHub Pages for `GobySoft/lamss3` as version `dev`. Release tags publish a numbered version with `mike`.
   - Inferred pages are published before review, with their banner.

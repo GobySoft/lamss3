@@ -12,6 +12,7 @@
 #   lamss_find_ivp(<lib>...)
 #   lamss_export_code(<cmake code>...)
 #   lamss_add_python(<package_dir>)
+#   lamss_add_pytest(<name> <path> [PYTHONPATH <dirs>...])
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_add_dccl_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
@@ -324,6 +325,32 @@ function(lamss_add_python package_dir)
   install(DIRECTORY "${package_dir}"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/python3/dist-packages
     PATTERN "__pycache__" EXCLUDE)
+endfunction()
+
+# Registers `python3 -m pytest <path>` as a ctest, run against the source tree (PYTHONPATH) so no
+# install is needed. Skipped with a note when pytest is not installed.
+function(lamss_add_pytest name path)
+  _lamss_require_toolbox(lamss_add_pytest)
+  cmake_parse_arguments(_A "" "" "PYTHONPATH" ${ARGN})
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  if(NOT DEFINED LAMSS_HAVE_PYTEST)
+    execute_process(COMMAND ${Python3_EXECUTABLE} -c "import pytest"
+      RESULT_VARIABLE _status OUTPUT_QUIET ERROR_QUIET)
+    if(_status EQUAL 0)
+      set(LAMSS_HAVE_PYTEST TRUE CACHE INTERNAL "")
+    else()
+      set(LAMSS_HAVE_PYTEST FALSE CACHE INTERNAL "")
+    endif()
+  endif()
+  if(NOT LAMSS_HAVE_PYTEST)
+    message(STATUS "${name}: not registered, pytest is not installed (python3-pytest)")
+    return()
+  endif()
+  get_filename_component(_path "${path}" ABSOLUTE)
+  string(REPLACE ";" ":" _pythonpath "${_A_PYTHONPATH}")
+  add_test(NAME ${name}
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${_pythonpath} PYTHONDONTWRITEBYTECODE=1
+      ${Python3_EXECUTABLE} -m pytest -q -p no:cacheprovider "${_path}")
 endfunction()
 
 # Test executables are part of lamss_<tb>_all so `lamss build --toolbox <tb> --test` builds them.
