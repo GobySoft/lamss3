@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Sequence
 
+from .. import style
 from .errors import MissionError
 from .render import Layout
 
@@ -134,10 +135,11 @@ def run_foreground(layout: Layout, conf: Path, timeout: float) -> int:
     signal.signal(signal.SIGTERM, forward)
     try:
         programs = wait_running(layout, timeout, process)
-        print(f"lamss mission: {layout.instance}: all {len(programs)} processes RUNNING", flush=True)
+        print("lamss mission: " + style.good(f"{layout.instance}: all {len(programs)} processes RUNNING"),
+              flush=True)
     except MissionError as e:
         if not stopping:
-            print(f"lamss mission: error: {e}", file=sys.stderr, flush=True)
+            style.print_error("lamss mission", e)
             forward(None, None)
         process.wait()
         return 1
