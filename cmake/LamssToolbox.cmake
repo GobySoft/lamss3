@@ -123,9 +123,24 @@ function(_lamss_require_toolbox fn)
   endif()
 endfunction()
 
+# goby-config.cmake prints its libraries on every call and ignores QUIET, and lamss3 finds Goby in
+# each directory that uses it (its imported targets are directory-scoped), so report it once.
+function(_lamss_find_goby_package name)
+  if(NOT CMAKE_MESSAGE_LOG_LEVEL)
+    set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)
+  endif()
+  find_package(${name} ${ARGN})
+  get_property(_reported GLOBAL PROPERTY LAMSS_GOBY_REPORTED)
+  if(NOT _reported)
+    set_property(GLOBAL PROPERTY LAMSS_GOBY_REPORTED TRUE)
+    unset(CMAKE_MESSAGE_LOG_LEVEL)
+    message(STATUS "Found Goby ${${name}_VERSION}: ${GOBY_INCLUDE_DIR}")
+  endif()
+endfunction()
+
 function(_lamss_find_goby)
   if(NOT TARGET goby)
-    find_package(goby 3.6 REQUIRED)
+    _lamss_find_goby_package(goby 3.6 REQUIRED)
   endif()
 endfunction()
 
@@ -137,7 +152,7 @@ function(lamss_find_moos)
     find_package(MOOS 10 REQUIRED)
   endif()
   if(NOT TARGET goby_moos)
-    find_package(GOBY 3.6 REQUIRED COMPONENTS moos)
+    _lamss_find_goby_package(GOBY 3.6 REQUIRED COMPONENTS moos)
   endif()
   lamss_export_code("lamss_find_moos()")
 endfunction()
@@ -339,7 +354,13 @@ function(lamss_toolbox_export)
   set(_config "${CMAKE_CURRENT_BINARY_DIR}/lamss_${_tb}Config.cmake")
   file(WRITE "${_config}"
     "include(CMakeFindDependencyMacro)\n"
+    "set(_lamss_log_level \"\${CMAKE_MESSAGE_LOG_LEVEL}\")\n"
+    "if(NOT CMAKE_MESSAGE_LOG_LEVEL)\n"
+    "  set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)\n"
+    "endif()\n"
     "find_dependency(goby 3.6)\n"
+    "set(CMAKE_MESSAGE_LOG_LEVEL \"\${_lamss_log_level}\")\n"
+    "unset(_lamss_log_level)\n"
     "get_filename_component(_lamss_prefix \"\${CMAKE_CURRENT_LIST_DIR}/${_up}\" ABSOLUTE)\n"
     "set_property(GLOBAL APPEND PROPERTY LAMSS_PROTO_ROOTS \"\${_lamss_prefix}/${CMAKE_INSTALL_INCLUDEDIR}\")\n")
   foreach(_req IN LISTS _requires)
