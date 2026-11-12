@@ -1,0 +1,35 @@
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package lamss.sonar;
+
+message LamssBearingTrackerConfig
+{
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
+
+    optional string ael_nav_variable = 11 [default = "AEL_NAV"];
+    optional double alpha = 12 [default = 0.075];
+    optional double dep_angle = 13 [default = 0.0];
+    optional int32 lr_beams = 14 [default = 7];
+    optional double alpha_head = 15 [default = 0.075];
+    optional double turn_rate_threshold = 16 [default = 0.1];
+    optional int32 beam_changed_threshold = 17 [default = 11];
+    optional int32 max_ubias_iter = 18 [default = 25];
+    optional double abs_uerror_threshold = 19 [default = 1.0];
+    optional double theta_min = 20 [default = 30.0];
+    optional int32 detection_count_threshold = 21 [default = 5];
+    optional int32 detector_type = 22 [default = 2];
+    optional int32 detector_number_bins = 23 [default = 15];
+    optional int32 detector_first_noise_bin = 24 [default = 10];
+    optional double detector_alpha = 25 [default = 0.9];
+    optional double noise_depth = 26 [default = 5.0];
+    optional double detection_threshold = 27 [default = 20.0];
+}

@@ -1,0 +1,99 @@
+// Copyright 2017-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "goby/protobuf/option_extensions.proto";
+
+package lamss.virtual_ocean;
+
+message TransmitResponse
+{
+    required string source = 1;
+    required string receiver = 2;
+    required double pingtime = 3;
+    optional double timestamp = 4;
+    optional string file = 5;  // augments replica_path with contact names
+    optional int32 channels = 6;
+    optional int32 samples = 7;
+}
+
+message TransmitRequest
+{
+    required string source = 1;
+    required string receiver = 2;
+    required double pingtime = 3;
+    required string replica_path = 4;  // Must have extension .dat
+}
+
+message ArrayGain
+{
+    repeated BeamGain beam_gain = 1;
+    message BeamGain
+    {
+        required double elevation = 1
+            [(goby.field).description = "Arrival beam elevation in degrees"];
+        required double gain_db = 2 [(goby.field).description = "dB"];
+    }
+}
+
+message TransmitGroupVelocity
+{
+    required double timestamp = 1;
+    required string source = 2;
+    required string receiver = 3;
+    required double range = 4;
+    required double delay = 5;
+    required double group_velocity = 6;
+    required double group_velocity_std = 7;
+}
+
+message ModemPerformanceRequest
+{
+    oneof src
+    {
+        string source = 1;
+        int32 source_id = 21;
+    }
+    oneof rcv
+    {
+        string receiver = 2;
+        int32 receiver_id = 22;
+    }
+
+    optional double source_level = 3 [default = 0];
+
+    optional int32 request_id = 10;
+    optional double request_time = 11;
+}
+
+message ModemPerformanceResponse
+{
+    oneof src
+    {
+        string source = 1;
+        int32 source_id = 21;
+    }
+    oneof rcv
+    {
+        string receiver = 2;
+        int32 receiver_id = 22;
+    }
+
+    required double range = 3;
+    required double tl = 4;
+    required double nl = 5;
+    required double snr = 6;
+    optional double mpp = 7;
+    optional double mae = 8;
+
+    optional int32 request_id = 10;
+    optional double request_time = 11;
+}
+
+enum ModemPerformanceMetric
+{
+    SNR = 1;
+    MPP = 2;
+    MAE = 3;
+}

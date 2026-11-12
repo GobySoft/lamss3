@@ -1,0 +1,25 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = uSimCTD
+{
+  AppTick   = 5
+  CommsTick = 5
+
+  // define either CTD_Txt_File (in XYZCTS text format) or CTD_Bin_File (in XYZCTS binary format)
+  // if specified file is missing, uSimCTD returns error
+
+  CTD_Txt_File = CTD.xyzcts
+  // CTD_Bin_File = CTD.xyzcts.bin
+
+  // if both files are defined here,
+  //   uSimCTD first searches for CTD_Txt_File & uses it if it is available
+  //   else it continues searching for CTD_Bin_File & uses it if is available
+  //   in event that both specified files are missing, uSimCTD returns error
+}

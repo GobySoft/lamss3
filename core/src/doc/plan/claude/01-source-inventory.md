@@ -47,7 +47,7 @@ flowchart LR
   sonar:::tb
   vo:::tb
   icex:::sub
-  mit:::sub
+  mit:::tb
   attic:::sub
   classDef tb fill:#bfdbfe,stroke:#1d4ed8,color:#000
   classDef sub fill:#e9d5ff,stroke:#7e22ce,color:#000
@@ -90,7 +90,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pLamssMissionManager` | lamss-shared | GobyMOOSApp (boost statechart) | 3.5k | Core autonomy FSM; active 2024 |
 | `pLamssSurfaceMissionManager` | lamss-shared | GobyMOOSApp | 1.5k | 2024 |
 | `pLamssMissionScript` | lamss-shared (SRToolbox) | AppCasting | 954 | Scheduled deploy scripting; 2024 |
-| `pLamssTrackManager` | lamss-shared | GobyMOOSApp | 2.4k | Could sit in sonar; autonomy because it feeds the mission FSM |
+| `pLamssTrackManager` | lamss-shared | GobyMOOSApp | 2.4k | Ported to **sonar**: it needs sonar's track/contact messages and `CTrack`, and feeds the mission FSM only through MOOS strings |
 | `iLamssFrontSeat`, `pFrontSeatData` | lamss | GobyMOOSApp | 443 / 201 | 2023 frontseat bridge to Goby3 `InterfaceData` |
 | `iEmbeddedFrontseat` | lamss-shared | GobyMOOSApp | 441 | |
 | `pControlEngine_Vlamss`, `pActuatorMap_HybridUUV`, `uSimUnderseaVehicle_Vlamss` | lamss-shared (SRToolbox) | AppCasting | 1.3k / 1.6k / 3.1k | Hybrid UUV control and 6-DOF frontseat sim; 2022–24 |
@@ -159,7 +159,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `BHV_OpRegion_ICEX` | lamss | |
 | `cruise/icex20` (M3), `topside/icex_sim` | missions-lamss | Mission content (`cruise/arctic` goes to attic) |
 
-### mit (submodule or in-tree, see [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan))
+### mit (in-tree)
 
 All of `missions-lamss` that is live: `cruise/mbat`, `cruise/irminger`, platforms `auv/macrura`, `auv/unicorn`, `auv/sandshark`, `auv/sensor_sim`, `auv/frontseat_sim`, `topside`, `ship`, `mooring/*`, re-expressed in the Python framework of [06](06-missions-framework.md). Details in the missions survey section below.
 

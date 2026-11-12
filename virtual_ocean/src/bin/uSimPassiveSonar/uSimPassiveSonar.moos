@@ -1,0 +1,31 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+// `uSimPassiveSonar -e` lists every field
+ProcessConfig = uSimPassiveSonar
+{
+  water_depth: 100           # used for spherical spreading (m)
+  noise_level: 60            # dB re 1 uPa
+  ray_acoustics: false       # true: Bellhop (iBellhop, netsim builds only)
+  rap_acoustics: false       # RAP raytracing (c(z) linear); both false: cylindrical
+                             # spreading and bottom loss
+
+  array_type: ARRAY_TYPE_DURIP
+  num_array_elements: 32
+  sampling_frequency: 4000   # Hz
+  num_samples: 8000          # per file
+  hydrophone_gain: 180       # dB, conversion from Pascals to float
+
+  # files are [prefix][frame number][suffix] under base_dir_name
+  acoustic_filename_prefix: "ACO"
+  acoustic_filename_suffix: ".DAT"
+  nonacoustic_filename_prefix: "NAS"
+  nonacoustic_filename_suffix: ".DAT"
+  base_dir_name: "./"
+}

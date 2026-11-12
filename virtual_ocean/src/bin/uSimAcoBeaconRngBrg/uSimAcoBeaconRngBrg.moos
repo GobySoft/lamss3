@@ -1,0 +1,26 @@
+// Copyright 2020-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = uSimAcoBeaconRngBrg
+{
+   AppTick   = 4
+   CommsTick = 4
+
+   BEACON_X = 0.0             // beacon position
+   BEACON_Y = 0.0
+   SENSOR_RANGE = 1000.0      // sensor range
+   SENSOR_SWATH = 180.0       // sensor arc swath (180 deg -> sensor can only 'see' ahead)
+   SENSOR_RANGE_STDDEV = 0.5  // sensor std. dev.
+   SENSOR_SWATH_STDDEV = 4.0
+   RANDOM_WALK_STDDEV = 1.0   // particle random walk std. dev. per sensor period
+   SENSOR_PROBABILITY = 0.95  // probability of sensor detecting beacon when in swath
+   SENSOR_PERIOD = 1.0        // sensor update rate
+   NUM_PARTICLES = 100        // number of particles
+   UPDATES = BEACON_UPDATE    // allows update of beacon position (e.g. BEACON_UPDATE = beacon_x=4.0, beacon_y=-12.0)
+}

@@ -2,6 +2,8 @@ version: 2.1
 
 environment-common: &environment-common
   DEBIAN_FRONTEND: "noninteractive"
+  # nproc in the Docker executor reports the host's CPUs, not the resource class's 4
+  CMAKE_BUILD_PARALLEL_LEVEL: "4"
   DEBIAN_PRIORITY: "critical"
   DEBCONF_NOWARNINGS: "yes"
 
@@ -97,19 +99,19 @@ jobs:
       - init
       - run:
           name: Activate every in-tree toolbox
-          command: lamss toolbox activate autonomy sonar virtual_ocean gui
+          command: lamss toolbox activate autonomy sonar virtual_ocean gui mit
       - run:
           name: lamss dependencies install --yes
           command: lamss dependencies install --yes
       - run:
-          name: lamss build --test -D LAMSS_WERROR=ON
-          command: lamss build --test -D LAMSS_WERROR=ON
+          name: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
+          command: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
 
   build-standalone:
     parameters:
       toolbox:
         type: enum
-        enum: [core, autonomy, sonar, virtual_ocean, gui]
+        enum: [core, autonomy, sonar, virtual_ocean, gui, mit]
     executor: ubuntu
     steps:
       - install-prerequisites
@@ -130,6 +132,14 @@ jobs:
           condition:
             equal: [core, << parameters.toolbox >>]
           steps:
+            - run:
+                name: Install the toolboxes << parameters.toolbox >> requires
+                # activation listed them before << parameters.toolbox >>, each after its own requirements
+                command: |
+                  for tb in $(grep -v '^#' .lamss/toolboxes | grep -vx '<< parameters.toolbox >>'); do
+                    cmake -S $tb -B build/standalone/$tb -G Ninja -DLAMSS_WERROR=ON
+                    cmake --build build/standalone/$tb --target install
+                  done
             - cmake-build:
                 toolbox: << parameters.toolbox >>
 
@@ -160,8 +170,8 @@ jobs:
       - checkout
       - init
       - run:
-          name: lamss build
-          command: lamss build
+          name: lamss build --jobs 4
+          command: lamss build --jobs 4
       - run:
           name: lamss mission sim, status, test and stop the example cruise
           command: |
@@ -187,7 +197,7 @@ workflows:
           name: build-<< matrix.toolbox >>-standalone
           matrix:
             parameters:
-              toolbox: [core, autonomy, sonar, virtual_ocean, gui]
+              toolbox: [core, autonomy, sonar, virtual_ocean, gui, mit]
       - build-all:
           name: build-all-<< matrix.codename >>-amd64
           resource_class: large

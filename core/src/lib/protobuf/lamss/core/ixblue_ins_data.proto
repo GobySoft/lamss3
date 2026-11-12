@@ -1,0 +1,191 @@
+// Copyright 2019-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.core;
+
+message IXBlueINSData
+{
+    option (dccl.msg).unit_system = "si";
+    // Header message
+    required Header header = 1;
+
+    // Attitude Quaternion
+    optional AttitudeQuaternion attitude_quaternion = 2;
+
+    // Attitude Quaternion Stdev
+    optional AttitudeQuaternionStdev attitude_quaternion_stdev = 3;
+
+    // Rotation Rate Vessel Frame
+    optional RotationRateVesselFrame rot_rate_vessel_frame_degsec = 4;
+
+    // Rotation Rate Vessel Frame Stdev
+    optional RotationRateVesselFrameDeviation rot_rate_vessel_frame_stdev = 5;
+
+    // Linear Acceleration Vessel Frame
+    optional AccelerationVesselFrame acce_vessel_frame_msec2 = 6;
+
+    // Linear Acceleration Vessel Frame Stdev
+    optional AccelerationVesselFrameDeviation acce_vessel_frame_stdev = 7;
+
+    // Position
+    optional Position position = 8;
+
+    // Position Stdev
+    optional PositionDeviation position_stdev = 9;
+
+    // Attitude
+    optional Attitude attitude_deg = 10;
+
+    // Attitude Stdev
+    optional AttitudeDeviation attitude_stdev = 11;
+
+    // Speed Vessel Frame
+    optional speedVesselFrame speed_vessel_frame_msec = 12;
+
+    // Speed geographic Frame
+    optional speedGeographicFrame speed_geographic_frame_msec = 13;
+
+    // Speed geographic Frame Stdev
+    optional speedGeographicFrameDeviation speed_geographic_frame_stdev = 14;
+
+    // Header message
+    message Header
+    {
+        optional int32 protocol_version = 1;
+        optional int32 navigation_bit_mask = 2;
+        optional int32 extended_navigation_bit_mask = 3;
+        optional int32 external_sensor_bit_mask = 4;
+        optional int32 telegram_size = 5;
+        optional int32 navigation_data_validity_time_100us = 6;
+    }
+
+    // Attitude quaternion data
+    message AttitudeQuaternion
+    {
+        optional double q0 = 1;
+        optional double q1 = 2;
+        optional double q2 = 3;
+        optional double q3 = 4;
+    }
+
+    // Attitude quaternion stdev data
+    message AttitudeQuaternionStdev
+    {
+        optional double xi1 = 1;
+        optional double xi2 = 2;
+        optional double xi3 = 3;
+    }
+
+    // Rotation Rate Vessel Frame
+    message RotationRateVesselFrame
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double xv1 = 1 [(dccl.field).udunits = "degree/s"];
+        optional double xv2 = 2 [(dccl.field).udunits = "degree/s"];
+        optional double xv3 = 3 [(dccl.field).udunits = "degree/s"];
+    }
+
+    // Rotation Rate Vessel Frame Stdev
+    message RotationRateVesselFrameDeviation
+    {
+        optional double xv1 = 1;
+        optional double xv2 = 2;
+        optional double xv3 = 3;
+    }
+
+    // Linear Acceleration
+    message AccelerationVesselFrame
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double xv1 = 1
+            [(dccl.field).units = { base_dimensions: "LT^-2" }];
+        optional double xv2 = 2
+            [(dccl.field).units = { base_dimensions: "LT^-2" }];
+        optional double xv3 = 3
+            [(dccl.field).units = { base_dimensions: "LT^-2" }];
+    }
+
+    // Linear Acceleration Vessel Frame Stdev
+    message AccelerationVesselFrameDeviation
+    {
+        optional double xv1 = 1;
+        optional double xv2 = 2;
+        optional double xv3 = 3;
+    }
+
+    // Position
+    message Position
+    {
+        optional double latitude = 1;
+        optional double longitude = 2;
+        optional double altitude = 3;
+    }
+
+    // Position Stdev
+    message PositionDeviation
+    {
+        optional double north_stddev = 1;
+        optional double east_stddev = 2;
+        optional double north_east_corr = 3;
+        optional double altitude_stddev = 4;
+    }
+
+    // Attitude
+    message Attitude
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double roll = 1 [(dccl.field).units = {
+            system: "angle::degree"
+            base_dimensions: "A"
+        }];
+        optional double pitch = 2 [(dccl.field).units = {
+            system: "angle::degree"
+            base_dimensions: "A"
+        }];
+        optional double heading = 3 [(dccl.field).units = {
+            system: "angle::degree"
+            base_dimensions: "A"
+        }];
+    }
+
+    // Attitude Stdev
+    message AttitudeDeviation
+    {
+        optional double roll = 1;
+        optional double pitch = 2;
+        optional double heading = 3;
+    }
+
+    // Speed Vessel Frame
+    message speedVesselFrame
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double xv1 = 1 [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double xv2 = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double xv3 = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
+    }
+
+    // Speed geographic Frame
+    message speedGeographicFrame
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double north = 1
+            [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double east = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double up = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
+    }
+
+    // Speed geographic Frame Stdev
+    message speedGeographicFrameDeviation
+    {
+        option (dccl.msg).unit_system = "si";
+        optional double north = 1
+            [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double east = 2 [(dccl.field).units.base_dimensions = "LT^-1"];
+        optional double up = 3 [(dccl.field).units.base_dimensions = "LT^-1"];
+    }
+}

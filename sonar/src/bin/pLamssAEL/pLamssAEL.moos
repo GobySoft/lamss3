@@ -1,0 +1,24 @@
+// Copyright 2026 GobySoft, LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Array element localization for a towed array 38.8 m behind the vehicle: publishes AEL_NAV
+// (lamss.sonar.ArrayNavigation) and AEL_X, AEL_Y, AEL_HEADING, AEL_PITCH from NAV_DATA. For a
+// moored array set is_mooring: true and deploy_x/deploy_y (or deploy_lat/deploy_lon), deploy_depth
+// and deploy_heading instead.
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = sonar
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = pLamssAEL
+{
+  common { app_tick: 2 comm_tick: 5 }
+
+  array_type: ARRAY_TYPE_TOWED
+  array_center_offset: -38.8
+  ael_preample: "AEL"
+  filter_length: 40
+  is_mooring: false
+}

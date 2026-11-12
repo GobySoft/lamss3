@@ -32,13 +32,13 @@ lamss3/
 ├── sonar/
 ├── virtual_ocean/
 ├── gui/                      # everything that needs a display library (Wt, FLTK, Bokeh)
+├── mit/                      # cruises and platforms from missions-lamss
 ├── hydroman/                 # wrapper toolbox: lamss3 glue + HydroMAN 3 repo as submodule
 │   ├── CMakeLists.txt
 │   ├── dependencies.yml
 │   ├── upstream/   (submodule) # the HydroMAN repository, untouched
 │   ├── src/                  # iHydroMAN_LAMSS, iHydroMAN_PHINS, lamss.hydroman protos
 │   └── missions/             # hydroman component, nav subsystem templates
-├── mit/        (submodule)   # cruises and platforms from missions-lamss
 ├── icex/       (submodule)
 ├── attic/      (submodule)
 └── <user toolbox> (submodule)
@@ -56,7 +56,7 @@ flowchart LR
     core_s[core/]
     auto_s[autonomy/]
     vo_s[virtual_ocean/]
-    mit_s[mit/ submodule]
+    mit_s[mit/]
   end
   subgraph build [build/]
     core_b[core build tree]
@@ -212,6 +212,6 @@ History from the old repositories is preserved per app rather than per repo:
 
 ## Open questions for the human plan
 
-- `mit` is in-tree until M2, then a submodule (agreed).
+- `mit` is an in-tree toolbox, a regular directory of lamss3 rather than a submodule (decided).
 - `gui` toolbox (decided): every viewer, Liaison plugin, mission viewer component and plotting server lives in `gui`, so that Wt, FLTK, OpenGL and Bokeh are installed only where it is activated (topside and developer machines, not vehicles or most CI jobs). Other toolboxes depend on it only through `OPTIONAL`.
 - Boundary between `virtual_ocean` and `sonar` (decided): `virtual_ocean` is propagation and ocean models, including every sonar, array, noise and target simulator; `sonar` is hardware drivers, processing and tracking. `sonar` therefore depends on `virtual_ocean` only for tests.

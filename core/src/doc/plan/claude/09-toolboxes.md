@@ -76,7 +76,7 @@ flowchart LR
 
 ## sonar
 
-**Contents**: hardware drivers (`iDurip` + DM7820, `iMCC1608FS`), processing and tracking (CBF, AEL, bearing tracker, geo tracker, ping control, active chain), array geometry data, `lamss.sonar` protos. All sonar, array, noise and target simulators are in `virtual_ocean`.
+**Contents**: hardware drivers (`iDurip` + DM7820, `iMCC1608FS`), processing and tracking (CBF, AEL, bearing tracker, track manager, geo tracker, ping control, active chain), array geometry data, `lamss.sonar` protos. All sonar, array, noise and target simulators are in `virtual_ocean`.
 
 **Order of work**: passive chain (M1 baseline uses it), then `iDurip` for runtime, then the active chain.
 
@@ -102,6 +102,15 @@ flowchart LR
 - netsim links `libgoby_moos` and MOOS 10 for its `netsim_goby_moos_gateway` plugin, so removing MOOS from lamss3 (M4) does not by itself remove MOOS from a netsim host; that is a netsim decision.
 
 **Risks**: NetCDF C++ API moved from `legacy` to `netcdf-cxx4`, affecting `CLamssNetcdf`; `uSimPassiveSonar` (4k lines) is the lab's most actively edited app, so port it early and in one piece to avoid merge pain with ongoing work in `lamss-shared`.
+
+**Phase 2 status (M1 apps)**
+
+*This section written by Claude*
+
+- In `virtual_ocean/src/bin/` with their history, still MOOS apps: `iNoaaBathy`, `uSimCTD`, `uSimGPS` (from lamss); `uSimDVL`, `uSimPhinsINS`, `uSimPassiveSonar`, `uSimTowedArray`, `uSimNoiseCovariance`, `uSimTargets`, `uSimAcoBeaconRngBrg`, `uSimModemNetwork`, `iNetSimManager` (from lamss-shared). Config protos are private to each app, in `package lamss.virtual_ocean`.
+- `CRapRays`, `CEigenRays` and `CLamssNetcdf` are `lamss_virtual_ocean_henrik_util` (`lamss::virtual_ocean`). `CAcousticModel` is not ported: no M1 app uses it, and it needs netsim. `CTarget` and `CNoiseCovariance`, which the split above gives to sonar, are in core's `henrik_util` with `CVectorUtils`, `Random`, `CCovMat`, `CBessel`, `str_num` and `parse_stat`, because the simulators need them and virtual_ocean requires only core.
+- netsim is optional (packaged for jammy, noble and resolute since 1.3.0+5). Without it `uSimModemNetwork` and `iNetSimManager` are not built, `uSimPassiveSonar` refuses `ray_acoustics` and `svp_updates` (its Bellhop and SVP requests), and `iNoaaBathy` does not answer `BATHY_REQUEST`.
+- `CLamssNetcdf` uses NetCDF's C API (`libnetcdf-dev`), so the C++ API change in the risk above does not apply. None of these apps needs newmat.
 
 ## gui
 
@@ -130,7 +139,7 @@ flowchart LR
 
 **Contents**: cruises (`mbat`, `irminger`), fleets, platforms (`macrura`, `unicorn`, `resolution`), concrete environments, cruise-specific templates and data (DCCL acomms configs, modem ID lookup, op regions).
 
-**Decisions**: in-tree until M2 per [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan); no C++; CI runs `lm m generate` for every cruise and the smoke sim for `mbat`.
+**Decisions**: in-tree, a regular directory of lamss3 rather than a submodule ([02](02-repository-layout-and-build.md#open-questions-for-the-human-plan)); no C++; CI runs `lm m generate` for every cruise and the smoke sim for `mbat`.
 
 ## icex
 
