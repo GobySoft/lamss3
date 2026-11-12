@@ -12,8 +12,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .stage import Stage
-
 
 def find_root():
     if os.environ.get("LAMSS_ROOT"):
@@ -53,6 +51,9 @@ def _paths(root):
 
 
 def _stage(root, serve=False):
+    # imported here: the system Python runs this module before it re-executes in the venv
+    from .stage import Stage
+
     stage_dir, site_dir = _paths(root)
     stage = Stage(root, stage_dir)
     config = stage.run(site_dir, serve)
