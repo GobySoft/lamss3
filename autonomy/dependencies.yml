@@ -1,3 +1,7 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
 apt:
-  all: []
+  all:
+    - libnewmat10-dev  # uMVS_Bluefin
+    - moos-ivp-apps  # pHelmIvP, which loads lamss_autonomy_behaviors
+    - libnetsim-dev  # BHV_OptAcommsDepth
+    - libboost-serialization-dev  # netsim's CMake package needs it, and libnetsim-dev does not depend on it

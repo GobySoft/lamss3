@@ -1,0 +1,33 @@
+// Copyright 2026 GobySoft, LLC
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = pLamssMissionManager
+{
+  common {
+    app_tick: 4
+    comm_tick: 10
+  }
+  min_opbox_distance: 500
+  operation_radius: 10000
+  prosecute_duration: 1200
+  topside_name: "topside"
+  abort_x_offset: 0
+  abort_y_offset: 0
+  abort_depth: 30
+  initial_deploy {
+    Deploy_Mode: DEPLOY_MODE_LOITER
+    Depth_Mode: DEPTH_MODE_SINGLE
+    Deploy_X: 0
+    Deploy_Y: 0
+    Deploy_Speed: 1.8
+    Deploy_Upper_Depth: 15
+    Loiter_Radius: 200
+    Loiter_Segments: 8
+  }
+}

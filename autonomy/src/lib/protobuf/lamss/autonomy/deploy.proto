@@ -1,0 +1,195 @@
+// Copyright 2012-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package lamss.autonomy;
+
+message LAMSS_DEPLOY
+{
+    option (dccl.msg).id = 5124;
+    option (dccl.msg).max_bytes = 32;
+    option (dccl.msg).codec_version = 4;
+    optional double _time = 1
+        [(dccl.field).codec = "_time", (dccl.field).in_head = true];
+    optional int32 _src_id = 2 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional int32 _rcv_id = 3 [
+        (dccl.field).max = 31,
+        (dccl.field).min = 0,
+        (dccl.field).in_head = true
+    ];
+    optional string MessageType = 4 [
+        default = "LAMSS_DEPLOY",
+        (dccl.field).static_value = "LAMSS_DEPLOY",
+        (dccl.field).codec = "_static"
+    ];
+    enum Deploy_ModeEnum
+    {
+        DEPLOY_MODE_LOITER = 0;
+        DEPLOY_MODE_RETURN = 1;
+        DEPLOY_MODE_RACETRACK = 2;
+        DEPLOY_MODE_ZIGZAG = 3;
+        DEPLOY_MODE_LAWNMOWER = 4;
+        DEPLOY_MODE_TRAIL = 5;
+        DEPLOY_MODE_STATION_KEEP = 6;
+        DEPLOY_MODE_SPIRAL = 7;
+        DEPLOY_MODE_TRACK_FRONT = 8;
+        DEPLOY_MODE_SAMPLETARFIELD = 9;
+        DEPLOY_MODE_HELIX = 10;
+        DEPLOY_MODE_DRIFT = 11;
+        DEPLOY_MODE_ABORT = 12;
+        DEPLOY_MODE_RECOVERY = 13;
+        DEPLOY_MODE_SANDSHARK = 14;
+        DEPLOY_MODE_LANDING = 15;
+    }
+    optional Deploy_ModeEnum Deploy_Mode = 5 [default = DEPLOY_MODE_LOITER];
+    enum Depth_ModeEnum
+    {
+        DEPTH_MODE_SINGLE = 0;
+        DEPTH_MODE_DUAL = 1;
+        DEPTH_MODE_YOYO = 2;
+        DEPTH_MODE_ADAPTIVE_YOYO = 3;
+        DEPTH_MODE_TOGGLE_DEPTH_YOYO = 4;
+        DEPTH_MODE_ADAPTIVE_SINGLE = 5;
+        DEPTH_MODE_ADAPTIVE_ACOMMS = 6;
+        DEPTH_MODE_BOTTOM_FOLLOWING = 7;
+        DEPTH_MODE_HELIX = 8;
+    }
+    enum Sonar_ControlEnum
+    {
+        SONAR_CONTROL_ON = 0;
+        SONAR_CONTROL_OFF = 1;
+    }
+    enum Sonar_ProcessEnum
+    {
+        SONAR_PROCESS_ON = 0;
+        SONAR_PROCESS_OFF = 1;
+    }
+    optional Depth_ModeEnum Depth_Mode = 6 [default = DEPTH_MODE_SINGLE];
+    optional Sonar_ControlEnum Sonar_Control = 7 [default = SONAR_CONTROL_OFF];
+    optional Sonar_ProcessEnum Sonar_Process = 8 [default = SONAR_PROCESS_OFF];
+    oneof east
+    {
+        double Deploy_X = 10 [
+            default = 0,
+            (dccl.field).max = 125000,
+            (dccl.field).min = -125000,
+            (dccl.field).precision = 0
+        ];
+        double Deploy_Longitude = 50 [
+            default = 0,
+            (dccl.field).max = 180,
+            (dccl.field).min = -180,
+            (dccl.field).precision = 4
+        ];
+    }
+    oneof north
+    {
+        double Deploy_Y = 11 [
+            default = 0,
+            (dccl.field).max = 125000,
+            (dccl.field).min = -125000,
+            (dccl.field).precision = 0
+        ];
+        double Deploy_Latitude = 51 [
+            default = 0,
+            (dccl.field).max = 90,
+            (dccl.field).min = -90,
+            (dccl.field).precision = 4
+        ];
+    }
+    optional double Deploy_Speed = 12 [
+        default = 1.5,
+        (dccl.field).max = 2.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 1
+    ];
+    optional double Deploy_Upper_Depth = 13 [
+        default = 10,
+        (dccl.field).max = 6000.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 0
+    ];
+    optional double Deploy_Lower_Depth = 14 [
+        default = 20,
+        (dccl.field).max = 6000.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 0
+    ];
+    optional double Deploy_Altitude = 15 [
+        default = 10,
+        (dccl.field).max = 500.0,
+        (dccl.field).min = 0.0,
+        (dccl.field).precision = 0
+    ];
+    optional double Loiter_Radius = 16 [
+        default = 100,
+        (dccl.field).max = 1023,
+        (dccl.field).min = 0,
+        (dccl.field).precision = 0
+    ];
+    optional int32 Loiter_Segments = 17
+        [default = 6, (dccl.field).max = 31, (dccl.field).min = 0];
+    optional double Survey_Heading = 18 [
+        default = 0,
+        (dccl.field).max = 360,
+        (dccl.field).min = 0,
+        (dccl.field).precision = 0
+    ];
+    optional double Survey_Length = 19 [
+        default = 500,
+        (dccl.field).max = 20470.000000,
+        (dccl.field).min = 0.000000,
+        (dccl.field).precision = -1
+    ];
+    optional double Survey_Width = 20 [
+        default = 100,
+        (dccl.field).max = 4095,
+        (dccl.field).min = 0,
+        (dccl.field).precision = -1
+    ];
+    optional double Survey_Period = 21 [
+        default = 200,
+        (dccl.field).max = 4095,
+        (dccl.field).min = 0,
+        (dccl.field).precision = -1
+    ];
+    optional bool Clockwise = 22 [default = true];
+    optional ContactEnum Collaborator = 23;
+    enum ContactEnum
+    {
+        macrura = 0;
+        unicorn = 1;
+        DEFAULT = 2;
+        hydrohole = 3;
+        h1 = 4;
+        h2 = 5;
+        h3 = 6;
+        h4 = 7;
+    }
+    enum Trail_Angle_TypeEnum
+    {
+        TRAIL_ANGLE_TYPE_relative = 0;
+        TRAIL_ANGLE_TYPE_absolute = 1;
+    }
+    optional double GPS_Interval = 27 [
+        (dccl.field).max = 5110.000000,
+        (dccl.field).min = 0.000000,
+        (dccl.field).precision = -1,
+        default = 0
+    ];
+    optional double Deploy_Duration = 28 [
+        (dccl.field).max = 204700.000000,
+        (dccl.field).min = 0.000000,
+        (dccl.field).precision = -2,
+        default = 0
+    ];
+    optional bool Homing_Enabled = 29 [default = false];
+    optional bool Auto_Prosecute = 30 [default = false];
+}

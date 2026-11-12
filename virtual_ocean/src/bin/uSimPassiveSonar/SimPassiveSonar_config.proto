@@ -1,0 +1,62 @@
+// Copyright 2016-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+syntax = "proto2";
+
+import "goby/moos/protobuf/goby_moos_app.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package lamss.virtual_ocean;
+
+message SimPassiveSonarConfig
+{
+    optional goby.moos.protobuf.GobyMOOSAppConfig common = 1 [
+        (goby.field).description =
+            "Configuration common to all Goby MOOS applications"
+    ];  // see goby_moos_app.proto
+
+    optional bool ray_acoustics = 2 [default = false];
+    optional bool rap_acoustics = 3 [default = false];
+    optional double svp_surface = 4 [default = 1430];
+    optional double svp_gradient = 5 [default = 0.016];
+    optional double max_rap_depth = 6 [default = 5000];
+    optional double water_depth = 7 [default = 5000];
+    optional double bottom_loss = 8 [default = 0.5];
+    optional double noise_level = 9 [default = 50];
+    optional ArrayTypeEnum array_type = 10 [default = ARRAY_TYPE_HYD];
+    enum ArrayTypeEnum
+    {
+        ARRAY_TYPE_HYD = 1;
+        ARRAY_TYPE_VSA = 2;
+        ARRAY_TYPE_DURIP = 3;
+    }
+    optional int32 max_number_bounces = 11 [default = 1];
+    required int32 num_array_elements = 12;
+    required double sampling_frequency = 13;
+    required int32 num_samples = 14;
+    optional double hydrophone_gain = 15 [default = 0];
+    optional double accelerometer_gain = 16 [default = 0];
+    required string base_dir_name = 17;
+    optional string acoustic_filename_prefix = 18 [default = "HYD"];
+    optional string acoustic_filename_suffix = 19 [default = ".DAT"];
+    optional string nonacoustic_filename_prefix = 20 [default = "NAS"];
+    optional string nonacoustic_filename_suffix = 21 [default = ".DAT"];
+    optional bool svp_updates = 23 [default = false];
+    optional double svp_update_interval = 24 [default = 60];
+    optional double svp_range_resolution = 25 [default = 200];
+    optional double svp_depth_resolution = 26 [default = 20];
+    optional string sync_path = 22 [default = ""];
+    optional string sync_password = 34;
+    optional double surface_rms_roughness = 40
+        [default = 0];  // Surface RMS roughness
+    optional double surface_roughness_loss = 41
+        [default = 0];  // coherence loss in dB per bounce
+    optional double bottom_rms_roughness = 42
+        [default = 0];  // Bottom RMS roughness
+    optional double bottom_roughness_loss = 43
+        [default = 0];  // coherence loss in dB per bounce
+    // replica_file = replica_path + "pinger_ + "_replica"
+    optional string replica_path = 44 [default = "./"];
+    optional bool coherent_sources = 45 [default = false];
+    optional string source_weight_file = 46 [default = "source_weights.bin"];
+}

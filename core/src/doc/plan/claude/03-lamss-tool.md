@@ -97,7 +97,7 @@ apt:
   resolute: [libnetcdf-c++4-dev]
 apt_repositories:
   - name: gobysoft
-    url: http://packages.gobysoft.org/ubuntu/release/
+    url: http://packages.gobysoft.org/ubuntu/continuous/
     key: cmake/keys/gobysoft.asc
 source:
   - name: rtd-dm7820-dkms

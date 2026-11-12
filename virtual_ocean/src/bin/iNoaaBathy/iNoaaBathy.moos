@@ -1,0 +1,20 @@
+// Copyright 2018-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = iNoaaBathy
+{
+  AppTick    = 4
+  CommsTick  = 4
+
+  // NOAA/GEBCO-style grid: lat, lon and a short z (or Band1) variable, negative down
+  nc_bathy_file = bathy.nc
+
+  // seconds between BATHY_Z publications
+  publish_interval = 5
+}

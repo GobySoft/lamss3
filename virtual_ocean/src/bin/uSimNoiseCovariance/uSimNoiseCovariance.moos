@@ -1,0 +1,30 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+
+ProcessConfig = uSimNoiseCovariance
+{
+  AppTick =   25           // should be > 10
+  CommsTick = 5
+
+  // Environmental Parameters
+  water_depth = 100             // used for spherical spreading (m)
+  noise_level = 60              // dB re 1 uPa
+  minimum_frequency = 800       // Minimum frequency of processing
+  maximum_frequency = 1000      // Maximum frequency of processing
+  isotropic_noise = true        // Use isotropic noise model
+
+  // Array and sampling parameters
+  array_type = DURIP                 // DURIP or VSA
+  num_array_elements = 32           // number of elements in the array
+  sampling_frequency = 4000       // Hz
+  num_samples = 8000              // number of samples per file
+
+  // where the covariance files go, with the final forward slash
+  base_dir_name = ./
+}
