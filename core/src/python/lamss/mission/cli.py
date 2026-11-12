@@ -12,6 +12,7 @@ from typing import Any, Optional, Sequence
 
 import yaml
 
+from .. import style
 from . import missiontest, render, supervisor, workspace
 from .errors import MissionError
 from .registry import Registry
@@ -37,7 +38,7 @@ def _mission_arguments(parser: argparse.ArgumentParser) -> None:
 def _resolve(args: argparse.Namespace, mode: str) -> Mission:
     mission = resolve(load_registry(), args.cruise, args.variant, mode, args.sets)
     for note in mission.notes:
-        print(f"note: {note}", file=sys.stderr)
+        style.print_note(note)
     return mission
 
 
@@ -47,10 +48,10 @@ def _inline(value: Any) -> str:
 
 def explain(mission: Mission, key: str) -> str:
     value, layers = mission.explain(key)
-    lines = [f"{key} = {_inline(value)}"]
+    lines = [style.heading(key) + f" = {_inline(value)}"]
     width = max((len(e.source) for e in layers), default=0)
     for e in layers:
-        mark = "  <- wins" if e.wins else ""
+        mark = style.good("  <- wins") if e.wins else ""
         lines.append(f"  {e.kind:<8}  {e.source:<{width}}  {e.key} = "
                      f"{_inline(e.value)}{mark}")
     return "\n".join(lines)
@@ -62,19 +63,20 @@ def cmd_list(args: argparse.Namespace) -> int:
     if args.cruise:
         mission = resolve(registry, args.cruise, None, "sim")
         for note in mission.notes:
-            print(f"note: {note}", file=sys.stderr)
-        print(f"{mission.name} ({registry.toolbox_of(type(mission.cruise)).name}): "
+            style.print_note(note)
+        print(style.heading(mission.name)
+              + style.note(f" ({registry.toolbox_of(type(mission.cruise)).name})") + ": "
               f"fleet {mission.fleet.name}"
               + (f", environment {mission.environment.name}" if mission.environment else ""))
         for p in mission.platforms:
             for s in p.resolved_subsystems:
                 print(f"  {p.name}/{s.name}: {', '.join(c.name for c in s.components) or '-'}")
         names = _applicable_variants(registry, mission)
-        print(f"  variants: {', '.join(names) or '-'}")
+        print(f"  {style.heading('variants:')} {', '.join(names) or '-'}")
         return 0
     if not cruises:
-        print("no cruises in the active toolboxes "
-              f"({', '.join(t.name for t in registry.toolboxes) or 'none have a missions/ tree'})")
+        print(style.attention("no cruises in the active toolboxes "
+              f"({', '.join(t.name for t in registry.toolboxes) or 'none have a missions/ tree'})"))
         return 0
     width = max(len(n) for n in cruises)
     for name, cls in sorted(cruises.items()):
@@ -82,7 +84,8 @@ def cmd_list(args: argparse.Namespace) -> int:
             variants = ", ".join(_applicable_variants(registry, resolve(registry, name, None, "sim")))
         except MissionError as e:
             variants = f"(cannot resolve: {e})"
-        print(f"{name:<{width}}  {registry.toolbox_of(cls).name:<12}  {variants}")
+        print(f"{style.heading(f'{name:<{width}}')}  "
+              f"{style.note(f'{registry.toolbox_of(cls).name:<12}')}  {variants}")
     return 0
 
 
@@ -111,13 +114,13 @@ def _generate(args: argparse.Namespace, mode: str, suffix: Optional[str] = None,
               sets: Sequence[str] = ()) -> tuple[Mission, render.Layout]:
     mission = resolve(load_registry(), args.cruise, args.variant, mode, list(args.sets) + list(sets))
     for note in mission.notes:
-        print(f"note: {note}", file=sys.stderr)
+        style.print_note(note)
     layout = _layout(args, mission, suffix)
     if getattr(args, "func", None) in (cmd_sim, cmd_run, cmd_test) and not args.generate and supervisor.running(layout):
         raise MissionError(f"{layout.instance} is already running; `lamss mission stop {layout.instance}` first")
     if not getattr(args, "execute", False):
         render.generate(mission, layout, args.platform, args.subsystem)
-        print(f"generated {layout.build}", file=sys.stderr)
+        print(style.good(f"generated {layout.build}", sys.stderr), file=sys.stderr)
     elif not layout.supervisord_conf(mode).exists():
         raise MissionError(f"--execute: {layout.supervisord_conf(mode)} has not been generated")
     return mission, layout
@@ -139,10 +142,10 @@ def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) ->
     if args.foreground:
         return supervisor.run_foreground(layout, conf, args.wait)
     programs = supervisor.start(layout, conf, args.wait)
-    print(f"{layout.instance}: {len(programs)} processes RUNNING")
+    print(style.good(f"{layout.instance}: {len(programs)} processes RUNNING"))
     print(f"  logs:    {(layout.run / 'log').resolve()}")
-    print(f"  status:  lamss mission status {layout.instance}")
-    print(f"  stop:    lamss mission stop {layout.instance}")
+    print(f"  status:  {style.command(f'lamss mission status {layout.instance}')}")
+    print(f"  stop:    {style.command(f'lamss mission stop {layout.instance}')}")
     return 0
 
 
@@ -179,13 +182,17 @@ def cmd_status(args: argparse.Namespace) -> int:
     if args.instance:
         layouts = [l for l in layouts if l.instance == args.instance]
     if not layouts:
-        print(f"{args.instance} is not running" if args.instance else "no mission is running")
+        print(style.attention(f"{args.instance} is not running" if args.instance
+                              else "no mission is running"))
         return 3
     status = 0
     for layout in layouts:
-        print(f"{layout.instance} ({layout.run}):")
+        print(style.heading(layout.instance) + style.note(f" ({layout.run})") + ":")
         for s in supervisor.states(layout) or []:
-            print(f"  {s.name:<40} {s.state:<9} {s.description}")
+            state = f"{s.state:<9}"
+            state = style.good(state) if s.state == supervisor.GOOD else style.attention(state) \
+                if s.state in ("STARTING", "STOPPING", "STOPPED") else style.error(state, sys.stdout)
+            print(f"  {s.name:<40} {state} {s.description}")
             status = status if s.state == supervisor.GOOD else 3
     return status
 
@@ -193,7 +200,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 def cmd_stop(args: argparse.Namespace) -> int:
     layout = _running_layout(args.instance)
     supervisor.stop(layout)
-    print(f"stopped {layout.instance}")
+    print(style.good(f"stopped {layout.instance}"))
     return 0
 
 
@@ -258,9 +265,9 @@ def _launch_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="lamss mission",
+    p = style.ArgumentParser(prog="lamss mission",
                                 description="Generate, run and test lamss3 missions.")
-    sub = p.add_subparsers(dest="command", metavar="<command>")
+    sub = p.add_subparsers(dest="command", metavar="<command>", title="Commands")
 
     s = sub.add_parser("list", help="list the cruises and their variants, or one cruise's platforms")
     s.add_argument("cruise", nargs="?")
@@ -337,5 +344,5 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         return args.func(args)
     except MissionError as e:
-        print(f"lamss mission: error: {e}", file=sys.stderr)
+        style.print_error("lamss mission", e)
         return 1

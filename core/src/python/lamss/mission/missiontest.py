@@ -21,6 +21,7 @@ from typing import Any, Optional, Sequence
 
 import yaml
 
+from .. import style
 from . import render, supervisor
 from .errors import MissionError
 from .params import flatten
@@ -171,7 +172,8 @@ def run(mission: Mission, layout: render.Layout, selection: Sequence[render.Sele
         if not any(a == "--log_dir" or a.startswith("--log_dir=") for a in goby_args):
             command += ["--log_dir", str(layout.run / "goby_test" / wrapper.stem)]
         command += list(goby_args)
-        print(f"lamss mission test: {original}", file=sys.stderr, flush=True)
+        print("lamss mission test: " + style.heading(str(original), sys.stderr), file=sys.stderr,
+              flush=True)
         try:
             status = subprocess.call(command)
         except FileNotFoundError:
