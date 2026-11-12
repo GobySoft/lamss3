@@ -7,7 +7,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 ## Goals
 
 1. **Builds on a fresh Ubuntu 22.04, 24.04 or 26.04 install** (every LTS until its end of life) with `apt` dependencies only, plus MOOS-IvP and Goby3 from their upstream packages.
-2. **One repository, many toolboxes.** `core` is always on; `autonomy`, `sonar`, `virtual_ocean`, `gui` ship in-tree but opt-in; `mit`, `icex`, `attic` and user toolboxes are git submodules.
+2. **One repository, many toolboxes.** `core` is always on; `autonomy`, `sonar`, `virtual_ocean`, `gui` and `mit` ship in-tree but opt-in; `icex`, `attic` and user toolboxes are git submodules.
 3. **One CLI**, `lamss` (alias `lm`), for building, dependencies, toolbox management and running missions.
 4. **A mission framework** that keeps the object-oriented cruise/fleet/platform/component model of `missions-lamss` but uses Python 3 + Jinja2 and launches with `supervisord`.
 5. **Goby3 as the only middleware** at the end, with MOOS retained as a transitional dependency so that nothing has to be rewritten before it can be run.
