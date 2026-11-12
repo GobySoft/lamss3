@@ -131,6 +131,10 @@ class Layout:
         return self.run / "log" / platform / subsystem
 
 
+# written into the run directory by each launch that has no fixed supervisor.http_port
+HTTP_CONF = "http.conf"
+
+
 def socket_path(directory: Path, name: str) -> Path:
     """`directory/name`, or a short path derived from it when that is too long for a unix socket."""
     path = directory / name
@@ -394,6 +398,9 @@ class Renderer:
         http_port = self.mission_dict["cruise"].get("supervisor", {}).get("http_port")
         if http_port:
             lines += ["", "[inet_http_server]", f"port=*:{int(http_port)}"]
+        else:
+            # a glob, so the conf also works before or without the launch writing the file
+            includes = [*includes, f"{here_to_run}/{HTTP_CONF[:-5]}*.conf"]
         lines += ["", "[include]", f"files={' '.join(includes)}"]
         return "\n".join(lines) + "\n"
 

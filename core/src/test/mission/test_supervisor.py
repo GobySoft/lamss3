@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from lamss.mission import supervisor
 from lamss.mission.cli import main
 
 pytestmark = pytest.mark.skipif(shutil.which("supervisord") is None, reason="needs supervisor")
@@ -80,3 +81,16 @@ def test_foreground_until_interrupted(checkout):
     os.killpg(process.pid, signal.SIGINT)
     assert process.wait(timeout=30) == 0
     assert pids(checkout) == []
+
+
+def test_launch_without_fixed_http_port_gets_a_local_web_page(tmp_path):
+    from lamss.mission.render import Layout
+
+    layout = Layout(root=tmp_path, prefix=tmp_path, missions=tmp_path, instance="harbor")
+    layout.run.mkdir(parents=True)
+    supervisor.prepare_http(layout, None)
+    url = supervisor.http_url(layout)
+    assert url.startswith("http://127.0.0.1:") and url.endswith("/")
+    supervisor.prepare_http(layout, 9123)
+    assert not (layout.run / "http.conf").exists()
+    assert supervisor.http_url(layout, 9123).endswith(":9123/")

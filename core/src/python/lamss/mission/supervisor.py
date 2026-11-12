@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -16,7 +17,7 @@ from typing import Optional, Sequence
 
 from .. import style
 from .errors import MissionError
-from .render import Layout
+from .render import HTTP_CONF, Layout
 
 GOOD = "RUNNING"
 STARTING = ("STARTING", "BACKOFF")
@@ -77,6 +78,40 @@ def prepare(layout: Layout, subsystems: Sequence[tuple[str, str]]) -> Path:
         layout.subsystem_run(platform, subsystem).mkdir(parents=True, exist_ok=True)
         layout.subsystem_log(platform, subsystem).mkdir(parents=True, exist_ok=True)
     return log_dir
+
+
+def free_port(first: int = 9001, last: int = 9100) -> int:
+    """The first port from `first` (supervisord's usual 9001) free on localhost."""
+    for port in range(first, last + 1):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    raise MissionError(f"no free port for supervisord's web page in {first}-{last}")
+
+
+def prepare_http(layout: Layout, http_port: Optional[int]) -> None:
+    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port."""
+    conf = layout.run / HTTP_CONF
+    if http_port:
+        conf.unlink(missing_ok=True)
+        return
+    conf.write_text(f"[inet_http_server]\nport=127.0.0.1:{free_port()}\n")
+
+
+def http_url(layout: Layout, http_port: Optional[int] = None) -> Optional[str]:
+    """The address of supervisord's web page for this instance, if it has one."""
+    if http_port:
+        return f"http://{socket.gethostname()}:{int(http_port)}/"
+    conf = layout.run / HTTP_CONF
+    if not conf.is_file():
+        return None
+    for line in conf.read_text().splitlines():
+        if line.startswith("port="):
+            return f"http://{line[len('port='):]}/"
+    return None
 
 
 def wait_running(layout: Layout, timeout: float, process: Optional[subprocess.Popen] = None) -> list[ProgramState]:
