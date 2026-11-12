@@ -10,8 +10,10 @@
 #   lamss_add_app(<name> SOURCES <files>... [PROTOS <files>...] [LINK_LIBRARIES <libs>...] [NO_GOBY] [MOOS])
 #   lamss_find_moos()
 #   lamss_find_ivp(<lib>...)
+#   lamss_export_code(<cmake code>...)
 #   lamss_add_python(<package_dir>)
 #   lamss_add_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
+#   lamss_add_dccl_test(<name> SOURCES <files>... [LINK_LIBRARIES <libs>...])
 #   lamss_toolbox_export()
 #
 # See core/src/doc/plan/claude/02-repository-layout-and-build.md.
@@ -50,6 +52,12 @@ if(LAMSS_ROOT)
 endif()
 
 find_program(LAMSS_PROTOC_GEN_DCCL protoc-gen-dccl)
+
+# core installs DCCL_IDS.md beside this file for toolboxes built outside a lamss3 checkout
+set(LAMSS_DCCL_IDS_MD "${LAMSS_CMAKE_DIR}/../core/src/lib/protobuf/lamss/DCCL_IDS.md")
+if(NOT EXISTS "${LAMSS_DCCL_IDS_MD}")
+  set(LAMSS_DCCL_IDS_MD "${LAMSS_CMAKE_DIR}/DCCL_IDS.md")
+endif()
 
 function(_lamss_joint_build out_var)
   get_property(_set GLOBAL PROPERTY LAMSS_ACTIVE_TOOLBOXES SET)
@@ -115,9 +123,24 @@ function(_lamss_require_toolbox fn)
   endif()
 endfunction()
 
+# goby-config.cmake prints its libraries on every call and ignores QUIET, and lamss3 finds Goby in
+# each directory that uses it (its imported targets are directory-scoped), so report it once.
+function(_lamss_find_goby_package name)
+  if(NOT CMAKE_MESSAGE_LOG_LEVEL)
+    set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)
+  endif()
+  find_package(${name} ${ARGN})
+  get_property(_reported GLOBAL PROPERTY LAMSS_GOBY_REPORTED)
+  if(NOT _reported)
+    set_property(GLOBAL PROPERTY LAMSS_GOBY_REPORTED TRUE)
+    unset(CMAKE_MESSAGE_LOG_LEVEL)
+    message(STATUS "Found Goby ${${name}_VERSION}: ${GOBY_INCLUDE_DIR}")
+  endif()
+endfunction()
+
 function(_lamss_find_goby)
   if(NOT TARGET goby)
-    find_package(goby 3.6 REQUIRED)
+    _lamss_find_goby_package(goby 3.6 REQUIRED)
   endif()
 endfunction()
 
@@ -129,8 +152,9 @@ function(lamss_find_moos)
     find_package(MOOS 10 REQUIRED)
   endif()
   if(NOT TARGET goby_moos)
-    find_package(GOBY 3.6 REQUIRED COMPONENTS moos)
+    _lamss_find_goby_package(GOBY 3.6 REQUIRED COMPONENTS moos)
   endif()
+  lamss_export_code("lamss_find_moos()")
 endfunction()
 
 # MOOS-IvP installs static libraries and headers but no CMake package: each <lib> becomes IvP::<lib>.
@@ -147,6 +171,18 @@ function(lamss_find_ivp)
       IMPORTED_LOCATION "${LAMSS_IVP_${_lib}_LIBRARY}"
       INTERFACE_INCLUDE_DIRECTORIES "${LAMSS_IVP_INCLUDE_DIR}")
   endforeach()
+  foreach(_lib IN LISTS ARGN)
+    lamss_export_code("lamss_find_ivp(${_lib})")
+  endforeach()
+endfunction()
+
+# Adds CMake code to the toolbox's installed package config, run before its targets are imported,
+# so that the targets its exported libraries link (MOOS::MOOS, IvP::*, ...) exist downstream.
+# lamss_find_moos() and lamss_find_ivp() add themselves.
+function(lamss_export_code)
+  if(LAMSS_TOOLBOX)
+    set_property(GLOBAL APPEND PROPERTY LAMSS_${LAMSS_TOOLBOX}_EXPORT_CODE ${ARGN})
+  endif()
 endfunction()
 
 # Runs protoc (and the DCCL plugin when present) on PROTOS, keeping each file's path relative to
@@ -300,6 +336,13 @@ function(lamss_add_test name)
   add_dependencies(lamss_${LAMSS_TOOLBOX}_all ${name})
 endfunction()
 
+# Includes lamss_dccl_test.h, for checking a toolbox's DCCL messages against DCCL_IDS.md.
+function(lamss_add_dccl_test name)
+  lamss_add_test(${name} ${ARGN})
+  target_include_directories(${name} PRIVATE "${LAMSS_CMAKE_DIR}")
+  target_compile_definitions(${name} PRIVATE LAMSS_DCCL_IDS_MD="${LAMSS_DCCL_IDS_MD}")
+endfunction()
+
 function(lamss_toolbox_export)
   _lamss_require_toolbox(lamss_toolbox_export)
   set(_tb ${LAMSS_TOOLBOX})
@@ -311,12 +354,29 @@ function(lamss_toolbox_export)
   set(_config "${CMAKE_CURRENT_BINARY_DIR}/lamss_${_tb}Config.cmake")
   file(WRITE "${_config}"
     "include(CMakeFindDependencyMacro)\n"
+    "set(_lamss_log_level \"\${CMAKE_MESSAGE_LOG_LEVEL}\")\n"
+    "if(NOT CMAKE_MESSAGE_LOG_LEVEL)\n"
+    "  set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)\n"
+    "endif()\n"
     "find_dependency(goby 3.6)\n"
+    "set(CMAKE_MESSAGE_LOG_LEVEL \"\${_lamss_log_level}\")\n"
+    "unset(_lamss_log_level)\n"
     "get_filename_component(_lamss_prefix \"\${CMAKE_CURRENT_LIST_DIR}/${_up}\" ABSOLUTE)\n"
     "set_property(GLOBAL APPEND PROPERTY LAMSS_PROTO_ROOTS \"\${_lamss_prefix}/${CMAKE_INSTALL_INCLUDEDIR}\")\n")
   foreach(_req IN LISTS _requires)
     file(APPEND "${_config}" "find_dependency(lamss_${_req} ${LAMSS_VERSION})\n")
   endforeach()
+  get_property(_code GLOBAL PROPERTY LAMSS_${_tb}_EXPORT_CODE)
+  if(_code)
+    list(REMOVE_DUPLICATES _code)
+    file(APPEND "${_config}"
+      "if(NOT COMMAND lamss_export_code)\n"
+      "  include(\"\${CMAKE_CURRENT_LIST_DIR}/../lamss_core/LamssToolbox.cmake\")\n"
+      "endif()\n")
+    foreach(_line IN LISTS _code)
+      file(APPEND "${_config}" "${_line}\n")
+    endforeach()
+  endif()
   file(APPEND "${_config}"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/lamss_${_tb}Targets.cmake\" OPTIONAL)\n"
     "list(APPEND CMAKE_MODULE_PATH \"\${CMAKE_CURRENT_LIST_DIR}\")\n")

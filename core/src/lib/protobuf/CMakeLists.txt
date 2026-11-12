@@ -5,6 +5,7 @@ lamss_add_proto(protobuf
   PROTOS
     lamss/core/environment_update.proto
     lamss/core/header.proto
+    lamss/core/ixblue_ins_data.proto
     lamss/core/node_status.proto
     lamss/core/options.proto
     lamss/core/status.proto

@@ -1,0 +1,24 @@
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+ServerHost = localhost
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
+MagneticOffset = 0
+
+ProcessConfig = uMVS_Bluefin
+{
+    AppTick   = 10
+    CommsTick = 10
+
+    // subscribes to DESIRED_RUDDER/ELEVATOR/THRUST, publishes FRONTSEAT_X, FRONTSEAT_DEPTH, ...
+    ADD_AUV = pose=[4x1]{0,0,-1,90},name=example,InputPrefix=,OutputPrefix=FRONTSEAT_
+
+    TideHeight = 0
+    InstantLogAcoustics = false
+
+    // standard deviation of noise on TOF measurements: 1 ms = 1.5 m
+    TOFNoise = 0.00066
+}

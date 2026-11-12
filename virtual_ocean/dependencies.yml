@@ -1,3 +1,9 @@
 # Format: core/src/doc/plan/claude/03-lamss-tool.md#lamss-dependencies-listinstall--lm-dep
 apt:
-  all: []
+  all:
+    - libgsl-dev
+    - libnetcdf-dev
+    - libboost-filesystem-dev
+    - libnetsim-dev
+    - libb64-dev  # netsim's tcp_session.h includes it
+    - libboost-serialization-dev  # netsim's CMake package needs it, and libnetsim-dev does not depend on it

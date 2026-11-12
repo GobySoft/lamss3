@@ -90,7 +90,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pLamssMissionManager` | lamss-shared | GobyMOOSApp (boost statechart) | 3.5k | Core autonomy FSM; active 2024 |
 | `pLamssSurfaceMissionManager` | lamss-shared | GobyMOOSApp | 1.5k | 2024 |
 | `pLamssMissionScript` | lamss-shared (SRToolbox) | AppCasting | 954 | Scheduled deploy scripting; 2024 |
-| `pLamssTrackManager` | lamss-shared | GobyMOOSApp | 2.4k | Could sit in sonar; autonomy because it feeds the mission FSM |
+| `pLamssTrackManager` | lamss-shared | GobyMOOSApp | 2.4k | Ported to **sonar**: it needs sonar's track/contact messages and `CTrack`, and feeds the mission FSM only through MOOS strings |
 | `iLamssFrontSeat`, `pFrontSeatData` | lamss | GobyMOOSApp | 443 / 201 | 2023 frontseat bridge to Goby3 `InterfaceData` |
 | `iEmbeddedFrontseat` | lamss-shared | GobyMOOSApp | 441 | |
 | `pControlEngine_Vlamss`, `pActuatorMap_HybridUUV`, `uSimUnderseaVehicle_Vlamss` | lamss-shared (SRToolbox) | AppCasting | 1.3k / 1.6k / 3.1k | Hybrid UUV control and 6-DOF frontseat sim; 2022–24 |
