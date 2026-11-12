@@ -139,7 +139,7 @@ flowchart LR
 
 **Contents**: cruises (`mbat`, `irminger`), fleets, platforms (`macrura`, `unicorn`, `resolution`), concrete environments, cruise-specific templates and data (DCCL acomms configs, modem ID lookup, op regions).
 
-**Decisions**: in-tree until M2 per [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan); no C++; CI runs `lm m generate` for every cruise and the smoke sim for `mbat`.
+**Decisions**: in-tree, a regular directory of lamss3 rather than a submodule ([02](02-repository-layout-and-build.md#open-questions-for-the-human-plan)); no C++; CI runs `lm m generate` for every cruise and the smoke sim for `mbat`.
 
 ## icex
 

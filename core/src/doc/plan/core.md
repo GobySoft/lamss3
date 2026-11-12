@@ -37,9 +37,9 @@ Part of the `lamss3` git repository:
  - **sonar**: Sonar processing pipelines.
  - **virtual_ocean**: Simulators for creating a simulated ocean.
  - **gui**: Graphical and web displays (Goby Liaison plugins, LAMSS Display Center, pMarineViewer). Separate because its dependencies are large and are not wanted on vehicles.
+ - **mit**: MIT missions from missions-lamss.
  
 Git submodules
- - **mit**: MIT missions from missions-lamss.
  - **icex**: ICEX-specific applications
  - **attic**: Deprecated applications
  - *user-toolbox1*: External users can add toolboxes of their own.
@@ -127,7 +127,7 @@ Each tool should have an implicit help (if subcommands are required) and `--help
 `lamss3`
  - `build`: Build artifacts
  - `build/usr`: Installed artifacts (mirrors `/usr`)
- - `<toolbox>`: core, autonomy, sonar, virtual_ocean, gui (and optionally any git submodule toolboxes)
+ - `<toolbox>`: core, autonomy, sonar, virtual_ocean, gui, mit (and optionally any git submodule toolboxes)
 	 + `<src>`: Source code for the toolbox
 		 * `bin`: C++ Binaries (Goby applications)
 		 * `lib`: C++ Libraries

@@ -47,7 +47,7 @@ flowchart LR
   sonar:::tb
   vo:::tb
   icex:::sub
-  mit:::sub
+  mit:::tb
   attic:::sub
   classDef tb fill:#bfdbfe,stroke:#1d4ed8,color:#000
   classDef sub fill:#e9d5ff,stroke:#7e22ce,color:#000
@@ -159,7 +159,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `BHV_OpRegion_ICEX` | lamss | |
 | `cruise/icex20` (M3), `topside/icex_sim` | missions-lamss | Mission content (`cruise/arctic` goes to attic) |
 
-### mit (submodule or in-tree, see [02](02-repository-layout-and-build.md#open-questions-for-the-human-plan))
+### mit (in-tree)
 
 All of `missions-lamss` that is live: `cruise/mbat`, `cruise/irminger`, platforms `auv/macrura`, `auv/unicorn`, `auv/sandshark`, `auv/sensor_sim`, `auv/frontseat_sim`, `topside`, `ship`, `mooring/*`, re-expressed in the Python framework of [06](06-missions-framework.md). Details in the missions survey section below.
 
