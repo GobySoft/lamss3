@@ -129,11 +129,42 @@ flowchart LR
 - **Review:** the toolbox maintainer named in [08](08-code-style-licensing-maintenance.md#maintenance) reviews it. A page stays `inferred`, and is published with its banner, until then. Open questions become issues, as the Phase 2 bug issues did (GobySoft/lamss3#27–#34).
 - **Native rewrites:** when an app is rewritten to native Goby3 (Phase 4), its page becomes an authored page. The interface tables then come from `goby_clang_tool` instead of the extractor.
 
+## Sequence
+
+*This section written by Claude*
+
+Documentation is the next work in Phase 2, ahead of the `mbat` cruise. The mission framework PRs (GobySoft/lamss3#17–#20) wait for it, and get their pages before they merge.
+
+```mermaid
+flowchart LR
+  d1[D1 docs site<br/>mkdocs.yml, docs/, lamss docs build/serve,<br/>generated reference, CI + Pages] --> d2[D2 extractor<br/>lamss docs extract/check,<br/>docs-check CI]
+  d2 --> d3[D3 inferred pages<br/>core and M1 apps,<br/>libraries, behaviors]
+  d1 --> bp[backport into #17-#20<br/>merge main, add each PR's pages]
+  d3 --> bp
+  bp --> mbat[mbat cruise and M1 acceptance]
+```
+
+| Step | Branch / PR | Contents |
+|---|---|---|
+| D1 | `feature/docs-site` | `mkdocs.yml`, `docs/` (home, getting started, `lamss` tool guide, developing), `docs/requirements.txt`, the `lamss.docs` Python package and `lamss docs build\|serve`, the generated messages, DCCL ID and CLI references, the `docs` CI job and publishing to GitHub Pages |
+| D2 | `feature/docs-extract` | `lamss docs extract\|check` and the `docs-check` CI job |
+| D3 | `feature/docs-inferred` | inferred pages for everything on `main`: the core apps, the gateway plugin and core libraries (Phase 1) and the M1 autonomy, sonar and virtual_ocean apps and behaviors |
+| backport | GobySoft/lamss3#17–#20 | merge `main` into #17 and up the stack; each PR adds the pages for what it introduces (below) |
+
+Pages each mission framework PR adds in the backport:
+
+| PR | Pages |
+|---|---|
+| #17 `lamss.mission` engine | concepts (cruise, fleet, platform, subsystem, component, environment), the directory layout and registry, parameter precedence and `--explain`, variants, the Python API reference |
+| #18 rendering and `lamss mission` | templates and the context dictionary, the generated output tree and supervisord, `lamss mission` user guide |
+| #19 `lamss mission test` | writing a cruise test, `goby test` integration, running tests in CI |
+| #20 core components and `example` | a tutorial built on the `example` cruise, one page per core component and platform, the `example` cruise page |
+
 ## Phase placement
 
 | Phase | Documentation work |
 |---|---|
-| 2 (now) | this plan and the template; `docs/` skeleton, `mkdocs.yml`, `lamss docs build/serve`, the `docs` CI job; getting started, `lamss` tool and mission engine pages; the extractor and `docs-check`; backfill of Phase 1 and Phase 2 inferred pages |
+| 2 (next, before `mbat`) | this plan and the template; `docs/` skeleton, `mkdocs.yml`, `lamss docs build/serve`, the `docs` CI job; getting started, `lamss` tool and mission engine pages; the extractor and `docs-check`; backfill of Phase 1 and Phase 2 inferred pages; mission engine pages backported into #17–#20 |
 | 3 | an inferred page with every port; toolbox overviews; training topics after M1 and M2 |
 | 4 | native rewrites turn inferred pages into authored ones, with `goby_clang_tool` tables |
 | 5 | versioned site per release, polishing, the ICEX training topic, and the `lamss-docs-archive` index for the old PDF/PPTX collections ([08](08-code-style-licensing-maintenance.md#documentation)) |

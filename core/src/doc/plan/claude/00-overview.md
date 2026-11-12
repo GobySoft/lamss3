@@ -91,6 +91,8 @@ Exit criterion: `core` apps run under `goby_moos_gateway` + MOOSDB in a hand-wri
 - Port `cruise/mbat` + `auv/macrura` as the first cruise ([10](10-milestone-mbat-macrura.md)); this pulls the minimum autonomy and virtual_ocean apps along with it.
 - Documentation site skeleton, `lamss docs`, getting-started, `lamss` tool and mission engine pages, and inferred pages for every app ported so far ([11](11-documentation.md)); from here on a port is done only with its page.
 
+Order of work, now that the M1 protos and apps are merged: documentation is next, then its pages are backported into the open mission framework PRs (GobySoft/lamss3#17–#20) before they merge, then the `mbat` cruise. See [11](11-documentation.md#sequence).
+
 Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation on one machine, and an automated test confirms Macrura reaches its first waypoints on the loiter at the commanded depth ([10](10-milestone-mbat-macrura.md#acceptance)).
 
 ### Phase 3: remaining toolboxes
