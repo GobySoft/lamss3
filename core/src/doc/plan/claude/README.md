@@ -15,5 +15,6 @@ Here are the detailed plans produced by Claude, referenced by the human-written 
 | [08-code-style-licensing-maintenance](08-code-style-licensing-maintenance.md) | clang-format, LGPL/GPL, maintainers, docs |
 | [09-toolboxes](09-toolboxes.md) | Per-toolbox plans and decisions, including the HydroMAN 3 wrapper toolbox |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | M1 definition, port list, acceptance; M2/M3 sketches |
+| [11-documentation](11-documentation.md) | Documentation site (mkdocs-material), authored, generated and inferred pages, the inferred-page template |
 
 Figures are Mermaid blocks, rendered by GitHub and most Markdown viewers.

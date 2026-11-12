@@ -27,6 +27,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 | [08-code-style-licensing-maintenance](08-code-style-licensing-maintenance.md) | clang-format, licenses, maintainers, docs |
 | [09-toolboxes](09-toolboxes.md) | Per-toolbox plans: core, autonomy, sonar, virtual_ocean, gui, mit, icex, attic |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | The first end-to-end target: Macrura in MBAT simulation |
+| [11-documentation](11-documentation.md) | Documentation site, generated reference, inferred pages for ported code |
 
 ## Guiding decisions
 
@@ -88,6 +89,7 @@ Exit criterion: `core` apps run under `goby_moos_gateway` + MOOSDB in a hand-wri
 - Templates for the core apps, gobyd, goby_logger, supervisord.
 - `lamss mission run|sim`.
 - Port `cruise/mbat` + `auv/macrura` as the first cruise ([10](10-milestone-mbat-macrura.md)); this pulls the minimum autonomy and virtual_ocean apps along with it.
+- Documentation site skeleton, `lamss docs`, getting-started, `lamss` tool and mission engine pages, and inferred pages for every app ported so far ([11](11-documentation.md)); from here on a port is done only with its page.
 
 Exit criterion (**M1**): `lm m sim mbat` launches a Macrura + topside simulation on one machine, and an automated test confirms Macrura reaches its first waypoints on the loiter at the commanded depth ([10](10-milestone-mbat-macrura.md#acceptance)).
 

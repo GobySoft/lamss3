@@ -72,8 +72,7 @@ Recorded in a root `MAINTAINERS.md` and `CODEOWNERS` so GitHub requests reviews 
 
 ### Documentation
 
-- Markdown under `<toolbox>/src/doc/`, rendered by `mkdocs-material` in CI to GitHub Pages. Mermaid for figures (rendered natively by GitHub and by `mkdocs-mermaid2`).
-- Each app directory has a `README.md` with: purpose, publishes/subscribes (Goby groups and types), config example, and which components launch it. Generated tables of groups come from the Goby3 interface-export tool (`goby_clang_tool`) once apps are native.
+Detailed in [11](11-documentation.md): one mkdocs-material site from Markdown under `<toolbox>/src/doc/`, with authored pages for new functionality, generated reference (protos, DCCL IDs, CLI, Python API) and inferred pages for ported code, written from a template and reviewed by maintainers.
 - Training topics from the 2025 concept, written after the corresponding milestone: virtual ocean for acomms sim (after M1), sonar sim (after M2), autonomy missions (after M2), ICEX (after M3).
 - The old `src/doc` PDF/PPTX collections (440 MB) move to a `lamss-docs-archive` repository with an index; nothing binary in `lamss3`.
 
