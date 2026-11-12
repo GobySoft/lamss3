@@ -39,7 +39,8 @@ flowchart LR
   - This mirrors how the build collects toolboxes. A user with a private toolbox sees its pages in their local site.
   - The published site is built with every in-tree toolbox active.
 - **Publishing:** a `docs` CI job builds the site with `--strict` on every PR, so broken links and missing pages fail.
-  - On `main` it publishes to GitHub Pages as version `dev`. Release tags publish a numbered version with `mike`.
+  - On `main` it publishes to GitHub Pages for `GobySoft/lamss3` as version `dev`. Release tags publish a numbered version with `mike`.
+  - Inferred pages are published before review, with their banner.
 
 ## Authored documentation for new functionality
 
@@ -125,7 +126,7 @@ flowchart LR
   - Phase 1: the four core apps and the gateway plugin.
   - Phase 2: the M1 autonomy, sonar and virtual_ocean apps and behaviors.
   - This is one PR per toolbox. Sub-agents can do it in parallel, using the same briefs as the ports plus the template.
-- **Review:** the toolbox maintainer named in [08](08-code-style-licensing-maintenance.md#maintenance) reviews it. A page stays `inferred`, with its banner, until then. Open questions become issues, as the Phase 2 bug issues did (GobySoft/lamss3#27–#34).
+- **Review:** the toolbox maintainer named in [08](08-code-style-licensing-maintenance.md#maintenance) reviews it. A page stays `inferred`, and is published with its banner, until then. Open questions become issues, as the Phase 2 bug issues did (GobySoft/lamss3#27–#34).
 - **Native rewrites:** when an app is rewritten to native Goby3 (Phase 4), its page becomes an authored page. The interface tables then come from `goby_clang_tool` instead of the extractor.
 
 ## Phase placement
@@ -137,8 +138,8 @@ flowchart LR
 | 4 | native rewrites turn inferred pages into authored ones, with `goby_clang_tool` tables |
 | 5 | versioned site per release, polishing, the ICEX training topic, and the `lamss-docs-archive` index for the old PDF/PPTX collections ([08](08-code-style-licensing-maintenance.md#documentation)) |
 
-## Open questions for the human plan
+## Decisions
 
-- Review of `core/src/doc/templates/inferred-app.md` and the `pViewMessage` example: are these the right sections and tags?
-- Should the published site carry inferred pages before review (with the banner), or only reviewed ones?
-- Hosting: GitHub Pages on `GobySoft/lamss3` (public), or `gobysoft.org`?
+- The template and its tags are accepted, with the inferring agent named in the banner and in `inferred_by`.
+- Inferred pages are published before review, with their banner.
+- The site is hosted on GitHub Pages for `GobySoft/lamss3`.
