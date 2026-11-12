@@ -29,17 +29,18 @@ which consume its output). Tag every sentence. -->
 
 ## Interfaces
 
-<!-- The tables between the GENERATED markers come from the extraction script
-(`lamss docs extract <app>`); CI fails if they drift from the code. Edit only the
-"Meaning" and "Notes" columns; the script keeps them across re-runs. -->
+<!-- The tables between the GENERATED markers come from `lamss docs extract <app>`, and
+`lamss docs check` (in CI) fails when they drift from the code. Rows are matched by name: the
+script keeps "Meaning" and "Notes", and any cell the code does not determine (a refined
+"Type / format", for example). Handler is the handling function; Where is the source file. -->
 
 ### Subscribes
 
 <!-- BEGIN GENERATED subscribes -->
 | Name | Transport | Type / format | Handler | Meaning | Notes |
 |---|---|---|---|---|---|
-| `VAR_NAME` | MOOS | string: `key=value,...` | `file.cpp:LINE` | | |
-| `lamss::moos::GROUP` | Goby interprocess | `lamss.core.Message` | `file.cpp:LINE` | | |
+| `VAR_NAME` | MOOS | string: `key=value,...` | `handle_var_name` | | |
+| `lamss::moos::GROUP` | Goby interprocess | `lamss.core.Message` | `file.cpp` | | |
 <!-- END GENERATED subscribes -->
 
 ### Publishes
@@ -47,7 +48,7 @@ which consume its output). Tag every sentence. -->
 <!-- BEGIN GENERATED publishes -->
 | Name | Transport | Type / format | Where | Meaning | Notes |
 |---|---|---|---|---|---|
-| `VAR_NAME` | MOOS | double | `file.cpp:LINE` | | |
+| `VAR_NAME` | MOOS | double | `file.cpp` | | |
 <!-- END GENERATED publishes -->
 
 ### Configuration

@@ -37,16 +37,16 @@ It runs on vehicles and on the topside **[guess]** (missions-lamss has `pViewMes
 <!-- BEGIN GENERATED subscribes -->
 | Name | Transport | Type / format | Handler | Meaning | Notes |
 |---|---|---|---|---|---|
-| `VIEW_POINT` | MOOS | string: XYPoint spec | `ViewMessage.cpp:37` | point to send **[code]** | only if `generate_view_objects`; ignored unless its label contains `waypoint` **[code]** |
-| `VIEW_POLYGON` | MOOS | string: XYPolygon spec | `ViewMessage.cpp:38` | polygon to send **[code]** | only if `generate_view_objects` |
-| `VIEW_SEGLIST` | MOOS | string: XYSegList spec | `ViewMessage.cpp:39` | segment list to send **[code]** | only if `generate_view_objects` |
-| `VEHICLE_NAME` | MOOS | string | `ViewMessage.cpp:42` | own vehicle name, lower-cased into `vehicle_name` **[code]** | default `unknown` |
-| `MISSION_STATE` | MOOS | string | `ViewMessage.cpp:43` | mission state, used to tag seglists **[code]** | values come from pLamssMissionManager **[guess]** |
-| `IN_VIEW_SEGLIST` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp:45` | received seglist **[code]** | |
-| `IN_VIEW_POLYGON` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp:46` | received polygon **[code]** | |
-| `IN_VIEW_POINT` | MOOS | string: `key=value,...` (ViewPoint) | `ViewMessage.cpp:47` | received point **[code]** | |
-| `LAT_ORIGIN` | MOOS | double | `ViewMessage.cpp:49` | new local-grid origin latitude **[code]** | NaN ignored; geodesy re-initialised in `loop()` |
-| `LONG_ORIGIN` | MOOS | double | `ViewMessage.cpp:50` | new local-grid origin longitude **[code]** | NaN ignored |
+| `VIEW_POINT` | MOOS | string: XYPoint spec | `handle_view_point` | point to send **[code]** | only if `generate_view_objects`; ignored unless its label contains `waypoint` **[code]** |
+| `VIEW_POLYGON` | MOOS | string: XYPolygon spec | `handle_view_polygon` | polygon to send **[code]** | only if `generate_view_objects` |
+| `VIEW_SEGLIST` | MOOS | string: XYSegList spec | `handle_view_seglist` | segment list to send **[code]** | only if `generate_view_objects` |
+| `VEHICLE_NAME` | MOOS | string | `handle_vehicle_name` | own vehicle name, lower-cased into `vehicle_name` **[code]** | default `unknown` |
+| `MISSION_STATE` | MOOS | string | `handle_mission_state` | mission state, used to tag seglists **[code]** | values come from pLamssMissionManager **[guess]** |
+| `IN_VIEW_SEGLIST` | MOOS | string: `key=value,...` (ViewSegList) | `handle_in_view_seglist` | received seglist **[code]** |  |
+| `IN_VIEW_POLYGON` | MOOS | string: `key=value,...` (ViewSegList) | `handle_in_view_polygon` | received polygon **[code]** |  |
+| `IN_VIEW_POINT` | MOOS | string: `key=value,...` (ViewPoint) | `handle_in_view_point` | received point **[code]** |  |
+| `LAT_ORIGIN` | MOOS | double | `handle_lat_origin` | new local-grid origin latitude **[code]** | NaN ignored; geodesy re-initialised in `loop()` |
+| `LONG_ORIGIN` | MOOS | double | `handle_lon_origin` | new local-grid origin longitude **[code]** | NaN ignored |
 <!-- END GENERATED subscribes -->
 
 ### Publishes
@@ -54,15 +54,15 @@ It runs on vehicles and on the topside **[guess]** (missions-lamss has `pViewMes
 <!-- BEGIN GENERATED publishes -->
 | Name | Transport | Type / format | Where | Meaning | Notes |
 |---|---|---|---|---|---|
-| `OUT_VIEW_POINT` | MOOS | string: `key=value,...` (ViewPoint) | `ViewMessage.cpp:110` | point to send over acomms **[code]** | only when the point is active **[code]**; coordinates are lon/lat **[test]** |
-| `OUT_VIEW_SEGLIST` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp:212` | seglist to send **[code]** | only when active and non-empty |
-| `OUT_VIEW_POLYGON` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp:212` | polygon to send **[code]** | also used for seglists of more than 13 points, replaced by their convex hull **[code]** |
-| `VIEW_POINT` | MOOS | string: XYPoint spec | `ViewMessage.cpp:124` | received point, for pMarineViewer **[code]** | label `<vehicle>_<TYPE>` |
-| `VIEW_SEGLIST` | MOOS | string: XYSegList spec | `ViewMessage.cpp:235` | received seglist **[code]** | |
-| `VIEW_POLYGON` | MOOS | string: XYPolygon spec | `ViewMessage.cpp:235` | received polygon **[code]** | |
-| `OLD_VIEW_POINT` | MOOS | string: `active,…:label,…:type,…:source,…:x,y` | `ViewMessage.cpp:146` | received point in an older drawing format **[code]** | consumer unknown, see open questions |
-| `OLD_VIEW_SEGLIST` | MOOS | string, same older format | `ViewMessage.cpp:275` | received seglist, older format **[code]** | consumer unknown |
-| `OLD_VIEW_POLYGON` | MOOS | string, same older format | `ViewMessage.cpp:275` | received polygon, older format **[code]** | consumer unknown |
+| `OUT_VIEW_POINT` | MOOS | string: `key=value,...` (ViewPoint) | `ViewMessage.cpp` | point to send over acomms **[code]** | only when the point is active **[code]**; coordinates are lon/lat **[test]** |
+| `VIEW_POINT` | MOOS | string: XYPoint spec | `ViewMessage.cpp` | received point, for pMarineViewer **[code]** | label `<vehicle>_<TYPE>` |
+| `OLD_VIEW_POINT` | MOOS | string: `active,…:label,…:type,…:source,…:x,y` | `ViewMessage.cpp` | received point in an older drawing format **[code]** | consumer unknown, see open questions |
+| `OUT_VIEW_POLYGON` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp` | polygon to send **[code]** | also used for seglists of more than 13 points, replaced by their convex hull **[code]** |
+| `OUT_VIEW_SEGLIST` | MOOS | string: `key=value,...` (ViewSegList) | `ViewMessage.cpp` | seglist to send **[code]** | only when active and non-empty |
+| `VIEW_POLYGON` | MOOS | string: XYPolygon spec | `ViewMessage.cpp` | received polygon **[code]** |  |
+| `VIEW_SEGLIST` | MOOS | string: XYSegList spec | `ViewMessage.cpp` | received seglist **[code]** |  |
+| `OLD_VIEW_POLYGON` | MOOS | string, same older format | `ViewMessage.cpp` | received polygon, older format **[code]** | consumer unknown |
+| `OLD_VIEW_SEGLIST` | MOOS | string, same older format | `ViewMessage.cpp` | received seglist, older format **[code]** | consumer unknown |
 <!-- END GENERATED publishes -->
 
 ### Configuration
@@ -70,7 +70,7 @@ It runs on vehicles and on the topside **[guess]** (missions-lamss has `pViewMes
 <!-- BEGIN GENERATED config -->
 | Parameter | Type | Default | Required | Meaning |
 |---|---|---|---|---|
-| `common` | `GobyMOOSAppConfig` | | no | standard Goby MOOS app settings (`app_tick`, `comm_tick`, log, origin) **[code]** |
+| `common` | GobyMOOSAppConfig |  | no | standard Goby MOOS app settings (`app_tick`, `comm_tick`, log, origin) **[code]** |
 | `generate_view_objects` | bool | `true` | no | subscribe to `VIEW_*` and produce `OUT_VIEW_*` **[code]**; set false on a topside that only receives **[guess]** |
 | `destination` | int32 | `1` | no | written into every outgoing message's `destination` **[code]**; modem ID of the receiver **[guess]** |
 <!-- END GENERATED config -->

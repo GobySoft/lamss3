@@ -95,7 +95,7 @@ A reviewer either confirms a **[guess]**, which turns it into plain text, or cor
 
 ### Extraction
 
-`lamss docs extract <app>` reads an app's sources and fills the generated tables. Each row gets its `file:line` and the type or format where it can be determined.
+`lamss docs extract <app>` reads an app's sources and fills the generated tables. Each row gets its handler function (subscriptions) or source file (publications), and the type or format where it can be determined. Line numbers are left out on purpose: they would make every edit to the code fail the check. `lamss docs extract --new <source dir>` starts a page from the template with the tables filled.
 
 | Pattern | Kind |
 |---|---|
@@ -107,8 +107,8 @@ A reviewer either confirms a **[guess]**, which turns it into plain text, or cor
 | IvP behaviors: `addInfoVars`, `getBufferStringVal`/`getBufferDoubleVal`, `postMessage`, `setParam` keys | behavior inputs, outputs, parameters |
 
 - **Variable names built at run time:** a name assembled with `+` or a format string is listed with a `?` and flagged for review.
-- **Re-running:** the extractor rewrites only the generated blocks. It keeps the Meaning and Notes columns by matching rows on name.
-- **CI:** `docs-check` (`lamss docs check`) re-runs the extractor on every page and fails when a generated block differs from the code. A PR that changes an app's interface has to update its page in the same PR.
+- **Re-running:** the extractor rewrites only the generated blocks. It keeps the Meaning and Notes columns, and any cell the code does not determine (such as a refined Type / format), by matching rows on name. Rows for names no longer in the code are dropped.
+- **CI:** the `docs` job runs `lamss docs check`, which re-runs the extractor on every page and fails when a generated block differs from the code. A PR that changes an app's interface has to update its page in the same PR.
 
 ### Process
 
@@ -137,7 +137,7 @@ Documentation is the next work in Phase 2, ahead of the `mbat` cruise. The missi
 
 ```mermaid
 flowchart LR
-  d1[D1 docs site<br/>mkdocs.yml, docs/, lamss docs build/serve,<br/>generated reference, CI + Pages] --> d2[D2 extractor<br/>lamss docs extract/check,<br/>docs-check CI]
+  d1[D1 docs site<br/>mkdocs.yml, docs/, lamss docs build/serve,<br/>generated reference, CI + Pages] --> d2[D2 extractor<br/>lamss docs extract/check,<br/>checked in CI]
   d2 --> d3[D3 inferred pages<br/>core and M1 apps,<br/>libraries, behaviors]
   d1 --> bp[backport into #17-#20<br/>merge main, add each PR's pages]
   d3 --> bp
@@ -147,7 +147,7 @@ flowchart LR
 | Step | Branch / PR | Contents |
 |---|---|---|
 | D1 | `feature/docs-site` | `mkdocs.yml`, `docs/` (home, getting started, `lamss` tool guide, developing), `docs/requirements.txt`, the `lamss.docs` Python package and `lamss docs build\|serve`, the generated messages, DCCL ID and CLI references, the `docs` CI job and publishing to GitHub Pages |
-| D2 | `feature/docs-extract` | `lamss docs extract\|check` and the `docs-check` CI job |
+| D2 | `feature/docs-extract` | `lamss docs extract\|check`, run in the `docs` CI job |
 | D3 | `feature/docs-inferred` | inferred pages for everything on `main`: the core apps, the gateway plugin and core libraries (Phase 1) and the M1 autonomy, sonar and virtual_ocean apps and behaviors |
 | backport | GobySoft/lamss3#17–#20 | merge `main` into #17 and up the stack; each PR adds the pages for what it introduces (below) |
 

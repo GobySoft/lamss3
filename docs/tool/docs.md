@@ -16,4 +16,12 @@ lamss docs build --strict      # fail on broken links and other warnings, as CI 
 - **Links:** write links as they work on GitHub, relative to the page's place in the repository. On the site, links to other published pages point at those pages, and links to anything else in the repository (source files, `AGENTS.md`) point at GitHub.
 - **Publishing:** CI publishes `main` as version `dev`, and each release tag as a numbered version, to GitHub Pages with `lamss docs deploy` (which runs [mike](https://github.com/jimporter/mike)).
 
+Inferred pages for ported code have interface tables generated from the code:
+
+```sh
+lamss docs extract --new sonar/src/bin/pLamssTrackManager   # start a page from the template
+lamss docs extract pLamssTrackManager                       # refresh its tables after a code change
+lamss docs check                                            # every page matches the code (CI)
+```
+
 `lamss docs stage` only assembles `build/docs/stage`, which helps when a page does not appear where expected. How to write pages: [Documentation](../developing/documentation.md).

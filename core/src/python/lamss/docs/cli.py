@@ -106,6 +106,67 @@ def cmd_deploy(root, args):
     return status
 
 
+def _page_for(root, name):
+    path = Path(name)
+    if path.suffix == ".md":
+        return path if path.is_absolute() else Path.cwd() / path
+    matches = sorted(root.glob(f"*/src/doc/*/{name}.md"))
+    if len(matches) != 1:
+        raise SystemExit(f"lamss docs: {len(matches)} pages named {name}.md; give the path")
+    return matches[0]
+
+
+def _new_page(root, source, by):
+    from .extract import new_page
+
+    page, text = new_page(root, source, by)
+    if page.exists():
+        raise SystemExit(f"lamss docs: {page.relative_to(root)} exists; extract without --new")
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(text)
+    return page
+
+
+def cmd_extract(root, args):
+    from .extract import update_page
+
+    if args.new:
+        page = _new_page(root, Path(args.target), args.by)
+        print(f"Created {page.relative_to(root)} from the template; fill in the prose")
+    else:
+        page = _page_for(root, args.target)
+    text = update_page(root, page)
+    if args.stdout:
+        sys.stdout.write(text)
+    elif text != page.read_text():
+        page.write_text(text)
+        print(f"Updated {page.relative_to(root)}")
+    return 0
+
+
+def cmd_check(root, args):
+    import difflib
+
+    from .extract import generated_pages, update_page
+
+    stale = 0
+    for page in generated_pages(root):
+        current = page.read_text()
+        expected = update_page(root, page)
+        if expected != current:
+            stale += 1
+            rel = str(page.relative_to(root))
+            sys.stdout.writelines(difflib.unified_diff(
+                current.splitlines(keepends=True), expected.splitlines(keepends=True),
+                f"a/{rel}", f"b/{rel}"))
+    if stale:
+        print(f"\n{stale} page(s) do not match the code: run `lamss docs extract <page>`",
+              file=sys.stderr)
+        return 1
+    print("Every page's interface tables match the code")
+    return 0
+
+
 def parser():
     p = argparse.ArgumentParser(prog="lamss docs", description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="command", required=True, metavar="command")
@@ -129,6 +190,20 @@ def parser():
     deploy.add_argument("--set-default", metavar="VERSION",
                         help="Version or alias the site's root redirects to")
     deploy.set_defaults(func=cmd_deploy)
+
+    extract = sub.add_parser("extract",
+                             help="Fill an inferred page's interface tables from the code")
+    extract.add_argument("target", help="Page (path or app name), or with --new the source "
+                                        "directory, e.g. core/src/bin/pViewMessage")
+    extract.add_argument("--new", action="store_true",
+                         help="Create the page from the template first")
+    extract.add_argument("--stdout", action="store_true", help="Print instead of writing")
+    extract.add_argument("--by", default="<agent>",
+                         help="With --new: who infers the page (inferred_by), e.g. Claude")
+    extract.set_defaults(func=cmd_extract)
+
+    check = sub.add_parser("check", help="Fail if any page's interface tables differ from the code")
+    check.set_defaults(func=cmd_check)
     return p
 
 

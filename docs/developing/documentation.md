@@ -33,3 +33,4 @@ Most ported code came with no documentation. Its pages are written from the code
 - A banner, "Inferred by &lt;agent&gt;", stays on the page until a maintainer has reviewed it and set `status: reviewed`. Inferred pages are published before review.
 - Every statement is tagged: **[code]** read from the code, **[test]** seen in a test or a run, **[guess]** inferred intent. Review turns a confirmed **[guess]** into plain text, or corrects it.
 - Open questions on the page become GitHub issues.
+- The Subscribes, Publishes and Configuration tables are generated: `lamss docs extract --new <source dir>` starts a page with them filled, and `lamss docs extract <page>` refreshes them, keeping what you wrote in Meaning and Notes. CI runs `lamss docs check`, so a change to an app's interface updates its page in the same pull request.

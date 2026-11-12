@@ -169,10 +169,10 @@ Shells load the **active** checkout from one file, so nobody has to `eval` anyth
 | `serve` | The same, then `mkdocs serve` with live reload |
 | `stage` | Only assembles `build/docs/stage` |
 | `deploy <version> [alias...]` | Publishes a version to the `gh-pages` branch with `mike` (`--push`, `--set-default`) |
-| `extract <app>` | Rewrites the generated interface tables of the app's inferred page from its sources |
-| `check` | Runs `extract` on every page without writing and fails if a generated table differs (the `docs-check` CI job) |
+| `extract <app>` | Rewrites the generated interface tables of the app's inferred page from its sources (`--new` creates the page) |
+| `check` | Runs `extract` on every page without writing and fails if a generated table differs (in the `docs` CI job) |
 
-Like `mission`, it execs a Python module (`python3 -m lamss.docs`, from the checkout's `core/src/python`, so no build is needed) and holds no logic of its own. mkdocs comes from a venv under `build/docs-venv` made from `docs/requirements.txt` on first use. `extract` and `check` come with the extractor (D2 in [11](11-documentation.md#sequence)).
+Like `mission`, it execs a Python module (`python3 -m lamss.docs`, from the checkout's `core/src/python`, so no build is needed) and holds no logic of its own. mkdocs comes from a venv under `build/docs-venv` made from `docs/requirements.txt` on first use. `extract --new <source dir>` starts a page from the inferred-page template.
 
 ### `lamss clean`
 
