@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Iterator, Mapping
+from typing import Any, Iterator, Mapping, Optional
 
 from .errors import MissionError
+from .location import Location, Ref, locate
 
 LAYER_KINDS = ("default", "platform", "fleet", "cruise", "variant", "set")
 
@@ -25,6 +26,7 @@ class Layer:
     values: Mapping[str, Any]
     # an override may only change keys that an earlier layer defined
     strict: bool = False
+    ref: Optional[Ref] = None
 
 
 @dataclass(frozen=True)
@@ -34,6 +36,7 @@ class Explanation:
     source: str
     value: Any
     wins: bool
+    location: Optional[Location] = None
 
 
 def flatten(values: Mapping[str, Any], prefix: str = "", dotted: bool = False) -> Iterator[tuple[str, Any]]:
@@ -97,11 +100,12 @@ class Params:
         self._layers: list[Layer] = []
 
     def add(self, kind: str, source: str, values: Mapping[str, Any], *, dotted: bool = False,
-            strict: bool = False) -> None:
+            strict: bool = False, ref: Optional[Ref] = None) -> None:
         if kind not in LAYER_KINDS:
             raise ValueError(f"unknown layer kind {kind!r}")
         if values:
-            self._layers.append(Layer(kind, source, dict(flatten(values, dotted=dotted)), strict))
+            self._layers.append(Layer(kind, source, dict(flatten(values, dotted=dotted)), strict,
+                                      ref))
 
     def layers(self) -> list[Layer]:
         return sorted(self._layers, key=lambda layer: LAYER_KINDS.index(layer.kind))
@@ -128,11 +132,12 @@ class Params:
         for layer in self.layers():
             for k, value in layer.values.items():
                 if k == key or k.startswith(key + ".") or key.startswith(k + "."):
-                    out.append(Explanation(k, layer.kind, layer.source, value, False))
+                    out.append(Explanation(k, layer.kind, layer.source, value, False,
+                                           locate(layer.ref, k)))
         winners = set()
         for i in reversed(range(len(out))):
             e = out[i]
             if e.key in final and e.key not in winners and final[e.key] == e.value:
                 winners.add(e.key)
-                out[i] = Explanation(e.key, e.kind, e.source, e.value, True)
+                out[i] = Explanation(e.key, e.kind, e.source, e.value, True, e.location)
         return out

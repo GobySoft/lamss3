@@ -277,3 +277,45 @@ def test_explain_derived_value(tree):
         "platform.glider.subsystem.main.component.logging.path")
     assert value == "log/logging"
     assert [(e.kind, e.source) for e in layers] == [("derived", "Logging.derived()")]
+
+
+def test_explanations_give_file_and_line(tree):
+    """Each source points at the line that sets the value: a params keyword or dict key, a list
+    entry, a dotted override key, the class of a concept. Lines count the `from lamss.mission
+    import *` the test tree adds to every file."""
+    m = resolve(tree(), "trial", "deep")
+
+    def where(key, kind):
+        layer = [e for e in m.explain(key)[1] if e.kind == kind][-1]
+        return m.location_text(layer.location)
+
+    assert where("platform.glider.speed", "platform") == "extra/missions/platform/auv/glider/glider.py:7"
+    assert where("platform.glider.modem_id", "fleet") == "extra/missions/fleet/pair/pair.py:6"
+    assert where("platform.glider.subsystem.main.component.logging.level", "fleet") == \
+        "extra/missions/fleet/pair/pair.py:7"
+    assert where("datum.lat", "cruise").startswith("extra/missions/cruise/trial/trial.py:")
+    assert where("platform.glider", "listed") == "extra/missions/fleet/pair/pair.py:6"
+    assert where("platform.glider", "variant").startswith("extra/missions/platform/auv/glider/glider_deep.py:")
+    assert where("warp", "cruise").startswith("lamss/mission/concept.py:")
+
+
+def test_location_of_a_key_set_on_its_own_line(tmp_path, monkeypatch):
+    """A params dict spread over lines gives each key's own line, and a value built in code falls
+    back to the line of its assignment."""
+    from lamss.mission.location import Ref, locate
+
+    source = tmp_path / "spread_test_module.py"
+    source.write_text(
+        "class Spread:\n"
+        "    params = dict(\n"
+        "        speed=1.5,\n"
+        "        datum={'lat': 0.0,\n"
+        "               'lon': 0.0},\n"
+        "    )\n"
+        "    overrides = {k: 1 for k in ('a', 'b')}\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    from spread_test_module import Spread
+
+    assert locate(Ref(Spread, "params"), "speed") == (str(source), 3)
+    assert locate(Ref(Spread, "params"), "datum.lon") == (str(source), 5)
+    assert locate(Ref(Spread, "overrides", key="a")) == (str(source), 7)

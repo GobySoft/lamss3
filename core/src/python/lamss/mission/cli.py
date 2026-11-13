@@ -47,14 +47,23 @@ def _inline(value: Any) -> str:
     return yaml.safe_dump([value], default_flow_style=True, width=1 << 16).strip()[1:-1]
 
 
+def _at(mission: Mission, e: Any) -> str:
+    where = mission.location_text(e.location)
+    return f" ({where})" if where else ""
+
+
 def explain(mission: Mission, key: str) -> str:
     value, layers = mission.explain(key)
     lines = [style.heading(key) + f" = {_inline(value)}"]
     width = max((len(e.source) for e in layers), default=0)
-    for e in layers:
-        mark = style.good("  <- wins") if e.wins else ""
-        lines.append(f"  {e.kind:<8}  {e.source:<{width}}  {e.key} = "
-                     f"{_inline(e.value)}{mark}")
+    assigned = [f"{e.key} = {_inline(e.value)}{'  <- wins' if e.wins else ''}" for e in layers]
+    column = max((len(a) for a in assigned), default=0)
+    for e, a in zip(layers, assigned):
+        # pad the plain text first, so colour codes don't upset the alignment
+        padded = f"{a:<{column}}".replace("  <- wins", style.good("  <- wins"))
+        where = mission.location_text(e.location)
+        where = style.note(where) if where else ""
+        lines.append(f"  {e.kind:<8}  {e.source:<{width}}  {padded}  {where}".rstrip())
     return "\n".join(lines)
 
 
@@ -64,10 +73,11 @@ def explain_brief(mission: Mission, keys: Sequence[str]) -> str:
     for key in keys:
         value, layers = mission.explain(key)
         if key in mission.nodes or f"cruise.{key}" in mission.nodes:
-            source = "; ".join(f"{e.kind} {e.source}" for e in layers)
+            source = "; ".join(f"{e.kind} {e.source}{_at(mission, e)}" for e in layers
+                               if e.kind != "class") + "; class " + _at(mission, layers[-1]).strip(" ()")
         else:
             winner = next((e for e in reversed(layers) if e.wins), layers[-1])
-            source = f"{winner.kind}  {winner.source}"
+            source = f"{winner.kind}  {winner.source}{_at(mission, winner)}"
         rows.append((key, _inline(value), source))
     width = max((len(k) + len(v) for k, v, _ in rows), default=0) + 3
     # pad the plain text first, so colour codes don't upset the alignment
