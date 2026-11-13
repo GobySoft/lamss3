@@ -47,16 +47,16 @@ class CiBackSeatServer : public CMOOSApp
     std::string pitch_rate;
     std::string yaw_rate;
 
-    double nav_x;
-    double nav_y;
-    double nav_z;
-    double course;
-    double dep;
-    double spd;
-    double yw;
-    double pit;
+    double nav_x = 0;
+    double nav_y = 0;
+    double nav_z = 0;
+    double course = 0;
+    double dep = 0;
+    double spd = 0;
+    double yw = 0;
+    double pit = 0;
     double last_bathy_z;
-    double altitude;
+    double altitude = 0;
 
     double prev_pit;
     double prev_yw;
@@ -73,18 +73,18 @@ class CiBackSeatServer : public CMOOSApp
                                                       std::numeric_limits<double>::quiet_NaN()};
 
     // Ice-tracking DVL
-    double dvl_ice_track;
-    double ice_roughness;
-    double ice_thickness;
-    double ice_roughness_mean;
-    double ice_roughness_stdev;
+    double dvl_ice_track = 0;
+    double ice_roughness = 0;
+    double ice_thickness = 0;
+    double ice_roughness_mean = 0;
+    double ice_roughness_stdev = 0;
     std::default_random_engine generator;
     std::normal_distribution<double> ice_roughness_dist;
 
     // Simulating a lost DVL lock
     bool simulate_dvl_loss;
-    double dvl_lost_interval;
-    double simulate_dvl_loss_start_time;
+    double dvl_lost_interval = 0;
+    double simulate_dvl_loss_start_time = 0;
 
     // Simulating DVL min/max range
     double simulate_dvl_range;
