@@ -64,6 +64,9 @@ def test_explain_unknown_key(tree):
         m.explain("platform.glider.max_dept")
     with pytest.raises(MissionError, match="names nothing"):
         m.explain("platform.nope.max_depth")
+    with pytest.raises(MissionError, match="'platform.glider' is a platform, not a parameter; "
+                                           "its parameters: .*max_depth"):
+        m.explain("platform.glider")
 
 
 def test_set_of_unknown_parameter_is_an_error(tree):

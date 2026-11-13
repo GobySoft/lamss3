@@ -82,6 +82,10 @@ class Mission:
             node = ".".join(parts[:i])
             if node in self.params:
                 return node, ".".join(parts[i:])
+        if ".".join(parts) in self.params:
+            known = ", ".join(self.params[".".join(parts)].flat()) or "none"
+            raise MissionError(f"'{key}' is a {self.nodes['.'.join(parts)].kind}, not a parameter; "
+                               f"its parameters: {known}")
         prefix = ".".join(parts[:2]) if parts[0] == "platform" else parts[0]
         children = sorted(k for k in self.params if k.startswith(prefix.rsplit(".", 1)[0] + "."))
         raise MissionError(f"'{key}' names nothing in cruise {self.name}"

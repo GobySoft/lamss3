@@ -105,7 +105,6 @@ class Component(Concept):
     run_only: ClassVar[bool] = False
     processes: ClassVar[Sequence[Process]] = []
     templates: ClassVar[Sequence[str]] = []
-    data_files: ClassVar[Sequence[str]] = []
 
     subsystem: "Subsystem"
 
