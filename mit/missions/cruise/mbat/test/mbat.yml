@@ -1,0 +1,9 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Run with `lamss mission test mbat`.
+test:
+  name: mbat cruise
+  default_timeout: 10
+  require_app:
+    - { endpoint: resolution_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }

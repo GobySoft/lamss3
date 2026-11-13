@@ -71,7 +71,7 @@ flowchart LR
 
    *This section written by Claude*
 
-   Status: the framework half is done with `core`'s `example` cruise (a topside with gobyd, MOOSDB, the gateway, goby_logger, goby_coroner, pViewMessage and, with `gui` active, goby_liaison; see [06](06-missions-framework.md#implementation-plan)). What remains for this step is the MBAT environment, the `resolution` platform and the `mbat` cruise, whose toolbox is still an open question.
+   Status: the framework half is done with `core`'s `example` cruise (a topside with gobyd, MOOSDB, the gateway, goby_logger, goby_coroner, pViewMessage and, with `gui` active, goby_liaison; see [06](06-missions-framework.md#implementation-plan)). The `mit` toolbox now adds the `mass_bay` environment (flat 100 m until `iNoaaBathy` reads the MBAT data), the `resolution` topside, the `mit_bf21` fleet and the `mbat` cruise; `lm m sim mbat` runs the topside and `lamss_mit_mission_mbat` checks its Goby apps are healthy ([page](../../../../../mit/src/doc/missions/mbat.md)).
 
 2. **Macrura main + frontseat_sim**: the vehicle drives a LOITER at 15 m / 1.8 m/s (the `mbat` deploy defaults) in `uMVS_Bluefin`; pMarineViewer shows it; the mission manager transitions `DEPLOY`.
 3. **Acomms**: topside sends `LAMSS_DEPLOY` over netsim, vehicle replies with `LAMSS_STATUS`; `pViewMessage` carries the op box.

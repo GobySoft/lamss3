@@ -10,4 +10,8 @@ if(NOT _in_tree)
 endif()
 lamss_toolbox(NAME mit REQUIRES core)
 
+if(BUILD_TESTING)
+  add_subdirectory(src/test)
+endif()
+
 lamss_toolbox_export()
