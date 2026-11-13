@@ -1,13 +1,18 @@
 // Copyright 2019-2026 Massachusetts Institute of Technology
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <boost/algorithm/string/case_conv.hpp>
+
 #include <ivp/XYCircle.h>
 #include <ivp/XYSegList.h>
 
+#include "goby/middleware/frontseat/groups.h"
 #include "goby/middleware/marshalling/cstr.h"
 #include "goby/middleware/marshalling/protobuf.h"
+#include "goby/middleware/protobuf/frontseat_data.pb.h"
 
 #include "goby/moos/middleware/moos_plugin_translator.h"
+#include "goby/moos/moos_string.h"
 #include "goby/moos/moos_translator.h"
 #include "goby/moos/protobuf/pAcommsHandler_config.pb.h"
 
@@ -203,8 +208,18 @@ class NodeReportTranslation : public goby::moos::Translator
                     nr->set_utc_time(nr->time());
                 else if (nr->has_utc_time() && !nr->has_time())
                     nr->set_time(nr->utc_time());
+                // pNodeReporter writes DEP rather than DEPTH
+                double depth;
+                if (!nr->has_depth() &&
+                    goby::moos::val_from_string(depth, moos_msg.GetString(), "DEP"))
+                    nr->set_depth(depth);
 
                 this->goby().interprocess().publish<lamss::core::groups::node_report>(nr);
+                if (nr->has_lat() && nr->has_lon())
+                    this->goby()
+                        .interprocess()
+                        .publish<goby::middleware::frontseat::groups::node_status>(
+                            node_status(*nr));
             });
 
         this->goby()
@@ -219,6 +234,34 @@ class NodeReportTranslation : public goby::moos::Translator
     }
 
   private:
+    // For Goby clients of node positions, such as goby_liaison's map
+    static goby::middleware::frontseat::protobuf::NodeStatus
+    node_status(const lamss::core::LegacyNodeReport& nr)
+    {
+        goby::middleware::frontseat::protobuf::NodeStatus status;
+        status.set_time(nr.time());
+        status.set_name(nr.name());
+        std::string type = nr.type();
+        boost::algorithm::to_upper(type);
+        goby::middleware::frontseat::protobuf::VehicleType vehicle_type;
+        if (goby::middleware::frontseat::protobuf::VehicleType_Parse(type, &vehicle_type))
+            status.set_type(vehicle_type);
+        status.mutable_global_fix()->set_lat(nr.lat());
+        status.mutable_global_fix()->set_lon(nr.lon());
+        if (nr.has_depth())
+            status.mutable_global_fix()->set_depth(nr.depth());
+        if (nr.has_x() && nr.has_y())
+        {
+            status.mutable_local_fix()->set_x(nr.x());
+            status.mutable_local_fix()->set_y(nr.y());
+            if (nr.has_depth())
+                status.mutable_local_fix()->set_z(-nr.depth());
+        }
+        status.mutable_pose()->set_heading(nr.hdg());
+        status.mutable_speed()->set_over_ground(nr.spd());
+        return status;
+    }
+
     goby::moos::MOOSTranslator translator_;
 };
 

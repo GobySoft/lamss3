@@ -50,7 +50,7 @@ Not found by the extractor:
 | `ACOMMS_ACK_ORIGINAL`, `ACOMMS_EXPIRE`, `ACOMMS_MAC_SLOT_START` | MOOS | string: Goby MOOS protobuf encoding (type name and message) | `add_trigger` | pAcommsHandler events **[guess]** | republished on the matching Goby group; unparseable strings are logged and dropped **[code]** |
 | `HYDROMAN_HEALTH_IN` | MOOS | string: Goby MOOS protobuf encoding | `add_trigger` | HydroMAN health **[guess]** | → `hydroman_health` **[code]** |
 | `LAMSS_STATUS_IN` | MOOS | string: Goby MOOS protobuf encoding | `add_trigger` | vehicle status received **[guess]** | → `lamss_status_in` **[code]** |
-| `NODE_REPORT` | MOOS | string: `NAME=…,TYPE=…,UTC_TIME=…,X=…,Y=…,…` | `add_trigger` | node report **[code]** | parsed by a `MOOSTranslator` entry, keys matched to `LegacyNodeReport` fields **[code]** |
+| `NODE_REPORT` | MOOS | string: `NAME=…,TYPE=…,UTC_TIME=…,X=…,Y=…,…` | `add_trigger` | node report **[code]** | parsed by a `MOOSTranslator` entry, keys matched to `LegacyNodeReport` fields **[code]**; pNodeReporter's `DEP` is read as `depth` **[code]** |
 
 ### Publishes
 
@@ -63,6 +63,7 @@ Not found by the extractor:
 | `lamss::core::groups::hydroman_health` | Goby interprocess |  | `moos_gateway_plugin.cpp` | from MOOS `HYDROMAN_HEALTH_IN` **[code]** | group `lamss::groups::hydroman_health` (not `lamss::moos::`) **[code]**; type from the MOOS string |
 | `lamss::core::groups::lamss_status_in` | Goby interprocess |  | `moos_gateway_plugin.cpp` | from MOOS `LAMSS_STATUS_IN` **[code]** | group `lamss::moos::LAMSS_STATUS_IN`; a `lamss.core.LAMSS_STATUS` received over acomms **[guess]** |
 | `lamss::core::groups::node_report` | Goby interprocess |  | `moos_gateway_plugin.cpp` | from MOOS `NODE_REPORT`, as `lamss.core.LegacyNodeReport` **[code]** | group `lamss::moos::NODE_REPORT`; `time` and `utc_time` are copied to each other when only one is set **[code]**; checked by `lamss_core_moos_smoke` **[test]** |
+| `goby::middleware::frontseat::groups::node_status` | Goby interprocess |  | `moos_gateway_plugin.cpp` | from MOOS `NODE_REPORT` when it has `LAT` and `LON`, as `goby.middleware.frontseat.protobuf.NodeStatus` **[code]** | for Goby clients of positions such as goby_liaison's map **[code]**; `TYPE` maps to `VehicleType` when it names one **[code]** |
 <!-- END GENERATED publishes -->
 
 Not found by the extractor (all posted with `moos().comms()`):
