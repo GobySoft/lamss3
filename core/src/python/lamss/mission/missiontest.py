@@ -194,5 +194,10 @@ def run(mission: Mission, layout: render.Layout, selection: Sequence[render.Sele
             raise MissionError(f"cannot run {goby}; is goby3-apps installed?") from None
         finally:
             supervisor.stop(layout)
+        exits = supervisor.unexpected_exits(layout)
+        if exits:
+            style.print_error("lamss mission test", MissionError(
+                f"{len(exits)} process exit(s) during the test:\n  " + "\n  ".join(exits[:20])))
+            status = status or 1
         worst = max(worst, status)
     return worst

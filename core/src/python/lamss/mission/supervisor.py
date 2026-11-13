@@ -50,6 +50,15 @@ def states(layout: Layout) -> Optional[list[ProgramState]]:
     return out
 
 
+def unexpected_exits(layout: Layout) -> list[str]:
+    """supervisord's log lines for programs that ended on their own (a stop logs `stopped:`)."""
+    log = layout.run / "log" / "supervisord.log"
+    if not log.is_file():
+        return []
+    return [line.strip() for line in log.read_text(errors="replace").splitlines()
+            if " exited: " in line or " gave up: " in line]
+
+
 def supervisord_pid(layout: Layout) -> Optional[int]:
     try:
         pid = int(layout.pidfile.read_text().strip())
