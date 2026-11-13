@@ -41,3 +41,7 @@ your own section:
 - Prefix any documentation you write with `*This section written by <agent>*`: directly below the heading of a new section, or on its own line above text added to an existing section. Small edits can be made without this disclaimer.
 
 
+## Data files
+
+- Keep each data file committed to the repository under 1 MB.
+- Larger files (bathymetry, ocean model output, recordings) go in the `lamss-virtual-ocean` S3 bucket, `https://lamss-virtual-ocean.s3.ap-southeast-2.amazonaws.com/`, under `<ocean>/<region>/<source>/<file>` (for example `atlantic/jersey_shelf/mseas/...`). The repository records each file's URL.
