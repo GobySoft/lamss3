@@ -177,6 +177,6 @@ IvPico-related work that lamss3 should contribute upstream rather than fork: the
 
 ## Open questions for the human plan
 
-- Viewers (decided): Goby Liaison and GEOV for now, plus OpenCPN support to be added (Goby3 already ships `goby_opencpn_interface`); pMarineViewer is dropped. All of it is configured by the `viewer` component in the `gui` toolbox.
+- Viewers (decided): Goby Liaison and GEOV for now, plus OpenCPN support to be added (Goby3 already ships `goby_opencpn_interface`); pMarineViewer is dropped. All of it is configured by the `viewer` component in the `gui` toolbox, except GEOV, which has its own `geov` component ([12](12-geov.md)).
 - The shim lives in `core` until M4, then its fate is decided by what is left (decided).
 - Removing MOOS entirely means Population A is fully rewritten, not just shimmed: confirmed as the goal.

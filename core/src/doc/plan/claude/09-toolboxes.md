@@ -20,7 +20,7 @@ flowchart LR
 - `pCoroner` is not ported as an app. Its job (watch processes, publish a health summary) is done by a supervisord event listener in Python (`lamss_health_listener`) that publishes `lamss.core.ProcessHealth` through a tiny Goby3 publisher, plus `goby_coroner` for the Goby side.
 - `pPBNodeReport`, `uTopsideSetup` and the `NODE_REPORT` string handling collapse into one `lamss_node_report` Goby3 app that converts between `openocean.Navigation`, Goby `NodeStatus`, and the `NODE_REPORT` string for pMarineViewer.
 - `henrik_util` is split by a header-dependency walk: `CVectorUtils`, `CMeasAvg`, `CCovMat`, `CKalmanFilter` (rewritten without OpenCV), `Random` → `core`; `CAcousticModel`, `CRapRays`, `CEigenRays`, `CLamssNetcdf` → `virtual_ocean`; `CTarget`, `CTrack`, `CNoiseCovariance`, `Multistatic_SonarUtils` → `sonar`.
-- GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_interface`, configured by `gui`'s viewer component. The interface itself is headless and ships in `goby3-apps`, so it needs nothing from `gui` at run time.
+- GEOV is still used; `iMOOS2SQL` is replaced by Goby3's `goby_geov_interface` for vehicle positions, configured by an optional `geov` component in `gui` ([12](12-geov.md)). The interface itself is headless and ships in `goby3-apps`, so it needs nothing from `gui` at run time.
 
 *This section written by Claude*
 
@@ -119,7 +119,8 @@ flowchart LR
 **Contents**: everything that needs a display library, so that Wt, FLTK, OpenGL and Bokeh are installed only where `gui` is activated (topside and developer machines, not vehicles or most CI jobs):
 
 - Liaison plugins for lamss3: a `lamss.core` group viewer and `lamss_appcast_viewer` for the shim's AppCast group ([05](05-middleware-moos-to-goby3.md#cmoosapp-shim-population-b)).
-- The `viewer` mission component: `goby_liaison`, pMarineViewer while it is still used, and configuration for `goby_geov_interface` and `goby_opencpn_interface` (both headless, from `goby3-apps` in `core`).
+- The `viewer` mission component: `goby_liaison`, pMarineViewer while it is still used, and configuration for `goby_opencpn_interface` (headless, from `goby3-apps` in `core`).
+- The `geov` mission component: `goby_geov_interface` (headless, from `goby3-apps`) feeding an external GEOV server ([12](12-geov.md)).
 - The LAMSS Display Center and its plot servers (`btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server`), fed from Goby3 groups instead of pymoos.
 - Any future desktop GUI (FLTK, Qt).
 

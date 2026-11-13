@@ -69,7 +69,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pPBNodeReport`, `uTopsideSetup` | lamss-shared | GobyMOOSApp | 256 / 255 | Node report conversions |
 | `pInitializer` | lamss | GobyMOOSApp | 55 | Duplicate of Goby's; drop once missions use Goby3 config |
 | `pMOOSLink` | lamss | CMOOSApp | 316 | Bridges two MOOSDBs; needed only until M4, then attic |
-| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; replaced by Goby3's `goby_geov_interface`, so attic |
+| `iMOOS2SQL` | lamss | GobyMOOSApp | 895 | GEOV feed; vehicle positions are replaced by Goby3's `goby_geov_interface`, so attic; its module feeds (op box, contacts) have no replacement yet ([12](12-geov.md)) |
 | `lib_pylamss`, `lib_pybellhop` | lamss-shared | python3 | ~2k | Log tools, Bellhop readers |
 | `scripts/km`, `.bash_lamss` | lamss | sh | | Replaced by `lamss env` and `lamss mission stop` |
 
@@ -81,7 +81,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 |---|---|---|---|---|
 | `display-center` (LAMSS Display Center) | lamss-shared | web (Bokeh, websockets) | ~10k | Kept; fed from Goby3 groups instead of pymoos |
 | `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis`, `tda_plot`, `lamssDC_server` | lamss-shared | python3 | | Display Center plot servers used by live missions ([live apps](#apps-actually-launched-by-live-scenarios)) |
-| viewer mission component | missions-lamss | gpp plugs | | Liaison, pMarineViewer (until dropped), GEOV and OpenCPN interface configuration |
+| viewer mission component | missions-lamss | gpp plugs | | Liaison, pMarineViewer (until dropped), OpenCPN interface configuration; GEOV is a separate `geov` component ([12](12-geov.md)) |
 
 ### autonomy
 
@@ -172,7 +172,7 @@ Everything not named above. Highlights so nobody goes looking:
 | Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iBackSeatServer`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
 | Superseded by Goby/MOOS-IvP stock apps | `iModemSim` (netsim), `zLoggerNG`, `uTPB`, `pMailReader`, `pMOOSLink` (after M4), `pInitializer` |
 | Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker`; `uTDA` |
-| Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_interface`); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
+| Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_interface`, positions only); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
 | Internal HydroMAN 1.x (replaced by the HydroMAN 3 repository via the `hydroman` toolbox) | `pHydroMAN_{BasicModel,ModelCalibrator,LBLProcessor,DVLProcessor,SensorFusion,Manager,ModelEstimator}`, `pHydroMAN_ICEXManager` (14k lines, armadillo + embedded Python); the `hydroman`/`hydroman_3` mission flags and `auv/macrura/macrura_plugs/pHydroMAN_BasicModel.plug` |
 | Dead science code (hardcoded `/home/<user>` paths, thesis chains) | emf43 scattering chain (8 apps), `pImagePro`, `pROI`, `lib_arjuna_util`, `pRBTracker`, `pMBTracker`, `p1HTracker`, `pTrackManager`, `pTargetTracker`, `pTwostateTracker` (OpenCV < 3), `pActiveRangeTracker`, `pActiveGeoTracker` (OpenCV < 3), `lib_metrics` |
 | Glider | `pHelmToSlocum`, `uSimSlocum`, `glider/` missions |
