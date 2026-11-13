@@ -82,6 +82,10 @@ class Mission:
             node = ".".join(parts[:i])
             if node in self.params:
                 return node, ".".join(parts[i:])
+        if ".".join(parts) in self.params:
+            known = ", ".join(self.params[".".join(parts)].flat()) or "none"
+            raise MissionError(f"'{key}' is a {self.nodes['.'.join(parts)].kind}, not a parameter; "
+                               f"its parameters: {known}")
         prefix = ".".join(parts[:2]) if parts[0] == "platform" else parts[0]
         children = sorted(k for k in self.params if k.startswith(prefix.rsplit(".", 1)[0] + "."))
         raise MissionError(f"'{key}' names nothing in cruise {self.name}"
@@ -90,6 +94,9 @@ class Mission:
     def explain(self, key: str) -> tuple[Any, list[Explanation]]:
         node, param = self.route(key)
         flat = self.params[node].flat()
+        allocated = self._explain_allocated_port(node, param, flat)
+        if allocated:
+            return allocated
         matches = {k: v for k, v in flat.items() if k == param or k.startswith(param + ".")}
         if not matches:
             raise MissionError(f"{node} has no parameter '{param}' (known: {', '.join(flat)})")
@@ -98,6 +105,20 @@ class Mission:
             for part in param.split("."):
                 value = value[part]
         return value, self.params[node].explain(param)
+
+
+    def _explain_allocated_port(self, node: str, param: str, flat: dict[str, Any]):
+        concept = self.nodes[node]
+        if not param.startswith("ports.") or param in flat or concept.kind != "subsystem":
+            return None
+        name = param[len("ports."):]
+        port = getattr(concept, "allocated_ports", {}).get(name)
+        if port is None:
+            return None
+        port_range = next((r for c in concept.components for n, r in component_ports(c).items()
+                           if n == name), None)
+        source = "cruise.port_base" if port_range is None else f"cruise.port_ranges.{port_range}"
+        return port, [Explanation(param, "allocated", source, port, True)]
 
 
 class _Resolver:

@@ -62,7 +62,6 @@ classDiagram
     +requires: list~type~
     +processes: list~Process~
     +templates: list
-    +data_files: list
   }
   class Process {
     +name: str

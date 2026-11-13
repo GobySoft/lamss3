@@ -105,7 +105,6 @@ class Component(Concept):
     run_only: ClassVar[bool] = False
     processes: ClassVar[Sequence[Process]] = []
     templates: ClassVar[Sequence[str]] = []
-    data_files: ClassVar[Sequence[str]] = []
     # templates rendered into a file another component owns, e.g. {"last.moos": ["pApp.moos.j2"]};
     # the owner's template sees them as fragments["last.moos"]
     fragments: ClassVar[dict[str, Sequence[str]]] = {}

@@ -86,7 +86,9 @@ class Registry:
     Only one registry is active per process: loading one replaces the `missions` package."""
 
     def __init__(self, toolboxes: Sequence[Toolbox]):
-        self.toolboxes = [t for t in toolboxes if t.missions.is_dir()]
+        # absolute, so a class's file can be matched to its toolbox wherever the caller started
+        self.toolboxes = [Toolbox(t.name, t.missions.resolve()) for t in toolboxes
+                          if t.missions.is_dir()]
         self._by_path: dict[str, type[Concept]] = dict(BASE_CLASSES)
         self._path_of: dict[type, str] = {cls: path for path, cls in BASE_CLASSES.items()}
         self._by_name: dict[str, type[Concept]] = {}

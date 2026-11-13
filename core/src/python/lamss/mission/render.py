@@ -230,9 +230,9 @@ class Renderer:
             where = ", ".join(str(d) for d in self.search_path(component))
             raise MissionError(f"template {name} not found (searched {where})") from None
         except jinja2.TemplateError as e:
-            lineno = getattr(e, "lineno", None)
+            where, lineno = _template_location(e, name)
             owner = f" for {component.path}" if component is not None else ""
-            raise MissionError(f"{name}{':' + str(lineno) if lineno else ''}{owner}: {e}") from None
+            raise MissionError(f"{where}{':' + str(lineno) if lineno else ''}{owner}: {e}") from None
 
     def render_string(self, text: str, context: dict, what: str) -> str:
         try:
@@ -407,6 +407,22 @@ class Renderer:
         lines += ["", "[inet_http_server]", f"port={address}:{port}"]
         lines += ["", "[include]", f"files={' '.join(includes)}"]
         return "\n".join(lines) + "\n"
+
+
+def _template_location(error: jinja2.TemplateError, name: str) -> tuple[str, Optional[int]]:
+    """The template file and line an error is in. Syntax errors carry them; errors raised while
+    rendering (an undefined variable) are found in the traceback, which jinja2 maps to template
+    lines, so an error inside an included template names that template."""
+    if getattr(error, "lineno", None):
+        return Path(getattr(error, "filename", None) or name).name, error.lineno
+    location: tuple[str, Optional[int]] = (name, None)
+    tb = error.__traceback__
+    while tb is not None:
+        filename = tb.tb_frame.f_code.co_filename
+        if filename.endswith(".j2"):
+            location = (Path(filename).name, tb.tb_lineno)
+        tb = tb.tb_next
+    return location
 
 
 def _output_name(template: str) -> str:
