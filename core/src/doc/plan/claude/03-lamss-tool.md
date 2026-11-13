@@ -9,7 +9,7 @@ Detail for the "LAMSS Tool" section of the [core plan](../core.md).
 - Modern subcommand CLI, `lamss <command> [<subcommand>] [options]`, with `lm` as a shell alias when free.
 - Written in C++17 with no dependencies beyond the standard library and yaml-cpp, so it builds before anything else is installed; it is the tool that installs the rest (Goby3 included). An earlier draft used the Goby3 tool framework, which forced `init.sh` to install Goby3 before the tool could exist.
 - Implicit help when a subcommand is required; `--help` everywhere.
-- Subcommands: `build`, `dependencies`, `toolbox`, `mission`, plus `env` (added here).
+- Subcommands: `build`, `dependencies`, `toolbox`, `mission`, plus `env` (added here) and `docs` ([11](11-documentation.md)).
 
 ## Bootstrap
 
@@ -63,6 +63,12 @@ flowchart LR
   env --> el[list]
   env --> esw[switch]
   env --> eh[hook]
+  lamss --> docs
+  docs --> db[build]
+  docs --> ds[serve]
+  docs --> dst[stage]
+  docs --> dx[extract]
+  docs --> dc[check]
   lamss --> clean
 ```
 
@@ -161,6 +167,20 @@ Shells load the **active** checkout from one file, so nobody has to `eval` anyth
 | `hook [--remove] [--rc FILE]` | Adds or removes the rc block; adding twice is a no-op |
 
 `env.sh` is static shell rather than a call to the tool, so shells start without running the binary and still start when a build is broken. Non-interactive contexts (CI, cron, supervisord) source `env.sh` or use `lamss env show` explicitly rather than relying on `~/.bashrc`. Only POSIX shells (bash, zsh, dash) are supported.
+
+### `lamss docs build|serve|stage|extract|check`
+
+*This section written by Claude*
+
+| Subcommand | Does |
+|---|---|
+| `build` | Stages `docs/` and every active toolbox's `src/doc/`, runs the reference generators, then `mkdocs build --strict` into `build/site` |
+| `serve` | The same, then `mkdocs serve` with live reload |
+| `stage` | Only assembles `build/docs/stage` |
+| `extract <app>` | Rewrites the generated interface tables of the app's inferred page from its sources (`--new` creates the page) |
+| `check` | Runs `extract` on every page without writing and fails if a generated table differs (in the `docs` CI job) |
+
+Like `mission`, it execs a Python module (`python3 -m lamss.docs`, from the checkout's `core/src/python`, so no build is needed) and holds no logic of its own. mkdocs comes from a venv under `build/docs-venv` made from `docs/requirements.txt` on first use. `extract --new <source dir>` starts a page from the inferred-page template.
 
 ### `lamss clean`
 

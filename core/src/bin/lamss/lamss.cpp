@@ -12,6 +12,6 @@ int main(int argc, char* argv[])
                  {},
                  {},
                  {build_command(), toolbox_command(), dependencies_command(), mission_command(),
-                  env_command(), clean_command()}};
+                  env_command(), docs_command(), clean_command()}};
     return dispatch(root, argc, argv);
 }

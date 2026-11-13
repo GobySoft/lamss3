@@ -75,7 +75,7 @@ Jobs:
 | `build-all` | From a stock `ubuntu:<codename>` image: `./init.sh`, `lm dep install && lm b --test` with every in-tree toolbox active, over jammy, noble, resolute × amd64, arm64 |
 | `mission-smoke` | `lm m sim mbat --variant smoke --execute` for 5 simulated minutes under `warp`; asserts supervisord shows all processes `RUNNING` and the mission manager reached `DEPLOY` |
 | `package` | `cpack -G DEB` per toolbox; `lintian` |
-| `docs` | Renders the mermaid figures and the Markdown docs into a static site (mkdocs-material) |
+| `docs` | `lamss docs build --strict` (mkdocs-material, [11](11-documentation.md)) and `docs-check` (inferred pages' interface tables match the code); publishes to GitHub Pages from `main` |
 
 Submodule toolboxes (`icex`, `attic`) run their own CI in their own repositories, triggered on `lamss3` tags, and are **not** part of the `lamss3` required checks. `attic` is never built in CI (or anywhere by default). The `hydroman` wrapper is not built in `lamss3` CI at all: it depends on a private repository, and its own CI lives with that repository.
 
