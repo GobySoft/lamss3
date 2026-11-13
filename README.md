@@ -20,3 +20,5 @@ lm b
 `lamss --help` lists the commands, and every command takes `--help`. `./init.sh --yes` runs every step without asking (CI); `./init.sh --no-deps` installs no packages; `lm dep install` installs what newly activated toolboxes need.
 
 With more than one checkout, run `./init.sh` in each; `lamss env list` shows them and `lamss env switch <name or path>` changes which one your shells use.
+
+The documentation is in `docs/` and each toolbox's `src/doc/`; `lamss docs serve` builds it and serves it on http://127.0.0.1:8000.

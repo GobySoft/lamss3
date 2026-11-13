@@ -1,0 +1,28 @@
+# Site navigation, expanded by `lamss docs` (core/src/python/lamss/docs/nav.py). Paths are staged
+# paths: docs/ pages as they are, <toolbox>/src/doc/<page> as <toolbox>/<page>. Pages that were
+# not staged (an inactive toolbox) are left out.
+- Home: index.md
+- Getting started: getting-started.md
+- lamss tool:
+    - tool/index.md
+    - tool/build.md
+    - tool/toolbox.md
+    - tool/dependencies.md
+    - tool/env.md
+    - tool/docs.md
+    - tool/clean.md
+- Toolboxes: "@toolboxes"
+- Reference:
+    - Messages: "@messages"
+    - DCCL IDs: reference/dccl-ids.md
+    - lamss commands: reference/cli.md
+- Developing:
+    - developing/index.md
+    - developing/build-system.md
+    - developing/porting.md
+    - developing/testing.md
+    - developing/documentation.md
+- Project:
+    - Plan: core/plan/core.md
+    - Detailed plans: "@dir:core/plan/claude"
+    - Sources: "@dir:core/plan/sources"
