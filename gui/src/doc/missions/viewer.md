@@ -33,3 +33,5 @@ lm m sim example
 *This section written by Claude*
 
 goby_liaison's Map tab (goby3 3.6.1+60 or later) shows each vehicle from the `NodeStatus` messages on `goby::middleware::frontseat::node_status`. The lamss gateway plugin publishes them from MOOS `NODE_REPORT`. Liaison sees only its own subsystem's `gobyd`, so a topside's map shows other platforms once acomms brings their status there.
+
+The commander offers the messages the cruise lists in `commands` (each a protobuf `type` and the Goby `group` to publish it on). For example, `mbat` lists `lamss.autonomy.LAMSS_DEPLOY` on `lamss::goby::pAcommsHandler_multiplex`, which the lamss gateway plugin hands to pAcommsHandler to send.

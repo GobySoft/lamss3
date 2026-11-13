@@ -7,6 +7,12 @@ additional_wt_http_params: {{ ("--accesslog=" ~ paths.run ~ "/liaison_access.log
 load_shared_library: {{ lib | pb_string }}
 {%- endfor %}
 pb_commander_config {
+{%- for command in cruise.get("commands", []) %}
+  load_protobuf {
+    name: {{ command.type | pb_string }}
+    publish_to { group: {{ command.group | pb_string }} layer: LAYER_INTERPROCESS }
+  }
+{%- endfor %}
   sqlite3_database: {{ (paths.run ~ "/liaison_commander.db") | pb_string }}
 }
 pb_map_config {
