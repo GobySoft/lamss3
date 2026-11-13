@@ -1,22 +1,5 @@
-#--------------------------------------------------------
-# The CMakeLists.txt for:               iBackSeatServer 
-# Author(s):                            Arjuna Balasuriya
-#--------------------------------------------------------
+# Copyright 2011-2026 Massachusetts Institute of Technology
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-set (CMAKE_CXX_FLAGS_RELEASE "-g")
-
-FILE(GLOB SRC *.cpp)
-
-ADD_EXECUTABLE(iBackSeatServer ${SRC})
-
-TARGET_LINK_LIBRARIES(iBackSeatServer 
-   ${MOOS_LIBRARIES}
-   anrp_util
-   ${GOBY_LIBRARIES}
-   ${Boost_LIBRARIES}
-   ${PROTOBUF_LIBRARIES}
-#   m
-#   pthread
-#   goby_linebasedcomms
-)
-
+lamss_add_app(iBackSeatServer MOOS
+  SOURCES iBackSeatServer.cpp iBackSeatServerMain.cpp)
