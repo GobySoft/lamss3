@@ -782,7 +782,8 @@ void LamssMissionManager::handle_ifs_data(const CMOOSMsg& msg)
             ss << "Timestamp=" << std::setprecision(15) << last_nav_.time();
             publish("GPS_UPDATE_RECEIVED", ss.str());
             got_gps_nav = true;
-            last_gps_ = last_nav_.time();
+            // compared with MOOSTime(), which runs on a different clock when warped
+            last_gps_ = MOOSTime();
         }
     }
     // Handle landing and takeoff
