@@ -10,7 +10,9 @@ package lamss.core;
 message GobyGatewayConfig
 {
     optional string multiplex_moos_var = 1 [default = "LIAISON_COMMANDER_OUT"];
-    repeated string load_shared_library = 2;
+    // use app { load_shared_library } instead, which loads before the translator threads start
+    reserved 2;
+    reserved "load_shared_library";
 }
 
 extend goby.apps.moos.protobuf.GobyMOOSGatewayConfig

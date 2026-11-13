@@ -91,7 +91,8 @@ The extractor does not read the plugin's configuration, which is an extension of
 | Parameter | Type | Default | Required | Meaning |
 |---|---|---|---|---|
 | `multiplex_moos_var` | string | `LIAISON_COMMANDER_OUT` | no | MOOS variable for messages from `pAcommsHandler_multiplex` **[code]** |
-| `load_shared_library` | repeated string | | no | protobuf libraries to load, so that MOOS strings naming their types can be parsed **[code]**; a library that fails to load stops the gateway **[code]** |
+
+Field 2 (`load_shared_library`) is reserved. The protobuf libraries whose types MOOS strings may name go in the gateway's `app { load_shared_library }`, which goby loads before any translator thread starts; loading them from a translator thread crashed the gateway about one start in ten, as it raced the other threads' descriptor lookups **[test]**.
 
 The gateway's own settings (`interprocess`, `moos { server port }`) apply as usual **[code]**.
 
@@ -105,8 +106,7 @@ moos { server: "localhost" port: 9000 }
 
 ### Files, devices and external programs
 
-- Shared libraries named in `load_shared_library`, loaded with `dlopen` through DCCL's
-  `DynamicProtobufManager` **[code]**.
+- Protobuf libraries named in `app { load_shared_library }`, loaded by goby **[code]**.
 - The plugin is found through `GOBY_MOOS_GATEWAY_PLUGINS`, which `lamss_goby_moos_gateway` sets to this
   plugin and `goby_coroner_moos_gateway_plugin` **[code]**.
 
@@ -138,7 +138,7 @@ flowchart LR
   nav status, node report, and view geometry **[code]**.
 - MOOS strings for the acomms, status and health variables are parsed with
   `dynamic_parse_for_moos`, so the protobuf type comes from the string, not from the code **[code]**.
-  The type must be linked in or loaded with `load_shared_library` **[guess]**.
+  The type must be linked in or loaded with `app { load_shared_library }` **[guess]**.
 - `NODE_REPORT` goes both ways: posts from MOOS are published on `node_report`, and messages on
   `node_report_out` are posted to MOOS `NODE_REPORT` **[code]**. Using two groups keeps a Goby
   publisher from receiving its own report back **[guess]**.

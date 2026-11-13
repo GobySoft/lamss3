@@ -1,11 +1,8 @@
 {# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{#- loaded by goby before any thread starts: a dlopen from a translator thread races its siblings' descriptor lookups #}
+{%- set app_libs = paths.proto_libs %}
 {% include "app.pb.cfg.j2" %}
 moos {
   server: "localhost"
   port: {{ subsystem.ports.moosdb }}
-}
-[lamss.core.goby_gateway_config] {
-{%- for lib in paths.proto_libs %}
-  load_shared_library: {{ lib | pb_string }}
-{%- endfor %}
 }
