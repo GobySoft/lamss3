@@ -24,8 +24,56 @@ test:
           group: '^lamss::moos::NODE_REPORT$'
           type: lamss.core.LegacyNodeReport
           match: 'name: "macrura"'
-          condition: [{ field: depth, op: GT, value: 13 }]
+          condition: [{ field: depth, op: GT, value: 14.5 }]
           timeout: 240
+    # the dive overshoots before the depth controller settles; more so on a busy CI machine
+    - name: macrura settles at the deploy depth
+      wait: 30
+    # plan 10's M1 gate: once settled, the vehicle holds the commanded 15 m (± 2 m) on its loiter
+    - name: macrura holds 15 m and its 200 m loiter around the deploy point
+      expect:
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: LT, value: 13 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: GT, value: 17 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: x, op: LT, value: -300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: x, op: GT, value: 300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: y, op: LT, value: -300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: y, op: GT, value: 300 }]
+          count: 0
+          timeout: 40
     - name: macrura's LAMSS_STATUS reaches resolution over acomms
       expect:
         - endpoint: resolution_main
@@ -57,7 +105,7 @@ test:
         - endpoint: resolution_main
           group: 'lamss::goby::pAcommsHandler_multiplex'
           type: PROTOBUF/lamss.autonomy.LAMSS_DEPLOY
-          value: '_rcv_id: 4 Deploy_Mode: DEPLOY_MODE_LOITER Depth_Mode: DEPTH_MODE_SINGLE Sonar_Control: SONAR_CONTROL_ON Sonar_Process: SONAR_PROCESS_ON Deploy_X: 0 Deploy_Y: 0 Deploy_Speed: 1.8 Deploy_Upper_Depth: 15 Loiter_Radius: 200 Loiter_Segments: 6'
+          value: '_rcv_id: 4 Deploy_Mode: DEPLOY_MODE_LOITER Depth_Mode: DEPTH_MODE_SINGLE Sonar_Control: SONAR_CONTROL_ON Sonar_Process: SONAR_PROCESS_ON Deploy_X: 0 Deploy_Y: 0 Deploy_Speed: 1.8 Deploy_Upper_Depth: 15 Loiter_Radius: 200 Loiter_Segments: 6 Clockwise: true'
       expect:
         - endpoint: resolution_main
           group: '^lamss::moos::NODE_REPORT$'

@@ -90,6 +90,10 @@ flowchart LR
    Status: done with analytic ray tracing (`rap_acoustics`) instead of iBellhop. macrura gets a `sensor_sim` subsystem (`targets`, `passive_sonar_sim`, and `moos_link` to main) and the `sonar` `passive` chain on main; `lamss_track` carries `TRACK_REPORT` to the topside, where the track appears as a `NODE_REPORT` and on Liaison's map. The cruise's target is a broadband source at 500–1500 Hz, 1.8 km out: the `missions-lamss` target values (2–3 kHz tones, 5.4 km) were outside the DURIP chain's band and were not what the old topside ran (targets were created by an operator). uSimPassiveSonar crashed without `ray_acoustics` (contacts were only registered for Bellhop) and is fixed. iBellhop acoustics are a later item (below).
 5. **Smoke variant**: single AUV, flat-bottom synthetic environment, `warp=10`, 5 simulated minutes, assertions on supervisord state and on the `.goby` log (mission state reached `DEPLOY`, at least one `LAMSS_STATUS` received topside, at least one track). Runs in CI on every PR.
 
+   *This section written by Claude*
+
+   Status: done, with the `mass_bay` environment rather than a synthetic one (its grid is in the repository). The `smoke` variant sets `warp` to 2, and the whole test (all of M1's steps) takes about 6 minutes. uSimPassiveSonar is the limit: at warp 10 it made 85% of its frames locally, and at warp 5 on CI (four shared cores) 55%, after which the bearing tracker held a stale bearing and the track was 48° off. ctest runs it with the bearing and generate checks; the real-time test is `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON`. Under warp, pLamssMissionManager aborted the deploy at once, because it compared MOOS's warped clock with a navigation timestamp on another clock; fixed. `lamss mission test` now fails a test during which a process exited, and goby_liaison's commander offers the cruise's `commands` (`LAMSS_DEPLOY` for mbat).
+
 ## Acceptance
 
 | Check | How |
@@ -100,6 +104,19 @@ flowchart LR
 | Sonar chain produces a track | `pLamssTrackManager` publishes a track with bearing within 10° of truth |
 | Reproducible | `lm m generate mbat` output is byte-identical across two runs (no timestamps in configs) |
 | Documented | `mit/src/doc/mbat.md` walks a new user through install → `lm m sim mbat` in under a page |
+
+*This section written by Claude*
+
+Status of the checks above, all in `lamss_mit_mission_mbat_smoke` unless noted:
+
+| Check | Status |
+|---|---|
+| All processes `RUNNING` | the fixture waits for every process `RUNNING`; the test fails if any exits during it |
+| Vehicle follows the deploy command | macrura settles at 15 m, then holds 15 ± 2 m within ±300 m of the deploy point for 40 s (count-0 expectations), and dives to 25 m on a deploy from resolution. `lamss_mit_mission_mbat_smoke_waypoints` replays macrura's log and checks it reaches at least 3 consecutive waypoints of the 200 m, 6-point loiter clockwise (the sonar deploy's direction), within 25 m of each, holding 15 ± 2 m from the first to the last; runs have reached 4 to 6 |
+| Acoustic link both ways | `LAMSS_STATUS` (as `NODE_REPORT` and goby `NodeStatus`) at resolution; `LAMSS_DEPLOY` acted on by macrura |
+| Sonar chain produces a track | a track `NODE_REPORT` at resolution; `lamss_mit_mission_mbat_smoke_bearing` checks its bearing is within 20° of the truth, not 10°: the errors seen were +1.6° at warp 1, +0.5° to +12.7° at warp 5 and +20° at warp 10 locally. The track is a bearings-only fit from a 200 m loiter, so its range (about 3 km for a target at 1.8 km) and speed are poor, and the bearing from macrura to it drifts as the target crosses; only the bearing is checked |
+| Reproducible | `lamss_mit_mission_mbat_generate`: two generations of `mbat` and of `mbat smoke` are byte-identical |
+| Documented | [`mit/src/doc/missions/mbat.md`](../../../../../mit/src/doc/missions/mbat.md) |
 
 ## M2: MBAT variants
 

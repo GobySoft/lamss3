@@ -86,6 +86,7 @@ lamss mission test [options] cruise [variant] [-- goby test run options]
 
    and for each test file a wrapper of the same name (`test/pair.yml`) that includes `mission.yml` and the test file.
 4. Runs `goby test run <wrapper>` with the `-D` values and `-l` libraries above, `--log_dir run/<instance>/goby_test/<name>` (unless given), and the arguments after `--`; then makes sure the mission is stopped.
+5. Fails the file (status 1 when it had passed) if supervisord's log shows a process that ended on its own during the test (`exited:` or `gave up:`). supervisord restarts such a process, so a crash loop would otherwise go unnoticed.
 
 It exits with the worst status of the files: 0 when all passed, 1 when an expectation failed, 2 when a test could not run (a fixture that never became ready, an application that never answered). A failed test's report names the fixture's log; the processes' own output is in `run/<instance>/log/`.
 

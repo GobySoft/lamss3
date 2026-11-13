@@ -2,25 +2,60 @@
 
 *This page written by Claude*
 
-`mbat` simulates the Massachusetts Bay AUV Testbed, centred on the dumping area east of Boston (datum 42.40587 N, 70.5619 W). It is milestone M1 of the [plan](../../../../core/src/doc/plan/claude/10-milestone-mbat-macrura.md), which builds it up in steps. So far it runs the topside and macrura, which loiters at its deploy point, talks to the topside over simulated acomms (UDP), and tracks a simulated target with its towed array.
+`mbat` simulates the Massachusetts Bay AUV Testbed, centred on the dumping area east of Boston (datum 42.40587 N, 70.5619 W). The ship *Resolution* commands *Macrura*, a Bluefin 21 towing a passive array, over simulated acoustic communications. Macrura dives, loiters and tracks a simulated target. This is milestone M1 of the [plan](../../../../core/src/doc/plan/claude/10-milestone-mbat-macrura.md).
 
-| Concept | Class | Notes |
-|---|---|---|
-| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; 12 s slots for resolution and macrura), `target` (broadband 500–1500 Hz, 1.8 km north-east) |
-| Fleet | [`mit_bf21`](../../../missions/fleet/mit_bf21/mit_bf21.py) | `resolution`, `macrura` (topside `resolution`) |
-| Platform | [`resolution`](../../../missions/platform/topside/resolution/resolution.py) | a [`topside`](../../../../core/src/doc/missions/platforms.md) with [`udp` acomms](../../../../core/src/doc/missions/components.md#acomms), modem 1 |
-| Platform | [`macrura`](../../../missions/platform/auv/propellor/bluefin21/macrura/macrura.py) | a [`bluefin21`](../../../../autonomy/src/doc/missions/components.md) with `udp` acomms and the [passive sonar](../../../../sonar/src/doc/missions/components.md), modem 4 |
-| Environment | [`mass_bay`](../../../missions/environment/mass_bay/mass_bay.py) | Gulf of Maine bathymetry ([data](../../../missions/environment/mass_bay/data/README.md)), 1480 m/s at the surface |
+## Run it
+
+On Ubuntu 22.04, 24.04 or 26.04, from a clone of lamss3:
 
 ```sh
-lamss toolbox activate mit gui   # gui is optional: it adds goby_liaison and pMarineViewer
+./init.sh                                         # build the lamss tool, install the dependencies
+lamss toolbox activate mit gui                    # mit brings autonomy, sonar and virtual_ocean
+lamss dependencies install
 lamss build
-lm m sim mbat
-lm m test mbat                   # healthy; macrura reaches 15 m; acomms both ways; a track (about 10 min)
+lm m sim mbat                                     # prints the supervisord and goby_liaison addresses
+```
+
+Open goby_liaison, which runs on resolution, and select the Map tab. About 30 s after start, macrura dives to 15 m and loiters 200 m around the deploy point (0, 0). Its position on the map is updated each time a status arrives over acomms, every 24 s. With `gui` active and a display, pMarineViewer also shows resolution's MOOS view.
+
+To turn macrura's sonar on, send a deploy command from goby_liaison's Commander: `lamss.autonomy.LAMSS_DEPLOY` with `_rcv_id: 4`, `Sonar_Control: SONAR_CONTROL_ON`, `Sonar_Process: SONAR_PROCESS_ON`, and the loiter values above. Within a few minutes the track `macrura_track_0` appears on the map, north-east of macrura.
+
+```sh
+lm m status mbat                                  # every process RUNNING
+lm m tail mbat -f                                 # follow the logs
 lm m stop mbat
 ```
 
-The ctest `lamss_mit_mission_mbat` runs the same test.
+`lm m sim mbat smoke` runs the same cruise twice as fast.
+
+## Test
+
+```sh
+lm m test mbat smoke                              # about 6 minutes
+```
+
+| Check | Where |
+|---|---|
+| every subsystem's Goby apps report healthy, and no process exits during the test | `require_app`; `lamss mission test` |
+| macrura dives to 15 m, settles for 30 s, then holds 15 ± 2 m inside its loiter for 40 s | test steps 2–4 |
+| macrura's `LAMSS_STATUS` reaches resolution over acomms, as a `NODE_REPORT` and a goby `NodeStatus` | step 5 |
+| a `LAMSS_DEPLOY` from resolution sends macrura to 25 m | step 6 |
+| with the sonar on, macrura's track reaches resolution | step 7 |
+| the track's bearing from macrura is within 20° of the true bearing to the target | `check_track_bearing.py`, after the test |
+| macrura reaches at least 3 consecutive waypoints of its loiter clockwise, at 15 ± 2 m throughout | `check_loiter_waypoints.py`, after the test |
+| generating the cruise twice gives byte-identical output | `test_mbat_generate.py` |
+
+ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smoke_bearing`, `lamss_mit_mission_mbat_smoke_waypoints` and `lamss_mit_mission_mbat_generate`; `lamss_mit_mission_mbat_check_loiter_waypoints` tests the waypoint check itself. Configuring with `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON` adds `lamss_mit_mission_mbat`, the same test in real time (about 10 minutes).
+
+## What runs
+
+| Concept | Class | Notes |
+|---|---|---|
+| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py), variant [`smoke`](../../../missions/cruise/mbat/mbat_smoke.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; a 12 s slot each for resolution and macrura), `target` (broadband 500–1500 Hz, 1.8 km north-east); `smoke` sets `warp` to 2 |
+| Fleet | [`mit_bf21`](../../../missions/fleet/mit_bf21/mit_bf21.py) | `resolution`, `macrura` (topside `resolution`) |
+| Platform | [`resolution`](../../../missions/platform/topside/resolution/resolution.py) | a [`topside`](../../../../core/src/doc/missions/platforms.md) with [`udp` acomms](../../../../core/src/doc/missions/components.md#acomms), modem 1 |
+| Platform | [`macrura`](../../../missions/platform/auv/propellor/bluefin21/macrura/macrura.py) | a [`bluefin21`](../../../../autonomy/src/doc/missions/components.md) with `udp` acomms and the [passive sonar](../../../../sonar/src/doc/missions/components.md), modem 4 |
+| Environment | [`mass_bay`](../../../missions/environment/mass_bay/mass_bay.py) | Gulf of Maine bathymetry ([data](../../../missions/environment/mass_bay/data/README.md)), 1480 m/s at the surface, 100 m for the acoustics |
 
 | Subsystem | Processes besides gobyd, MOOSDB, the gateway, goby_coroner, goby_logger |
 |---|---|
@@ -28,9 +63,3 @@ The ctest `lamss_mit_mission_mbat` runs the same test.
 | `macrura_main` | pViewMessage, pNodeReporter, pLamssMissionManager, pBasicContactMgr, pHelmIvP, iFrontSeat_bluefin, pAcommsHandler, pLamssAEL, pLamssCBF, pLamssBearingTracker, pGeoTracker, pLamssTrackManager |
 | `macrura_frontseat_sim` | uMVS_Bluefin, pMarinePID, iBackSeatServer, pEchoVar, uSimGPS, iNoaaBathy |
 | `macrura_sensor_sim` | uSimTargets, uSimTowedArray, uSimNoiseCovariance, uSimPassiveSonar, sonar_data_cleaner, pMOOSLink |
-
-Thirty seconds after its first GPS fix, macrura's mission manager carries out the initial deploy: a loiter of radius 200 m around (0, 0) at 15 m depth and 1.8 m/s.
-
-Every 24 s cycle, macrura's `LAMSS_STATUS` reaches resolution, where it becomes a `NODE_REPORT`. The gateway plugin publishes that to Goby, so macrura appears on resolution's goby_liaison map. Resolution can command macrura from goby_liaison's commander, or from anything that publishes a `lamss.autonomy.LAMSS_DEPLOY` with `_rcv_id: 4` on `lamss::goby::pAcommsHandler_multiplex`. The test does this to send macrura to 25 m.
-
-The sonar starts off, as on the real vehicle. A deploy with `Sonar_Control: SONAR_CONTROL_ON` and `Sonar_Process: SONAR_PROCESS_ON` turns it on; the test sends one from resolution. Within a few minutes macrura tracks the target, posts it as `priority_trk`, and sends a `LAMSS_TRACK` that shows on resolution's map as `macrura_track_<n>`.

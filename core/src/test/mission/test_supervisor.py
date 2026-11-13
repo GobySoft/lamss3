@@ -96,6 +96,27 @@ def test_foreground_failure_is_the_last_line(checkout):
     assert pids(checkout) == []
 
 
+def test_process_exits_are_found_after_the_mission_stops(checkout):
+    """`lamss mission test` fails a test during which a process ended on its own: supervisord
+    restarts it, so only its log shows the crash. A clean run has no such lines."""
+    from lamss.mission.render import Layout
+
+    def layout():
+        return Layout(root=checkout, prefix=checkout, missions=checkout / "extra" / "missions",
+                      instance="harbor")
+
+    assert main(["sim", "harbor", "--wait", "20"]) == 0
+    assert main(["stop", "harbor"]) == 0
+    assert supervisor.unexpected_exits(layout()) == []
+
+    assert main(["sim", "harbor", "--set", "platform.shore.subsystem.main.component.daemon.seconds=2",
+                 "--wait", "20"]) == 0
+    time.sleep(4)
+    assert main(["stop", "harbor"]) == 0
+    exits = supervisor.unexpected_exits(layout())
+    assert exits and all("daemon" in line for line in exits), exits
+
+
 def test_web_page_has_the_same_address_every_launch(tmp_path):
     """supervisord's web page takes the first port of port_ranges.supervisor (or a fixed
     supervisor.http_port), so a bookmark or SSH tunnel keeps working from one launch to the next."""
