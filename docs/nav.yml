@@ -13,6 +13,7 @@
     - tool/clean.md
 - Missions:
     - missions/index.md
+    - missions/tutorial.md
     - missions/concepts.md
     - missions/layout.md
     - missions/parameters.md
