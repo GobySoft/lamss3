@@ -14,7 +14,7 @@ from missions.component.interprocess import Interprocess
 class Viewer(Component):
     requires = [Interprocess]
     params = dict(http_address="localhost", marine_viewer="auto")
-    ports = ["liaison"]
+    ports = {"liaison": "http"}
 
     def marine_viewer(self):
         setting = self.params["marine_viewer"]

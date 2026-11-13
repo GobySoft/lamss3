@@ -43,6 +43,9 @@ def test_example_with_gui(monkeypatch):
     m = resolve(registry("gui"), "example")
     assert processes(m)[-1] == "goby_liaison"
     assert not m.notes
+    # liaison's web page comes from the http range, clear of the MOOS ports from port_base
+    ports = m.platform("topside").resolved_subsystems[0].allocated_ports
+    assert ports["liaison"] == 50000 and ports["moosdb"] == 9000
 
 
 def test_moos_off_needs_no_moos_apps():
