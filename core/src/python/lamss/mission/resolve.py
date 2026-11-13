@@ -94,6 +94,9 @@ class Mission:
     def explain(self, key: str) -> tuple[Any, list[Explanation]]:
         node, param = self.route(key)
         flat = self.params[node].flat()
+        allocated = self._explain_allocated_port(node, param, flat)
+        if allocated:
+            return allocated
         matches = {k: v for k, v in flat.items() if k == param or k.startswith(param + ".")}
         if not matches:
             raise MissionError(f"{node} has no parameter '{param}' (known: {', '.join(flat)})")
@@ -102,6 +105,20 @@ class Mission:
             for part in param.split("."):
                 value = value[part]
         return value, self.params[node].explain(param)
+
+
+    def _explain_allocated_port(self, node: str, param: str, flat: dict[str, Any]):
+        concept = self.nodes[node]
+        if not param.startswith("ports.") or param in flat or concept.kind != "subsystem":
+            return None
+        name = param[len("ports."):]
+        port = getattr(concept, "allocated_ports", {}).get(name)
+        if port is None:
+            return None
+        port_range = next((r for c in concept.components for n, r in component_ports(c).items()
+                           if n == name), None)
+        source = "cruise.port_base" if port_range is None else f"cruise.port_ranges.{port_range}"
+        return port, [Explanation(param, "allocated", source, port, True)]
 
 
 class _Resolver:
@@ -316,7 +333,8 @@ def _finish(mission: Mission) -> None:
     _allocate_ports(mission)
 
 
-def _port_ranges(component: Component) -> dict[str, Optional[str]]:
+def component_ports(component: Component) -> dict[str, Optional[str]]:
+    """{port name: range name, or None for cruise.port_base} for the ports a component needs."""
     ports = type(component).ports
     return dict(ports) if isinstance(ports, dict) else {name: None for name in ports}
 
@@ -332,7 +350,7 @@ def _allocate_ports(mission: Mission) -> None:
         ports = dict(s.params["ports"])
         owners: dict[str, str] = {}
         for c in s.components:
-            for name, port_range in _port_ranges(c).items():
+            for name, port_range in component_ports(c).items():
                 if name in owners:
                     raise MissionError(f"{s.path}: {owners[name]} and {c.path} both need port '{name}'")
                 owners[name] = c.path

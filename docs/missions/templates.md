@@ -93,10 +93,10 @@ platforms:
 
 `paths.log` goes through the stable `run/<instance>/log` link, so generated files do not change from one launch to the next ([Output](output.md#logs)).
 
-Templates render with `StrictUndefined`: a misspelt key is an error naming the template and the component, not an empty string (a syntax error also gives the line).
+Templates render with `StrictUndefined`: a misspelt key is an error naming the template, the line and the component, not an empty string. An error inside an included template names that template.
 
 ```
-lamss mission: error: daemon.cfg.j2 for platform.shore.subsystem.main.component.daemon: 'dict object' has no attribute 'missing'
+lamss mission: error: daemon.cfg.j2:9 for platform.shore.subsystem.main.component.daemon: 'dict object' has no attribute 'missing'
 ```
 
 ## Filters
