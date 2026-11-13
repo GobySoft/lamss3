@@ -7,14 +7,11 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "goby/moos/moos_geodesy.h"
 #include "goby/util/linebasedcomms.h"
-#include "lamss/lib_anrp_util/NMEAMessage.h"
+#include "goby/util/linebasedcomms/nmea_sentence.h"
 #include <memory>
 #include <random>
 #include <string>
 #include <tuple>
-
-//#include </home/arjuna/goby/src/util/liblinebasedcomms/tcp_server.h>
-//#include <goby/util/liblinebasedcomms/tcp_server.h>
 
 class CiBackSeatServer : public CMOOSApp
 {
@@ -32,7 +29,7 @@ class CiBackSeatServer : public CMOOSApp
     // insert local vars here
     std::string SecondsSinceMidnight(int nDigits);
     std::string gen_NMEAchecksum(const char* str);
-    void Translate(NMEAMessage Sentence);
+    void Translate(const goby::util::NMEASentence& sentence);
     void check_send_dvl();
 
     std::string tcp_port;

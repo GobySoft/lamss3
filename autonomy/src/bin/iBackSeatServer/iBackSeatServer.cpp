@@ -3,18 +3,12 @@
 
 //#Include <iostream>
 #include "iBackSeatServer.h"
-#include "MBUtils.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOS/libMOOS/Utils/MOOSUtils.h"
 #include "goby/moos/moos_geodesy.h"
-#include "lamss/lib_anrp_util/CClientTCPSocket.h"
-#include "lamss/lib_anrp_util/CDatagramCtl.h"
-#include "lamss/lib_anrp_util/CUDPSocket.h"
-#include "lamss/lib_anrp_util/CommServer.h"
-#include "lamss/lib_anrp_util/NMEAMessage.h"
-#include "lamss/lib_anrp_util/binary2hex.h"
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <ctype.h>
 #include <iomanip>
 #include <iterator>
@@ -29,6 +23,31 @@
 //#include <goby/util/liblinebasedcomms/tcp_server.h>
 
 using namespace std;
+
+namespace
+{
+string doubleToString(double val, int digits = 5)
+{
+    char buffAUX[10] = "%.5f\0";
+    if ((digits > 0) && (digits < 7))
+        buffAUX[2] = digits + 48;
+
+    char buff[100];
+    sprintf(buff, buffAUX, val);
+
+    string str = buff;
+    return (str);
+}
+
+string intToString(int val)
+{
+    char buff[500];
+    sprintf(buff, "%d", val);
+    string str = buff;
+    return (str);
+}
+
+} // namespace
 //using goby::util::as;
 
 //goby::util::TCPServer tcp_server(as<unsigned>(std::string()));
@@ -77,7 +96,7 @@ bool CiBackSeatServer::OnNewMail(MOOSMSG_LIST& NewMail)
 {
     CMOOSMsg Msg;
 
-    double dfLatOrigin, dfLongOrigin;
+    double dfLatOrigin = 0, dfLongOrigin = 0;
     bool new_origin = false;
 
     double curr_time = MOOSTime();
@@ -407,7 +426,6 @@ bool CiBackSeatServer::Iterate()
 {
     std::string in;
     std::string in_final;
-    NMEAMessage Sentence;
 
     //Tell the client that front seat is ready to receive commands
     //string data_packet ="$BFMIS,"+SecondsSinceMidnight(3)+",file,Running*";
@@ -428,11 +446,17 @@ bool CiBackSeatServer::Iterate()
         in_final = in;
 
         std::cout << "<==From client :" << in_final << std::endl;
-        Sentence.Set(in_final.c_str());
 
         m_Comms.Notify("RAW_MSG_FROM_BACKSEAT", in_final.c_str());
 
-        Translate(Sentence);
+        try
+        {
+            Translate(goby::util::NMEASentence(in_final, goby::util::NMEASentence::IGNORE));
+        }
+        catch (const goby::util::bad_nmea_sentence& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
     }
 
     double latti = 0;
@@ -568,17 +592,24 @@ bool CiBackSeatServer::Iterate()
 
 bool CiBackSeatServer::OnStartUp() { return true; }
 
-void CiBackSeatServer::Translate(NMEAMessage Sentence)
+void CiBackSeatServer::Translate(const goby::util::NMEASentence& sentence)
 {
-    std::cout << "In the Translate with " << Sentence.Part(0).c_str() << std::endl;
+    auto part = [&sentence](std::size_t i) -> std::string
+    {
+        if (i == 0)
+            return sentence.front().substr(1);
+        return i < sentence.size() ? sentence[i] : "";
+    };
 
-    if (Sentence.Part(0) == "BPLOG")
+    std::cout << "In the Translate with " << part(0).c_str() << std::endl;
+
+    if (part(0) == "BPLOG")
     {
         //Message requests from frontseat
         //BFACK request
-        if (Sentence.Part(1) == "ACK")
+        if (part(1) == "ACK")
         {
-            if (Sentence.Part(2) == "ON")
+            if (part(2) == "ON")
             {
                 msgack = true;
             }
@@ -589,48 +620,46 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 
     //Send an ack for any msg from backseat
 
-    string messg = Sentence.Part(0);
+    string messg = part(0);
     string msgtype = messg.substr(2);
-    string general_ack = "$BFACK," + SecondsSinceMidnight(3) + "," + msgtype + "," +
-                         Sentence.Part(1) + ",1,2,0,general ack" + "*";
+    string general_ack = "$BFACK," + SecondsSinceMidnight(3) + "," + msgtype + "," + part(1) +
+                         ",1,2,0,general ack" + "*";
     string genchecksum = gen_NMEAchecksum(general_ack.c_str());
     general_ack += genchecksum + "\r\n";
     std::cout << "To clients:[" << general_ack << "]" << std::endl;
     tcp_server->write(general_ack);
 
-    if (Sentence.Part(0) == "BPRMB")
+    if (part(0) == "BPRMB")
     {
         std::cout << "<===================== Received Desired control commands" << std::endl;
 
-        double backseat_time = atof(Sentence.Part(1).c_str());
-        double desired_heading = atof(Sentence.Part(2).c_str());
-        double desired_depth = atof(Sentence.Part(3).c_str());
-        double depth_mode = atof(Sentence.Part(4).c_str());
-        double desired_speed = atof(Sentence.Part(5).c_str());
+        double desired_heading = atof(part(2).c_str());
+        double desired_depth = atof(part(3).c_str());
+        double desired_speed = atof(part(5).c_str());
 
         m_Comms.Notify("DESIRED_HEADING", desired_heading);
         m_Comms.Notify("DESIRED_DEPTH", desired_depth);
         m_Comms.Notify("DESIRED_SPEED", desired_speed);
 
         /*
-	string rmb_ack = "$BFACK,"+SecondsSinceMidnight(3)+",RMB,"+Sentence.Part(1)+",1,2,0,rmb ack"+"*";
+	string rmb_ack = "$BFACK,"+SecondsSinceMidnight(3)+",RMB,"+part(1)+",1,2,0,rmb ack"+"*";
        	string rmbchecksum=gen_NMEAchecksum(rmb_ack.c_str());
       	rmb_ack+=rmbchecksum+"\r\n";
       	std::cout <<"To clients:["<<rmb_ack<<"]"<<std::endl;
       	tcp_server->write(rmb_ack);
 */
     }
-    if (Sentence.Part(0) == "BPNPU")
+    if (part(0) == "BPNPU")
     {
-        string backseat_time = (Sentence.Part(1).c_str());
-        string backseat_latitude = (Sentence.Part(2).c_str());
-        string backseat_lathemisphere = (Sentence.Part(3).c_str());
-        string backseat_longitude = (Sentence.Part(4).c_str());
-        string backseat_lonhemisphere = (Sentence.Part(5).c_str());
-        string backseat_errorprob = (Sentence.Part(6).c_str());
-        string backseat_depth = (Sentence.Part(7).c_str());
-        string backseat_forceupdate = (Sentence.Part(8).c_str());
-        string backseat_timestamp = (Sentence.Part(9).c_str());
+        string backseat_time = (part(1).c_str());
+        string backseat_latitude = (part(2).c_str());
+        string backseat_lathemisphere = (part(3).c_str());
+        string backseat_longitude = (part(4).c_str());
+        string backseat_lonhemisphere = (part(5).c_str());
+        string backseat_errorprob = (part(6).c_str());
+        string backseat_depth = (part(7).c_str());
+        string backseat_forceupdate = (part(8).c_str());
+        string backseat_timestamp = (part(9).c_str());
 
         //	string usbl_msg = "BPNPU"+","+backseat_time+","+backseat_latitude+","+backseat_lathemisphere+","+backseat_longitude+","+backseat_lonhemisphere+","+backseat_errorprob+","+backseat_depth+","+backseat_forceupdate+","+backseat_timestamp;
         string usbl_msg = "BPNPU";
@@ -641,7 +670,7 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 
         m_Comms.Notify("USBL_MESSAGE", usbl_msg);
         /*
-	string npu_ack = "$BFACK,"+SecondsSinceMidnight(3)+",NPU,"+Sentence.Part(1)+",1,2,0,npu ack"+"*";
+	string npu_ack = "$BFACK,"+SecondsSinceMidnight(3)+",NPU,"+part(1)+",1,2,0,npu ack"+"*";
        	string npuchecksum=gen_NMEAchecksum(npu_ack.c_str());
       	npu_ack+=npuchecksum+"\r\n";
       	std::cout <<"To clients:["<<npu_ack<<"]"<<std::endl;
@@ -649,9 +678,9 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 */
     }
 
-    if (Sentence.Part(0) == "BPSIL")
+    if (part(0) == "BPSIL")
     {
-        int frontseat_silent = atoi(Sentence.Part(2).c_str());
+        int frontseat_silent = atoi(part(2).c_str());
         if (frontseat_silent)
         {
             m_Comms.Notify("FRONTSEAT_SILENT", "true");
@@ -662,7 +691,7 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
         }
 
         /*
-	string sil_ack = "$BFACK,"+SecondsSinceMidnight(3)+",SIL,"+Sentence.Part(1)+",1,2,0,silent ack"+"*";
+	string sil_ack = "$BFACK,"+SecondsSinceMidnight(3)+",SIL,"+part(1)+",1,2,0,silent ack"+"*";
        	string silchecksum=gen_NMEAchecksum(sil_ack.c_str());
       	sil_ack+=silchecksum+"\r\n";
       	std::cout <<"To clients:["<<sil_ack<<"]"<<std::endl;
@@ -670,12 +699,12 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 */
     }
 
-    if (Sentence.Part(0) == "BPBOY")
+    if (part(0) == "BPBOY")
     {
         m_Comms.Notify("BUOYANCY_CONTROL", "true");
 
         /*
-	string boy_ack = "$BFACK,"+SecondsSinceMidnight(3)+",BOY,"+Sentence.Part(1)+",1,2,0,buoyancy ack"+"*";
+	string boy_ack = "$BFACK,"+SecondsSinceMidnight(3)+",BOY,"+part(1)+",1,2,0,buoyancy ack"+"*";
        	string boychecksum=gen_NMEAchecksum(boy_ack.c_str());
       	boy_ack+=boychecksum+"\r\n";
       	std::cout <<"To clients:["<<boy_ack<<"]"<<std::endl;
@@ -683,12 +712,12 @@ void CiBackSeatServer::Translate(NMEAMessage Sentence)
 */
     }
 
-    if (Sentence.Part(0) == "BPTRM")
+    if (part(0) == "BPTRM")
     {
         m_Comms.Notify("TRIM_CONTROL", "true");
 
         /*
-	string trm_ack = "$BFACK,"+SecondsSinceMidnight(3)+",TRM,"+Sentence.Part(1)+",1,2,0,trim ack"+"*";
+	string trm_ack = "$BFACK,"+SecondsSinceMidnight(3)+",TRM,"+part(1)+",1,2,0,trim ack"+"*";
        	string trimchecksum=gen_NMEAchecksum(trm_ack.c_str());
       	trm_ack+=trimchecksum+"\r\n";
       	std::cout <<"To clients:["<<trm_ack<<"]"<<std::endl;
@@ -742,7 +771,7 @@ string CiBackSeatServer::gen_NMEAchecksum(const char* str)
 
     if (!st || !ed)
     {
-        return 0;
+        return "";
     }
 
     for (st++; st < ed; st++) { sum ^= *st; }
@@ -756,27 +785,6 @@ string CiBackSeatServer::gen_NMEAchecksum(const char* str)
     //ss << uppercase << sum;
     //ss >> check_sum;
     //return check_sum;
-}
-
-string doubleToString(double val, int digits)
-{
-    char buffAUX[10] = "%.5f\0";
-    if ((digits > 0) && (digits < 7))
-        buffAUX[2] = digits + 48;
-
-    char buff[100];
-    sprintf(buff, buffAUX, val);
-
-    string str = buff;
-    return (str);
-}
-
-string intToString(int val)
-{
-    char buff[500];
-    sprintf(buff, "%d", val);
-    string str = buff;
-    return (str);
 }
 
 void CiBackSeatServer::check_send_dvl()

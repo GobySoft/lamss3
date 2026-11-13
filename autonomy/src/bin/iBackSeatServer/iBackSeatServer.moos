@@ -2,15 +2,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 ServerHost = localhost
-ServerPort = 9103
-Community = unicorn
+ServerPort = 9000
+Community  = example
+LatOrigin  = 42.358
+LongOrigin = -71.087
 
-/////////////////////////////////////////
-ProcessConfig = iBackSeatServer 
+ProcessConfig = iBackSeatServer
 {
-	AppTick   = 4
-	CommsTick = 4
+    AppTick   = 4
+    CommsTick = 4
 
-	BackSeatPort = 9113
+    // TCP port iFrontSeat_bluefin connects to
+    BackSeatPort = 29504
 
+    dvl_ice_track = 0
+    ice_thickness = 0
+    ice_roughness_mean = 0
+    ice_roughness_stdev = 0
+    simulate_dvl_range = 0
 }
