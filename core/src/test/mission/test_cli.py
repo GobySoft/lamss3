@@ -47,3 +47,16 @@ def test_errors_exit_1(tmp_path, monkeypatch, capsys):
     status, _, err = run(tmp_path, monkeypatch, capsys, "show", "nope")
     assert status == 1
     assert "error: no cruise named 'nope'" in err
+
+
+def test_explain_patterns_and_all(tmp_path, monkeypatch, capsys):
+    write_tree(tmp_path, BASIC)
+    status, out, _ = run(tmp_path, monkeypatch, capsys, "show", "trial", "--explain", "platform.*.speed")
+    assert status == 0
+    assert out.splitlines() == ["platform.glider.speed = 0.5  <- cruise  Trial.overrides"]
+    status, out, _ = run(tmp_path, monkeypatch, capsys, "show", "trial", "--explain-all")
+    lines = out.splitlines()
+    assert status == 0 and lines[0].startswith("mode = sim")
+    assert any(l.startswith("platform.glider = Glider ") and "listed Pair.platforms" in l for l in lines)
+    status, _, err = run(tmp_path, monkeypatch, capsys, "show", "trial", "--explain", "nope.*")
+    assert status == 1 and "no key matches" in err
