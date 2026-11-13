@@ -1,6 +1,9 @@
 {# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
 app {
   glog_config { tty_verbosity: {{ component.interprocess.verbosity }} }
+{%- for lib in app_libs | default([]) %}
+  load_shared_library: {{ lib | pb_string }}
+{%- endfor %}
 {%- if cruise.warp != 1 %}
   simulation { time { use_sim_time: true warp_factor: {{ cruise.warp }} } }
 {%- endif %}
