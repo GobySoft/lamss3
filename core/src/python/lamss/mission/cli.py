@@ -141,7 +141,8 @@ def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) ->
     http_port = mission.cruise.params.get("supervisor", {}).get("http_port")
     allocated = [port for p in mission.platforms for s in p.resolved_subsystems
                  for port in s.allocated_ports.values()]
-    url = supervisor.prepare_http(layout, http_port, allocated)
+    http_base = int((mission.cruise.params.get("port_ranges") or {}).get("http", 50000))
+    url = supervisor.prepare_http(layout, http_port, http_base, allocated)
     conf = layout.supervisord_conf(mission.mode)
     if args.foreground:
         if url:
