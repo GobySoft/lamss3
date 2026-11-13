@@ -17,6 +17,7 @@ if(LAMSS_MOOSDB)
       LAMSS_PTETRAHOMING=$<TARGET_FILE:pTetraHoming>
       LAMSS_PGATEWAY=$<TARGET_FILE:pGateway>
       LAMSS_UMVS_BLUEFIN=$<TARGET_FILE:uMVS_Bluefin>
+      LAMSS_IBACKSEATSERVER=$<TARGET_FILE:iBackSeatServer>
       ${CMAKE_CURRENT_SOURCE_DIR}/moos_smoke.sh)
   set_tests_properties(lamss_autonomy_moos_smoke PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
 endif()
