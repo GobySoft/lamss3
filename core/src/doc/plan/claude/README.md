@@ -16,5 +16,6 @@ Here are the detailed plans produced by Claude, referenced by the human-written 
 | [09-toolboxes](09-toolboxes.md) | Per-toolbox plans and decisions, including the HydroMAN 3 wrapper toolbox |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | M1 definition, port list, acceptance; M2/M3 sketches |
 | [11-documentation](11-documentation.md) | Documentation site (mkdocs-material), authored, generated and inferred pages, the inferred-page template |
+| [12-geov](12-geov.md) | GEOV (Google Earth Ocean Viewer): state on 24.04/26.04, the `goby_geov_interface` feed, options, work items, credentials |
 
 Figures are Mermaid blocks, rendered by GitHub and most Markdown viewers.

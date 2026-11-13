@@ -28,6 +28,7 @@ This is the top-level plan for turning `lamss`, `lamss-shared`, `lamss-internal`
 | [09-toolboxes](09-toolboxes.md) | Per-toolbox plans: core, autonomy, sonar, virtual_ocean, gui, mit, icex, attic |
 | [10-milestone-mbat-macrura](10-milestone-mbat-macrura.md) | The first end-to-end target: Macrura in MBAT simulation |
 | [11-documentation](11-documentation.md) | Documentation site, generated reference, inferred pages for ported code |
+| [12-geov](12-geov.md) | Keeping GEOV: feed, upstream fixes, credentials |
 
 ## Guiding decisions
 
