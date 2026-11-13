@@ -68,6 +68,15 @@ commands:
             cmake -S << parameters.toolbox >> -B build/standalone/<< parameters.toolbox >> -G Ninja -DLAMSS_WERROR=ON
             cmake --build build/standalone/<< parameters.toolbox >> --target install
             ctest --test-dir build/standalone/<< parameters.toolbox >> --output-on-failure
+      - run:
+          name: Keep the mission logs
+          when: on_fail
+          command: |
+            find . -path '*/missions/log/*' \( -name '*.out' -o -name '*.log' -o -name '*.goby' \) -print0 \
+              | tar --null -czf /tmp/mission-logs-<< parameters.toolbox >>.tar.gz -T - || true
+      - store_artifacts:
+          path: /tmp/mission-logs-<< parameters.toolbox >>.tar.gz
+          destination: mission-logs-<< parameters.toolbox >>.tar.gz
 
 jobs:
   format:
@@ -109,6 +118,15 @@ jobs:
           name: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
           no_output_timeout: 25m
           command: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
+      - run:
+          name: Keep the mission logs
+          when: on_fail
+          command: |
+            find . -path '*/missions/log/*' \( -name '*.out' -o -name '*.log' -o -name '*.goby' \) -print0 \
+              | tar --null -czf /tmp/mission-logs.tar.gz -T - || true
+      - store_artifacts:
+          path: /tmp/mission-logs.tar.gz
+          destination: mission-logs.tar.gz
 
   build-standalone:
     parameters:
