@@ -15,6 +15,7 @@ lm m sim example
 |---|---|---|
 | `http_address` | `localhost` | address goby_liaison serves on; `0.0.0.0` for other computers |
 | `marine_viewer` | `auto` | run `pMarineViewer`: `auto`, `true` or `false` |
+| `map_zoom` | 12 | initial zoom of goby_liaison's Map tab, centred on the cruise datum |
 
 | Process | Command | Configuration |
 |---|---|---|
@@ -28,3 +29,7 @@ lm m sim example
   ```sh
   lm m sim example --set platform.topside.subsystem.main.component.viewer.marine_viewer=false
   ```
+
+*This section written by Claude*
+
+goby_liaison's Map tab (goby3 3.6.1+60 or later) shows each vehicle from the `NodeStatus` messages on `goby::middleware::frontseat::node_status`. The lamss gateway plugin publishes them from MOOS `NODE_REPORT`. Liaison sees only its own subsystem's `gobyd`, so a topside's map shows other platforms once acomms brings their status there.
