@@ -10,4 +10,6 @@ class Mbat(Cruise):
     environment = "mass_bay"
     params = dict(datum=dict(lat=42.40587, lon=-70.5619),
                   op_box=[[-4000, -4000], [-4000, 4000], [4000, 4000], [4000, -4000]],
-                  gateway_buoy=dict(x=0, y=-800))
+                  gateway_buoy=dict(x=0, y=-800),
+                  acomms=dict(messages=["lamss_status", "lamss_deploy"],
+                              slots=[dict(src=1, seconds=12), dict(src=4, dest=1, rate=1, seconds=12)]))
