@@ -331,11 +331,14 @@ def _finish(mission: Mission) -> None:
                 raise MissionError(f"platforms {modem_ids[modem_id]} and {p.name} both have modem_id {modem_id}")
             modem_ids[modem_id] = p.name
     _allocate_ports(mission)
+    # derived() holds the concepts' own checks: run them now, so `list` and `show` report them too
+    for node in mission.nodes.values():
+        node.derived()
 
 
 def component_ports(component: Component) -> dict[str, Optional[str]]:
     """{port name: range name, or None for cruise.port_base} for the ports a component needs."""
-    ports = type(component).ports
+    ports = component.active_ports()
     return dict(ports) if isinstance(ports, dict) else {name: None for name in ports}
 
 

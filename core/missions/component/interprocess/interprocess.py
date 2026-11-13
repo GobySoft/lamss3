@@ -14,6 +14,9 @@ class Interprocess(Component):
     params = dict(moos=True, verbosity="WARN")
     ports = ["moosdb"]
 
+    def active_ports(self):
+        return self.ports if self.params["moos"] else []
+
     def active_processes(self):
         processes = [Process("gobyd", "gobyd gobyd.pb.cfg", "gobyd.pb.cfg.j2", health=True)]
         if self.params["moos"]:

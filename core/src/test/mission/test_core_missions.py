@@ -49,9 +49,10 @@ def test_example_with_gui(monkeypatch):
 
 
 def test_moos_off_needs_no_moos_apps():
+    # resolving alone reports it, so `lamss mission list` and `show` do too
     with pytest.raises(MissionError, match="view_message is a MOOS app"):
         resolve(registry(), "example",
-                sets=["platform.topside.subsystem.main.component.interprocess.moos=false"]).to_dict()
+                sets=["platform.topside.subsystem.main.component.interprocess.moos=false"])
 
 
 def test_render_is_reproducible_and_complete(tmp_path):
@@ -70,3 +71,14 @@ def test_warp_switches_goby_apps_to_sim_time(tmp_path):
     out = write(resolve(registry(), "example", sets=["warp=10"]), tmp_path)
     assert "warp_factor: 10" in out[Path("topside/main/gobyd.pb.cfg")]
     assert "MOOSTimeWarp = 10" in out[Path("topside/main/last.moos")]
+
+
+def test_moos_off_allocates_no_moosdb_port():
+    registry()
+    from missions.component.interprocess import Interprocess
+
+    interprocess = Interprocess()
+    interprocess.params = {"moos": True, "verbosity": "WARN"}
+    assert interprocess.active_ports() == ["moosdb"]
+    interprocess.params = {"moos": False, "verbosity": "WARN"}
+    assert interprocess.active_ports() == []

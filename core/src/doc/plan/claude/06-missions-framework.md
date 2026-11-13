@@ -31,9 +31,8 @@ classDiagram
   class Concept {
     +name: str
     +params: dict
-    +variants: list
     +to_dict() dict
-    +templates() list
+    +derived() dict
   }
   class Cruise {
     +fleet: Fleet
@@ -62,6 +61,11 @@ classDiagram
     +requires: list~type~
     +processes: list~Process~
     +templates: list
+    +fragments: dict
+    +ports: list or dict
+    +active_processes() list
+    +active_templates() list
+    +active_ports() list or dict
   }
   class Process {
     +name: str
@@ -112,7 +116,7 @@ core/missions/
 │   └── mooring/mooring.py
 ├── component/
 │   ├── logging/logging.py                # goby_logger, glog config
-│   ├── health/health.py                  # goby_coroner / supervisord event listener
+│   ├── health/health.py                  # goby_coroner
 │   ├── interprocess/interprocess.py      # gobyd (+ MOOSDB + gateway during transition)
 │   ├── acomms/acomms.py                  # gobyd intervehicle block / pAcommsHandler
 │   │   ├── micromodem/micromodem.py
@@ -286,7 +290,7 @@ The 143 `flags.txt` entries map to:
 
 The `missions/build`, `log` and `run` directories live in the toolbox that owns the cruise (`mit/missions/...`), matching the core plan's layout; `lm m` prints the paths it used.
 
-As built, the directories are keyed by instance (`<cruise>[_<variant>]`, or `--instance`) rather than by cruise, so a variant or a test can run beside the plain cruise: `build/<instance>/` also holds `mission.yaml` (the whole mission dict) and `<mode>/supervisord.conf` (`sim/` or `run/`); logs go to `log/<instance>/<UTC time>/` and `run/<instance>/log` links to the current one, so generated files name only the stable link and generating twice gives identical bytes. Templates are found in the cruise's directory (cruise-specific overrides), then the component class's directories along its MRO, then every active toolbox's `missions/templates/` (later toolboxes first). A component can render fragments into a file another component owns (`fragments = {"last.moos": ["pApp.moos.j2"]}`; the owner's template loops over `fragments["last.moos"]`), name the ports it needs (`ports = ["moosdb"]`, allocated per subsystem from `cruise.port_base` unless the subsystem's `ports` parameter sets them) and add variables to its processes' environment (`environment()`). A unix socket path too long for `sun_path` moves to `$TMPDIR/lamss-<uid>/<hash>.sock`.
+As built, the directories are keyed by instance (`<cruise>[_<variant>]`, or `--instance`) rather than by cruise, so a variant or a test can run beside the plain cruise: `build/<instance>/` also holds `mission.yaml` (the whole mission dict) and `<mode>/supervisord.conf` (`sim/` or `run/`); logs go to `log/<instance>/<UTC time>/` and `run/<instance>/log` links to the current one, so generated files name only the stable link and generating twice gives identical bytes. Templates are found in the cruise's directory (cruise-specific overrides), then the component class's directories along its MRO, then every active toolbox's `missions/templates/` (later toolboxes first). A component can render fragments into a file another component owns (`fragments = {"last.moos": ["pApp.moos.j2"]}`; the owner's template loops over `fragments["last.moos"]`), name the ports it needs (`ports = ["moosdb"]`, allocated per subsystem from `cruise.port_base` unless the subsystem's `ports` parameter sets them) and add variables to its processes' environment (`environment()`). A unix socket path too long for `sun_path` moves to `$TMPDIR/lamss-<uid>/<hash>_<name>` (for example `<hash>_supervisor.sock`).
 
 ### supervisord
 
@@ -312,7 +316,7 @@ priority=50
 startsecs=2
 ```
 
-`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`: it is `10 × (component index + 1) + process index` in the subsystem's component list, unless a `Process` sets it. Program names are prefixed with the group (supervisord needs them unique), while `process_name` keeps the plain name, so `supervisorctl` shows `macrura_main:gobyd`. supervisord mangles quotes in `environment=`, so variables holding quotes (`GOBY_INTERPROCESS`) go only into `env.sh`. `lamss mission status|stop|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component installs an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role.
+`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`: it is `10 × (component index + 1) + process index` in the subsystem's component list, unless a `Process` sets it. Program names are prefixed with the group (supervisord needs them unique), while `process_name` keeps the plain name, so `supervisorctl` shows `macrura_main:gobyd`. supervisord mangles quotes in `environment=`, so variables holding quotes (`GOBY_INTERPROCESS`) go only into `env.sh`. `lamss mission status|stop|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component is planned to install an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role; until then it configures goby_coroner, which covers the Goby apps.
 
 ## Testing missions
 
@@ -349,7 +353,7 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 | 7 | `irminger`, then `icex20` (M3) with their environments |
 | 8 | Port remaining live platforms (unicorn, hydrohole mooring, resolution ship) |
 
-Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (`supervisord -c ... -n` dry parse).
+Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (the tests start a real supervisord on the generated conf and stop it).
 
 *This section written by Claude*
 

@@ -125,6 +125,10 @@ class Component(Concept):
         """`goby test` endpoint settings for this subsystem (e.g. {"zeromq": {...}}), if any."""
         return None
 
+    def active_ports(self) -> Union[Sequence[str], dict[str, Opt[str]]]:
+        """`ports`; override when the ports depend on the parameters or the mode."""
+        return type(self).ports
+
     def active_processes(self) -> list[Process]:
         """The processes to launch; override to make them depend on the parameters or mode."""
         return list(self.processes)
