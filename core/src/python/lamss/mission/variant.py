@@ -19,7 +19,7 @@ from .params import flatten
 T = TypeVar("T", bound=type)
 
 LIST_ATTRIBUTES = ("components", "sim_components", "run_components", "subsystems", "platforms",
-                   "processes", "templates", "requires", "data_files")
+                   "processes", "templates", "requires")
 DICT_ATTRIBUTES = ("params", "overrides")
 _VARIANT = "_lamss_variant"
 _IGNORED = {"__module__", "__qualname__", "__doc__", "__dict__", "__weakref__",

@@ -89,7 +89,7 @@ lamss mission test [options] cruise [variant] [-- goby test run options]
 
 It exits with the worst status of the files: 0 when all passed, 1 when an expectation failed, 2 when a test could not run (a fixture that never became ready, an application that never answered). A failed test's report names the fixture's log; the processes' own output is in `run/<instance>/log/`.
 
-Since the file names the wrappers, two test files with the same name before the first `.` are an error, and a test file must not be called `mission.yml`, the include's name.
+Since the file names the wrappers, two test files with the same name before the first `.` are an error, and a test file called `mission.yml` (the include's name) is refused.
 
 ```sh
 lamss mission test pair                                     # every file in test/

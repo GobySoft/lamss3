@@ -91,10 +91,19 @@ def test_generate_explain(checkout, capsys):
 
 def test_undefined_template_variable_is_an_error(checkout, capsys):
     template = checkout / "core" / "missions" / "templates" / "daemon.cfg.j2"
+    lines = template.read_text().count("\n") + 1
     template.write_text(template.read_text() + "{{ component.daemon.missing }}\n")
     assert main(["generate", "harbor"]) == 1
     err = capsys.readouterr().err
-    assert "daemon.cfg.j2" in err and "missing" in err and "platform.shore.subsystem.main.component.daemon" in err
+    assert f"daemon.cfg.j2:{lines}" in err and "missing" in err
+    assert "platform.shore.subsystem.main.component.daemon" in err
+
+
+def test_explain_allocated_port(checkout, capsys):
+    assert main(["show", "harbor", "--explain", "platform.shore.subsystem.main.ports.moosdb"]) == 0
+    out = capsys.readouterr().out.splitlines()
+    assert out[0] == "platform.shore.subsystem.main.ports.moosdb = 24001"
+    assert "allocated" in out[1] and "cruise.port_base" in out[1]
 
 
 def test_cruise_directory_templates_override(checkout):

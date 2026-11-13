@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Class discovery over the active toolboxes' missions/ trees."""
 
+from pathlib import Path
+
 import pytest
 
 from lamss.mission import Component, MissionError, Platform
@@ -94,3 +96,16 @@ def test_duplicate_variant_for_one_concept_is_an_error(tree):
             class GliderDeeper(Glider):
                 params = dict(max_depth=2000)
             """})
+
+
+def test_relative_toolbox_paths(tmp_path, monkeypatch):
+    """A registry given toolbox paths relative to the working directory still matches each class
+    to its toolbox."""
+    from conftest import BASIC, write_tree
+
+    from lamss.mission import Registry, Toolbox
+
+    write_tree(tmp_path, BASIC)
+    monkeypatch.chdir(tmp_path)
+    registry = Registry([Toolbox(t, Path(t) / "missions") for t in ("core", "extra")]).load()
+    assert registry.toolbox_of(registry.cruises()["trial"]).name == "extra"

@@ -24,7 +24,7 @@ flowchart TB
 | `Fleet` | the platforms taking part | `platforms`, `overrides` |
 | `Platform` | a vehicle, mooring, ship or topside | `components`, `sim_components`, `run_components`, `subsystems`, `main_subsystem`, parameters `type` and `modem_id` |
 | `Subsystem` | part of a platform with its own processes, often its own computer | its components, a `mode`, parameters `host` and `ports` |
-| `Component` | anything that contributes processes, configuration templates or parameters | `requires`, `sim_only`, `run_only`, `processes`, `templates`, `fragments`, `ports`, `data_files` |
+| `Component` | anything that contributes processes, configuration templates or parameters | `requires`, `sim_only`, `run_only`, `processes`, `templates`, `fragments`, `ports` |
 | `Environment` | bathymetry, sound speed, currents, ice, time window; simulation only | `components`, `subsystem` |
 
 A `Process` is not a concept but a description of one program a component launches: `name`, `command`, `config_template`, `priority`, `autorestart`, `startsecs`, `stopsignal` and `environment`. Each becomes a supervisord program ([Output](output.md#the-subsystems-supervisordconf)).
@@ -111,7 +111,6 @@ Every resolved concept knows the mode as `self.mode`, and the mission dictionary
 | `templates` | configuration templates to render into the subsystem's directory ([Templates](templates.md)) |
 | `fragments` | templates rendered into a file another component owns ([Templates](templates.md#fragments)) |
 | `ports` | names of the TCP/UDP ports it needs ([Templates](templates.md#ports)) |
-| `data_files` | data files the component uses (declared only; the engine does not read it) |
 
 `active_processes()` returns `processes`; override it when the processes depend on the parameters or the mode. `environment()` returns variables for the subsystem's processes ([Templates](templates.md#environment-variables)). Inside methods, `self.params` holds the merged parameters, `self.subsystem` and `self.platform` the resolved owners.
 

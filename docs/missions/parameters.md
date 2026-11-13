@@ -93,3 +93,5 @@ datum = {lat: 42.5, lon: -70.5}
 ```
 
 `--explain` is repeatable. An unknown key is an error that lists the known parameters, or the concepts the key could have meant. Values from `derived()` are computed, not parameters, so they cannot be explained or set.
+
+A concept's path (`--explain platform.glider`) is an error that lists its parameters. An allocated port can be explained too: `--explain platform.shore.subsystem.main.ports.moosdb` prints the port and the range it came from (`cruise.port_base` or `cruise.port_ranges.<range>`).
