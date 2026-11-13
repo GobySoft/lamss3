@@ -26,12 +26,12 @@ lm m tail mbat -f                                 # follow the logs
 lm m stop mbat
 ```
 
-`lm m sim mbat smoke` runs the same cruise ten times faster.
+`lm m sim mbat smoke` runs the same cruise five times faster.
 
 ## Test
 
 ```sh
-lm m test mbat smoke                              # about 2 minutes
+lm m test mbat smoke                              # about 3 minutes
 ```
 
 | Check | Where |

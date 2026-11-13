@@ -92,7 +92,7 @@ flowchart LR
 
    *This section written by Claude*
 
-   Status: done, with the `mass_bay` environment rather than a synthetic one (its grid is in the repository). The `smoke` variant sets `warp` to 10, and the whole test (all of M1's steps) takes about 2 minutes. ctest runs it with the bearing and generate checks; the real-time test is `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON`. Under warp, pLamssMissionManager aborted the deploy at once, because it compared MOOS's warped clock with a navigation timestamp on another clock; fixed. `lamss mission test` now fails a test during which a process exited, and goby_liaison's commander offers the cruise's `commands` (`LAMSS_DEPLOY` for mbat).
+   Status: done, with the `mass_bay` environment rather than a synthetic one (its grid is in the repository). The `smoke` variant sets `warp` to 5, and the whole test (all of M1's steps) takes about 3 minutes. At warp 10 uSimPassiveSonar used a whole core and made 85% of its frames, and one run of four tracked 20° off; three runs at warp 5 were within 6°. ctest runs it with the bearing and generate checks; the real-time test is `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON`. Under warp, pLamssMissionManager aborted the deploy at once, because it compared MOOS's warped clock with a navigation timestamp on another clock; fixed. `lamss mission test` now fails a test during which a process exited, and goby_liaison's commander offers the cruise's `commands` (`LAMSS_DEPLOY` for mbat).
 
 ## Acceptance
 
@@ -114,7 +114,7 @@ Status of the checks above, all in `lamss_mit_mission_mbat_smoke` unless noted:
 | All processes `RUNNING` | the fixture waits for every process `RUNNING`; the test fails if any exits during it |
 | Vehicle follows the deploy command | macrura settles at 15 m, then holds 15 ± 2 m within ±300 m of the deploy point for 40 s (count-0 expectations), and dives to 25 m on a deploy from resolution. Waypoint order is not checked |
 | Acoustic link both ways | `LAMSS_STATUS` (as `NODE_REPORT` and goby `NodeStatus`) at resolution; `LAMSS_DEPLOY` acted on by macrura |
-| Sonar chain produces a track | a track `NODE_REPORT` at resolution; `lamss_mit_mission_mbat_smoke_bearing` checks its bearing is within 10° of the truth (errors of +1.6° at warp 1 and +3.9° at warp 10 seen). The track's range is poor (passive, one leg), so only the bearing is checked |
+| Sonar chain produces a track | a track `NODE_REPORT` at resolution; `lamss_mit_mission_mbat_smoke_bearing` checks its bearing is within 10° of the truth (errors of +1.6° at warp 1 and +0.5° to +5.5° at warp 5 seen). The track's range is poor (passive, one leg), so only the bearing is checked |
 | Reproducible | `lamss_mit_mission_mbat_generate`: two generations of `mbat` and of `mbat smoke` are byte-identical |
 | Documented | [`mit/src/doc/missions/mbat.md`](../../../../../mit/src/doc/missions/mbat.md) |
 
