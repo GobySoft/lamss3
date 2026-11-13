@@ -58,6 +58,7 @@ flowchart LR
 
 - The vehicle, topside, `operation_radius`, the cruise's `op_box` and its `gateway_buoy` are filled in.
 - Parameters renamed in MOOS-IvP 24.8: `active_grade` is `pwt_grade`, `BHV_Trail`'s `max_range` is `pwt_outer_dist`, and `all_clear_distance` is gone.
+- `BHV_AvoidObstacle` is `BHV_AvoidObstacleV24` with MOOS-IvP 24.8 or later, which no longer has the old behavior (its `buffer_dist` is dropped). The parameter `moos_ivp_version` decides; `auto`, the default, reads `pHelmIvP --version` when the mission is generated (Ubuntu 22.04's packages have 19.8.1, 24.04's have 24.8).
 - `BHV_ZigZag` is `BHV_LamssZigZag`.
 
 The template reads `cruise.op_box` (a list of `[x, y]` vertices) and `cruise.gateway_buoy` (`x`, `y`), so a cruise using `ivp` must set both.
