@@ -86,16 +86,18 @@ commands:
           name: Mission log tails
           when: on_fail
           command: |
+            set +e +o pipefail
             for d in $(find . -path '*/missions/log/*' -name supervisord.log -printf '%h\n'); do
               echo "##### $d"
-              grep -E ' (exited|gave up|spawnerr):' "$d/supervisord.log" || true
+              grep -E ' (exited|gave up|spawnerr):' "$d/supervisord.log"
               find "$d" -name '*.out' | grep -E '/(pLamss|pGeoTracker|uSim(Targets|TowedArray|NoiseCovariance|PassiveSonar)|pMOOSLink|sonar_data_cleaner)[^/]*\.out$' | sort \
                 | while read -r f; do
                     echo "=== $f ($(grep -c 'Wrote file' "$f") files written)"
                     tail -n 12 "$f" | cut -c1-240
                   done
             done
-            df -h . || true
+            df -h .
+            true
 
 jobs:
   format:
