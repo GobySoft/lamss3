@@ -7,3 +7,22 @@ test:
   default_timeout: 10
   require_app:
     - { endpoint: resolution_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+    - { endpoint: macrura_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+    - { endpoint: macrura_frontseat_sim, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+  run:
+    - name: macrura reports its position through pNodeReporter
+      expect:
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          timeout: 60
+    # pLamssMissionManager sends the initial deploy 30 s after the first GPS fix
+    - name: macrura dives to the 15 m deploy depth
+      expect:
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: GT, value: 13 }]
+          timeout: 240

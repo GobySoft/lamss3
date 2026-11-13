@@ -4,8 +4,9 @@
 
 from lamss.mission import Fleet
 
+from missions.platform.auv.propellor.bluefin21.macrura import Macrura
 from missions.platform.topside.resolution import Resolution
 
 
 class MitBf21(Fleet):
-    platforms = [Resolution]
+    platforms = [Resolution, Macrura(topside="resolution")]
