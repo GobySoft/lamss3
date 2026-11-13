@@ -11,6 +11,7 @@
 | [`logging`](#logging) | `goby_logger` | `interprocess` | |
 | [`view_message`](#view_message) | `pViewMessage` | `interprocess` with `moos` | |
 | [`node_report`](#node_report) | `pNodeReporter` | `interprocess` with `moos` | |
+| [`acomms`](#acomms) (`udp`) | `pAcommsHandler` | `interprocess` with `moos` | `acomms` |
 
 ## interprocess
 
@@ -128,3 +129,25 @@ The `moosdb` port is allocated whether or not MOOS runs.
 *This section written by Claude*
 
 [`node_report.py`](../../../missions/component/node_report/node_report.py): MOOS-IvP's `pNodeReporter`, which posts the platform's `NODE_REPORT` (named after the MOOS community) from its `NAV_*` variables. pMarineViewer draws it, and the gateway plugin publishes it to Goby as `lamss.core.LegacyNodeReport` on `lamss::moos::NODE_REPORT`. `platform_type` is the platform's `type`. It is a stand-in until the `lamss_node_report` Goby app of [plan 09](../plan/claude/09-toolboxes.md) exists.
+
+## acomms
+
+*This section written by Claude*
+
+[`acomms.py`](../../../missions/component/acomms/acomms.py): `pAcommsHandler`, configured from the cruise so that every platform agrees on the message set and the MAC. It runs from its own `acomms.moos`, rendered by [`acomms.moos.j2`](../../../missions/component/acomms/acomms.moos.j2).
+
+| Cruise parameter | Meaning |
+|---|---|
+| `acomms.messages` | names of message templates `acomms/<name>.pb.cfg.j2`, found in any active toolbox's `missions/templates/`. Each defines the macros `translator()` (its `translator_entry`) and `queue()` (its `message_entry`), and sees the platform, so a topside and a vehicle can queue a message differently |
+| `acomms.slots` | the `MAC_FIXED_DECENTRALIZED` cycle: a list of `src`, `dest` (default -1), `rate` (default 0) and `seconds` |
+
+- The platform's `modem_id` is required.
+- `modemidlookup.txt` maps every platform's `modem_id` to its name and type, for the translator's `name2modem_id` and `modem_id2name`.
+- `pAcommsHandler` sets `VEHICLE_NAME` and `VEHICLE_TYPE`, which `pInitializer` used to set.
+- `LIAISON_COMMANDER_OUT` is its multiplex variable. A protobuf message published on the gateway plugin's `lamss::goby::pAcommsHandler_multiplex` group is therefore queued for sending, as goby_liaison's commander does.
+
+| Implementation | Driver | Notes |
+|---|---|---|
+| [`udp`](../../../missions/component/acomms/udp/udp.py) | `DRIVER_UDP` | listens on the subsystem's `acomms` port and sends to every other platform's (`ip`, default `127.0.0.1`) |
+
+`core` provides the `lamss_status` message ([`templates/acomms/lamss_status.pb.cfg.j2`](../../../missions/templates/acomms/lamss_status.pb.cfg.j2)): the `missions-lamss` `LAMSS_STATUS` entry, sent every 5 s on demand. Where it is received it posts `LAMSS_STATUS_IN`, `NODE_REPORT`, `<NAME>_NAV_*` and the rest the old topside read. The publishes of the thermocline fields that `lamss.core.LAMSS_STATUS` no longer has are dropped.

@@ -1,0 +1,47 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set messages = cruise.acomms.messages %}
+ServerHost   = localhost
+ServerPort   = {{ subsystem.ports.moosdb }}
+Community    = {{ component.interprocess.community }}
+MOOSTimeWarp = {{ cruise.warp }}
+LatOrigin    = {{ cruise.datum.lat }}
+LongOrigin   = {{ cruise.datum.lon }}
+
+ProcessConfig = pAcommsHandler
+{
+  common {
+    app_tick: 10
+    comm_tick: 10
+    initializer { type: INI_STRING moos_var: "VEHICLE_NAME" sval: {{ platform.name | pb_string }} }
+    initializer { type: INI_STRING moos_var: "VEHICLE_TYPE" sval: {{ platform.type | pb_string }} }
+  }
+  modem_id: {{ platform.modem_id }}
+  modem_id_lookup_path: {{ (paths.build ~ "/modemidlookup.txt") | pb_string }}
+  multiplex_create_moos_var: "LIAISON_COMMANDER_OUT"
+{%- for lib in paths.proto_libs %}
+  load_shared_library: {{ lib | pb_string }}
+{%- endfor %}
+{% for name in messages %}
+{%- import "acomms/" ~ name ~ ".pb.cfg.j2" as message with context %}
+{{ message.translator() }}
+{%- endfor %}
+  queue_cfg {
+    message_entry {
+      protobuf_name: "goby.acomms.protobuf.MACUpdate"
+      role { type: DESTINATION_ID field: "dest" }
+    }
+{%- for name in messages %}
+{%- import "acomms/" ~ name ~ ".pb.cfg.j2" as message with context %}
+{{ message.queue() }}
+{%- endfor %}
+  }
+  mac_cfg {
+    type: MAC_FIXED_DECENTRALIZED
+{%- for slot in cruise.acomms.slots %}
+    slot { type: DATA src: {{ slot.src }} dest: {{ slot.get("dest", -1) }} rate: {{ slot.get("rate", 0) }} slot_seconds: {{ slot.seconds }} }
+{%- endfor %}
+  }
+  driver_cfg {
+{% include "acomms_driver.pb.cfg.j2" %}
+  }
+}
