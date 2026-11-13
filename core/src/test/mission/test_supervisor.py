@@ -83,16 +83,19 @@ def test_foreground_until_interrupted(checkout):
     assert pids(checkout) == []
 
 
-def test_launch_without_fixed_http_port_gets_a_local_web_page(tmp_path):
-    from lamss.mission.render import Layout
+def test_web_page_has_the_same_address_every_launch(tmp_path):
+    """supervisord's web page takes the first port of port_ranges.supervisor (or a fixed
+    supervisor.http_port), so a bookmark or SSH tunnel keeps working from one launch to the next."""
+    from lamss.mission.render import Layout, http_endpoint
 
+    cruise = {"port_ranges": {"supervisor": 51000}, "supervisor": {"http_port": None,
+                                                                  "http_address": "127.0.0.1"}}
+    assert http_endpoint(cruise) == ("127.0.0.1", 51000)
     layout = Layout(root=tmp_path, prefix=tmp_path, missions=tmp_path, instance="harbor")
     layout.run.mkdir(parents=True)
-    url = supervisor.prepare_http(layout, None, 50000, avoid=range(50000, 50010))
-    port = int(url.rsplit(":", 1)[1].rstrip("/"))
-    assert url.startswith("http://127.0.0.1:") and port >= 50010
-    assert f"port=127.0.0.1:{port}" in (layout.run / "http.conf").read_text()
-    assert supervisor.http_url(layout) == url
-    supervisor.prepare_http(layout, 9123, 50000)
-    assert not (layout.run / "http.conf").exists()
-    assert supervisor.http_url(layout).endswith(":9123/")
+    assert supervisor.record_http_url(layout, cruise) == "http://127.0.0.1:51000/"
+    assert supervisor.record_http_url(layout, cruise) == "http://127.0.0.1:51000/"
+    assert supervisor.http_url(layout) == "http://127.0.0.1:51000/"
+    fixed = {**cruise, "supervisor": {"http_port": 9123, "http_address": "*"}}
+    assert http_endpoint(fixed) == ("*", 9123)
+    assert supervisor.record_http_url(layout, fixed).endswith(":9123/")
