@@ -1,0 +1,8 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+ProcessConfig = iNoaaBathy
+{
+  AppTick   = 4
+  CommsTick = 4
+  nc_bathy_file    = {{ environment.data_dir }}/{{ environment.bathymetry.file }}
+  publish_interval = {{ component.bathymetry.publish_interval }}
+}
