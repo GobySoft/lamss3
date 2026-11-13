@@ -57,6 +57,7 @@ flowchart LR
   m --> sim[sim]
   m --> ml[list]
   m --> mg[generate]
+  m --> mst[status / stop / tail]
   lamss --> env
   env --> es[show]
   env --> el[list]
@@ -124,14 +125,23 @@ State is `.lamss/toolboxes` (see [02](02-repository-layout-and-build.md#toolbox-
 
 A changed list marks the build as needing reconfigure.
 
-### `lamss mission run|sim|list|generate` / `lm m`
+### `lamss mission sim|run|generate|test|list|show|status|stop|tail` / `lm m`
 
 ```
-lamss mission sim  <cruise> [variant] [--generate] [--execute] [--platform P] [--subsystem S] [--set key=value]...
-lamss mission run  <cruise> [variant] --platform P [--subsystem S] [--generate] [--execute] ...
+lamss mission sim  <cruise> [variant] [--generate] [--execute] [--foreground] [--wait S] [--platform P]... [--subsystem S]... [--set key=value]... [--instance NAME]
+lamss mission run  <cruise> [variant] --platform P [--subsystem S]... (same options)
+lamss mission generate <cruise> [variant] [--mode sim|run] [--platform P]... [--subsystem S]... [--set key=value]... [--explain KEY]...
 lamss mission list [cruise]
-lamss mission generate <cruise> [variant] ...   # alias for --generate only
+lamss mission test <cruise> [variant] [--test-file F]... [--set key=value]... [-- goby test run options]
+lamss mission show <cruise> [variant] [--mode sim|run] [--set key=value]... [--explain KEY]...   # the resolved mission dict
+lamss mission status [instance]
+lamss mission stop [instance]
+lamss mission tail [program] [-f] [--instance NAME]
 ```
+
+*This section written by Claude*
+
+`sim` and `run` generate, start one `supervisord` in the background and wait (`--wait`, 60 s) until every process is `RUNNING`, or stop everything and report the ones that are not; `--foreground` keeps supervisord in the foreground, prints `lamss mission: <instance>: all N processes RUNNING` once ready and stops everything on SIGINT/SIGTERM (what test fixtures use). An instance is `<cruise>[_<variant>]` unless `--instance` names it; it owns `missions/build/<instance>` and `missions/run/<instance>`, so two instances can run side by side. `test` runs the cruise's `goby test` files against it ([06](06-missions-framework.md#testing-missions)). `status`, `stop` and `tail` find the running instances themselves and need a name only when several run. `lamss mission` passes every argument through unparsed, `--help` included, so the Python side owns the whole option set.
 
 `variant` is an optional second positional argument naming one variant class; combinations of variants are themselves defined as named variants in Python, never composed on the command line ([06](06-missions-framework.md#variants)).
 

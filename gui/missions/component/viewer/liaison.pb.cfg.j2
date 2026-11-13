@@ -1,0 +1,11 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{% include "app.pb.cfg.j2" %}
+http_address: {{ component.viewer.http_address | pb_string }}
+http_port: {{ subsystem.ports.liaison }}
+additional_wt_http_params: {{ ("--accesslog=" ~ paths.run ~ "/liaison_access.log") | pb_string }}
+{%- for lib in paths.proto_libs %}
+load_shared_library: {{ lib | pb_string }}
+{%- endfor %}
+pb_commander_config {
+  sqlite3_database: {{ (paths.run ~ "/liaison_commander.db") | pb_string }}
+}

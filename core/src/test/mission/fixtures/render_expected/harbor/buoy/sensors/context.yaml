@@ -1,0 +1,86 @@
+mode: sim
+variant: null
+instance: harbor
+cruise:
+  name: harbor
+  datum:
+    lat: 42.358
+    lon: -71.087
+  warp: 1
+  port_base: 24000
+  port_ranges:
+    http: 50000
+    supervisor: 51000
+  supervisor:
+    http_port: null
+    http_address: 127.0.0.1
+fleet:
+  name: duo
+  platforms:
+  - shore
+  - buoy
+environment: null
+platform:
+  name: buoy
+  type: buoy
+  modem_id: 2
+  subsystem:
+    main:
+      name: main
+      host: localhost
+      ports:
+        daemon: 24002
+        moosdb: 24003
+      component:
+        daemon:
+          name: daemon
+          seconds: 300
+        moos:
+          name: moos
+        app:
+          name: app
+          rate: 4
+          label: 100% app
+    sensors: &id001
+      name: sensors
+      host: localhost
+      ports:
+        daemon: 24004
+      component: &id002
+        daemon:
+          name: daemon
+          seconds: 303
+subsystem: *id001
+component: *id002
+paths:
+  root: @ROOT@
+  prefix: @ROOT@/build/usr
+  build: @ROOT@/extra/missions/build/harbor/buoy/sensors
+  run: @ROOT@/extra/missions/run/harbor/buoy/sensors
+  log: @ROOT@/extra/missions/run/harbor/log/buoy/sensors
+  data:
+    core: @ROOT@/core/missions/data
+    extra: @ROOT@/extra/missions/data
+  proto_libs: []
+platforms:
+  shore:
+    name: shore
+    type: station
+    modem_id: 1
+    subsystem:
+      main:
+        name: main
+        host: localhost
+        ports:
+          daemon: 24000
+          moosdb: 24001
+        component:
+          daemon:
+            name: daemon
+            seconds: 300
+          moos:
+            name: moos
+          app:
+            name: app
+            rate: 4
+            label: 100% app

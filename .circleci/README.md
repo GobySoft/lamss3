@@ -12,6 +12,7 @@
 | `build-all-<codename>-<arch>` | `ubuntu:<codename>` for jammy, noble, resolute; `large` (amd64) and `arm.large` (native arm64) | `./init.sh --yes`, then (with `~/.config/lamss/env.sh` loaded) `lamss toolbox activate autonomy sonar virtual_ocean gui mit`, `lamss dependencies install --yes`, `lamss build --jobs 4 --test -D LAMSS_WERROR=ON` (4 jobs: in the Docker executor `nproc` reports the host's CPUs, and more parallel compiles than the resource class has CPUs exhausted its 8 GB) | `git clone && ./init.sh && lamss build` works on a clean system, with every in-tree toolbox built together, on each supported distribution and architecture |
 | `build-<tb>-standalone` | `ubuntu:noble`, large | `./init.sh --yes`, `lamss toolbox activate <tb>`, `lamss dependencies install --yes` (so only `core` and `<tb>` dependencies are present), then plain CMake: build and install `core` into `build/usr`, then `cmake -S <tb>` against it, install and `ctest`. `<tb>` is `core`, `autonomy`, `sonar`, `virtual_ocean`, `gui` and `mit` | Each toolbox builds alone from its own directory, finding upstream toolboxes only through their installed CMake package config, with nothing but its declared dependencies installed |
 | `docs` | `ubuntu:noble`, large | `./init.sh --yes`, then `lamss docs build --strict` and `lamss docs check`; the site is stored as the job's artifact | The documentation site builds with no broken links or missing pages, its generated reference (messages, commands) builds from this commit, and every inferred page's interface tables match the code. Publishing is a GitHub Actions workflow, [`.github/workflows/docs.yml`](../.github/workflows/docs.yml), on `main` |
+| `mission` | `ubuntu:noble`, large | `./init.sh --yes`, `lamss build`, then `lamss mission sim example`, `status`, `test` and `stop`, and checks no mission process is left | The mission command works end to end from the `lamss` tool on a clean system: generation, supervisord, `goby test` and shutdown (ctest in the `build-*` jobs runs the same cruise's test through `lamss_add_mission_test`) |
 | `env-switch` | `ubuntu:noble`, large | `init.sh` in this checkout and in a second clone, then `lamss env list` and `lamss env switch lamss3` | The active checkout follows `lamss env switch` in the running shell, the previous checkout's entries leave `PATH`/`LD_LIBRARY_PATH`/`PYTHONPATH`, and `init.sh` added the `~/.bashrc` hook |
 
 Jobs call `lamss` rather than `lm`: `lm` is a shell alias, which non-interactive shells do not expand.
@@ -20,14 +21,14 @@ Standalone builds use `build/standalone/<tb>` so they never share a build tree w
 
 `clang-format` is pinned to 18, the version in noble, so the result does not change with the image. To reproduce locally: `git ls-files -z -- '*.cpp' '*.cc' '*.h' '*.hpp' '*.proto' | xargs -0 -r clang-format-18 -i`.
 
-There is no packaging, upload or mission smoke test yet (Phases 5 and 2), and no cache: Phase 0 compiles nothing worth caching.
+There is no packaging or upload yet (Phase 5), and no cache.
 
 ## One-time setup in CircleCI
 
 1. In CircleCI, open the GobySoft organisation, **Projects**, and **Set Up Project** for `lamss3`, using the existing `.circleci/config.yml`.
 2. **Project Settings → Advanced**: turn on **Build forked pull requests** if pull requests from forks should run. Pull requests from branches of `GobySoft/lamss3` run anyway, as pushes.
 3. The arm64 jobs use the Docker `arm.large` resource class. Check that the organisation's plan offers it (**Organization Settings → Plan**); if not, change `resource_class: arm.large` in the `ci` workflow to one the plan does offer, such as `arm.medium`.
-4. Once the jobs have run once, make `format`, `docs`, `env-switch`, `build-all-*` and `build-*-standalone` required status checks on the `3.y` development branch in GitHub.
+4. Once the jobs have run once, make `format`, `docs`, `env-switch`, `mission`, `build-all-*` and `build-*-standalone` required status checks on the `3.y` development branch in GitHub.
 
 ## GitHub Pages
 

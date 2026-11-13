@@ -31,9 +31,8 @@ classDiagram
   class Concept {
     +name: str
     +params: dict
-    +variants: list
     +to_dict() dict
-    +templates() list
+    +derived() dict
   }
   class Cruise {
     +fleet: Fleet
@@ -62,7 +61,11 @@ classDiagram
     +requires: list~type~
     +processes: list~Process~
     +templates: list
-    +data_files: list
+    +fragments: dict
+    +ports: list or dict
+    +active_processes() list
+    +active_templates() list
+    +active_ports() list or dict
   }
   class Process {
     +name: str
@@ -105,21 +108,21 @@ Per toolbox, mirroring the class tree. A directory `x/` holds `x.py` defining cl
 
 ```
 core/missions/
-├── cruise/cruise.py                      # class Cruise
-├── fleet/fleet.py
-├── platform/platform.py
+├── cruise/                               # Cruise, Fleet, Platform, Component, Environment are in lamss.mission
+├── fleet/
+├── platform/
 │   ├── auv/auv.py                        # class Auv(Platform)
 │   ├── topside/topside.py
 │   └── mooring/mooring.py
-├── component/component.py
+├── component/
 │   ├── logging/logging.py                # goby_logger, glog config
-│   ├── health/health.py                  # goby_coroner / supervisord event listener
+│   ├── health/health.py                  # goby_coroner
 │   ├── interprocess/interprocess.py      # gobyd (+ MOOSDB + gateway during transition)
 │   ├── acomms/acomms.py                  # gobyd intervehicle block / pAcommsHandler
 │   │   ├── micromodem/micromodem.py
 │   │   ├── udp/udp.py
 │   │   └── netsim/netsim.py
-├── environment/environment.py            # base class only; concrete environments live in mit
+├── environment/                          # concrete environments live in mit
 ├── templates/                            # Jinja2, one per process config: gobyd.pb.cfg.j2 ...
 └── data/                                 # acomms DCCL configs, replicas, modem id lookup
 
@@ -161,6 +164,8 @@ mit/missions/
 ```
 
 Class discovery: `lamss.mission.registry` walks each active toolbox's `missions/` tree, imports every `<dir>/<dir>.py`, and registers classes by their path (`platform/auv/propellor/bluefin21/macrura`) and short name (`macrura`). Toolboxes extend each other's trees by placing a subdirectory at the same path (the `mit` toolbox adds `bluefin21/macrura` beneath `autonomy`'s `bluefin21`). A name clash is an error.
+
+The base classes live in the `lamss.mission` package and are the roots of the trees (`cruise/`, `fleet/`, `platform/`, `subsystem/`, `component/`, `environment/`), so no toolbox defines them. The merged trees are importable as the `missions` package (`from missions.platform.auv import Auv`, wherever `auv.py` lives); the other `.py` files in a directory hold its variants. A directory holds one class, which subclasses the class of the directory above it. A component's name in the context is its directory beneath `component/` (every `component/acomms/*` implementation is `acomms`); a platform's is its directory, or the name given in the fleet (`Topside("ship")`).
 
 ## Rendering pipeline
 
@@ -214,7 +219,7 @@ flowchart LR
   d1[Component defaults] --> d2[Platform class MRO<br/>Platform -> Auv -> Bluefin21 -> Macrura] --> d3[Fleet per-platform overrides] --> d4[Cruise overrides] --> d5[Variant] --> d6[--set key=value]
 ```
 
-Later boxes override earlier ones. Each level is an explicit dict, so `lm m generate mbat --explain platform.macrura.max_depth` can print where a value came from. This fixes the gpp gotcha where `auv.def` silently overrode `all.def`.
+Later boxes override earlier ones. Each level is an explicit dict, so `lm m generate mbat --explain platform.macrura.max_depth` can print where a value came from. A class sets its own `params`; a list entry can be a spec that overrides parameters where it is used (`components = [Logging(level="DEBUG")]`, `platforms = [Macrura(modem_id=4)]`); a cruise or fleet sets anything else with `overrides` keyed by dotted path (`{"platform.macrura.max_depth": 150}`). Every key is such a path into the mission dict (`platform.macrura.subsystem.main.component.logging.level`); a bare key is a cruise parameter (`--set warp=10`). Overriding a key that no lower layer defines is an error, so typos do not pass silently. A variant's own `params`, `overrides` and spec entries form the variant layer, wherever its class sits in the MRO. This fixes the gpp gotcha where `auv.def` silently overrode `all.def`.
 
 ## Variants
 
@@ -223,8 +228,7 @@ A variant is a class decorated with `@variant("name")` that subclasses a concept
 ```python
 # mit/missions/platform/auv/propellor/bluefin21/macrura/macrura.py
 class Macrura(Bluefin21):
-    modem_id = 4
-    params = dict(max_depth=190, low_speed=1.2, high_speed=2.0)
+    params = dict(modem_id=4, max_depth=190, low_speed=1.2, high_speed=2.0)
     components = Bluefin21.components + [TetraHoming, PassiveSonarChain.with_array("durip")]
     sim_components = [FrontseatSim(UMVSBluefin), SensorSim(PassiveSonarSim, NetcdfOcean)]
 ```
@@ -246,7 +250,7 @@ class MacruraHydroman(Macrura):
     subsystems = Macrura.subsystems + [Subsystem("nav", components=[Hydroman.nav_side])]  # HM3 process group
 ```
 
-Only one variant is named on the command line (`lm m sim mbat hybrid_hydroman`). Combinations are defined in a file as a named variant that inherits from the variants it combines (`class MacruraHybridHydroman(MacruraHydroman, MacruraHybrid)` in `macrura_hybrid_hydroman.py`), so every runnable configuration has a name, a file and a git history. Conflicts in such a combination (two parents replacing the same component differently) are reported at import time, not resolved silently.
+Only one variant is named on the command line (`lm m sim mbat hybrid_hydroman`). Combinations are defined in a file as a named variant that inherits from the variants it combines (`class MacruraHybridHydroman(MacruraHydroman, MacruraHybrid)` in `macrura_hybrid_hydroman.py`), so every runnable configuration has a name, a file and a git history. Conflicts in such a combination (two parents replacing the same component differently) are reported at import time, not resolved silently. The combination's lists (`components`, `subsystems`, ...) are merged from each parent's changes to the common base, so `MacruraHybridHydroman` needs no body unless its parents conflict, in which case setting the attribute in the combination resolves it. `replace(list, Old, New)` and `remove(list, Old)` edit inherited lists. A variant name may be defined for several concepts (`hybrid` on each AUV); it must apply to something in the cruise.
 
 Cruise and fleet variants work the same way (`@variant("two_auv")` adds `unicorn`; `@variant("smoke")` shrinks the fleet to one AUV + topside for CI).
 
@@ -286,26 +290,44 @@ The 143 `flags.txt` entries map to:
 
 The `missions/build`, `log` and `run` directories live in the toolbox that owns the cruise (`mit/missions/...`), matching the core plan's layout; `lm m` prints the paths it used.
 
+As built, the directories are keyed by instance (`<cruise>[_<variant>]`, or `--instance`) rather than by cruise, so a variant or a test can run beside the plain cruise: `build/<instance>/` also holds `mission.yaml` (the whole mission dict) and `<mode>/supervisord.conf` (`sim/` or `run/`); logs go to `log/<instance>/<UTC time>/` and `run/<instance>/log` links to the current one, so generated files name only the stable link and generating twice gives identical bytes. Templates are found in the cruise's directory (cruise-specific overrides), then the component class's directories along its MRO, then every active toolbox's `missions/templates/` (later toolboxes first). A component can render fragments into a file another component owns (`fragments = {"last.moos": ["pApp.moos.j2"]}`; the owner's template loops over `fragments["last.moos"]`), name the ports it needs (`ports = ["moosdb"]`, allocated per subsystem from `cruise.port_base`, or `ports = {"liaison": "http"}` from `cruise.port_ranges.http`, unless the subsystem's `ports` parameter sets them; supervisord's web page takes the first port of `port_ranges.supervisor`) and add variables to its processes' environment (`environment()`). A unix socket path too long for `sun_path` moves to `$TMPDIR/lamss-<uid>/<hash>_<name>` (for example `<hash>_supervisor.sock`).
+
 ### supervisord
 
 One `supervisord` instance per machine. `sim` on one machine merges every subsystem's fragment; `run --platform macrura --subsystem main` uses only that fragment. Generated entries look like:
 
 ```ini
-[program:gobyd]
-command=gobyd -c gobyd.pb.cfg
+[group:macrura_main]
+programs=macrura_main_gobyd,macrura_main_pLamssMissionManager
+
+[program:macrura_main_gobyd]
+process_name=gobyd
+command=gobyd gobyd.pb.cfg
 directory=%(here)s
 priority=10
 autorestart=unexpected
-stdout_logfile=%(ENV_LAMSS_LOG)s/gobyd.out
-environment=LAMSS_PLATFORM="macrura",LAMSS_WARP="%(ENV_LAMSS_WARP)s"
+stdout_logfile=%(here)s/../../../../run/mbat/log/macrura/main/gobyd.out
+environment=LAMSS_PLATFORM="macrura",LAMSS_WARP="1",...
 
-[program:pLamssMissionManager]
+[program:macrura_main_pLamssMissionManager]
+process_name=pLamssMissionManager
 command=pLamssMissionManager last.moos
 priority=50
 startsecs=2
 ```
 
-`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`. `lamss mission status|stop|restart|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component installs an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role.
+`priority` is derived from component ordering (interprocess → health/logging → sensors → autonomy → viewers) so `gobyd`/MOOSDB are up before clients, replacing `MSBetweenLaunches`: it is `10 × (component index + 1) + process index` in the subsystem's component list, unless a `Process` sets it. Program names are prefixed with the group (supervisord needs them unique), while `process_name` keeps the plain name, so `supervisorctl` shows `macrura_main:gobyd`. supervisord mangles quotes in `environment=`, so variables holding quotes (`GOBY_INTERPROCESS`) go only into `env.sh`. `lamss mission status|stop|tail` wrap `supervisorctl` against the right socket. supervisord's HTTP monitor (`inet_http_server`) is enabled optionally (`--set supervisor.http_port=9001`) for watching a vehicle from topside. The health component is planned to install an [event listener](http://supervisord.org/events.html) that publishes process state to Goby (`lamss.core.ProcessHealth`), taking over `pCoroner`'s role; until then it configures goby_coroner, which covers the Goby apps.
+
+## Testing missions
+
+*This section written by Claude*
+
+`lamss mission test <cruise> [variant] [-- <goby test run options>]` checks a running mission with [`goby test`](https://github.com/GobySoft/goby3/blob/3.0/src/doc/markdown/doc010_cli.md#goby-test). A cruise keeps its test files in `test/` beside its class (`core/missions/cruise/example/test/example.yml`); they hold only the `test:` section and name endpoints `<platform>_<subsystem>`. For each file the command generates the mission as instance `<cruise>[_<variant>]_test` with a free block of ports (unless `--set port_base=` is given), writes `build/<instance>/test/mission.yml` with
+
+- one endpoint per subsystem whose component returns settings from `test_endpoint()` (the interprocess component: its gobyd's zeromq settings), and
+- one fixture, `lamss mission sim ... --execute --foreground`, ready on its `all N processes RUNNING` line and stopped with SIGINT,
+
+and a wrapper that includes it and the test file, then runs `goby test run` on the wrapper with `-l` for each installed `liblamss_<tb>_protobuf.so` and `-D` values from the context: `LAMSS_ROOT`, `LAMSS_PREFIX`, `LAMSS_INSTANCE`, `LAMSS_CRUISE`, `LAMSS_RUN`, `CRUISE_<param>`, `PLATFORM_<platform>_<param>` (scalars, dots as `_`), `PORT_<platform>_<subsystem>_<name>`, `RUN_<platform>_<subsystem>` and `LOG_<platform>_<subsystem>`. Its exit status is `goby test`'s (0 pass, 1 fail, 2 could not run). In CMake, `lamss_add_mission_test(NAME <n> CRUISE <c> [VARIANT <v>] TEST <file> [SET k=v...] [WAIT s])` registers one in ctest, using `GOBY_EXECUTABLE` from `find_package(goby)` or `goby` on `PATH`; it runs the installed mission, so it belongs after `install` (as in `lamss build --test`).
 
 ## Runtime (vehicle) deployment
 
@@ -331,7 +353,11 @@ Until M4, components that launch MOOS apps render `ProcessConfig` blocks into a 
 | 7 | `irminger`, then `icex20` (M3) with their environments |
 | 8 | Port remaining live platforms (unicorn, hydrohole mooring, resolution ship) |
 
-Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (`supervisord -c ... -n` dry parse).
+Unit tests: registry discovery over a fixture tree, MRO merge order, variant composition, template rendering against golden files, supervisord conf validity (the tests start a real supervisord on the generated conf and stop it).
+
+*This section written by Claude*
+
+Status: steps 1–3 are built, and step 4 without the MBAT content: `core/missions/` has the `interprocess` (gobyd, MOOSDB, `lamss_goby_moos_gateway`; `moos: false` drops the last two), `logging` (goby_logger), `health` (goby_coroner, expecting each process created with `health=True`) and `view_message` (pViewMessage) components, the `auv`, `topside` and `mooring` platforms, a `synthetic` environment and an `example` cruise (`example_fleet`: one topside) whose `test/example.yml` checks `gobyd`, `goby_logger`, `goby_coroner` and `goby_moos_gateway` are healthy and that a `NODE_REPORT` makes the round trip Goby → gateway → MOOS → gateway → Goby. ctest runs it (`lamss_core_mission_example`), and the `mission` CI job runs `lamss mission sim|status|test|stop example`. The shared Goby templates include `app.pb.cfg.j2` (glog verbosity, sim time when `warp` ≠ 1, interprocess block). `gui/missions/component/viewer` adds goby_liaison and, when it is installed and a display is set (or `marine_viewer: true`), pMarineViewer; the topside lists it as `optional("viewer")`. Not built yet: pLogger, the supervisord event listener for process health (goby_coroner covers the Goby apps meanwhile), `lamss mission install-service`, `freeze`, `--remote`.
 
 ## Open questions for the human plan
 

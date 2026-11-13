@@ -11,6 +11,18 @@
     - tool/env.md
     - tool/docs.md
     - tool/clean.md
+- Missions:
+    - missions/index.md
+    - missions/tutorial.md
+    - missions/concepts.md
+    - missions/layout.md
+    - missions/parameters.md
+    - missions/variants.md
+    - missions/templates.md
+    - missions/output.md
+    - missions/testing.md
+    - lamss mission: missions/cli.md
+    - Python API: missions/api.md
 - Toolboxes: "@toolboxes"
 - Reference:
     - Messages: "@messages"

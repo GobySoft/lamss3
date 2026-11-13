@@ -1,0 +1,31 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The Goby side of the gateway checks in moos_smoke.sh, which runs the processes and passes their
+# settings with -D. MOOS-side expectations stay with moos_probe in the script.
+endpoint:
+  - { name: gateway, zeromq: { platform: "${PLATFORM}", socket_name: "${SOCKET_NAME}" } }
+
+fixture:
+  - name: MOOS NODE_REPORT source
+    command: >-
+      while :; do "${MOOS_PROBE}" ${MOOS_PORT} 5
+      'NODE_REPORT=NAME=smoke,TYPE=auv,UTC_TIME=1793277319,X=10,Y=20,SPD=1,HDG=90,DEPTH=5';
+      sleep 0.5; done
+
+test:
+  name: lamss gateway plugin
+  default_timeout: 10
+  require_app:
+    - { endpoint: gateway, name: [gobyd], timeout: 20 }
+  run:
+    - name: NODE_REPORT from MOOS to Goby
+      expect:
+        - group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "smoke"'
+          condition: [{ field: x, op: EQ, value: 10 }]
+    - name: NODE_REPORT from Goby to MOOS (moos_probe checks the MOOS side)
+      publish:
+        - { group: 'lamss::moos::NODE_REPORT::out', type: PROTOBUF/lamss.core.LegacyNodeReport, value: 'name: "topside" x: 1 y: 2', delay: 0.5 }
+      wait: 1
