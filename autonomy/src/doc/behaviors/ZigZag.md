@@ -152,7 +152,7 @@ None **[code]**.
 - From GobySoft/lamss `src/lib/lib_behaviors-henrik/BHV_ZigZag.{h,cpp}`; first commit 2011-04-28
   (Toby Schneider); 2 commits before the port, the second (2021, Henrik Schmidt) adding dynamic
   UTM support.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, the
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, the
   helm name changed from `BHV_ZigZag` to `BHV_LamssZigZag`, and `theta` in
   `currentCompensatedHeading` initialised to 0 (a gcc warning; it only mattered on a path that
   read it uninitialised).

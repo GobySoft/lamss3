@@ -196,6 +196,6 @@ stateDiagram-v2
 - Main changes in the old history: correlated noise operational (2012), noise directionality by
   elevation (2013), relative noise profile (`delta`, 2014), `ComputeCovariance` moved to
   henrik_util (2019), covariance file in double precision (2025-12-15).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): clang-format; noise level initialised for depths
+- lamss3 port (Phase 2, GobySoft/lamss3#23): clang-format; noise level initialised for depths
   outside the noise profile; the FFT length read through `memcpy` instead of a type-punned pointer;
   newmat include dropped; MIT/GPL-3.0-or-later headers.

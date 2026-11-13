@@ -250,6 +250,6 @@ The diagram is for `array_type = towed`; the other types publish a rigid geometr
 - Main changes in the old history: vertical arrays (2012), volumetric arrays and element
   directivity (2013), heading from `NAV_HEADING` instead of `NAV_YAW` (2013), array configuration
   clean-up (2017).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): clang-format; `ntol`/`jtol` initialised; 32-byte
+- lamss3 port (Phase 2, GobySoft/lamss3#23): clang-format; `ntol`/`jtol` initialised; 32-byte
   buffers for the `sprintf`'d parameter names; explicit parentheses on the assignment in `if`;
   `ProcessConfig` name in the example fixed; MIT/GPL-3.0-or-later headers.

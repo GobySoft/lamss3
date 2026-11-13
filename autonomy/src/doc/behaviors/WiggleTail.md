@@ -148,5 +148,5 @@ stateDiagram-v2
   `AOF_WiggleTail.{h,cpp}`; first commit 2011-04-28 (Toby Schneider); 3 commits before the port, by
   Toby Schneider and Henrik Schmidt. Main changes: a fix in 2017, and the target cue heading as
   reference (2021).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the classes moved into `lamss::autonomy`,
+- lamss3 port (GobySoft/lamss3#21): clang-format, the classes moved into `lamss::autonomy`,
   and the shared `create_behavior.cpp`; behaviour unchanged.

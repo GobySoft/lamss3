@@ -240,7 +240,7 @@ Each iteration **[code]**:
   changes: renamed from BHV_OptCohAcoustDepth (2020-04-27); multipath (2019) and bounce (2020)
   penalties; SVP request/response (2019); NaN handling (2020); Goby3 and netsim namespace updates
   (2019–2020, Toby Schneider).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, classes moved into `lamss::autonomy`, the
+- lamss3 port (GobySoft/lamss3#21): clang-format, classes moved into `lamss::autonomy`, the
   shared `create_behavior.cpp`, built only with netsim, `CEigenRays`/`CRapRays` from
   `lamss::core::henrik_util`, `goby_time()` replaced by a local function on `SystemClock`, and some
   locals initialised to 0 for gcc warnings.

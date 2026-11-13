@@ -222,7 +222,7 @@ ProcessConfig = uMVS_Bluefin
     - `FRONTSEAT_LATITUDE/LONGITUDE`, 2022.
 
     Other authors: Toby Schneider (RPM output, 2019), Stephanie Petillo (vertical currents, 2014) and Supun Randeni (heave velocity, 2019).
-- lamss3 Phase 2 port (GobySoft/lamss3#21–#23):
+- lamss3 Phase 2 port (GobySoft/lamss3#21):
     - newmat now comes from Ubuntu's `libnewmat10-dev` instead of the vendored copy;
     - `-Wall -Wextra` fixes with no change in behaviour;
     - `uMVS.moos` became `uMVS_Bluefin.moos`, with a one-vehicle `ADD_AUV`;

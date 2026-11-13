@@ -178,6 +178,6 @@ ProcessConfig = uSimModemNetwork
 - Main changes in the old history: netsim `NETSIM_NAV_UPDATE` and request ids (2017–2018), modem
   arrays (2018), vertical noise directionality and covariance files (2019), performance prediction
   with SNR, multipath and MAE (2020–2021), dynamic origin (2021).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): built only where netsim is installed; noise level
+- lamss3 port (Phase 2, GobySoft/lamss3#23): built only where netsim is installed; noise level
   and `max_tau`/`max_power_bounces` initialised; braces around the `if (false)` block; newmat
   include and the unbuilt `SimModemNetworkMain.cpp` removed; MIT/GPL-3.0-or-later headers.

@@ -99,7 +99,7 @@ caller in lamss3 **[code]**.
 - From GobySoft/lamss `src/lib/lib_henrik_util` (`CTrack.h`, `CTrack.cpp`); first commit 2011-04-27
   (Toby Schneider, during the migration to the lamss repository); 3 commits by Toby Schneider and
   Henrik Schmidt before the port, the last on 2015-11-16.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built as `lamss_sonar_henrik_util`, header
+- lamss3 port (GobySoft/lamss3#22): clang-format; built as `lamss_sonar_henrik_util`, header
   moved to `lamss/sonar/henrik_util/`, namespace `lamss::sonar`; MOOS includes moved into the `.cpp`
   and MOOS linked privately so the installed library does not require MOOS; GPL-3.0-or-later SPDX
   headers added.

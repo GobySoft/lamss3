@@ -190,7 +190,7 @@ stateDiagram-v2
   Schmidt, "GobyMOOSified pBearingTracker -> pLamssBearingTracker"); 6 commits by Henrik Schmidt and
   Toby Schneider before the port, the last on 2021-05-19. It started as a copy of pBearingTracker,
   whose history (back to SAIC's 2006–2007 revisions in the file header) stays with that app.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built against Ubuntu's newmat
+- lamss3 port (GobySoft/lamss3#22): clang-format; built against Ubuntu's newmat
   (`namespace NEWMAT`) instead of a vendored copy; an unused lib_anrp_util include dropped; config
   proto in `package lamss.sonar`, proto2; warning fixes with no change of behaviour (the #30
   assignment kept, with extra parentheses); example `.moos` and smoke test added.

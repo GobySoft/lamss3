@@ -127,5 +127,5 @@ On each helm iteration, when `NAV_ALTITUDE` is present and not 0 **[code]**:
 - From GobySoft/lamss `src/lib/lib_behaviors-henrik/BHV_MinAltitude.{h,cpp}`; first commit
   2011-04-28 (Toby Schneider); 4 commits by Toby Schneider and Henrik Schmidt before the port. Main
   changes: run condition (2017), inverted DVL for ICEX (2020).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, and
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, and
   the shared `create_behavior.cpp`; behaviour unchanged.

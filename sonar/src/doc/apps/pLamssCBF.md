@@ -260,7 +260,7 @@ stateDiagram-v2
   "started cleanup of pCBF"); 45 commits by Henrik Schmidt, Toby Schneider and Andrew Poulsen
   before the port, the last on 2020-09-24. Some files started as copies of pLamssTrackManager's,
   whose history stays with that app.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; the `SLITA` array type and its file reader
+- lamss3 port (GobySoft/lamss3#22): clang-format; the `SLITA` array type and its file reader
   (lib_anrp_util) removed; the FSM namespace moved to `lamss::sonar::fsm`; config proto in
   `package lamss.sonar`, proto2; warning fixes with no change of behaviour (a short `fread` is now
   logged); example `.moos` and smoke test added.

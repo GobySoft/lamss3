@@ -175,7 +175,7 @@ None **[code]**.
 - From GobySoft/lamss-shared `src/moos/pGeoTracker`; first commit 2011-10-24 (Henrik Schmidt,
   "pGeoTracker added"); 27 commits before the port, by Henrik Schmidt, Toby Schneider and one other
   contributor, the last on 2020-08-31 ("Enable tracking in deploy modes").
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built as a plain CMOOSApp (`NO_GOBY`) against
+- lamss3 port (GobySoft/lamss3#22): clang-format; built as a plain CMOOSApp (`NO_GOBY`) against
   MOOS 10, IvP's mbutil, [track](../libraries/track.md) and core's henrik_util (now
   `lamss::core`), without the unused IvP geometry library; warning fixes with no change of
   behaviour; MIT copyright and SPDX headers added; example `.moos` and smoke test added.

@@ -101,6 +101,6 @@ copy of `opt.h` (with `extern "C"` declarations) instead of this one **[code]**.
 - From GobySoft/lamss-shared `src/lib/lib_track` (`mat.c`, `opt.h`); first commit 2011-10-24 (Henrik
   Schmidt, with pGeoTracker); 2 commits before the port (Henrik Schmidt, Toby Schneider), the last
   on 2012-05-21. The old CMakeLists.txt named Don Eickstedt as the author.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built as `lamss_sonar_track`, header moved to
+- lamss3 port (GobySoft/lamss3#22): clang-format; built as `lamss_sonar_track`, header moved to
   `lamss/sonar/track/opt.h`, compiled as C17; `(void)` casts for unused parameters and `fscanf`
   results kept in unread locals; LGPL-3.0-or-later SPDX headers added.

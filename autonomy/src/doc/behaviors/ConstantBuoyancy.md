@@ -120,6 +120,6 @@ None **[code]**.
 
 - From GobySoft/lamss `src/lib/lib_behaviors-henrik/BHV_ConstantBuoyancy.{h,cpp}`; one commit,
   2020-07-10 (Henrik Schmidt), as a copy of BHV_MinAltitude.
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, the
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, the
   shared `create_behavior.cpp`, and `setParam` now returns false for an unknown parameter (it fell
   off its end, undefined behaviour).

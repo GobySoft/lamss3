@@ -131,7 +131,7 @@ returns `BATHY_Z = -100` **[test]**.
 - Main changes in the old history: HYCOM, MSEAS and GDEM readers (2018), EOF profiles and weight
   updates (2019), new NOAA bathymetry format and internal waves (2020), HYCOM directories and
   natural sort (2022), GEBCO (2022).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): built as `lamss_virtual_ocean_henrik_util` in
+- lamss3 port (Phase 2, GobySoft/lamss3#23): built as `lamss_virtual_ocean_henrik_util` in
   `namespace lamss::virtual_ocean`; CRapRays and CEigenRays moved to core's henrik_util;
   `strnatcmp.hpp` kept private with its zlib notice; NetCDF statuses initialised; explicit
   `[[fallthrough]]` in `datenum` (behaviour unchanged); `<algorithm>` and `<iomanip>` included;

@@ -175,5 +175,5 @@ stateDiagram-v2
   2011-04-28 (Toby Schneider); 5 commits by Toby Schneider and Henrik Schmidt before the port. Main
   changes: ZAIC tuning (2016), inverted DVL for ICEX (2020), NaN altitude (2021). The `IN_TRACK`
   input dates from GLINT08 (code comment).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, and
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, and
   the shared `create_behavior.cpp`; behaviour unchanged.

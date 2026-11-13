@@ -233,7 +233,7 @@ Runs `rsync <file> <sync_path>/` through `system()` for every file when `sync_pa
 - `TGT_<n>_SIM_STATE` is indexed without checking it has at least two values **[code]**.
 - `sync_password` is put into a `bash -c` command line (visible in the process list and logged at
   `DEBUG2`), unquoted in two of the three places **[code]**. Can the copy use an rsync password
-  file or SSH keys instead? The 2017 default password was removed from the imported history.
+  file or SSH keys instead?
 - `pi = 3.14159` is used for the array yaw **[code]**; elsewhere `M_PI`.
 - `svp_surface` defaults to 1430 m/s, low for sea water **[guess]**. Intended?
 - `bottom_loss` is applied as dB/km; the header calls it "modal attenuation dB/lambda" **[code]**.
@@ -253,7 +253,7 @@ Runs `rsync <file> <sync_path>/` through `system()` for every file when `sync_pa
   repeated pingers (2024), `PINGER_GEO` and lat/lon pinger positions (2022–2024), RAY files for
   all sources (2024), double-precision covariance files and reloading covariances after NaNs
   (2025-12-15/16).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): Bellhop and SVP requests compiled only with netsim
+- lamss3 port (Phase 2, GobySoft/lamss3#23): Bellhop and SVP requests compiled only with netsim
   (the app refuses `ray_acoustics`/`svp_updates` otherwise); ray-tracing box initialised; noise level
   and hydrophone file pointer initialised; FFT length via `memcpy`; unchecked `fread`/`system()`
   results kept in `[[maybe_unused]]` variables; newmat include and the unbuilt

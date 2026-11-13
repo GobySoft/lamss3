@@ -145,4 +145,4 @@ code keeps no explicit state variable, just the time of the last valid fix **[co
 ## History
 
 - From GobySoft/lamss-shared `src/moos/pTetraHoming/` (imported at lamss-shared 043f556) **[code]**. It was moved there from GobySoft/lamss-internal on 2020-02-20; that earlier history is grafted in, so `git log --follow` reaches its origin. First commit 2017-04-25 (Nick Rypkema), "a MOOSApp to home in and loiter around beacon". 10 commits before the port, mostly by Henrik Schmidt (2019–2020), who added `HOMING_STATION`, `BEACON_UPDATE`, `HOMING_X`/`_Y` and `HOMING_LOCK` with its hysteresis.
-- lamss3 Phase 2 port (GobySoft/lamss3#21–#23): builds as a plain CMOOSApp without Goby (`NO_GOBY`); `pTetraHoming.moos` carries the MOOS globals; author banners replaced by copyright and SPDX headers; formatted with clang-format.
+- lamss3 Phase 2 port (GobySoft/lamss3#21): builds as a plain CMOOSApp without Goby (`NO_GOBY`); `pTetraHoming.moos` carries the MOOS globals; author banners replaced by copyright and SPDX headers; formatted with clang-format.

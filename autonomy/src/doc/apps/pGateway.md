@@ -121,7 +121,7 @@ None **[code]**.
 ## History
 
 - From GobySoft/lamss `src/moos/pGateway/` (imported at lamss 3186a63) **[code]**. First commit 2011-04-26 (Toby Schneider), when the MOOS processes used in missions-lamss were added. 9 commits before the port, by Toby Schneider and Henrik Schmidt; the last, in 2021-06, added `LAT_ORIGIN`/`LONG_ORIGIN` handling. In 2017 `NODE_REPORT_NMEA_SHIP` was added.
-- lamss3 Phase 2 port (GobySoft/lamss3#21–#23):
+- lamss3 Phase 2 port (GobySoft/lamss3#21):
     - builds as a plain CMOOSApp with `CMOOSGeodesy` from goby_moos;
     - `pGateway.moos` gained the `LatOrigin`/`LongOrigin` globals it needs;
     - formatted with clang-format;

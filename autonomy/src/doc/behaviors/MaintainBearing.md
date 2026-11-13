@@ -165,5 +165,5 @@ None **[code]**.
   2011-04-28 (Toby Schneider); 11 commits, mostly Henrik Schmidt, before the port. Main changes:
   `quad` mode (2011), base width 180 − width (2017), bearing-rate-adaptive side switching
   (November 2017).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, the
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, the
   shared `create_behavior.cpp`, and `CmyVectorUtils` now from `lamss::core::henrik_util`.

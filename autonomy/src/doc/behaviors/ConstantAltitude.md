@@ -135,6 +135,6 @@ On each helm iteration while the behavior runs **[code]**:
 - From GobySoft/lamss `src/lib/lib_behaviors-henrik/BHV_ConstantAltitude.{h,cpp}`; first commit
   2011-04-28 (Toby Schneider); 5 commits by Toby Schneider and Henrik Schmidt before the port. Main
   changes: inactive without bottom lock (2014), `inverted_dvl` for ICEX (2020).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, and
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, and
   the per-behavior `createBehavior` replaced by the shared `create_behavior.cpp`; behaviour
   unchanged.

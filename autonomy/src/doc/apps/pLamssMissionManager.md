@@ -389,7 +389,7 @@ Altitude drives the landing states **[code]**.
 ## History
 
 - From GobySoft/lamss-shared `src/moos/pLamssMissionManager/` (imported at lamss-shared 043f556) **[code]**. First commit 2015-09-30 (Henrik Schmidt, "added pLamssMissionManager"). 247 commits before the port, to 2024-08-30: about 220 by Henrik Schmidt, 20 by Toby Schneider, 5 by Supun Randeni, and one each by Nick Rypkema and an "MIT LAMSS" account. Recent work (2023–2024) added landing and lift-off handshakes, glide parameters, HydroMAN navigation and `use_geo_commands`.
-- lamss3 Phase 2 port (GobySoft/lamss3#21–#23):
+- lamss3 Phase 2 port (GobySoft/lamss3#21):
     - removed, to go to the icex toolbox: the ICEX20 tracking-result handler (`ICEX20_TRACKING_VEHICLE_POS_IN`), the tracking-signal handler (`ICEX_TRACKING_SIGNAL_UPDATE_IN`) and the `ICEX_VEHICLE_TRANSMIT_SELECTION_IN` modem swap, with config fields `tracking_message`, `track_signal_update_message`, `standard_mac`, `legacy_mac` and `beacon_depth` (numbers reserved);
     - removed the unpublished `platform_info` and its `modemidlookup.txt` read;
     - config proto moved to `package lamss.autonomy`;

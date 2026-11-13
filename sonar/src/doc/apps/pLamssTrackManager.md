@@ -248,7 +248,7 @@ stateDiagram-v2
   "pLamssTrackManager template functional"); 69 commits by Henrik Schmidt, Toby Schneider and Supun
   Randeni before the port, the last on 2024-08-30 (`use_geo_commands`). Three of its files started
   as copies of pLamssMissionManager's, whose history stays with that app.
-- lamss3 port (GobySoft/lamss3#21–#23): moved to sonar rather than autonomy, because it uses
+- lamss3 port (GobySoft/lamss3#22): moved to sonar rather than autonomy, because it uses
   sonar's `LAMSS_TRACK`, `LAMSS_CONTACT` and CTrack; clang-format; FSM namespace moved to
   `lamss::sonar::fsm`; config proto in `package lamss.sonar`, proto2; warning fixes with no change
   of behaviour; example `.moos` and smoke test added.

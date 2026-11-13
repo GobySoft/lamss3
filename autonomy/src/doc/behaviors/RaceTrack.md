@@ -201,5 +201,5 @@ stateDiagram-v2
 - From GobySoft/lamss `src/lib/lib_behaviors-henrik/BHV_RaceTrack.{h,cpp}`; first commit
   2011-04-28 (Toby Schneider); 5 commits by Toby Schneider and Henrik Schmidt before the port. Main
   changes: IvP syntax and ZAIC parameters (2011), dynamic UTM support (2021).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format, the class moved into `lamss::autonomy`, the
+- lamss3 port (GobySoft/lamss3#21): clang-format, the class moved into `lamss::autonomy`, the
   shared `create_behavior.cpp`, and `theta` in `currentCompensatedHeading` initialised to 0.

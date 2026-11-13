@@ -135,5 +135,5 @@ ProcessConfig = iNetSimManager
   one by Supun Randeni. It began as a copy of pCommsStateTracker, whose history was not imported.
 - Main changes in the old history: `NODE_REPORT` as a navigation source (2018), modem ID mapping
   (2019), `DEP`/`TIME` accepted (2019), Goby3 and netsim namespace updates (2019–2020).
-- lamss3 port (Phase 2, GobySoft/lamss3#21–#23): clang-format, config proto in `package lamss.virtual_ocean`,
+- lamss3 port (Phase 2, GobySoft/lamss3#23): clang-format, config proto in `package lamss.virtual_ocean`,
   MIT/GPL-3.0-or-later headers, and built only where netsim is installed.

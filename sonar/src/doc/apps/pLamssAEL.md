@@ -146,7 +146,7 @@ None **[code]**.
   "new pLamssAEL GobyMOOS App for array element location calculation"); 17 commits by Henrik
   Schmidt, Toby Schneider and Supun Randeni before the port, the last on 2021-06-08 (dynamic UTM
   handling).
-- lamss3 port (GobySoft/lamss3#21–#23): clang-format; builds against `lamss::sonar_protobuf`
+- lamss3 port (GobySoft/lamss3#22): clang-format; builds against `lamss::sonar_protobuf`
   (`ArrayNavigation` is now `lamss.sonar.ArrayNavigation`) and core's henrik_util; config proto
   in `package lamss.sonar`, proto2; warning fixes with no change of behaviour; example `.moos` and
   smoke test added.
