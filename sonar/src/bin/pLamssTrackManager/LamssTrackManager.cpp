@@ -1375,11 +1375,11 @@ int LamssTrackManager::updateTrackBuffer(double track_utc, double track_x, doubl
             m_track_xdot[i - 1] = m_track_xdot[i];
             m_track_ydot[i - 1] = m_track_ydot[i];
         }
-        m_track_utc[m_buffer_length_ - 1] = track_utc;
-        m_track_x[m_buffer_length_ - 1] = track_x;
-        m_track_y[m_buffer_length_ - 1] = track_y;
-        m_track_xdot[m_buffer_length_ - 1] = track_xdot;
-        m_track_ydot[m_buffer_length_ - 1] = track_ydot;
+        m_track_utc[m_buffer_length_] = track_utc;
+        m_track_x[m_buffer_length_] = track_x;
+        m_track_y[m_buffer_length_] = track_y;
+        m_track_xdot[m_buffer_length_] = track_xdot;
+        m_track_ydot[m_buffer_length_] = track_ydot;
     }
     else
     {
