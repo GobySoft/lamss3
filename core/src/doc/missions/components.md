@@ -10,6 +10,7 @@
 | [`health`](#health) | `goby_coroner` | `interprocess` | |
 | [`logging`](#logging) | `goby_logger` | `interprocess` | |
 | [`view_message`](#view_message) | `pViewMessage` | `interprocess` with `moos` | |
+| [`node_report`](#node_report) | `pNodeReporter` | `interprocess` with `moos` | |
 
 ## interprocess
 
@@ -121,3 +122,9 @@ class Interprocess(Component):
 ```
 
 The `moosdb` port is allocated whether or not MOOS runs.
+
+## node_report
+
+*This section written by Claude*
+
+[`node_report.py`](../../../missions/component/node_report/node_report.py): MOOS-IvP's `pNodeReporter`, which posts the platform's `NODE_REPORT` (named after the MOOS community) from its `NAV_*` variables. pMarineViewer draws it, and the gateway plugin publishes it to Goby as `lamss.core.LegacyNodeReport` on `lamss::moos::NODE_REPORT`. `platform_type` is the platform's `type`. It is a stand-in until the `lamss_node_report` Goby app of [plan 09](../plan/claude/09-toolboxes.md) exists.

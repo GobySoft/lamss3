@@ -6,11 +6,11 @@
 
 | Platform | `type` | Components of `main` |
 |---|---|---|
-| [`auv`](../../../missions/platform/auv/auv.py) | `auv` | `interprocess`, `health`, `logging`, `view_message` |
+| [`auv`](../../../missions/platform/auv/auv.py) | `auv` | `interprocess`, `health`, `logging`, `view_message`, `node_report` |
 | [`topside`](../../../missions/platform/topside/topside.py) | `topside` | `interprocess`, `health`, `logging`, `view_message`, `optional("viewer")` |
 | [`mooring`](../../../missions/platform/mooring/mooring.py) | `mooring` | `interprocess`, `health`, `logging` |
 
-The [components](components.md) start in that order, so `gobyd` and `MOOSDB` are up before their clients. `modem_id` is unset on all three; a fleet sets it per platform (`Auv("unicorn", modem_id=3)`).
+The [components](components.md) start in that order, so `gobyd` and `MOOSDB` are up before their clients. `modem_id` is unset on all three; a fleet sets it per platform (`Auv("unicorn", modem_id=3)`). An `auv` also has `topside`, the platform it takes commands from, which the `autonomy` toolbox's mission manager needs.
 
 - **topside** lists the [`viewer`](../../../../gui/src/doc/missions/viewer.md) from the `gui` toolbox as optional: with `gui` active it adds `goby_liaison` (and `pMarineViewer` when there is a display); without it, the mission runs without and says so:
 
