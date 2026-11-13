@@ -1,0 +1,466 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later
+   LAMSS_STATUS: the vehicle's state every 5 s; received copies are posted as NODE_REPORT,
+   <NAME>_NAV_* and the rest the topside's MOOS apps read. -#}
+{% macro translator() %}
+  translator_entry {
+    protobuf_name: "lamss.core.LAMSS_STATUS"
+    trigger {
+      type: TRIGGER_TIME
+      period: 5
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "DB_TIME"
+      format: "%1%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "VEHICLE_NAME"
+      format: "%2%"
+      algorithm {
+        name: "to_lower"
+        primary_field: 2
+      }
+      algorithm {
+        name: "name2modem_id"
+        primary_field: 2
+      }
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_LONG"
+      format: "%5%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_LAT"
+      format: "%6%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_SPEED"
+      format: "%7%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_HEADING"
+      format: "%8%"
+      algorithm {
+        name: "angle_0_360"
+        primary_field: 8
+      }
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_DEPTH"
+      format: "%9%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_ALTITUDE"
+      format: "%10%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_PITCH"
+      format: "%11%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_ROLL"
+      format: "%12%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "MISSION_STATE"
+      format: "%13%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "DEPLOY_MISSION"
+      format: "%14%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "DEPTH_MODE"
+      format: "%15%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "PROSECUTE_MISSION"
+      format: "%16%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "COLLABORATION_MODE"
+      format: "%17%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "SONAR_CONTROL"
+      format: "%18%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "PENDING_SURFACE"
+      format: "%19%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "DEPLOY_REMAINING"
+      format: "%23%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "HYDROMAN_ERROR_FUSED"
+      format: "%24%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "HOMING_X"
+      format: "%25%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "HOMING_Y"
+      format: "%26%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "HOMING_LOCK"
+      format: "%27%"
+    }
+    publish {
+      technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+      moos_var: "LAMSS_STATUS_IN"
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "STATUS_REPORT_IN"
+      format: "Timestamp=%1%,Node=%2%,MessageType=%4%,Nav_Long=%5%,Nav_Lat=%6%,Speed=%7%,Heading=%8%,Depth=%9%,Altitude=%10%,Pitch=%11%,Roll=%12%,Mission_State=%13%,Deploy_Mode=%14%,Depth_Mode=%15%,Prosecute_Type=%16%,Collaboration_Mode=%17%,Sonar_Control=%18%,Secs_to_GPS=%19%"
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NODE_REPORT"
+      format: "NAME=%100%,TYPE=%101%,UTC_TIME=%1$.0lf,X=%103%,Y=%102%,LAT=%6$lf,LON=%5$lf,SPD=%7%,HDG=%8%,DEPTH=%9%,ALTITUDE=%10%,PITCH=%11%,ROLL=%12%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 100
+        primary_field: 2
+      }
+      algorithm {
+        name: "modem_id2type"
+        output_virtual_field: 101
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 102
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 103
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_STATUS"
+      format: "t:%1$.0lf,x:%103%,y:%102%,spd=%7%,hdg=%8%,depth=%9%,alt=%10%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 102
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 103
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "COMMUNITY_STAT"
+      format: "node=%2%,x=%103%,y=%102%,heading=%8%,speed=%7%,time=%1$.0lf"
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 102
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 103
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_NAV_X"
+      format: "%103%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 103
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_NAV_Y"
+      format: "%102%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 102
+        primary_field: 6
+        reference_field: 5
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%109%_NAV_LAT"
+      format: "%6%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 109
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 109
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%111%_NAV_LONG"
+      format: "%5$lf"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_NAV_SPEED"
+      format: "%7%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_NAV_HEADING"
+      format: "%8%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_NAV_DEPTH"
+      format: "%9%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%104%_SONAR_CONTROL"
+      format: "%18%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 104
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%111%_COLLABORATION"
+      format: "%17%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%101%_HYDROMAN_ERROR_FUSED"
+      format: "%24%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 101
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 101
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "CENTER_POINT_RUBBERBAND"
+      format: "point=%5%,%6%"
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NMEA_GGA_ID_%2%"
+      format: "$GPGGA,%102%,%103%,%104%,%105%,%106%,,,,-%107%,M,,,,"
+      algorithm {
+        name: "unix_time2nmea_time"
+        output_virtual_field: 102
+        primary_field: 1
+      }
+      algorithm {
+        name: "utm_y2lat"
+        output_virtual_field: 103
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "abs"
+        output_virtual_field: 103
+        primary_field: 6
+      }
+      algorithm {
+        name: "lat2nmea_lat"
+        output_virtual_field: 103
+        primary_field: 6
+      }
+      algorithm {
+        name: "utm_y2lat"
+        output_virtual_field: 104
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "lat2hemisphere_initial"
+        output_virtual_field: 104
+        primary_field: 6
+      }
+      algorithm {
+        name: "utm_x2lon"
+        output_virtual_field: 105
+        primary_field: 5
+        reference_field: 6
+      }
+      algorithm {
+        name: "abs"
+        output_virtual_field: 105
+        primary_field: 5
+      }
+      algorithm {
+        name: "lon2nmea_lon"
+        output_virtual_field: 105
+        primary_field: 5
+      }
+      algorithm {
+        name: "utm_x2lon"
+        output_virtual_field: 106
+        primary_field: 5
+        reference_field: 6
+      }
+      algorithm {
+        name: "lon2hemisphere_initial"
+        output_virtual_field: 106
+        primary_field: 5
+      }
+      algorithm {
+        name: "abs"
+        output_virtual_field: 107
+        primary_field: 9
+      }
+    }
+    use_short_enum: true
+  }
+{%- endmacro %}
+{% macro queue() %}
+    message_entry {
+      protobuf_name: "lamss.core.LAMSS_STATUS"
+      ack: false
+      blackout_time: 10
+      max_queue: 1
+      ttl: 300
+      value_base: 1.5
+      role { type: SOURCE_ID field: "node" }
+      role { type: DESTINATION_ID field: "_dest_id" }
+      role { type: TIMESTAMP field: "timestamp" }
+      manipulator: ON_DEMAND
+      manipulator: LOOPBACK
+    }
+{%- endmacro %}

@@ -1,0 +1,11 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+    driver_type: DRIVER_UDP
+    [goby.acomms.udp.protobuf.config] {
+      local { modem_id: {{ platform.modem_id }} port: {{ subsystem.ports.acomms }} }
+{%- for name, other in platforms | dictsort %}
+{%- set main = other.subsystem.main %}
+{%- if other.modem_id is not none and "acomms" in main.ports %}
+      remote { modem_id: {{ other.modem_id }} ip: {{ main.component.acomms.ip | pb_string }} port: {{ main.ports.acomms }} }
+{%- endif %}
+{%- endfor %}
+    }

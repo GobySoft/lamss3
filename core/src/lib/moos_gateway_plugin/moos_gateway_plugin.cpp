@@ -1,6 +1,8 @@
 // Copyright 2019-2026 Massachusetts Institute of Technology
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <cmath>
+
 #include <boost/algorithm/string/case_conv.hpp>
 
 #include <ivp/XYCircle.h>
@@ -215,7 +217,8 @@ class NodeReportTranslation : public goby::moos::Translator
                     nr->set_depth(depth);
 
                 this->goby().interprocess().publish<lamss::core::groups::node_report>(nr);
-                if (nr->has_lat() && nr->has_lon())
+                if (nr->has_lat() && nr->has_lon() && std::isfinite(nr->lat()) &&
+                    std::isfinite(nr->lon()))
                     this->goby()
                         .interprocess()
                         .publish<goby::middleware::frontseat::groups::node_status>(

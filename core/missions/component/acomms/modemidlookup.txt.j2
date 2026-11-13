@@ -1,0 +1,6 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+// modem id, name, type
+0, broadcast, broadcast
+{%- for p in dict(platforms, **{platform.name: platform}).values() | selectattr("modem_id") | sort(attribute="modem_id") %}
+{{ p.modem_id }}, {{ p.name }}, {{ p.type }}
+{%- endfor %}

@@ -83,6 +83,19 @@ def test_foreground_until_interrupted(checkout):
     assert pids(checkout) == []
 
 
+def test_foreground_failure_is_the_last_line(checkout):
+    """A test fixture shows only the end of the mission's output, so in the foreground the error
+    naming the failed process must come after supervisord's shutdown lines."""
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(sys.path))
+    result = subprocess.run([sys.executable, "-m", "lamss.mission", "sim", "harbor", "--foreground", "--wait", "20",
+                             "--set", "platform.shore.subsystem.main.component.daemon.seconds=x"],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, timeout=60)
+    assert result.returncode == 1
+    last = result.stdout.strip().splitlines()[-1]
+    assert "not running" in last and "shore_main:daemon" in last, last
+    assert pids(checkout) == []
+
+
 def test_web_page_has_the_same_address_every_launch(tmp_path):
     """supervisord's web page takes the first port of port_ranges.supervisor (or a fixed
     supervisor.http_port), so a bookmark or SSH tunnel keeps working from one launch to the next."""
