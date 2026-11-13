@@ -137,20 +137,14 @@ def cmd_generate(args: argparse.Namespace) -> int:
 def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) -> int:
     selected = render.select(mission, args.platform, args.subsystem)
     supervisor.prepare(layout, [(s.platform.name, s.subsystem.name) for s in selected])
-    http_port = mission.cruise.params.get("supervisor", {}).get("http_port")
-    allocated = [port for p in mission.platforms for s in p.resolved_subsystems
-                 for port in s.allocated_ports.values()]
-    http_base = int((mission.cruise.params.get("port_ranges") or {}).get("http", 50000))
-    url = supervisor.prepare_http(layout, http_port, http_base, allocated)
+    url = supervisor.record_http_url(layout, mission.to_dict()["cruise"])
     conf = layout.supervisord_conf(mission.mode)
     if args.foreground:
-        if url:
-            print(f"  web:     {style.command(url)}", flush=True)
+        print(f"  web:     {style.command(url)}", flush=True)
         return supervisor.run_foreground(layout, conf, args.wait)
     programs = supervisor.start(layout, conf, args.wait)
     print(style.good(f"{layout.instance}: {len(programs)} processes RUNNING"))
-    if url:
-        print(f"  web:     {style.command(url)}")
+    print(f"  web:     {style.command(url)}")
     print(f"  logs:    {(layout.run / 'log').resolve()}")
     print(f"  status:  {style.command(f'lamss mission status {layout.instance}')}")
     print(f"  stop:    {style.command(f'lamss mission stop {layout.instance}')}")
