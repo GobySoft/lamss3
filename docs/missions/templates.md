@@ -165,7 +165,7 @@ A component lists the names of the TCP or UDP ports it needs (`ports = ["moosdb"
 - a port with a range counts up from `port_ranges.<range>` instead; the default ranges are `http` (50000, for web pages such as goby_liaison, away from MOOS's 9000s) and `supervisor` (51000, for supervisord's own page). A range the cruise does not define is an error;
 - a port set in the subsystem's `ports` parameter is used as is: `--set platform.shore.subsystem.main.ports.moosdb=24002`.
 
-`harbor` sets `port_base = 24000`, so `shore/main` gets `daemon: 24000, moosdb: 24001`, `buoy/main` `24002` and `24003`, and `buoy/sensors` `daemon: 24004`. Two components of one subsystem asking for the same name is an error. A fleet of several platforms on one machine therefore needs no hand-kept port table, and a second instance of the same cruise runs beside the first with `--set port_base=...`.
+`harbor` sets `port_base = 24000`, so `shore/main` gets `daemon: 24000, moosdb: 24001`, `buoy/main` `24002` and `24003`, and `buoy/sensors` `daemon: 24004`. Two components of one subsystem asking for the same name is an error. A fleet of several platforms on one machine therefore needs no hand-kept port table, and a second instance of the same cruise runs beside the first with `--set port_base=...` (and `--set port_ranges.supervisor=...` for its web page).
 
 ## Environment variables
 

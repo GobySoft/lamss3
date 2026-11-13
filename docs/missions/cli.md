@@ -104,7 +104,7 @@ Generates the mission in `sim` mode and starts the selected subsystems (by defau
 
 ```sh
 lm m sim harbor --set warp=10
-lm m sim harbor quick --set port_base=25000        # beside a running harbor
+lm m sim harbor quick --set port_base=25000 --set port_ranges.supervisor=51001   # beside a running harbor
 ```
 
 ## run
