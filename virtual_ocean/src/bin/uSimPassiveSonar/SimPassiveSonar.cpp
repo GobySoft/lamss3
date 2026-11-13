@@ -496,15 +496,16 @@ void SimPassiveSonar::handle_target_sim_list(const CMOOSMsg& msg)
                 subscribe(var, &SimPassiveSonar::handle_target_arrival_file, this);
 
                 glog.is(DEBUG1) && glog << "Variable " << var << " registered" << endl;
-
-                CEigenRayTable buffer;
-                buffer.clear();
-                putAcousticContact(Targets[i].target_id(), Targets[i].target_x, Targets[i].target_y,
-                                   Targets[i].target_dep, buffer);
-                glog.is(DEBUG1) && glog << "Target " << Targets[i].target_id()
-                                        << " assigned acoustic contact number "
-                                        << findAcousticContact(Targets[i].target_id()) << std::endl;
             }
+
+            // generate_eigenray_table needs the contact with rap_acoustics and spreading too
+            CEigenRayTable buffer;
+            buffer.clear();
+            putAcousticContact(Targets[i].target_id(), Targets[i].target_x, Targets[i].target_y,
+                               Targets[i].target_dep, buffer);
+            glog.is(DEBUG1) && glog << "Target " << Targets[i].target_id()
+                                    << " assigned acoustic contact number "
+                                    << findAcousticContact(Targets[i].target_id()) << std::endl;
         }
         if (Targets[i].target_on)
             active_targets += 1;

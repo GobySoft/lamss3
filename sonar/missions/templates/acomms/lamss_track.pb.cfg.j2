@@ -1,0 +1,287 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later
+   LAMSS_TRACK: pLamssTrackManager's TRACK_REPORT; received copies are posted as LAMSS_TRACK_IN and
+   as NODE_REPORTs of the reporting vehicle and of the track (<vehicle>_track_<n>). -#}
+{% macro translator() %}
+  translator_entry {
+    protobuf_name: "lamss.sonar.LAMSS_TRACK"
+    trigger {
+      type: TRIGGER_PUBLISH
+      moos_var: "TRACK_REPORT"
+    }
+    create {
+      technique: TECHNIQUE_COMMA_SEPARATED_KEY_EQUALS_VALUE_PAIRS
+      moos_var: "TRACK_REPORT"
+      algorithm {
+        name: "angle_0_360"
+        primary_field: 14
+      }
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "VEHICLE_NAME"
+      format: "%2%"
+      algorithm {
+        name: "to_lower"
+        primary_field: 2
+      }
+      algorithm {
+        name: "name2modem_id"
+        primary_field: 2
+      }
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_LONG"
+      format: "%5%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_LAT"
+      format: "%6%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_HEADING"
+      format: "%7%"
+      algorithm {
+        name: "angle_0_360"
+        primary_field: 7
+      }
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_SPEED"
+      format: "%8%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NAV_DEPTH"
+      format: "%9%"
+    }
+    create {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "TARGET_NUMBER"
+      format: "%10%"
+    }
+    publish {
+      technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+      moos_var: "LAMSS_TRACK_IN"
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "TRACK_REPORT_IN"
+      format: "time=%1%,node=%2%,MessageType=%4%,nav_lon=%5%,nav_lat=%6%,nav_hdg=%7%,nav_spd=%8%,nav_dep=%9%,tgt_num=%10%,state=%11%,lon=%12%,lat=%13%,heading=%14%,speed=%15%"
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NODE_REPORT"
+      format: "NAME=%102%,TYPE=%103%,UTC_TIME=%1$.0lf,X=%105%,Y=%104%,LAT=%6$lf,LON=%5$lf,SPD=%8%,HDG=%7%,DEPTH=%9%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 102
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_lower"
+        output_virtual_field: 102
+        primary_field: 2
+      }
+      algorithm {
+        name: "modem_id2type"
+        output_virtual_field: 103
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_lower"
+        output_virtual_field: 103
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 104
+        primary_field: 6
+        reference_field: 5
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 105
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%106%_NAV_UTC"
+      format: "%1$lf"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 106
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 106
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%107%_NAV_X"
+      format: "%105%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 107
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 107
+        primary_field: 2
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 105
+        primary_field: 5
+        reference_field: 6
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%108%_NAV_Y"
+      format: "%104%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 108
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 108
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 104
+        primary_field: 6
+        reference_field: 5
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%109%_NAV_LAT"
+      format: "%6%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 109
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 109
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%111%_NAV_LONG"
+      format: "%5$lf"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 111
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%113%_NAV_SPEED"
+      format: "%8$lf"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 113
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 113
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%114%_NAV_HEADING"
+      format: "%7%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 114
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 114
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "%115%_NAV_DEPTH"
+      format: "%9%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 115
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_upper"
+        output_virtual_field: 115
+        primary_field: 2
+      }
+    }
+    publish {
+      technique: TECHNIQUE_FORMAT
+      moos_var: "NODE_REPORT"
+      format: "NAME=%116%_track_%10%,TYPE=track,UTC_TIME=%1$.0lf,X=%118%,Y=%117%,LAT=%13$lf,LON=%12$lf,SPD=%15%,DEPTH=0,HDG=%14%"
+      algorithm {
+        name: "modem_id2name"
+        output_virtual_field: 116
+        primary_field: 2
+      }
+      algorithm {
+        name: "to_lower"
+        output_virtual_field: 116
+        primary_field: 2
+      }
+      algorithm {
+        name: "lat2utm_y"
+        output_virtual_field: 117
+        primary_field: 13
+        reference_field: 5
+      }
+      algorithm {
+        name: "lon2utm_x"
+        output_virtual_field: 118
+        primary_field: 12
+        reference_field: 6
+      }
+    }
+    use_short_enum: true
+  }
+{%- endmacro %}
+{% macro queue() %}
+    message_entry {
+      protobuf_name: "lamss.sonar.LAMSS_TRACK"
+      ack: false
+      max_queue: 1
+      newest_first: true
+      ttl: 300
+      value_base: 2
+      role { type: SOURCE_ID field: "node" }
+      role { type: DESTINATION_ID field: "_dest_id" }
+      role { type: TIMESTAMP field: "time" }
+      manipulator: PROMISCUOUS
+    }
+{%- endmacro %}

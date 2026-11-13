@@ -1,0 +1,20 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set sim = component.passive_sonar_sim %}
+ProcessConfig = uSimNoiseCovariance
+{
+  AppTick   = 12
+  CommsTick = 5
+  svp_surface   = {{ environment.sound_speed.surface }}
+  svp_gradient  = {{ environment.sound_speed.gradient }}
+  max_rap_depth = {{ environment.bathymetry.depth }}
+  water_depth   = {{ environment.bathymetry.depth }}
+  noise_level   = {{ sim.noise_level }}
+  array_type    = {{ sim.array_type }}
+  num_array_elements = {{ sim.elements }}
+  minimum_frequency  = 600
+  maximum_frequency  = 1000
+  isotropic_noise    = false
+  sampling_frequency = {{ sim.sampling_frequency }}
+  num_samples        = {{ sim.samples }}
+  base_dir_name      = {{ paths.run }}
+}

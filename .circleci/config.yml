@@ -62,10 +62,42 @@ commands:
       - run:
           name: Build << parameters.toolbox >> standalone
           # not build/<tb>, which is where `lamss build` builds each toolbox
+          # ctest prints nothing while lamss_mit_mission_mbat runs (about 10 min)
+          no_output_timeout: 25m
           command: |
             cmake -S << parameters.toolbox >> -B build/standalone/<< parameters.toolbox >> -G Ninja -DLAMSS_WERROR=ON
             cmake --build build/standalone/<< parameters.toolbox >> --target install
             ctest --test-dir build/standalone/<< parameters.toolbox >> --output-on-failure
+      - run:
+          name: Keep the mission logs
+          when: on_fail
+          command: |
+            find . -path '*/missions/log/*' \( -name '*.out' -o -name '*.log' -o -name '*.goby' \) -print0 \
+              | tar --null -czf /tmp/mission-logs-<< parameters.toolbox >>.tar.gz -T - || true
+      - store_artifacts:
+          path: /tmp/mission-logs-<< parameters.toolbox >>.tar.gz
+          destination: mission-logs-<< parameters.toolbox >>.tar.gz
+      - mission-log-tails
+
+  mission-log-tails:
+    description: Print the end of a failed mission test's logs, for readers who cannot fetch artifacts
+    steps:
+      - run:
+          name: Mission log tails
+          when: on_fail
+          command: |
+            set +e +o pipefail
+            for d in $(find . -path '*/missions/log/*' -name supervisord.log -printf '%h\n'); do
+              echo "##### $d"
+              grep -E ' (exited|gave up|spawnerr):' "$d/supervisord.log"
+              find "$d" -name '*.out' | grep -E '/(pLamss|pGeoTracker|uSim(Targets|TowedArray|NoiseCovariance|PassiveSonar)|pMOOSLink|sonar_data_cleaner)[^/]*\.out$' | sort \
+                | while read -r f; do
+                    echo "=== $f ($(grep -c 'Wrote file' "$f") files written)"
+                    tail -n 12 "$f" | cut -c1-240
+                  done
+            done
+            df -h .
+            true
 
 jobs:
   format:
@@ -105,7 +137,18 @@ jobs:
           command: lamss dependencies install --yes
       - run:
           name: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
+          no_output_timeout: 25m
           command: lamss build --jobs 4 --test -D LAMSS_WERROR=ON
+      - run:
+          name: Keep the mission logs
+          when: on_fail
+          command: |
+            find . -path '*/missions/log/*' \( -name '*.out' -o -name '*.log' -o -name '*.goby' \) -print0 \
+              | tar --null -czf /tmp/mission-logs.tar.gz -T - || true
+      - store_artifacts:
+          path: /tmp/mission-logs.tar.gz
+          destination: mission-logs.tar.gz
+      - mission-log-tails
 
   build-standalone:
     parameters:

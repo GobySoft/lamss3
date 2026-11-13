@@ -1,0 +1,99 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set sonar = component.sonar %}
+ProcessConfig = pLamssAEL
+{
+  common { app_tick: 2 comm_tick: 5 }
+  array_type: ARRAY_TYPE_TOWED
+  array_center_offset: {{ sonar.array_center_offset }}
+  ael_preample: "AEL"
+  filter_length: 40
+  is_mooring: false
+}
+
+ProcessConfig = pLamssCBF
+{
+  common { app_tick: 2 comm_tick: 5 }
+  ael_pitch_variable: "AEL_PITCH"
+  array_type: DURIP
+  sampling: EQUALLY_SPACED_WAVENUMBER
+  array_configuration: GROUP_SPACING
+  number_spacing_groups: {{ sonar.spacing_groups | length }}
+{%- for group in sonar.spacing_groups %}
+  spacing_group_{{ loop.index }}: {{ group.spacing }}
+  number_spacings_group_{{ loop.index }}: {{ group.count }}
+{%- endfor %}
+  angular_steering_type: ARRAY_ANGLE
+  number_beams_elevation: 1
+  min_elevation: 0
+  max_elevation: 0
+  number_beams_azimuth: {{ sonar.beams }}
+  min_azimuth: 0
+  max_azimuth: 180
+  number_samples: {{ sonar.samples }}
+  fft_size: 2048
+  number_beams: {{ sonar.beams }}
+  overlap: 0.5
+  integration_time: 4.0
+  sound_speed: 1435
+  sampling_frequency: {{ sonar.sampling_frequency }}
+  hydrophone_gain: 0
+  array_elements_used: {{ sonar.elements_used | pb_string }}
+  processing_type: BROADBAND
+  center_frequency: {{ sonar.center_frequency }}
+  bandwidth: {{ sonar.bandwidth }}
+  frequency_bins: {{ sonar.frequency_bins | pb_string }}
+}
+
+ProcessConfig = pLamssBearingTracker
+{
+  common { app_tick: 4 comm_tick: 4 }
+  ael_nav_variable: "AEL_NAV"
+  alpha: 0.075
+  dep_angle: 0.0
+  lr_beams: 7
+  alpha_head: 0.075
+  turn_rate_threshold: 0.1
+  beam_changed_threshold: 11
+  max_ubias_iter: 25
+  abs_uerror_threshold: 1.0
+  theta_min: 30.0
+  detection_count_threshold: 5
+  detector_type: 2
+  detector_number_bins: 15
+  detector_first_noise_bin: 10
+  detector_alpha: 0.9
+  noise_depth: 5.0
+  detection_threshold: 20.0
+}
+
+ProcessConfig = pGeoTracker
+{
+  AppTick   = 2
+  CommsTick = 4
+  range_max        = 6000
+  speed_max        = 10.0
+  range_guess      = 3000
+  init_meas        = 8
+  min_measurements = 30
+  Z_length         = 40
+  sampling_theta   = 0.6
+}
+
+ProcessConfig = pLamssTrackManager
+{
+  common { app_tick: 1 comm_tick: 10 }
+  priority_threshold: 5
+  filter_length: 1
+  buffer_length_single: 10
+  xy_sigma_single: 100
+  auto_prosecute: false
+  auto_prosecute_duration: 3600
+  track_report_time: 3600
+  auto_prosecute_range: 2000
+  auto_prosecute_speed: 0
+  auto_prosecute_array_angle: 60
+  auto_prosecute_center_frequency: {{ sonar.center_frequency }}
+  auto_prosecute_bandwidth: {{ sonar.bandwidth }}
+  max_tracking_time: 3600
+  min_tracking_time: 60
+}
