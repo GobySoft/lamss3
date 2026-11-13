@@ -143,6 +143,22 @@ jobs:
             - cmake-build:
                 toolbox: << parameters.toolbox >>
 
+  docs:
+    executor: ubuntu
+    steps:
+      - install-prerequisites
+      - checkout
+      - init
+      - run:
+          name: lamss docs build --strict
+          command: lamss docs build --strict
+      - run:
+          name: lamss docs check
+          command: lamss docs check
+      - store_artifacts:
+          path: build/docs/site
+          destination: site
+
   env-switch:
     executor: ubuntu
     steps:
@@ -167,6 +183,7 @@ workflows:
   ci:
     jobs:
       - format
+      - docs
       - env-switch
       - build-standalone:
           name: build-<< matrix.toolbox >>-standalone
