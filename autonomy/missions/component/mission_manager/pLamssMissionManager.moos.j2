@@ -1,0 +1,43 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set mm = component.mission_manager %}
+{%- set deploy = mm.initial_deploy %}
+ProcessConfig = pLamssMissionManager
+{
+  common { app_tick: 4 comm_tick: 10 }
+  min_opbox_distance: {{ mm.min_opbox_distance }}
+  operation_radius: {{ mm.operation_radius }}
+  deploy_duration: {{ mm.deploy_duration }}
+  prosecute_duration: {{ mm.prosecute_duration }}
+  topside_id: {{ platforms[mm.topside].modem_id }}
+  topside_name: {{ mm.topside | pb_string }}
+  abort_x_offset: {{ mm.abort.x_offset }}
+  abort_y_offset: {{ mm.abort.y_offset }}
+  abort_depth: {{ mm.abort.depth }}
+  initial_deploy {
+    Deploy_Mode: DEPLOY_MODE_{{ deploy.mode }}
+    Depth_Mode: DEPTH_MODE_{{ deploy.depth_mode }}
+    Deploy_X: {{ deploy.x }}
+    Deploy_Y: {{ deploy.y }}
+    Deploy_Speed: {{ deploy.speed }}
+    Deploy_Upper_Depth: {{ deploy.upper_depth }}
+    Deploy_Lower_Depth: {{ deploy.lower_depth }}
+    Deploy_Altitude: {{ deploy.altitude }}
+    Sonar_Control: SONAR_CONTROL_OFF
+    Sonar_Process: SONAR_PROCESS_OFF
+    Loiter_Radius: {{ deploy.loiter_radius }}
+    Loiter_Segments: {{ deploy.loiter_segments }}
+    Survey_Heading: {{ deploy.survey_heading }}
+    Survey_Length: {{ deploy.survey_length }}
+    Survey_Width: {{ deploy.survey_width }}
+    Survey_Period: {{ deploy.survey_period }}
+    Clockwise: {{ "true" if deploy.clockwise else "false" }}
+    Collaborator: DEFAULT
+    Deploy_Duration: {{ mm.deploy_duration }}
+    Auto_Prosecute: false
+  }
+  initial_transit {
+    Transit_Mode: TRANSIT_MODE_{{ mm.initial_transit.mode }}
+    Transit_Depth: {{ mm.initial_transit.depth }}
+    Transit_Speed: {{ mm.initial_transit.speed }}
+  }
+}
