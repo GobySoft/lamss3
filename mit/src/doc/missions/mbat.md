@@ -37,10 +37,10 @@ lm m test mbat smoke                              # about 6 minutes
 | Check | Where |
 |---|---|
 | every subsystem's Goby apps report healthy, and no process exits during the test | `require_app`; `lamss mission test` |
-| macrura settles at 15 m, then holds 15 ± 2 m inside its loiter for 40 s | test steps 2–3 |
-| macrura's `LAMSS_STATUS` reaches resolution over acomms, as a `NODE_REPORT` and a goby `NodeStatus` | step 4 |
-| a `LAMSS_DEPLOY` from resolution sends macrura to 25 m | step 5 |
-| with the sonar on, macrura's track reaches resolution | step 6 |
+| macrura dives to 15 m, settles for 30 s, then holds 15 ± 2 m inside its loiter for 40 s | test steps 2–4 |
+| macrura's `LAMSS_STATUS` reaches resolution over acomms, as a `NODE_REPORT` and a goby `NodeStatus` | step 5 |
+| a `LAMSS_DEPLOY` from resolution sends macrura to 25 m | step 6 |
+| with the sonar on, macrura's track reaches resolution | step 7 |
 | the track's bearing from macrura is within 20° of the true bearing to the target | `check_track_bearing.py`, after the test |
 | macrura reaches at least 3 consecutive waypoints of its loiter clockwise, at 15 ± 2 m throughout | `check_loiter_waypoints.py`, after the test |
 | generating the cruise twice gives byte-identical output | `test_mbat_generate.py` |
