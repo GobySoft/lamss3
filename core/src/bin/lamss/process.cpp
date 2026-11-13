@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <functional>
 #include <iostream>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -165,7 +166,10 @@ void exec_process(const Argv& command)
     throw Error("cannot run " + command[0] + ": " + std::strerror(errno));
 }
 
-Captured capture_output(const Argv& command, const RunOptions& options)
+namespace
+{
+int run_piped(const Argv& command, const RunOptions& options,
+              const std::function<void(const char*, std::size_t)>& sink)
 {
     if (command.empty())
         throw Error("empty command");
@@ -194,19 +198,51 @@ Captured capture_output(const Argv& command, const RunOptions& options)
     }
 
     close(fds[1]);
-    Captured result{0, ""};
     char buffer[4096];
     while (true)
     {
         ssize_t n = read(fds[0], buffer, sizeof(buffer));
         if (n > 0)
-            result.out.append(buffer, static_cast<std::size_t>(n));
+            sink(buffer, static_cast<std::size_t>(n));
         else if (n == 0 || errno != EINTR)
             break;
     }
     close(fds[0]);
-    result.status = wait_child(pid);
+    return wait_child(pid);
+}
+} // namespace
+
+Captured capture_output(const Argv& command, const RunOptions& options)
+{
+    Captured result{0, ""};
+    result.status = run_piped(command, options,
+                              [&](const char* data, std::size_t n) { result.out.append(data, n); });
     return result;
+}
+
+int run_filtered(const Argv& command, const std::function<bool(const std::string&)>& hide,
+                 const RunOptions& options)
+{
+    std::string line;
+    auto emit = [&]()
+    {
+        if (!hide(line))
+            std::cout << line << std::flush;
+        line.clear();
+    };
+    const int status = run_piped(command, options,
+                                 [&](const char* data, std::size_t n)
+                                 {
+                                     for (std::size_t i = 0; i < n; ++i)
+                                     {
+                                         line += data[i];
+                                         if (data[i] == '\n')
+                                             emit();
+                                     }
+                                 });
+    if (!line.empty())
+        emit();
+    return status;
 }
 
 } // namespace tool

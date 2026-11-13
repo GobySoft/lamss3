@@ -31,7 +31,7 @@ sequenceDiagram
   L->>L: add GobySoft repo, apt install active toolboxes' packages
   B-->>U: open a new shell (or . ~/.config/lamss/env.sh)
   U->>L: lamss build
-  L->>C: cmake -S . -B build -G Ninja && cmake --build build --target install
+  L->>C: cmake -S . -B build -G Ninja && cmake --build build && cmake --install build
 ```
 
 `init.sh` is a short POSIX shell script that runs these as numbered steps (install the tool's build packages, build the tool, make this the active checkout, add the shell hook, install the dependencies). Each step prints exactly what it will run and asks `[Y/n/q]`; a step that is already satisfied says so and does not ask, and `--yes` accepts every step. On systems where the tool is installed from a Debian package (Phase 5) `init.sh` is unnecessary.
@@ -75,7 +75,7 @@ flowchart LR
 
 | Option | Effect |
 |---|---|
-| (none) | Configure if needed, then `cmake --build build --target install` |
+| (none) | Configure if needed, then `cmake --build build` and `cmake --install build`, hiding `-- Up-to-date:` lines unless `-v` |
 | `--configure` | Force reconfigure (e.g. after editing `.lamss/toolboxes`; the tool does this automatically when the file is newer than `build/CMakeCache.txt`) |
 | `--toolbox <tb>` | Build only that toolbox's targets (`--target lamss_<tb>_all`) and install them (`cmake --install build/<tb>`) |
 | `--type Debug|Release|RelWithDebInfo` | `CMAKE_BUILD_TYPE`; default `RelWithDebInfo`, remembered in `build/` |
