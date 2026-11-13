@@ -131,9 +131,16 @@ class Layout:
         return self.run / "log" / platform / subsystem
 
 
-# written into the run directory by each launch that has no fixed supervisor.http_port
-HTTP_CONF = "http.conf"
+# the launch records the web page's address here for `status`
 HTTP_URL = "http.url"
+
+
+def http_endpoint(cruise: dict[str, Any]) -> tuple[str, int]:
+    """(address, port) of supervisord's web page: supervisor.http_port, else the first port of
+    port_ranges.supervisor, so every launch of a cruise uses the same one."""
+    settings = cruise.get("supervisor") or {}
+    port = settings.get("http_port") or (cruise.get("port_ranges") or {}).get("supervisor", 51000)
+    return str(settings.get("http_address") or "127.0.0.1"), int(port)
 
 
 def socket_path(directory: Path, name: str) -> Path:
@@ -396,12 +403,8 @@ class Renderer:
             "[supervisorctl]",
             f"serverurl=unix://{sock}",
         ]
-        http_port = self.mission_dict["cruise"].get("supervisor", {}).get("http_port")
-        if http_port:
-            lines += ["", "[inet_http_server]", f"port=*:{int(http_port)}"]
-        else:
-            # a glob, so the conf also works before or without the launch writing the file
-            includes = [*includes, f"{here_to_run}/{HTTP_CONF[:-5]}*.conf"]
+        address, port = http_endpoint(self.mission_dict["cruise"])
+        lines += ["", "[inet_http_server]", f"port={address}:{port}"]
         lines += ["", "[include]", f"files={' '.join(includes)}"]
         return "\n".join(lines) + "\n"
 

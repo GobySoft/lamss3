@@ -9,8 +9,10 @@ cruise:
   port_base: 24000
   port_ranges:
     http: 50000
+    supervisor: 51000
   supervisor:
     http_port: null
+    http_address: 127.0.0.1
 fleet:
   name: duo
   platforms:

@@ -46,8 +46,9 @@ def test_files(mission: Mission) -> list[Path]:
 
 
 def ports_needed(mission: Mission) -> dict[Optional[str], int]:
-    """How many ports the mission allocates from port_base (key None) and from each named range."""
-    counts: dict[Optional[str], int] = {}
+    """How many ports the mission allocates from port_base (key None) and from each named range,
+    supervisord's web page included."""
+    counts: dict[Optional[str], int] = {"supervisor": 1}
     for p in mission.platforms:
         for s in p.resolved_subsystems:
             for c in s.components:

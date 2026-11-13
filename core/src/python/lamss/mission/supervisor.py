@@ -17,7 +17,7 @@ from typing import Optional, Sequence
 
 from .. import style
 from .errors import MissionError
-from .render import HTTP_CONF, HTTP_URL, Layout
+from .render import HTTP_URL, Layout, http_endpoint
 
 GOOD = "RUNNING"
 STARTING = ("STARTING", "BACKOFF")
@@ -80,33 +80,11 @@ def prepare(layout: Layout, subsystems: Sequence[tuple[str, str]]) -> Path:
     return log_dir
 
 
-def free_port(first: int, avoid: Sequence[int] = (), count: int = 1000) -> int:
-    """The first port from `first` that is free on localhost and not in `avoid`."""
-    last = first + count - 1
-    for port in range(first, last + 1):
-        if port in avoid:
-            continue
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-            try:
-                probe.bind(("127.0.0.1", port))
-                return port
-            except OSError:
-                continue
-    raise MissionError(f"no free port for supervisord's web page in {first}-{last}")
-
-
-def prepare_http(layout: Layout, http_port: Optional[int], first: int,
-                 avoid: Sequence[int] = ()) -> str:
-    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port from
-    `first` (not one the mission allocated), and records the page's address for `status`."""
-    conf = layout.run / HTTP_CONF
-    if http_port:
-        conf.unlink(missing_ok=True)
-        url = f"http://{socket.gethostname()}:{int(http_port)}/"
-    else:
-        port = free_port(first, avoid)
-        conf.write_text(f"[inet_http_server]\nport=127.0.0.1:{port}\n")
-        url = f"http://127.0.0.1:{port}/"
+def record_http_url(layout: Layout, cruise: dict) -> str:
+    """The address of supervisord's web page for this launch, recorded for `status`."""
+    address, port = http_endpoint(cruise)
+    host = socket.gethostname() if address in ("*", "0.0.0.0", "") else address
+    url = f"http://{host}:{port}/"
     (layout.run / HTTP_URL).write_text(url + "\n")
     return url
 

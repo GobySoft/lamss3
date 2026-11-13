@@ -217,7 +217,8 @@ class Cruise(Concept):
 
     kind = "cruise"
     params = dict(datum=dict(lat=0.0, lon=0.0), warp=1, port_base=9000,
-                  port_ranges=dict(http=50000), supervisor=dict(http_port=None))
+                  port_ranges=dict(http=50000, supervisor=51000),
+                  supervisor=dict(http_port=None, http_address="127.0.0.1"))
     fleet: ClassVar[Union[type[Fleet], Fleet, str, None]] = None
     environment: ClassVar[Union[type[Environment], Environment, str, None]] = None
     overrides: ClassVar[dict[str, Any]] = {}
