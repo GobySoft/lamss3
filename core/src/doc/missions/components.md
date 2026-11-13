@@ -12,6 +12,7 @@
 | [`view_message`](#view_message) | `pViewMessage` | `interprocess` with `moos` | |
 | [`node_report`](#node_report) | `pNodeReporter` | `interprocess` with `moos` | |
 | [`acomms`](#acomms) (`udp`) | `pAcommsHandler` | `interprocess` with `moos` | `acomms` |
+| [`moos_link`](#moos_link) | `pMOOSLink` | `interprocess` with `moos` | |
 
 ## interprocess
 
@@ -151,3 +152,15 @@ The `moosdb` port is allocated whether or not MOOS runs.
 | [`udp`](../../../missions/component/acomms/udp/udp.py) | `DRIVER_UDP` | listens on the subsystem's `acomms` port and sends to every other platform's (`ip`, default `127.0.0.1`) |
 
 `core` provides the `lamss_status` message ([`templates/acomms/lamss_status.pb.cfg.j2`](../../../missions/templates/acomms/lamss_status.pb.cfg.j2)): the `missions-lamss` `LAMSS_STATUS` entry, sent every 5 s on demand. Where it is received it posts `LAMSS_STATUS_IN`, `NODE_REPORT`, `<NAME>_NAV_*` and the rest the old topside read. The publishes of the thermocline fields that `lamss.core.LAMSS_STATUS` no longer has are dropped.
+
+## moos_link
+
+*This section written by Claude*
+
+[`moos_link.py`](../../../missions/component/moos_link/moos_link.py): [pMOOSLink](../apps/pMOOSLink.md) copies MOOS variables between this subsystem's MOOSDB and the one of another subsystem of the same platform (`remote`, default `main`). It is a stand-in until those subsystems share a Goby interprocess bus.
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `remote` | `main` | the other subsystem |
+| `inputs` | `[]` | variables pulled from the remote (`in =`) |
+| `outputs` | `[]` | variables pushed to the remote (`out =`); `LOCAL:REMOTE` renames |

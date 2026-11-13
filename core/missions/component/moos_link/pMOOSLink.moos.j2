@@ -1,0 +1,15 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set link = component.moos_link %}
+ProcessConfig = pMOOSLink
+{
+  AppTick   = 4
+  CommsTick = 4
+  remote_server = localhost
+  remote_port   = {{ link.remote_port }}
+{%- for var in link.inputs %}
+  in  = {{ var }}
+{%- endfor %}
+{%- for var in link.outputs %}
+  out = {{ var }}
+{%- endfor %}
+}
