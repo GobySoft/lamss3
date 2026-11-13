@@ -12,6 +12,7 @@ lamss_toolbox(NAME autonomy REQUIRES core)
 
 add_subdirectory(src/lib/protobuf)
 add_subdirectory(src/lib/behaviors)
+add_subdirectory(src/bin/iBackSeatServer)
 add_subdirectory(src/bin/pGateway)
 add_subdirectory(src/bin/pLamssMissionManager)
 add_subdirectory(src/bin/pTetraHoming)

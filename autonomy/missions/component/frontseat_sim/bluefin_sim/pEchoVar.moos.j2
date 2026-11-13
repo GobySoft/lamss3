@@ -1,0 +1,9 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+ProcessConfig = pEchoVar
+{
+  AppTick   = 5
+  CommsTick = 5
+{%- for v in ["YAW", "SPEED", "PITCH", "HEADING", "DEPTH", "X", "Y", "Z"] %}
+  ECHO = FRONTSEAT_{{ v }} -> NAV_{{ v }}
+{%- endfor %}
+}

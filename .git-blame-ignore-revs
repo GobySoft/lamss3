@@ -47,3 +47,5 @@ f03eea47cf9460504196de482cc699b61ce2b70a
 64ab5518182cb4d2a71eaae1eb344ce2cc86d243
 # Format the lamss-shared M1 simulators with clang-format
 1b0d189df46c1df5ee06700efde7ee54949996f9
+# Format iBackSeatServer with clang-format
+62a6ec70a7f904cdc6aaf81931c66207ae644d28

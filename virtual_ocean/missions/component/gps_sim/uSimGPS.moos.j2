@@ -1,0 +1,10 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set gps = component.gps_sim %}
+ProcessConfig = uSimGPS
+{
+  AppTick   = 1
+  CommsTick = 1
+  gps_depth    = {{ gps.max_depth }}
+  gps_interval = {{ gps.interval }}
+  min_gps_time = {{ gps.min_time }}
+}

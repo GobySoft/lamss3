@@ -1,0 +1,16 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+ProcessConfig = pHelmIvP
+{
+  AppTick   = 4
+  CommsTick = 4
+  Verbose   = terse
+  ivp_behavior_dir = {{ paths.prefix }}/lib/lamss/ivp_behaviors
+  Domain = course:0:359:360:optional
+  Domain = speed:0:2.5:21:optional
+  Domain = depth:0:200:801:optional
+  Domain = tol:1:100:15:optional
+  Domain = buoyancy:-10:10:21:optional
+  ACTIVE_START = true
+  Behaviors = lamss.bhv
+  ok_skew = any
+}

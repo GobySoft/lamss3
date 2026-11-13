@@ -1,0 +1,9 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set launch = component.frontseat_sim.launch %}
+ProcessConfig = uMVS_Bluefin
+{
+  ADD_AUV = pose=[4x1]{ {{- launch.x }},{{ launch.y }},{{ -launch.depth }},{{ launch.heading -}} },name={{ platform.name | upper }},InputPrefix=,OutputPrefix=FRONTSEAT_
+  TideHeight = 0
+  InstantLogAcoustics = false
+  TOFNoise = 0.00066
+}

@@ -74,6 +74,10 @@ flowchart LR
    Status: the framework half is done with `core`'s `example` cruise (a topside with gobyd, MOOSDB, the gateway, goby_logger, goby_coroner, pViewMessage and, with `gui` active, goby_liaison; see [06](06-missions-framework.md#implementation-plan)). The `mit` toolbox now adds the `mass_bay` environment (flat 100 m until `iNoaaBathy` reads the MBAT data), the `resolution` topside, the `mit_bf21` fleet and the `mbat` cruise; `lm m sim mbat` runs the topside and `lamss_mit_mission_mbat` checks its Goby apps are healthy ([page](../../../../../mit/src/doc/missions/mbat.md)).
 
 2. **Macrura main + frontseat_sim**: the vehicle drives a LOITER at 15 m / 1.8 m/s (the `mbat` deploy defaults) in `uMVS_Bluefin`; pMarineViewer shows it; the mission manager transitions `DEPLOY`.
+
+   *This section written by Claude*
+
+   Status: done. `autonomy` has the `propellor` and `bluefin21` platforms with the `mission_manager`, `ivp` (the macrura behavior set), Bluefin `frontseat` and `frontseat_sim` components, `iBackSeatServer` ported for the latter; `virtual_ocean` has `gps_sim` and `bathymetry`; `core` has `node_report` (pNodeReporter until `lamss_node_report`). The test checks macrura reaches 15 m. iNoaaBathy reads the Gulf of Maine grid, kept in `mit` since it is under 1 MB. Liaison's map (goby3 3.6.1+60) shows a vehicle from Goby `NodeStatus`, which the gateway plugin now publishes from `NODE_REPORT`.
 3. **Acomms**: topside sends `LAMSS_DEPLOY` over netsim, vehicle replies with `LAMSS_STATUS`; `pViewMessage` carries the op box.
 4. **Passive sonar**: `uSimTargets` + `uSimPassiveSonar` produce BTR, the chain produces a track, `pLamssTrackManager` publishes a contact report to topside.
 5. **Smoke variant**: single AUV, flat-bottom synthetic environment, `warp=10`, 5 simulated minutes, assertions on supervisord state and on the `.goby` log (mission state reached `DEPLOY`, at least one `LAMSS_STATUS` received topside, at least one track). Runs in CI on every PR.

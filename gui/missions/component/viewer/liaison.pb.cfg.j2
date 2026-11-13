@@ -9,3 +9,9 @@ load_shared_library: {{ lib | pb_string }}
 pb_commander_config {
   sqlite3_database: {{ (paths.run ~ "/liaison_commander.db") | pb_string }}
 }
+pb_map_config {
+  initial_lat: {{ cruise.datum.lat }}
+  initial_lon: {{ cruise.datum.lon }}
+  initial_zoom: {{ component.viewer.map_zoom }}
+  source { kind: NODE_STATUS }
+}

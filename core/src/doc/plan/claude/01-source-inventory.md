@@ -101,6 +101,7 @@ Blue toolboxes are in-tree; purple are submodules. Counts below are of items tha
 | `pGateway` | lamss | CMOOSApp | 304 | Fixed gateway/buoy node |
 | `uSimArrayMooring` | lamss | CMOOSApp | 467 | Moored node sim; active 2024 |
 | `uMVS_Bluefin` | lamss | CMOOSApp | 5.6k | Bluefin 6-DOF frontseat sim; only user of newmat |
+| `iBackSeatServer` | lamss | CMOOSApp | 0.9k | Bluefin Huxley server for the frontseat sim: serves `$BFNVG`/`$BFNVR` from `FRONTSEAT_*` to `iFrontSeat_bluefin` over TCP; needed for M1 |
 | `uSimMarine_DUTM` | lamss | AppCasting | 3k | uSimMarine fork with dynamic UTM; try to upstream to moos-ivp first |
 | `pMissionMonitor` | lamss | CMOOSApp | 501 | |
 | `pNMEASender` | lamss-internal | GobyMOOSApp | 126 | |
@@ -169,7 +170,7 @@ Everything not named above. Highlights so nobody goes looking:
 
 | Group | Items |
 |---|---|
-| Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iBackSeatServer`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
+| Kayak / PLUSNet hardware (2005–2008) | `i3DM_GX*`, `iArduinoDIO`, `iCTD`, `iDAS`, `iGSC_16AO16`, `iHuxley`, `iKayakControlBoard`, `iMetaCompass`, `iNMEASpeedTransducer`, `iOS5000`, `iPWMController`, `iWifi`, `iWebsite`, `pHystereticThermostat`, `MOOSBlink`, `iMultiStaticSonar`, `lib_anrp_util` (unless iSerialNMEA needs a piece) |
 | Superseded by Goby/MOOS-IvP stock apps | `iModemSim` (netsim), `zLoggerNG`, `uTPB`, `pMailReader`, `pMOOSLink` (after M4), `pInitializer` |
 | Superseded in-house | `pBearingTracker` → `pLamssBearingTracker`; `pAEL` → `pLamssAEL`; `pActiveSonarProcessor`, `pActiveSonarProcess`, `pActiveTargetProcess`; `pClusterPriority`; `pCommsStateTracker`; `uTDA` |
 | Superseded by Goby3 apps | `iMOOS2SQL` (→ `goby_geov_interface`); `iIRISLAMSS` and the IRIS driver configs; uField plugs (`uFldNodeBroker`, `uFldMessageHandler`, `pHostInfo`, `pNodeReporter`, `pShare`) |
