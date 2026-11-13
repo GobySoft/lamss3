@@ -25,7 +25,7 @@ from .. import style
 from . import render, supervisor
 from .errors import MissionError
 from .params import flatten
-from .resolve import Mission
+from .resolve import Mission, component_ports
 
 TEST_SUFFIXES = (".yml", ".yaml", ".json", ".pb.cfg")
 PORT_RANGE = (20000, 50000)
@@ -45,8 +45,15 @@ def test_files(mission: Mission) -> list[Path]:
     return out
 
 
-def ports_needed(mission: Mission) -> int:
-    return sum(len(s.allocated_ports) for p in mission.platforms for s in p.resolved_subsystems)
+def ports_needed(mission: Mission) -> dict[Optional[str], int]:
+    """How many ports the mission allocates from port_base (key None) and from each named range."""
+    counts: dict[Optional[str], int] = {}
+    for p in mission.platforms:
+        for s in p.resolved_subsystems:
+            for c in s.components:
+                for port_range in component_ports(c).values():
+                    counts[port_range] = counts.get(port_range, 0) + 1
+    return counts
 
 
 def _free(port: int) -> bool:

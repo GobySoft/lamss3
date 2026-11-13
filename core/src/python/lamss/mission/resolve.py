@@ -312,7 +312,8 @@ def _finish(mission: Mission) -> None:
     _allocate_ports(mission)
 
 
-def _port_ranges(component: Component) -> dict[str, Optional[str]]:
+def component_ports(component: Component) -> dict[str, Optional[str]]:
+    """{port name: range name, or None for cruise.port_base} for the ports a component needs."""
     ports = type(component).ports
     return dict(ports) if isinstance(ports, dict) else {name: None for name in ports}
 
@@ -328,7 +329,7 @@ def _allocate_ports(mission: Mission) -> None:
         ports = dict(s.params["ports"])
         owners: dict[str, str] = {}
         for c in s.components:
-            for name, port_range in _port_ranges(c).items():
+            for name, port_range in component_ports(c).items():
                 if name in owners:
                     raise MissionError(f"{s.path}: {owners[name]} and {c.path} both need port '{name}'")
                 owners[name] = c.path
