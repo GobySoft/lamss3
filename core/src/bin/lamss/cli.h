@@ -64,6 +64,8 @@ struct Command
     std::vector<Positional> positionals = {};
     std::vector<Command> subcommands = {};
     std::function<int(const Args&)> run = {};
+    // every argument after the command, --help included, is passed to run unparsed as "args"
+    bool passthrough = false;
 };
 
 bool& verbose();

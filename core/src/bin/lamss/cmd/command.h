@@ -15,6 +15,7 @@ Command toolbox_command();
 Command dependencies_command();
 Command env_command();
 Command clean_command();
+Command docs_command();
 } // namespace tool
 } // namespace lamss
 
