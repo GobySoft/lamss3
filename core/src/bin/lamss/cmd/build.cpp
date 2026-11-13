@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <thread>
 
+#include "cli.h"
 #include "command.h"
 #include "process.h"
 #include "repo.h"
@@ -23,6 +24,16 @@ int parse_jobs(const std::string& text)
     {
     }
     throw lamss::tool::UsageError("--jobs must be a positive integer");
+}
+
+int install(const std::filesystem::path& dir)
+{
+    using namespace lamss::tool;
+    const Argv command{"cmake", "--install", dir.string()};
+    if (verbose())
+        return run_process(command);
+    return run_filtered(command, [](const std::string& line)
+                        { return line.rfind("-- Up-to-date: ", 0) == 0; });
 }
 } // namespace
 
@@ -99,13 +110,15 @@ lamss::tool::Command lamss::tool::build_command()
                                               "lamss_" + tb + "_all", "-j", jobs_str}))
                     return status;
                 test_dir = build_dir / tb;
-                if (int status = run_process({"cmake", "--install", test_dir.string()}))
+                if (int status = install(test_dir))
                     return status;
             }
             else
             {
-                if (int status = run_process({"cmake", "--build", build_dir.string(), "--target",
-                                              "install", "-j", jobs_str}))
+                if (int status =
+                        run_process({"cmake", "--build", build_dir.string(), "-j", jobs_str}))
+                    return status;
+                if (int status = install(build_dir))
                     return status;
             }
 

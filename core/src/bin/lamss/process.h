@@ -5,6 +5,7 @@
 #define LAMSS_TOOL_PROCESS_H
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,10 @@ struct Captured
 };
 // Runs with stdout captured.
 Captured capture_output(const Argv& command, const RunOptions& options = {});
+
+// Streams stdout line by line, dropping the lines hide() returns true for; stderr is inherited.
+int run_filtered(const Argv& command, const std::function<bool(const std::string&)>& hide,
+                 const RunOptions& options = {});
 
 } // namespace tool
 } // namespace lamss
