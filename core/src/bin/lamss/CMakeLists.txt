@@ -28,6 +28,7 @@ add_executable(lamss
   cmd/build.cpp
   cmd/clean.cpp
   cmd/dependencies.cpp
+  cmd/docs.cpp
   cmd/env.cpp
   cmd/mission.cpp
   cmd/toolbox.cpp)

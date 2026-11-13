@@ -24,6 +24,7 @@ apt:
     - python3-yaml
     - python3-jinja2
     - supervisor
+    - python3-venv  # lamss docs: mkdocs runs from a virtual environment
     - python3-pytest  # tests only
 apt_repositories:
   - name: gobysoft
