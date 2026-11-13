@@ -24,8 +24,53 @@ test:
           group: '^lamss::moos::NODE_REPORT$'
           type: lamss.core.LegacyNodeReport
           match: 'name: "macrura"'
-          condition: [{ field: depth, op: GT, value: 13 }]
+          condition: [{ field: depth, op: GT, value: 14.5 }]
           timeout: 240
+    # plan 10's M1 gate: once settled, the vehicle holds the commanded 15 m (± 2 m) on its loiter
+    - name: macrura holds 15 m and its 200 m loiter around the deploy point
+      expect:
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: LT, value: 13 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: GT, value: 17 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: x, op: LT, value: -300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: x, op: GT, value: 300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: y, op: LT, value: -300 }]
+          count: 0
+          timeout: 40
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: y, op: GT, value: 300 }]
+          count: 0
+          timeout: 40
     - name: macrura's LAMSS_STATUS reaches resolution over acomms
       expect:
         - endpoint: resolution_main
