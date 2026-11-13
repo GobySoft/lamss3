@@ -20,14 +20,14 @@ flowchart TB
 
 | Concept | Is | Holds |
 |---|---|---|
-| `Cruise` | one bounded deployment | `fleet`, `environment`, `overrides`, parameters `datum` and `warp` |
+| `Cruise` | one bounded deployment | `fleet`, `environment`, `overrides`, parameters `datum`, `warp`, `port_base`, `port_ranges` and `supervisor` |
 | `Fleet` | the platforms taking part | `platforms`, `overrides` |
 | `Platform` | a vehicle, mooring, ship or topside | `components`, `sim_components`, `run_components`, `subsystems`, `main_subsystem`, parameters `type` and `modem_id` |
-| `Subsystem` | part of a platform with its own processes, often its own computer | its components, a `mode`, parameter `host` |
-| `Component` | anything that contributes processes, configuration templates or parameters | `requires`, `sim_only`, `run_only`, `processes`, `templates`, `data_files` |
+| `Subsystem` | part of a platform with its own processes, often its own computer | its components, a `mode`, parameters `host` and `ports` |
+| `Component` | anything that contributes processes, configuration templates or parameters | `requires`, `sim_only`, `run_only`, `processes`, `templates`, `fragments`, `ports`, `data_files` |
 | `Environment` | bathymetry, sound speed, currents, ice, time window; simulation only | `components`, `subsystem` |
 
-A `Process` is not a concept but a description of one program a component launches: `name`, `command`, `config_template`, `priority`, `autorestart`, `startsecs`, `stopsignal` and `environment`.
+A `Process` is not a concept but a description of one program a component launches: `name`, `command`, `config_template`, `priority`, `autorestart`, `startsecs`, `stopsignal` and `environment`. Each becomes a supervisord program ([Output](output.md#the-subsystems-supervisordconf)).
 
 ## Classes are definitions
 
@@ -108,10 +108,12 @@ Every resolved concept knows the mode as `self.mode`, and the mission dictionary
 | `requires` | components (classes or names) that must be in the same subsystem; a missing one is an error |
 | `sim_only`, `run_only` | exist only in that mode |
 | `processes` | the `Process` entries to launch |
-| `templates` | configuration templates to render |
+| `templates` | configuration templates to render into the subsystem's directory ([Templates](templates.md)) |
+| `fragments` | templates rendered into a file another component owns ([Templates](templates.md#fragments)) |
+| `ports` | names of the TCP/UDP ports it needs ([Templates](templates.md#ports)) |
 | `data_files` | data files the component uses (declared only; the engine does not read it) |
 
-`active_processes()` returns `processes`; override it when the processes depend on the parameters or the mode. Inside methods, `self.params` holds the merged parameters, `self.subsystem` and `self.platform` the resolved owners.
+`active_processes()` returns `processes`; override it when the processes depend on the parameters or the mode. `environment()` returns variables for the subsystem's processes ([Templates](templates.md#environment-variables)). Inside methods, `self.params` holds the merged parameters, `self.subsystem` and `self.platform` the resolved owners.
 
 ## Environments
 
@@ -124,7 +126,7 @@ Each resolved concept turns into a plain dictionary (`to_dict()`): its `name`, i
 ```yaml
 mode: sim
 variant: null
-cruise: {name: trial, datum: {lat: 42.5, lon: -70.5}, warp: 1}
+cruise: {name: trial, datum: {lat: 42.5, lon: -70.5}, warp: 1, port_base: 9000, port_ranges: {http: 50000, supervisor: 51000}, supervisor: {http_port: null, http_address: 127.0.0.1}}
 fleet: {name: pair, platforms: [topside, glider]}
 environment: {name: flat, depth: 50}
 platform:
@@ -139,6 +141,7 @@ platform:
       main:
         name: main
         host: localhost
+        ports: {}
         component:
           interprocess: {name: interprocess, socket: gobyd, moos: {enabled: false, port: 9000}}
           logging: {name: logging, level: DEBUG, dir: log}
@@ -165,9 +168,14 @@ class Depth(Component):
 |---|---|---|
 | Cruise | `datum.lat`, `datum.lon` | `0.0`, `0.0` |
 | Cruise | `warp` | `1` |
+| Cruise | `port_base` | `9000`: the first port [allocated](templates.md#ports) to components |
+| Cruise | `port_ranges` | `{http: 50000, supervisor: 51000}`: where ports declared with a range come from ([Templates](templates.md#ports)) |
+| Cruise | `supervisor.http_port` | `null`: supervisord's web page uses the first port of `port_ranges.supervisor`; set it to fix another ([Output](output.md#supervisords-web-page)) |
+| Cruise | `supervisor.http_address` | `127.0.0.1`: the address the web page listens on; `"*"` for every interface |
 | Platform | `type` | `platform` |
 | Platform | `modem_id` | `null`; when set, unique in the fleet |
 | Subsystem | `host` | `localhost` |
+| Subsystem | `ports` | `{}`; ports set here are used instead of allocated ones |
 
 `name`, `subsystem` and `component` are reserved and cannot be parameters.
 

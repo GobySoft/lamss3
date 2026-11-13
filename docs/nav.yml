@@ -17,6 +17,9 @@
     - missions/layout.md
     - missions/parameters.md
     - missions/variants.md
+    - missions/templates.md
+    - missions/output.md
+    - lamss mission: missions/cli.md
     - Python API: missions/api.md
 - Toolboxes: "@toolboxes"
 - Reference:
