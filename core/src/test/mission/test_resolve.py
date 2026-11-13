@@ -60,13 +60,10 @@ def test_explain_names_every_layer(tree):
 
 def test_explain_unknown_key(tree):
     m = resolve(tree(), "trial")
-    with pytest.raises(MissionError, match="no parameter 'max_dept'"):
+    with pytest.raises(MissionError, match="has no value 'max_dept'"):
         m.explain("platform.glider.max_dept")
     with pytest.raises(MissionError, match="names nothing"):
         m.explain("platform.nope.max_depth")
-    with pytest.raises(MissionError, match="'platform.glider' is a platform, not a parameter; "
-                                           "its parameters: .*max_depth"):
-        m.explain("platform.glider")
 
 
 def test_set_of_unknown_parameter_is_an_error(tree):
@@ -204,3 +201,44 @@ def test_to_dict_is_plain_data(tree):
     import yaml
     d = resolve(tree(), "trial").to_dict()
     assert yaml.safe_load(yaml.safe_dump(d)) == d
+
+
+def test_every_key_of_the_mission_can_be_explained(tree):
+    """`keys()` lists each concept and each value `show` prints, and `explain` accounts for all of
+    them, so `show --explain-all` covers the whole mission."""
+    m = resolve(tree(), "trial", "deep", sets=["platform.glider.speed=3"])
+    keys = m.keys()
+    assert keys[:3] == ["mode", "variant", "cruise"]
+    assert "platform.glider.subsystem.main.component.logging.level" in keys
+    for key in keys:
+        m.explain(key)
+
+
+def test_explain_concepts_names_and_command(tree):
+    m = resolve(tree(), "trial", "deep")
+    value, layers = m.explain("platform.glider")
+    assert value == "GliderDeep"
+    assert [(e.kind, e.source) for e in layers][:2] == [
+        ("listed", "Pair.platforms"), ("variant", "GliderDeep replaces Glider (variant deep)")]
+    assert layers[-1].kind == "class" and "extra:platform/auv/glider" in layers[-1].source
+    value, layers = m.explain("platform.glider.subsystem.main.component.health")
+    assert value == "Health" and layers[0].source == "Glider.components"
+    assert m.explain("variant") == ("deep", [m.explain("variant")[1][0]])
+    assert m.explain("variant")[1][0].kind == "command"
+    assert m.explain("fleet.platforms")[0] == ["topside", "glider"]
+    assert m.explain("platform.glider.name")[1][0].kind == "name"
+
+
+def test_explain_derived_value(tree):
+    registry = tree({"core/missions/component/logging/logging.py": """
+        from missions.component.interprocess import Interprocess
+        class Logging(Component):
+            requires = [Interprocess]
+            params = dict(level="INFO", dir="log")
+            def derived(self):
+                return {"path": self.params["dir"] + "/" + self.name}
+        """})
+    value, layers = resolve(registry, "trial").explain(
+        "platform.glider.subsystem.main.component.logging.path")
+    assert value == "log/logging"
+    assert [(e.kind, e.source) for e in layers] == [("derived", "Logging.derived()")]

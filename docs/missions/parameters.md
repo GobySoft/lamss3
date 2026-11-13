@@ -92,4 +92,41 @@ datum = {lat: 42.5, lon: -70.5}
   cruise    Trial.params   datum.lon = -70.5  <- wins
 ```
 
-`--explain` is repeatable. An unknown key is an error that lists the known parameters, or the concepts the key could have meant. Values from `derived()` are computed, not parameters, so they cannot be explained or set.
+`--explain` is repeatable. An unknown key is an error that lists the known parameters, or the concepts the key could have meant.
+
+### Everything in the mission
+
+Any key `show` prints can be explained, not only parameters:
+
+| Key | Explained by |
+|---|---|
+| a parameter | its layers, as above |
+| a concept (`platform.glider`, `...component.logging`) | the list that named it (`Pair.platforms`, `Auv.components`), the variant that replaced its class, and its class and file |
+| `name` | the name given in the list (`Glider('glider2')`), or the class's registered name |
+| a value from `derived()` | the class whose `derived()` computes it (derived values cannot be set) |
+| `fleet.platforms` | the fleet's `platforms` list |
+| `mode`, `variant` | the command |
+
+```
+$ python3 -m lamss.mission show trial deep --explain platform.glider
+platform.glider = GliderDeep
+  listed    Pair.platforms                                      platform.glider = GliderDeep
+  variant   GliderDeep replaces Glider (variant deep)           platform.glider = GliderDeep
+  class     GliderDeep (extra:platform/auv/glider/glider_deep)  platform.glider = GliderDeep  <- wins
+```
+
+A key with `*`, `?` or `[...]` is a pattern: every matching key is printed on one line with its value and the source that wins (for a concept, all of its sources):
+
+```
+$ python3 -m lamss.mission show trial --explain 'platform.*.subsystem.main.component.logging*'
+platform.topside.subsystem.main.component.logging = Logging       <- listed Topside.components; class Logging (core:component/logging)
+platform.topside.subsystem.main.component.logging.name = logging  <- name  the name of Logging (core:component/logging)
+platform.topside.subsystem.main.component.logging.level = WARN    <- platform  Topside.components
+platform.topside.subsystem.main.component.logging.dir = log       <- default  Logging.params
+platform.glider.subsystem.main.component.logging = Logging        <- listed Auv.components; class Logging (core:component/logging)
+platform.glider.subsystem.main.component.logging.name = logging   <- name  the name of Logging (core:component/logging)
+platform.glider.subsystem.main.component.logging.level = DEBUG    <- fleet  Pair.overrides
+platform.glider.subsystem.main.component.logging.dir = log        <- default  Logging.params
+```
+
+`show --explain-all` does the same for the whole mission, in the order `show` prints it: a complete account of where every value came from.
