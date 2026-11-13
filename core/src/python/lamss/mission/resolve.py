@@ -312,23 +312,35 @@ def _finish(mission: Mission) -> None:
     _allocate_ports(mission)
 
 
+def component_ports(component: Component) -> dict[str, Optional[str]]:
+    """{port name: range name, or None for cruise.port_base} for the ports a component needs."""
+    ports = type(component).ports
+    return dict(ports) if isinstance(ports, dict) else {name: None for name in ports}
+
+
 def _allocate_ports(mission: Mission) -> None:
     subsystems = [s for p in mission.platforms for s in p.resolved_subsystems]
     used = {v for s in subsystems for v in s.params["ports"].values()}
-    next_port = int(mission.cruise.params["port_base"])
+    params = mission.cruise.params
+    next_port = {None: int(params["port_base"])}
+    for name, base in (params.get("port_ranges") or {}).items():
+        next_port[name] = int(base)
     for s in subsystems:
         ports = dict(s.params["ports"])
         owners: dict[str, str] = {}
         for c in s.components:
-            for name in type(c).ports:
+            for name, port_range in component_ports(c).items():
                 if name in owners:
                     raise MissionError(f"{s.path}: {owners[name]} and {c.path} both need port '{name}'")
                 owners[name] = c.path
+                if port_range not in next_port:
+                    raise MissionError(f"{c.path}: port '{name}' uses range '{port_range}', which "
+                                       "cruise.port_ranges does not define")
                 if name not in ports:
-                    while next_port in used:
-                        next_port += 1
-                    ports[name] = next_port
-                    used.add(next_port)
+                    while next_port[port_range] in used:
+                        next_port[port_range] += 1
+                    ports[name] = next_port[port_range]
+                    used.add(next_port[port_range])
         s.allocated_ports = ports
 
 

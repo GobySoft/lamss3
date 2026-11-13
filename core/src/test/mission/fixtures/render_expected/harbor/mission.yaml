@@ -7,6 +7,8 @@ cruise:
     lon: -71.087
   warp: 1
   port_base: 24000
+  port_ranges:
+    http: 50000
   supervisor:
     http_port: null
 fleet:

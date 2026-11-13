@@ -111,9 +111,10 @@ class Component(Concept):
     # templates rendered into a file another component owns, e.g. {"last.moos": ["pApp.moos.j2"]};
     # the owner's template sees them as fragments["last.moos"]
     fragments: ClassVar[dict[str, Sequence[str]]] = {}
-    # names of TCP/UDP ports this component needs, allocated per subsystem from cruise.port_base
-    # unless the subsystem's `ports` parameter sets them
-    ports: ClassVar[Sequence[str]] = []
+    # TCP/UDP ports this component needs, allocated per subsystem unless the subsystem's `ports`
+    # parameter sets them: a list of names (from cruise.port_base) or {name: range} to draw from
+    # cruise.port_ranges[range], e.g. {"liaison": "http"} keeps web pages away from MOOS's 9000s
+    ports: ClassVar[Union[Sequence[str], dict[str, Opt[str]]]] = []
 
     subsystem: "Subsystem"
 
@@ -216,7 +217,7 @@ class Cruise(Concept):
 
     kind = "cruise"
     params = dict(datum=dict(lat=0.0, lon=0.0), warp=1, port_base=9000,
-                  supervisor=dict(http_port=None))
+                  port_ranges=dict(http=50000), supervisor=dict(http_port=None))
     fleet: ClassVar[Union[type[Fleet], Fleet, str, None]] = None
     environment: ClassVar[Union[type[Environment], Environment, str, None]] = None
     overrides: ClassVar[dict[str, Any]] = {}

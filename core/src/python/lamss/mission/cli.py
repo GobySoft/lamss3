@@ -141,7 +141,8 @@ def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) ->
     http_port = mission.cruise.params.get("supervisor", {}).get("http_port")
     allocated = [port for p in mission.platforms for s in p.resolved_subsystems
                  for port in s.allocated_ports.values()]
-    url = supervisor.prepare_http(layout, http_port, allocated)
+    http_base = int((mission.cruise.params.get("port_ranges") or {}).get("http", 50000))
+    url = supervisor.prepare_http(layout, http_port, http_base, allocated)
     conf = layout.supervisord_conf(mission.mode)
     if args.foreground:
         if url:
@@ -234,9 +235,13 @@ def cmd_tail(args: argparse.Namespace) -> int:
 
 def cmd_test(args: argparse.Namespace) -> int:
     sets = list(args.sets)
-    if not any(s.split("=", 1)[0].strip() in ("port_base", "cruise.port_base") for s in sets):
-        probe = resolve(load_registry(), args.cruise, args.variant, "sim", sets)
-        sets.append(f"port_base={missiontest.free_port_base(missiontest.ports_needed(probe))}")
+    given = {s.split("=", 1)[0].strip().removeprefix("cruise.") for s in sets}
+    probe = resolve(load_registry(), args.cruise, args.variant, "sim", sets)
+    # every range moves to free ports, so tests never meet other missions on this machine
+    for port_range, count in missiontest.ports_needed(probe).items():
+        key = "port_base" if port_range is None else f"port_ranges.{port_range}"
+        if key not in given:
+            sets.append(f"{key}={missiontest.free_port_base(count)}")
     args.generate = False
     mission, layout = _generate(args, "sim", "test", sets[len(args.sets):])
     selection = render.select(mission, args.platform, args.subsystem)
