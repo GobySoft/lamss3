@@ -51,7 +51,7 @@ ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smok
 
 | Concept | Class | Notes |
 |---|---|---|
-| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py), variant [`smoke`](../../../missions/cruise/mbat/mbat_smoke.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; a 12 s slot each for resolution and macrura), `target` (broadband 500–1500 Hz, 1.8 km north-east); `smoke` sets `warp` to 10 |
+| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py), variant [`smoke`](../../../missions/cruise/mbat/mbat_smoke.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; a 12 s slot each for resolution and macrura), `target` (broadband 500–1500 Hz, 1.8 km north-east); `smoke` sets `warp` to 2 |
 | Fleet | [`mit_bf21`](../../../missions/fleet/mit_bf21/mit_bf21.py) | `resolution`, `macrura` (topside `resolution`) |
 | Platform | [`resolution`](../../../missions/platform/topside/resolution/resolution.py) | a [`topside`](../../../../core/src/doc/missions/platforms.md) with [`udp` acomms](../../../../core/src/doc/missions/components.md#acomms), modem 1 |
 | Platform | [`macrura`](../../../missions/platform/auv/propellor/bluefin21/macrura/macrura.py) | a [`bluefin21`](../../../../autonomy/src/doc/missions/components.md) with `udp` acomms and the [passive sonar](../../../../sonar/src/doc/missions/components.md), modem 4 |
