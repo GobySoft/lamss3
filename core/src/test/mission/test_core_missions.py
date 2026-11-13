@@ -82,3 +82,11 @@ def test_moos_off_allocates_no_moosdb_port():
     assert interprocess.active_ports() == ["moosdb"]
     interprocess.params = {"moos": False, "verbosity": "WARN"}
     assert interprocess.active_ports() == []
+
+
+def test_every_value_of_the_example_explains():
+    for toolboxes in ((), ("gui",)):
+        mission = resolve(registry(*toolboxes), "example")
+        explained = {key: mission.explain(key)[1][-1] for key in mission.keys()}
+        assert explained["platform.topside.subsystem.main.ports.moosdb"].source == "cruise.port_base"
+        assert explained["platform.topside.subsystem.main.component.interprocess.community"].kind == "derived"
