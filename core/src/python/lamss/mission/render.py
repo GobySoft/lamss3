@@ -129,6 +129,7 @@ class Layout:
 
 # written into the run directory by each launch that has no fixed supervisor.http_port
 HTTP_CONF = "http.conf"
+HTTP_URL = "http.url"
 
 
 def socket_path(directory: Path, name: str) -> Path:

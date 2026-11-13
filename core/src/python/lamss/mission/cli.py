@@ -138,8 +138,9 @@ def launch(args: argparse.Namespace, mission: Mission, layout: render.Layout) ->
     selected = render.select(mission, args.platform, args.subsystem)
     supervisor.prepare(layout, [(s.platform.name, s.subsystem.name) for s in selected])
     http_port = mission.cruise.params.get("supervisor", {}).get("http_port")
-    supervisor.prepare_http(layout, http_port)
-    url = supervisor.http_url(layout, http_port)
+    allocated = [port for p in mission.platforms for s in p.resolved_subsystems
+                 for port in s.allocated_ports.values()]
+    url = supervisor.prepare_http(layout, http_port, allocated)
     conf = layout.supervisord_conf(mission.mode)
     if args.foreground:
         if url:
