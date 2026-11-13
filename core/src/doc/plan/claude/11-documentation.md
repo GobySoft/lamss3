@@ -29,7 +29,7 @@ flowchart LR
   tb --> cruises[Cruises, platforms, components]
 ```
 
-- **Tool:** mkdocs-material, with Mermaid through its built-in `pymdownx.superfences` support, so `mkdocs-mermaid2` is not needed. Admonitions are used for the inferred-page banner, `mkdocstrings[python]` for the `lamss.mission` API, and `mike` for versions.
+- **Tool:** mkdocs-material, with Mermaid through its built-in `pymdownx.superfences` support, so `mkdocs-mermaid2` is not needed. Admonitions are used for the inferred-page banner, and `mkdocstrings[python]` for the `lamss.mission` API.
   - mkdocs-material and these plugins come from a pinned `docs/requirements.txt` installed into a venv. Ubuntu's packages lag and don't include every plugin.
 - **Source layout:**
   - Each toolbox keeps its pages under `<toolbox>/src/doc/`: `apps/`, `libraries/`, `behaviors/`, `missions/`, `guide/`.
@@ -39,7 +39,8 @@ flowchart LR
   - In-tree pages are always included, whether the toolbox is active or not, so the site and its links do not depend on what is built.
   - A user with a private (submodule) toolbox sees its pages in their local site.
 - **Publishing:** a `docs` CI job builds the site with `--strict` on every PR, so broken links and missing pages fail.
-  - On `main` it publishes to GitHub Pages for `GobySoft/lamss3` as version `dev`. Release tags publish a numbered version with `mike`.
+  - A GitHub Actions workflow builds the site from `main` and deploys it to GitHub Pages for `GobySoft/lamss3` with `actions/deploy-pages` (Pages source: GitHub Actions), so there is no `gh-pages` branch.
+  - One version for now, `main`'s. Versions per release (for example with `mike`, which needs a `gh-pages` branch) wait until there are releases (Phase 5).
   - Inferred pages are published before review, with their banner.
 
 ## Authored documentation for new functionality

@@ -14,6 +14,6 @@ lamss docs build --strict      # fail on broken links and other warnings, as CI 
 - **Generated pages:** the [messages](../reference/messages/index.md) (from each toolbox's `.proto` files, with `protoc`), the [DCCL IDs](../reference/dccl-ids.md), the [command reference](../reference/cli.md) (from the built `lamss` tool), and an overview for each toolbox that has no `src/doc/index.md`.
 - **mkdocs** and its plugins are installed into `build/docs-venv` from `docs/requirements.txt` on first use, and again when the file changes. This needs `python3-venv` and network access to PyPI. Set `LAMSS_DOCS_NO_VENV=1` to use the current Python's packages instead.
 - **Links:** write links as they work on GitHub, relative to the page's place in the repository. On the site, links to other published pages point at those pages, and links to anything else in the repository (source files, `AGENTS.md`) point at GitHub.
-- **Publishing:** CI publishes `main` as version `dev`, and each release tag as a numbered version, to GitHub Pages with `lamss docs deploy` (which runs [mike](https://github.com/jimporter/mike)).
+- **Publishing:** a GitHub Actions workflow ([`.github/workflows/docs.yml`](../../.github/workflows/docs.yml)) builds the site from `main` and deploys it to GitHub Pages.
 
 `lamss docs stage` only assembles `build/docs/stage`, which helps when a page does not appear where expected. How to write pages: [Documentation](../developing/documentation.md).

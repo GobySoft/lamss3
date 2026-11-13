@@ -68,8 +68,6 @@ plugins:
   - search
 
 extra:
-  version:
-    provider: mike
   # the front matter `status` of inferred pages; hooks/links.py drops it once reviewed
   status:
     inferred: Inferred from the code, not yet reviewed

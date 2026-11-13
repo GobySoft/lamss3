@@ -1,6 +1,6 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""`lamss docs`: build, serve and deploy the documentation site.
+"""`lamss docs`: build and serve the documentation site.
 
 mkdocs and its plugins run from a virtual environment in build/docs-venv, made from
 docs/requirements.txt on first use, because Ubuntu's packages lag and miss plugins.
@@ -63,13 +63,9 @@ def _stage(root, serve=False):
 
 
 def _run(command):
-    """Runs a console script of this interpreter's environment (mkdocs, mike)."""
-    bin_dir = Path(sys.executable).parent
-    script = bin_dir / command[0]
-    # mike runs mkdocs from PATH
-    env = dict(os.environ, PATH=f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}")
-    return subprocess.run([str(script) if script.exists() else command[0], *command[1:]],
-                          env=env).returncode
+    """Runs a console script of this interpreter's environment (mkdocs)."""
+    script = Path(sys.executable).parent / command[0]
+    return subprocess.run([str(script) if script.exists() else command[0], *command[1:]]).returncode
 
 
 def cmd_build(root, args):
@@ -95,18 +91,6 @@ def cmd_stage(root, args):
     return 0
 
 
-def cmd_deploy(root, args):
-    _, config = _stage(root)
-    command = ["mike", "deploy", "-F", str(config), "--update-aliases", args.version, *args.alias]
-    if args.push:
-        command.append("--push")
-    status = _run(command)
-    if status == 0 and args.set_default:
-        status = _run(["mike", "set-default", "-F", str(config), args.set_default]
-                      + (["--push"] if args.push else []))
-    return status
-
-
 def parser():
     p = argparse.ArgumentParser(prog="lamss docs", description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="command", required=True, metavar="command")
@@ -122,14 +106,6 @@ def parser():
 
     stage = sub.add_parser("stage", help="Only assemble build/docs/stage (for debugging)")
     stage.set_defaults(func=cmd_stage)
-
-    deploy = sub.add_parser("deploy", help="Publish a version to the gh-pages branch with mike")
-    deploy.add_argument("version", help="Version to publish, e.g. dev or 1.0")
-    deploy.add_argument("alias", nargs="*", help="Aliases to point at it, e.g. latest")
-    deploy.add_argument("--push", action="store_true", help="Push gh-pages to origin")
-    deploy.add_argument("--set-default", metavar="VERSION",
-                        help="Version or alias the site's root redirects to")
-    deploy.set_defaults(func=cmd_deploy)
     return p
 
 
