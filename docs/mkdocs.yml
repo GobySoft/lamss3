@@ -66,6 +66,9 @@ markdown_extensions:
 
 plugins:
   - search
+  # finds lamss.mission on PYTHONPATH, which `lamss docs` sets to the checkout's core/src/python
+  - mkdocstrings:
+      default_handler: python
 
 extra:
   # the front matter `status` of inferred pages; hooks/links.py drops it once reviewed

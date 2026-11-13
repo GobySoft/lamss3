@@ -11,6 +11,13 @@
     - tool/env.md
     - tool/docs.md
     - tool/clean.md
+- Missions:
+    - missions/index.md
+    - missions/concepts.md
+    - missions/layout.md
+    - missions/parameters.md
+    - missions/variants.md
+    - Python API: missions/api.md
 - Toolboxes: "@toolboxes"
 - Reference:
     - Messages: "@messages"
