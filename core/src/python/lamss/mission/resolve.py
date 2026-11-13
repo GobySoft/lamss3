@@ -20,6 +20,7 @@ import yaml
 from .concept import (MODES, Component, Concept, Cruise, Environment, Fleet, OptionalRef, Platform,
                       Subsystem, spec_class)
 from .errors import MissionError
+from .location import Location, Ref, class_location, locate, method_location
 from .params import Explanation, Params
 from .registry import Registry
 from .variant import is_variant, variant_target
@@ -50,6 +51,7 @@ class Origin:
     listed: Optional[str]
     spec_name: Optional[str] = None
     replaced: Optional[type] = None
+    ref: Optional[Ref] = None
 
 
 @dataclass
@@ -133,11 +135,13 @@ class Mission:
         if param.split(".")[0] in derived:
             value = _lookup(derived, param)
             owner = next(c for c in type(concept).__mro__ if "derived" in c.__dict__)
-            return value, [Explanation(param, "derived", f"{owner.__name__}.derived()", value, True)]
+            return value, [Explanation(param, "derived", f"{owner.__name__}.derived()", value, True,
+                                       method_location(type(concept), "derived"))]
         if concept.kind == "fleet" and param == "platforms":
             value = [p.name for p in self.platforms]
-            return value, [Explanation(param, "listed", f"{self._where(type(concept))}.platforms",
-                                       value, True)]
+            owner = next(c for c in type(concept).__mro__ if "platforms" in c.__dict__)
+            return value, [Explanation(param, "listed", f"{owner.__name__}.platforms", value, True,
+                                       locate(Ref(owner, "platforms")))]
         raise MissionError(f"{node} has no value '{param}' (parameters: {', '.join(flat) or 'none'}"
                            + (f"; derived: {', '.join(derived)}" if derived else "") + ")")
 
@@ -175,20 +179,38 @@ class Mission:
 
     def _explain_concept(self, key: str) -> list[Explanation]:
         origin, value = self.origins[key], type(self.nodes[key]).__name__
-        out = [Explanation(key, "listed", origin.listed or "the command line", value, False)]
+        out = [Explanation(key, "listed", origin.listed or "the command line", value, False,
+                           locate(origin.ref))]
         if origin.replaced is not None:
             out.append(Explanation(key, "variant", f"{origin.cls.__name__} replaces "
-                                   f"{origin.replaced.__name__} (variant {self.variant})", value, False))
-        out.append(Explanation(key, "class", self._where(origin.cls), value, True))
+                                   f"{origin.replaced.__name__} (variant {self.variant})", value, False,
+                                   class_location(origin.cls)))
+        out.append(Explanation(key, "class", self._where(origin.cls), value, True,
+                               class_location(origin.cls)))
         return out
 
     def _explain_name(self, key: str) -> Explanation:
         origin, name = self.origins[key], self.nodes[key].name
         if origin.spec_name:
             source = f"{origin.listed}: {origin.cls.__name__}({origin.spec_name!r})"
+            location = locate(origin.ref)
         else:
-            source = f"the name of {self._where(origin.replaced or origin.cls)}"
-        return Explanation("name", "name", source, name, True)
+            source = f"the name of {(origin.replaced or origin.cls).__name__}"
+            location = class_location(origin.replaced or origin.cls)
+        return Explanation("name", "name", source, name, True, location)
+
+    def location_text(self, location: Optional[Location]) -> str:
+        """`file:line`, relative to the checkout that holds the toolboxes."""
+        if location is None:
+            return ""
+        file, line = Path(location[0]).resolve(), location[1]
+        for t in self.registry.toolboxes:
+            if file.is_relative_to(t.missions.parent.parent):
+                return f"{file.relative_to(t.missions.parent.parent)}:{line}"
+        package = Path(__file__).resolve().parents[1]
+        if file.is_relative_to(package):
+            return f"lamss/{file.relative_to(package)}:{line}"
+        return f"{file}:{line}"
 
     def _explain_allocated_port(self, node: str, param: str, flat: dict[str, Any]):
         concept = self.nodes[node]
@@ -198,10 +220,14 @@ class Mission:
         port = getattr(concept, "allocated_ports", {}).get(name)
         if port is None:
             return None
-        port_range = next((r for c in concept.components for n, r in component_ports(c).items()
-                           if n == name), None)
+        component = next((c for c in concept.components if name in component_ports(c)), None)
+        port_range = component_ports(component)[name] if component is not None else None
         source = "cruise.port_base" if port_range is None else f"cruise.port_ranges.{port_range}"
-        return port, [Explanation(param, "allocated", source, port, True)]
+        location = None
+        if component is not None:
+            owner = next((c for c in type(component).__mro__ if "ports" in c.__dict__), None)
+            location = locate(Ref(owner, "ports"), name) if owner is not None else None
+        return port, [Explanation(param, "allocated", source, port, True, location)]
 
 
 COMMAND_SOURCES = {"mode": "the command (sim or run; show --mode)",
@@ -267,16 +293,18 @@ class _Resolver:
         for c in reversed(cls.__mro__):
             own = c.__dict__.get("params")
             if isinstance(own, dict) and own:
-                params.add("variant" if is_variant(c) else own_kind, f"{c.__name__}.params", own)
+                params.add("variant" if is_variant(c) else own_kind, f"{c.__name__}.params", own,
+                           ref=Ref(c, "params"))
+        listed = Ref(origin[0], origin[1], entry) if origin else None
         if isinstance(entry, Concept) and entry._spec_overrides and origin:
             owner, attr = origin
             params.add(self.kind_of(owner), f"{owner.__name__}.{attr}", entry._spec_overrides,
-                       strict=True)
+                       strict=True, ref=listed)
         self.nodes[key] = node
         self.params[key] = params
         self.origins[key] = Origin(cls, f"{origin[0].__name__}.{origin[1]}" if origin else None,
                                    entry._spec_name if isinstance(entry, Concept) else None,
-                                   self.replaced.get(cls))
+                                   self.replaced.get(cls), listed)
         return node
 
     def kind_of(self, owner: type) -> str:
@@ -347,15 +375,16 @@ class _Resolver:
             for c in reversed(owner.__mro__):
                 overrides = c.__dict__.get("overrides")
                 if isinstance(overrides, dict):
-                    self.route_layer(mission, self.kind_of(c), f"{c.__name__}.overrides", overrides)
+                    self.route_layer(mission, self.kind_of(c), c, overrides)
         return mission
 
-    def route_layer(self, mission: Mission, kind: str, source: str, overrides: dict[str, Any]) -> None:
+    def route_layer(self, mission: Mission, kind: str, owner: type, overrides: dict[str, Any]) -> None:
         for key, value in overrides.items():
             if key.split(".")[0] == "environment" and mission.environment is None:
                 continue
             node, param = mission.route(key)
-            self.params[node].add(kind, source, {param: value}, dotted=True, strict=True)
+            self.params[node].add(kind, f"{owner.__name__}.overrides", {param: value}, dotted=True,
+                                  strict=True, ref=Ref(owner, "overrides", key=key))
 
     def subsystems(self, platform: Platform, environment: Optional[Environment]) -> list[Subsystem]:
         cls = type(platform)

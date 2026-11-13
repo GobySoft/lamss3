@@ -39,7 +39,8 @@ def test_show_and_explain(tmp_path, monkeypatch, capsys):
     assert status == 0
     lines = out.splitlines()
     assert lines[0] == "platform.glider.speed = 0.5"
-    assert lines[-1].split() == ["cruise", "Trial.overrides", "speed", "=", "0.5", "<-", "wins"]
+    assert lines[-1].split() == ["cruise", "Trial.overrides", "speed", "=", "0.5", "<-", "wins",
+                                 "extra/missions/cruise/trial/trial.py:7"]
 
 
 def test_errors_exit_1(tmp_path, monkeypatch, capsys):
@@ -53,7 +54,8 @@ def test_explain_patterns_and_all(tmp_path, monkeypatch, capsys):
     write_tree(tmp_path, BASIC)
     status, out, _ = run(tmp_path, monkeypatch, capsys, "show", "trial", "--explain", "platform.*.speed")
     assert status == 0
-    assert out.splitlines() == ["platform.glider.speed = 0.5  <- cruise  Trial.overrides"]
+    assert out.splitlines() == [
+        "platform.glider.speed = 0.5  <- cruise  Trial.overrides (extra/missions/cruise/trial/trial.py:7)"]
     status, out, _ = run(tmp_path, monkeypatch, capsys, "show", "trial", "--explain-all")
     lines = out.splitlines()
     assert status == 0 and lines[0].startswith("mode = sim")
