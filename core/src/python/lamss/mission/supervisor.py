@@ -154,10 +154,13 @@ def run_foreground(layout: Layout, conf: Path, timeout: float) -> int:
         print("lamss mission: " + style.good(f"{layout.instance}: all {len(programs)} processes RUNNING"),
               flush=True)
     except MissionError as e:
-        if not stopping:
-            style.print_error("lamss mission", e)
+        interrupted = stopping
+        if not interrupted:
             forward(None, None)
         process.wait()
+        if not interrupted:
+            # after supervisord's shutdown lines, so a fixture's log tail still shows which process failed
+            style.print_error("lamss mission", e)
         return 1
     while True:
         try:
