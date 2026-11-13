@@ -72,6 +72,14 @@ def test_no_test_files(checkout, capsys):
     assert "has no test files" in capsys.readouterr().err
 
 
+def test_test_file_cannot_take_the_include_name(checkout, tmp_path, capsys):
+    named = tmp_path / "mission.yml"
+    named.write_text("test: {name: x, run: []}\n")
+    assert main(["test", "pair", "--test-file", str(named), "--instance", "named"]) == 1
+    assert "cannot be named mission" in capsys.readouterr().err
+    assert not _running(checkout)
+
+
 def test_defines(checkout):
     from lamss.mission import render, resolve, workspace
     from lamss.mission.registry import Registry
