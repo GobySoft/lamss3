@@ -4,7 +4,7 @@
 
 A directory `x/` holds `x.py` defining class `X`; its subdirectories hold subclasses, and its other
 `.py` files hold variants. Every tree is importable as the `missions` package, merged across
-toolboxes, so `mit/missions/platform/auv/propellor/bluefin21/macrura/macrura.py` can say
+toolboxes, so `mit/missions/platform/auv/propellor/bluefin21/mit_bluefin21/mit_bluefin21.py` can say
 ``from missions.platform.auv.propellor.bluefin21 import Bluefin21`` whichever toolbox defines it.
 """
 

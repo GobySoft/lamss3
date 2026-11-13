@@ -35,8 +35,14 @@ if(LAMSS_SUPERVISORD AND LAMSS_GOBYD AND LAMSS_MOOSDB)
     set_tests_properties(lamss_mit_mission_mbat_smoke_bearing lamss_mit_mission_mbat_smoke_waypoints
       PROPERTIES FIXTURES_REQUIRED mbat_smoke_logs)
   endif()
+  lamss_add_mission_test(NAME lamss_mit_mission_mbat_two_auv CRUISE mbat VARIANT two_auv TIMEOUT 900
+    TEST ${CMAKE_CURRENT_SOURCE_DIR}/two_auv.yml)
+  # uSimPassiveSonar keeps up with a mission only if it has the CPU to itself
+  set_tests_properties(lamss_mit_mission_mbat_smoke lamss_mit_mission_mbat_two_auv
+    PROPERTIES RESOURCE_LOCK lamss_mit_sonar_sim)
   if(LAMSS_MIT_MBAT_REALTIME_TEST)
     lamss_add_mission_test(NAME lamss_mit_mission_mbat CRUISE mbat TIMEOUT 1200 TEST ${_test})
+    set_tests_properties(lamss_mit_mission_mbat PROPERTIES RESOURCE_LOCK lamss_mit_sonar_sim)
   endif()
 else()
   message(STATUS "lamss_mit_mission_mbat_smoke: not registered, needs supervisord, gobyd and MOOSDB")
