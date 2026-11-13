@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import subprocess
 import sys
 from typing import Any, Optional, Sequence
@@ -56,6 +57,39 @@ def explain(mission: Mission, key: str) -> str:
     return "\n".join(lines)
 
 
+def explain_brief(mission: Mission, keys: Sequence[str]) -> str:
+    """One line per key: its value and the source that wins."""
+    rows = []
+    for key in keys:
+        value, layers = mission.explain(key)
+        if key in mission.nodes or f"cruise.{key}" in mission.nodes:
+            source = "; ".join(f"{e.kind} {e.source}" for e in layers)
+        else:
+            winner = next((e for e in reversed(layers) if e.wins), layers[-1])
+            source = f"{winner.kind}  {winner.source}"
+        rows.append((key, _inline(value), source))
+    width = max((len(k) + len(v) for k, v, _ in rows), default=0) + 3
+    # pad the plain text first, so colour codes don't upset the alignment
+    return "\n".join(style.heading(k) + f"{f'{k} = {v}':<{width}}"[len(k):] + style.note(f"  <- {w}")
+                     for k, v, w in rows)
+
+
+def explanations(mission: Mission, patterns: Sequence[str], everything: bool) -> str:
+    """Every layer for a plain key; one line per match for a pattern (`*`, `?`, `[...]`)."""
+    if everything:
+        return explain_brief(mission, mission.keys())
+    out = []
+    for pattern in patterns:
+        if any(c in pattern for c in "*?["):
+            matches = [k for k in mission.keys() if fnmatch.fnmatchcase(k, pattern)]
+            if not matches:
+                raise MissionError(f"no key matches {pattern!r}")
+            out.append(explain_brief(mission, matches))
+        else:
+            out.append(explain(mission, pattern))
+    return "\n".join(out)
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     registry = load_registry()
     cruises = registry.cruises()
@@ -96,8 +130,8 @@ def _applicable_variants(registry: Registry, mission: Mission) -> list[str]:
 
 def cmd_show(args: argparse.Namespace) -> int:
     mission = _resolve(args, args.mode)
-    if args.explain:
-        print("\n".join(explain(mission, key) for key in args.explain))
+    if args.explain or args.explain_all:
+        print(explanations(mission, args.explain, args.explain_all))
     else:
         print(_yaml(mission.to_dict()), end="")
     return 0
@@ -258,7 +292,11 @@ def parser() -> argparse.ArgumentParser:
     _mission_arguments(s)
     s.add_argument("--mode", choices=("sim", "run"), default="sim")
     s.add_argument("--explain", metavar="KEY", action="append", default=[],
-                   help="print every layer that sets KEY and which one wins (repeatable)")
+                   help="print where KEY's value comes from: every layer of a parameter, or why a "
+                        "concept is there; a pattern (platform.*.speed) prints one line per match "
+                        "(repeatable)")
+    s.add_argument("--explain-all", action="store_true",
+                   help="one line for every value in the mission and where it comes from")
     s.set_defaults(func=cmd_show)
 
     s = sub.add_parser("generate", help="write the configuration without starting anything")
