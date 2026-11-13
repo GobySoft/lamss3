@@ -26,6 +26,9 @@ test:
           match: 'name: "macrura"'
           condition: [{ field: depth, op: GT, value: 14.5 }]
           timeout: 240
+    # the dive overshoots before the depth controller settles; more so on a busy CI machine
+    - name: macrura settles at the deploy depth
+      wait: 30
     # plan 10's M1 gate: once settled, the vehicle holds the commanded 15 m (± 2 m) on its loiter
     - name: macrura holds 15 m and its 200 m loiter around the deploy point
       expect:
