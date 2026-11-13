@@ -22,15 +22,17 @@ launched_by: []
 
 ## Purpose
 
-<!-- One short paragraph: what the app is for and where it sits in a mission (which apps feed it,
-which consume its output). Tag every sentence. -->
+sonar's `lamss_sonar_henrik_util` (`lamss::sonar_henrik_util`) holds one class, `CTrack`: a bearing
+track (number, priority, state, side, array position, bearing, accuracy, rate, SNR, time,
+classification features) and its MOOS string formats **[code]**. It is sonar's share of the old
+lib_henrik_util; the rest is in core's henrik_util **[code]**. [pLamssBearingTracker](../apps/pLamssBearingTracker.md)
+uses it to write `BEARING_TRACKS`, and [pLamssTrackManager](../apps/pLamssTrackManager.md) to read
+them and to write `BEARING_STAT` **[code]**. The formats come from the PLUSNet project (code
+comments) **[code]**.
 
 ## Interfaces
 
-<!-- The tables between the GENERATED markers come from `lamss docs extract <app>`, and
-`lamss docs check` (in CI) fails when they drift from the code. Rows are matched by name: the
-script keeps "Meaning" and "Notes", and any cell the code does not determine (a refined
-"Type / format", for example). Handler is the handling function; Where is the source file. -->
+A library has no MOOS interface of its own; it builds strings that the apps publish **[code]**.
 
 ### Subscribes
 
@@ -48,46 +50,56 @@ script keeps "Meaning" and "Notes", and any cell the code does not determine (a 
 
 ### Configuration
 
-<!-- For Goby-config apps (GobyMOOSApp, Goby3): generated from the config proto (fields, types,
-defaults, (goby.field).description) and the `-e` example. For CMOOSApp: generated from the
-GetConfigurationParam / m_MissionReader calls. -->
-
 <!-- BEGIN GENERATED config -->
 | Parameter | Type | Default | Required | Meaning |
 |---|---|---|---|---|
 <!-- END GENERATED config -->
 
-Example (from `<app>.moos` / `<app> -e`):
-
-```
-ProcessConfig = <app>
-{
-}
-```
-
 ### Files, devices and external programs
 
-<!-- Files read or written (paths, formats), serial ports and sockets, programs run with system()
-or similar. "None" if none. -->
+None **[code]**.
 
-## Behaviour
+## API
 
-<!-- How inputs become outputs: the main loop, filters (e.g. "ignores its own posts"), state
-machine (a mermaid stateDiagram for anything with states), timing (AppTick, timeouts). Tag
-every statement. -->
+Header `lamss/sonar/henrik_util/CTrack.h`, namespace `lamss::sonar` **[code]**. Times are
+`MOOSTime()` **[code]**.
 
-## Running it
+| Member | What it does |
+|---|---|
+| `setTrack(num, prio, templ, state, ips, array_x, array_y, bearing, sigma, rate, rate_sigma, snr, features)` | stores a track and stamps it with the current time **[code]** |
+| `getTrack(...)` | returns the stored values, including the time **[code]** |
+| `clrTrack()` | zeroes priority, state, side, bearing, accuracy, rate, SNR, features and dip angle; sets template 5 **[code]** |
+| `postTrack(moosvar, sval)` | `moosvar = "BEARING_TRACKS"`, `sval = "track=…,priority=…,template=…,state=…,ips=…,ael_x=…,ael_y=…,bearing=…,bearing_sigma=…,rate=…,rate_sigma=…,snr=…,time=…,nfeat=N"` followed by N feature values; returns false (setting nothing) for a NaN bearing **[code]** |
+| `decodeTrack(sval)` | parses that string back; returns false for a NaN bearing **[code]** |
+| `bearingState(node, nav_x, nav_y)` | `node=…,state=…,bearing=…,xp=…,yp=…,beamno=0,sigma=…,rate=…,rate_sigma=…,snr=…,time=…`, the `BEARING_STAT` format **[code]** |
+| `bearingRate(bearing, sigma, rate, rate_sigma)` | (bearing − stored bearing)/(time since stored); rate σ = 2σ/Δt **[code]** |
+| `setDipAngle`, `getDipAngle`, `dipAngleRate`, `postDipAngle` | the same for an elevation (dip) angle; `postDipAngle` uses `ELEVATION_TRACKS` and negates the angle and rate **[code]** |
 
-<!-- Which mission component launches it, minimal standalone run (MOOSDB + this app), and the
-test(s) that exercise it. -->
+State values used by the apps: 0 no track, 1 relative/ambiguous, 2 absolute; side `ips` -1 port,
+1 starboard, 0 ambiguous **[code]**.
+
+Used by: pLamssBearingTracker and pLamssTrackManager **[code]**. The dip-angle functions have no
+caller in lamss3 **[code]**.
 
 ## Known issues and open questions
 
-<!-- Links to GitHub issues, and questions for the authors/maintainers: things the code does that
-look unintended, unused inputs or outputs, magic numbers. Each open question is a candidate
-issue. -->
+- `CTrack` has no constructor: until `setTrack()`, `clrTrack()` or `decodeTrack()`, its members are
+  uninitialised, and `clrTrack()` leaves `trk_num`, position, time and depth as they were.
+  `decodeTrack()` leaves fields missing from the string unchanged, so a fresh `CTrack` decoding an
+  incomplete string holds uninitialised values.
+- `postTrack()` leaves `moosvar` unset when it returns false; pLamssBearingTracker then publishes
+  with an empty variable name.
+- `bearingRate()` does not unwrap across 0°/360°.
+- The comments call the states "Relative" and "Absolute" while pLamssBearingTracker uses 1 for
+  "LR_TRACK" (ambiguous) and 2 for "TRACKING". Are these the same states?
+- Who reads `ELEVATION_TRACKS`? Nothing in lamss3 calls the dip-angle functions.
 
 ## History
 
-<!-- Origin repository and path, first commit date and authors (from `git log --follow`), and
-what changed during the lamss3 port (removed features, renamed variables). -->
+- From GobySoft/lamss `src/lib/lib_henrik_util` (`CTrack.h`, `CTrack.cpp`); first commit 2011-04-27
+  (Toby Schneider, during the migration to the lamss repository); 3 commits by Toby Schneider and
+  Henrik Schmidt before the port, the last on 2015-11-16.
+- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built as `lamss_sonar_henrik_util`, header
+  moved to `lamss/sonar/henrik_util/`, namespace `lamss::sonar`; MOOS includes moved into the `.cpp`
+  and MOOS linked privately so the installed library does not require MOOS; GPL-3.0-or-later SPDX
+  headers added.

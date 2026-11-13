@@ -22,15 +22,17 @@ launched_by: []
 
 ## Purpose
 
-<!-- One short paragraph: what the app is for and where it sits in a mission (which apps feed it,
-which consume its output). Tag every sentence. -->
+`lamss_sonar_track` (`lamss::sonar_track`) is a small K&R C library of dense vector and matrix
+routines on row-major `double` arrays: copy, fill, inner product, scaling, addition, matrix–vector
+and matrix–matrix products, transpose, row operations, Gauss–Jordan inversion, and text
+print/scan **[code]**. Its only user is [pGeoTracker](../apps/pGeoTracker.md), whose BFGS optimiser
+uses the vector routines, `matrixunit` and `matrixvector` **[code]**. The header `opt.h` comes from
+a larger optimisation library (simplex, Nelder–Mead, Gauss integration, Runge–Kutta), most of which
+is declared but not in this library **[code]**.
 
 ## Interfaces
 
-<!-- The tables between the GENERATED markers come from `lamss docs extract <app>`, and
-`lamss docs check` (in CI) fails when they drift from the code. Rows are matched by name: the
-script keeps "Meaning" and "Notes", and any cell the code does not determine (a refined
-"Type / format", for example). Handler is the handling function; Where is the source file. -->
+A library has no MOOS interface **[code]**.
 
 ### Subscribes
 
@@ -48,46 +50,57 @@ script keeps "Meaning" and "Notes", and any cell the code does not determine (a 
 
 ### Configuration
 
-<!-- For Goby-config apps (GobyMOOSApp, Goby3): generated from the config proto (fields, types,
-defaults, (goby.field).description) and the `-e` example. For CMOOSApp: generated from the
-GetConfigurationParam / m_MissionReader calls. -->
-
 <!-- BEGIN GENERATED config -->
 | Parameter | Type | Default | Required | Meaning |
 |---|---|---|---|---|
 <!-- END GENERATED config -->
 
-Example (from `<app>.moos` / `<app> -e`):
-
-```
-ProcessConfig = <app>
-{
-}
-```
-
 ### Files, devices and external programs
 
-<!-- Files read or written (paths, formats), serial ports and sockets, programs run with system()
-or similar. "None" if none. -->
+The print/scan functions write and read the `FILE*` they are given **[code]**. `matrixinverse()`
+prints to `stderr` and calls `exit(1)` on a singular matrix **[code]**.
 
-## Behaviour
+## API
 
-<!-- How inputs become outputs: the main loop, filters (e.g. "ignores its own posts"), state
-machine (a mermaid stateDiagram for anything with states), timing (AppTick, timeouts). Tag
-every statement. -->
+Header `lamss/sonar/track/opt.h`; types `dbl` (`double`) and `status` (`success`, `failure`,
+`error`) **[code]**. A matrix of `m` rows and `n` columns is `a[n*i + j]` **[code]**.
 
-## Running it
+| Function | What it does |
+|---|---|
+| `vectorcopy(n, x, y)`, `vectorfill(n, x, a)` | x = y; x = a for every element **[code]** |
+| `vectorvector(n, x, y)` | inner product **[code]** |
+| `scalarvector(n, y, k, x)`, `vectoradd(n, x, y, z)`, `vectorsub(n, x, y, z)` | y = kx; x = y + z; x = y − z **[code]** |
+| `matrixvector(m, n, y, a, x)` | y = Ax **[code]** |
+| `matrixrowvector`, `matrixcolumnvector` | copy row i or column j of A **[code]** |
+| `matrixcopy`, `matrixunit(n, a)`, `scalarmatrix`, `matrixadd`, `matrixsub` | copy; identity; kB; B + C; B − C **[code]** |
+| `matrixmatrix(m, n, l, a, b, c)` | A = BC, B is m×l, C is l×n **[code]** |
+| `matrixtranspose(m, n, a, b)` | A = Bᵀ **[code]** |
+| `matrixrowscalar`, `matrixrowexchange`, `matrixrowadd`, `matrixrowaddtwo` | elementary row operations **[code]** |
+| `matrixsearchcolumnmaxabs` | row of the largest absolute value in a column range (pivot search) **[code]** |
+| `matrixinverse(n, ainv, a, eps)` | Gauss–Jordan inverse with partial pivoting; overwrites `a`; exits on a pivot ≤ `eps` **[code]** |
+| `vectorfprint`, `vectorfscan`, `matrixfprint`, `matrixfscan`, `matrixprintformat` | text I/O with a settable `printf` format (default `" %lf "`) **[code]** |
+| `matrixallocfscan(fd, m, n, pa)` | `malloc` and read a matrix; defined but not declared in `opt.h` **[code]** |
 
-<!-- Which mission component launches it, minimal standalone run (MOOSDB + this app), and the
-test(s) that exercise it. -->
+Used by: [pGeoTracker](../apps/pGeoTracker.md) only **[code]**. pGeoTracker includes its own
+copy of `opt.h` (with `extern "C"` declarations) instead of this one **[code]**.
 
 ## Known issues and open questions
 
-<!-- Links to GitHub issues, and questions for the authors/maintainers: things the code does that
-look unintended, unused inputs or outputs, magic numbers. Each open question is a candidate
-issue. -->
+- `matrixinverse()` ends the whole process with `exit(1)` on a singular matrix. A status return
+  would let a caller recover. Nothing in lamss3 calls it at present.
+- `opt.h` declares about 25 functions (`nullspace`, `svd`, `LPsimplex`, `QuasiNewtonMethod`,
+  `GaussIntegral*`, `RungeKutta`, …) that this library does not define; calling one fails at link
+  time. Should the header be cut down to `mat.c`'s functions, and pGeoTracker use it instead of
+  its private copy?
+- `matrixprintformat()` sets the format used for reading as well as writing.
+- The library is built as C17 because C23 no longer accepts K&R definitions **[code]**; converting
+  to prototypes would remove that constraint.
 
 ## History
 
-<!-- Origin repository and path, first commit date and authors (from `git log --follow`), and
-what changed during the lamss3 port (removed features, renamed variables). -->
+- From GobySoft/lamss-shared `src/lib/lib_track` (`mat.c`, `opt.h`); first commit 2011-10-24 (Henrik
+  Schmidt, with pGeoTracker); 2 commits before the port (Henrik Schmidt, Toby Schneider), the last
+  on 2012-05-21. The old CMakeLists.txt named Don Eickstedt as the author.
+- lamss3 port (GobySoft/lamss3#21–#23): clang-format; built as `lamss_sonar_track`, header moved to
+  `lamss/sonar/track/opt.h`, compiled as C17; `(void)` casts for unused parameters and `fscanf`
+  results kept in unread locals; LGPL-3.0-or-later SPDX headers added.
