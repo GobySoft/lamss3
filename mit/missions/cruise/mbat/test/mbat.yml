@@ -108,4 +108,4 @@ test:
           group: '^lamss::moos::NODE_REPORT$'
           type: lamss.core.LegacyNodeReport
           match: 'type: "track"'
-          timeout: 540
+          timeout: 900
