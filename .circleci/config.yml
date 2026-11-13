@@ -77,6 +77,25 @@ commands:
       - store_artifacts:
           path: /tmp/mission-logs-<< parameters.toolbox >>.tar.gz
           destination: mission-logs-<< parameters.toolbox >>.tar.gz
+      - mission-log-tails
+
+  mission-log-tails:
+    description: Print the end of a failed mission test's logs, for readers who cannot fetch artifacts
+    steps:
+      - run:
+          name: Mission log tails
+          when: on_fail
+          command: |
+            for d in $(find . -path '*/missions/log/*' -name supervisord.log -printf '%h\n'); do
+              echo "##### $d"
+              grep -E ' (exited|gave up|spawnerr):' "$d/supervisord.log" || true
+              find "$d" -name '*.out' | grep -E '/(pLamss|pGeoTracker|uSim(Targets|TowedArray|NoiseCovariance|PassiveSonar)|pMOOSLink|sonar_data_cleaner)[^/]*\.out$' | sort \
+                | while read -r f; do
+                    echo "=== $f ($(grep -c 'Wrote file' "$f") files written)"
+                    tail -n 12 "$f" | cut -c1-240
+                  done
+            done
+            df -h . || true
 
 jobs:
   format:
@@ -127,6 +146,7 @@ jobs:
       - store_artifacts:
           path: /tmp/mission-logs.tar.gz
           destination: mission-logs.tar.gz
+      - mission-log-tails
 
   build-standalone:
     parameters:
