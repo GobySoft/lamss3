@@ -1,0 +1,23 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set target = cruise.get("target") %}
+ProcessConfig = uSimTargets
+{
+  common { app_tick: 4 comm_tick: 4 }
+{%- if target %}
+  auto_target {
+    tgt_num: {{ target.get("num", 1) }}
+    tgt_x: {{ target.x }}
+    tgt_y: {{ target.y }}
+    tgt_dep: {{ target.depth }}
+    tgt_hdg: {{ target.heading }}
+    tgt_spd: {{ target.speed }}
+    tgt_freq: {{ target.freq }}
+    tgt_bw: {{ target.bandwidth }}
+    tgt_spl: {{ target.spl }}
+    tgt_str: {{ target.strength }}
+{%- for tone in target.get("tones", []) %}
+    tones { freq: {{ tone.freq }} db: {{ tone.db }} }
+{%- endfor %}
+  }
+{%- endif %}
+}

@@ -1,0 +1,27 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+{%- set sim = component.passive_sonar_sim %}
+ProcessConfig = uSimPassiveSonar
+{
+  common { app_tick: 12 comm_tick: 5 }
+  ray_acoustics: {{ "true" if sim.bellhop else "false" }}
+  rap_acoustics: true
+  svp_surface: {{ environment.sound_speed.surface }}
+  svp_gradient: {{ environment.sound_speed.gradient }}
+  max_rap_depth: {{ environment.bathymetry.depth }}
+  water_depth: {{ environment.bathymetry.depth }}
+  bottom_loss: 5.0
+  noise_level: {{ sim.noise_level }}
+  max_number_bounces: 30
+  array_type: ARRAY_TYPE_{{ sim.array_type }}
+  num_array_elements: {{ sim.elements }}
+  sampling_frequency: {{ sim.sampling_frequency }}
+  num_samples: {{ sim.samples }}
+  hydrophone_gain: 0
+  accelerometer_gain: 0
+  base_dir_name: {{ paths.run | pb_string }}
+  acoustic_filename_prefix: {{ (platform.name | upper ~ "_ACO") | pb_string }}
+  acoustic_filename_suffix: ".DAT"
+  nonacoustic_filename_prefix: {{ (platform.name | upper ~ "_NAS") | pb_string }}
+  nonacoustic_filename_suffix: ".DAT"
+  replica_path: {{ paths.run | pb_string }}
+}

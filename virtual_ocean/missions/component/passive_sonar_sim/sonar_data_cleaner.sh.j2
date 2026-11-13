@@ -1,0 +1,5 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later -#}
+# deletes the simulated array data once the beamformer is long done with it
+while sleep 30; do
+  find {{ paths.run }} -maxdepth 1 -name '*.DAT' -mmin +{{ component.passive_sonar_sim.keep_minutes }} -delete
+done
