@@ -16,6 +16,7 @@ flowchart LR
   mission --> render[render<br/>Jinja2 templates<br/>per subsystem]
   render --> build["missions/build/&lt;instance&gt;/<br/>configs, env.sh,<br/>supervisord.conf"]
   build --> sup[supervisord<br/>sim, run,<br/>status, tail, stop]
+  sup --> test[goby test<br/>lamss mission test]
 ```
 
 ## Trying it
@@ -28,6 +29,7 @@ lm m generate <cruise>            # write the configuration only
 lm m sim <cruise>                 # generate and start the whole fleet on this machine
 lm m status
 lm m stop
+lm m test <cruise>                # run the cruise's goby test files against it
 ```
 
 `lm m` is short for `lamss mission`; the [command guide](cli.md) has every option.
@@ -42,6 +44,7 @@ lm m stop
 | [Variants](variants.md) | named alternatives of a concept, and combining them |
 | [Templates](templates.md) | Jinja2 templates and the context dictionary they see |
 | [Output](output.md) | the generated files, and how supervisord starts and stops the processes |
+| [Testing](testing.md) | checking a running mission with `goby test`, in ctest and CI |
 | [`lamss mission`](cli.md) | the command line |
 | [Python API](api.md) | the `lamss.mission` package |
 

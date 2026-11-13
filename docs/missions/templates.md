@@ -106,6 +106,7 @@ lamss mission: error: daemon.cfg.j2 for platform.shore.subsystem.main.component.
 | `pb_string` | a quoted, escaped Protobuf TextFormat string | `{{ platform.name \| pb_string }}` → `"shore"` |
 | `latlon` | `lat: <lat> lon: <lon>` from a `{lat, lon}` dictionary | `datum { {{ cruise.datum \| latlon }} }` |
 | `utm` | `{zone, hemisphere, easting, northing}` (WGS84, metres) of a `{lat, lon}` dictionary | `{{ (cruise.datum \| utm).zone }}` → `19` |
+| `socket_path(name)` | `<directory>/<name>`, or a short path under `$TMPDIR/lamss-<uid>/` when that is too long for a unix socket | `{{ paths.run \| socket_path("gobyd") \| pb_string }}` |
 
 The fixture's shared template, [`fixtures/render/core/missions/templates/daemon.cfg.j2`](../../core/src/test/mission/fixtures/render/core/missions/templates/daemon.cfg.j2):
 
@@ -185,8 +186,19 @@ plus `PATH` and `LD_LIBRARY_PATH` with the prefix's `bin` and `lib` first. A com
 class Daemon(Component):
     ports = ["daemon"]
 
-    def environment(self):
+    def environment(self, paths):
         return {"DAEMON_PORT": str(self.subsystem.allocated_ports["daemon"])}
 ```
 
-A variable set to two different values in one subsystem is an error. supervisord cannot pass a value containing a quote, comma or newline, so such a value is an error: put it in a configuration file instead.
+`paths` is the context's `paths` dictionary, for variables that name files of this subsystem, such as a Goby socket (from the test fixture [`fixtures/goby`](../../core/src/test/mission/fixtures/goby/core/missions/component/gobyd/gobyd.py)):
+
+```python
+class Gobyd(Component):
+    def environment(self, paths):
+        socket = socket_path(Path(paths["run"]), "gobyd")       # from lamss.mission.render
+        return {"GOBY_INTERPROCESS": f'platform: "{self.platform.name}" socket_name: "{socket}"'}
+```
+
+A variable set to two different values in one subsystem is an error. supervisord cannot pass a value containing a quote, comma or newline, so such a variable is left out of `supervisord.conf` and set only in `env.sh`.
+
+A component can also give the [`goby test`](testing.md) endpoint for its subsystem by overriding `test_endpoint(paths)`.

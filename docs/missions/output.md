@@ -87,6 +87,7 @@ environment=LAMSS_ROOT="...",LAMSS_INSTANCE="harbor",...,DAEMON_PORT="24000",PAT
 - **Start order** comes from the component order: `priority` is `10 × (component index + 1) + process index`, so the first component's processes start first (supervisord starts lower priorities first). A component has at most 10 processes. A `Process(priority=...)` sets it explicitly.
 - Paths to the run and log directories are relative to the file (`%(here)s`).
 - Output and errors of each process go to `<process>.out` in its log directory.
+- `environment` holds the [variables](templates.md#environment-variables) of the subsystem, except those whose value has a quote, comma or newline, which supervisord would mangle: those are only in `env.sh`.
 
 `Process` fields and the program settings they become:
 
@@ -133,7 +134,7 @@ port=127.0.0.1:51000
 files=../shore/main/supervisord.conf ../buoy/main/supervisord.conf ../buoy/sensors/supervisord.conf
 ```
 
-supervisord is controlled through the unix socket, readable by its owner only. A socket path longer than a unix socket allows (90 characters here) moves to `$TMPDIR/lamss-<uid>/<hash>.sock`.
+supervisord is controlled through the unix socket, readable by its owner only. A socket path longer than a unix socket allows (90 characters here) moves to `$TMPDIR/lamss-<uid>/<hash>_supervisor.sock`; templates use the same rule through the `socket_path` filter ([Templates](templates.md#filters)).
 
 ## `env.sh`
 
