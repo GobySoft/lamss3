@@ -1,0 +1,71 @@
+# Copyright 2026 GobySoft, LLC
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Run with `lamss mission test mbat two_auv --test-file mit/src/test/mission_mbat/two_auv.yml`.
+test:
+  name: mbat cruise with macrura and unicorn
+  default_timeout: 10
+  require_app:
+    - { endpoint: resolution_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+    - { endpoint: macrura_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+    - { endpoint: unicorn_main, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+    - { endpoint: unicorn_frontseat_sim, name: [gobyd, goby_logger, goby_coroner, goby_moos_gateway], require_ok: true, timeout: 30 }
+  run:
+    - name: both vehicles report their positions
+      expect:
+        - { endpoint: macrura_main, group: '^lamss::moos::NODE_REPORT$', type: lamss.core.LegacyNodeReport, match: 'name: "macrura"', timeout: 60 }
+        - { endpoint: unicorn_main, group: '^lamss::moos::NODE_REPORT$', type: lamss.core.LegacyNodeReport, match: 'name: "unicorn"', timeout: 60 }
+    - name: both vehicles dive to the 15 m deploy depth
+      expect:
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: GT, value: 14.5 }]
+          timeout: 240
+        - endpoint: unicorn_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "unicorn"'
+          condition: [{ field: depth, op: GT, value: 14.5 }]
+          timeout: 240
+    - name: unicorn loiters around its own deploy point, 600 m east of macrura's
+      expect:
+        - endpoint: unicorn_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "unicorn"'
+          condition: [{ field: x, op: LT, value: 300 }]
+          count: 0
+          timeout: 40
+        - endpoint: unicorn_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "unicorn"'
+          condition: [{ field: x, op: GT, value: 900 }]
+          count: 0
+          timeout: 40
+    - name: both vehicles' LAMSS_STATUS reach resolution in the three-slot cycle
+      expect:
+        - { endpoint: resolution_main, group: '^lamss::moos::NODE_REPORT$', type: lamss.core.LegacyNodeReport, match: 'name: "macrura"', timeout: 80 }
+        - { endpoint: resolution_main, group: '^lamss::moos::NODE_REPORT$', type: lamss.core.LegacyNodeReport, match: 'name: "unicorn"', timeout: 80 }
+    - name: a deploy addressed to unicorn sends it to 25 m and leaves macrura at 15 m
+      publish:
+        - endpoint: resolution_main
+          group: 'lamss::goby::pAcommsHandler_multiplex'
+          type: PROTOBUF/lamss.autonomy.LAMSS_DEPLOY
+          value: '_rcv_id: 3 Deploy_Mode: DEPLOY_MODE_LOITER Depth_Mode: DEPTH_MODE_SINGLE Deploy_X: 600 Deploy_Y: 0 Deploy_Speed: 1.8 Deploy_Upper_Depth: 25 Loiter_Radius: 200 Loiter_Segments: 6'
+      expect:
+        - endpoint: unicorn_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "unicorn"'
+          condition: [{ field: depth, op: GT, value: 23 }]
+          timeout: 180
+        - endpoint: macrura_main
+          group: '^lamss::moos::NODE_REPORT$'
+          type: lamss.core.LegacyNodeReport
+          match: 'name: "macrura"'
+          condition: [{ field: depth, op: GT, value: 17 }]
+          count: 0
+          timeout: 120

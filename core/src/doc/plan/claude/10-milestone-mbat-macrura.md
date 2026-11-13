@@ -135,6 +135,14 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 
 M2 is done when `irminger` is also expressed as a cruise reusing the same platform classes.
 
+*This section written by Claude*
+
+Status:
+
+| Variant | Status |
+|---|---|
+| `two_auv` | done. `unicorn` (modem 3) and `macrura` are both `mit_bluefin21` platforms, which hold the towed array, acomms and `sensor_sim` that the two share, as in the old `auv/macrura` and `auv/unicorn` configs. The fleet variant launches unicorn and its initial loiter 600 m east of macrura's; the cruise variant adds its 12 s slot. `lamss_mit_mission_mbat_two_auv` (real time, about 4 minutes) checks both vehicles dive and report to resolution, and that a deploy addressed to unicorn moves only unicorn. |
+
 ## M3: ICEX20
 
 `icex20` cruise: `sea_dragon` topside, `hydrohole` mooring, macrura under the ice with `dvl_ice_track_mode` and `BHV_OpRegion_ICEX`, `uSimICEXMotion` ice drift, the hydrophone `iSerialNMEA`/`iNetSimManager` set, `netsim_udp` acomms, HydroMAN 3 through the `hydroman` toolbox's variant (the internal toolbox the 2020 scenario used is not ported), and the native Goby3 `lamss_icex_tracker`/`optimizer`/`buoy_multiplexer` plus `goby_liaison_icex` on topside. Requires the `icex` submodule and the native Goby3 ICEX apps compiling ([09](09-toolboxes.md#icex)). The `arctic` cruise is not ported.

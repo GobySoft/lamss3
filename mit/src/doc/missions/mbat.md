@@ -47,19 +47,30 @@ lm m test mbat smoke                              # about 6 minutes
 
 ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smoke_bearing`, `lamss_mit_mission_mbat_smoke_waypoints` and `lamss_mit_mission_mbat_generate`; `lamss_mit_mission_mbat_check_loiter_waypoints` tests the waypoint check itself. Configuring with `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON` adds `lamss_mit_mission_mbat`, the same test in real time (about 10 minutes).
 
+## Two vehicles
+
+`lm m sim mbat two_auv` adds *Unicorn*, Macrura's sister Bluefin 21 (modem 3). It launches and loiters 600 m east of Macrura, around (600, 0), and gets the third 12 s acomms slot, so each vehicle's status reaches resolution every 36 s. Address a deploy to it with `_rcv_id: 3`.
+
+```sh
+lm m test mbat two_auv --test-file mit/src/test/mission_mbat/two_auv.yml   # about 4 minutes
+```
+
+The test ([`two_auv.yml`](../../test/mission_mbat/two_auv.yml), ctest `lamss_mit_mission_mbat_two_auv`) checks that both vehicles dive to 15 m, that unicorn loiters around its own deploy point, that both statuses reach resolution, and that a deploy addressed to unicorn sends it to 25 m while macrura stays at 15 m.
+
 ## What runs
 
 | Concept | Class | Notes |
 |---|---|---|
-| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py), variant [`smoke`](../../../missions/cruise/mbat/mbat_smoke.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; a 12 s slot each for resolution and macrura), `target` (broadband 500–1500 Hz, 1.8 km north-east); `smoke` sets `warp` to 10 |
-| Fleet | [`mit_bf21`](../../../missions/fleet/mit_bf21/mit_bf21.py) | `resolution`, `macrura` (topside `resolution`) |
+| Cruise | [`mbat`](../../../missions/cruise/mbat/mbat.py), variants [`smoke`](../../../missions/cruise/mbat/mbat_smoke.py), [`two_auv`](../../../missions/cruise/mbat/mbat_two_auv.py) | datum, `op_box` (±4 km), `gateway_buoy`, `acomms` (`lamss_status`, `lamss_deploy`, `lamss_track`; a 12 s slot each for resolution and macrura, and for unicorn with `two_auv`), `target` (broadband 500–1500 Hz, 1.8 km north-east); `smoke` sets `warp` to 2 |
+| Fleet | [`mit_bf21`](../../../missions/fleet/mit_bf21/mit_bf21.py), variant [`two_auv`](../../../missions/fleet/mit_bf21/mit_bf21_two_auv.py) | `resolution`, `macrura` (topside `resolution`); `two_auv` adds `unicorn` |
 | Platform | [`resolution`](../../../missions/platform/topside/resolution/resolution.py) | a [`topside`](../../../../core/src/doc/missions/platforms.md) with [`udp` acomms](../../../../core/src/doc/missions/components.md#acomms), modem 1 |
-| Platform | [`macrura`](../../../missions/platform/auv/propellor/bluefin21/macrura/macrura.py) | a [`bluefin21`](../../../../autonomy/src/doc/missions/components.md) with `udp` acomms and the [passive sonar](../../../../sonar/src/doc/missions/components.md), modem 4 |
+| Platform | [`mit_bluefin21`](../../../missions/platform/auv/propellor/bluefin21/mit_bluefin21/mit_bluefin21.py) | a [`bluefin21`](../../../../autonomy/src/doc/missions/components.md) with `udp` acomms and the [passive sonar](../../../../sonar/src/doc/missions/components.md); in simulation, a `sensor_sim` subsystem |
+| Platform | [`macrura`](../../../missions/platform/auv/propellor/bluefin21/mit_bluefin21/macrura/macrura.py), [`unicorn`](../../../missions/platform/auv/propellor/bluefin21/mit_bluefin21/unicorn/unicorn.py) | `mit_bluefin21`s, modems 4 and 3 |
 | Environment | [`mass_bay`](../../../missions/environment/mass_bay/mass_bay.py) | Gulf of Maine bathymetry ([data](../../../missions/environment/mass_bay/data/README.md)), 1480 m/s at the surface, 100 m for the acoustics |
 
 | Subsystem | Processes besides gobyd, MOOSDB, the gateway, goby_coroner, goby_logger |
 |---|---|
 | `resolution_main` | pViewMessage, pAcommsHandler; with `gui`, goby_liaison and pMarineViewer |
-| `macrura_main` | pViewMessage, pNodeReporter, pLamssMissionManager, pBasicContactMgr, pHelmIvP, iFrontSeat_bluefin, pAcommsHandler, pLamssAEL, pLamssCBF, pLamssBearingTracker, pGeoTracker, pLamssTrackManager |
-| `macrura_frontseat_sim` | uMVS_Bluefin, pMarinePID, iBackSeatServer, pEchoVar, uSimGPS, iNoaaBathy |
-| `macrura_sensor_sim` | uSimTargets, uSimTowedArray, uSimNoiseCovariance, uSimPassiveSonar, sonar_data_cleaner, pMOOSLink |
+| `macrura_main` (and `unicorn_main`) | pViewMessage, pNodeReporter, pLamssMissionManager, pBasicContactMgr, pHelmIvP, iFrontSeat_bluefin, pAcommsHandler, pLamssAEL, pLamssCBF, pLamssBearingTracker, pGeoTracker, pLamssTrackManager |
+| `macrura_frontseat_sim` (and `unicorn_…`) | uMVS_Bluefin, pMarinePID, iBackSeatServer, pEchoVar, uSimGPS, iNoaaBathy |
+| `macrura_sensor_sim` (and `unicorn_…`) | uSimTargets, uSimTowedArray, uSimNoiseCovariance, uSimPassiveSonar, sonar_data_cleaner, pMOOSLink |

@@ -1,7 +1,8 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Macrura, MIT's Bluefin 21, towing the DURIP array. In simulation its sensor_sim subsystem
-simulates the array and the targets it hears, linked to main by pMOOSLink."""
+"""MIT's Bluefin 21s, which tow the DURIP array and talk to the topside over acomms. In simulation
+their sensor_sim subsystem simulates the array and the targets it hears, linked to main by
+pMOOSLink."""
 
 from lamss.mission import Subsystem
 
@@ -22,8 +23,7 @@ SENSOR_SIM_LINK = MoosLink(
     outputs=["SONAR_DIR", "SONAR_FILE_NUM", "SONAR_FILENAME"])
 
 
-class Macrura(Bluefin21):
-    params = dict(modem_id=4)
+class MitBluefin21(Bluefin21):
     components = Bluefin21.components + [UdpAcomms, PassiveSonar]
     subsystems = Bluefin21.subsystems + [
         Subsystem("sensor_sim", [Interprocess, Health, Logging, Targets, PassiveSonarSim, SENSOR_SIM_LINK],

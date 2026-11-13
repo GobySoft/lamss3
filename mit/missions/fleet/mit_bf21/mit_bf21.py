@@ -4,7 +4,7 @@
 
 from lamss.mission import Fleet
 
-from missions.platform.auv.propellor.bluefin21.macrura import Macrura
+from missions.platform.auv.propellor.bluefin21.mit_bluefin21.macrura import Macrura
 from missions.platform.topside.resolution import Resolution
 
 

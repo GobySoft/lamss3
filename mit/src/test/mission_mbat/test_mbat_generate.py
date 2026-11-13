@@ -1,6 +1,6 @@
 # Copyright 2026 GobySoft, LLC
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Plan 10's reproducibility check: generating the mbat cruise (and its smoke variant) twice gives
+"""Plan 10's reproducibility check: generating the mbat cruise (and its variants) twice gives
 byte-identical output, so no timestamps or unordered dicts reach the configurations."""
 
 import shutil
@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[4]
 INSTANCE = "mbat_generate_check"
 
 
-@pytest.mark.parametrize("variant", [[], ["smoke"]], ids=["mbat", "smoke"])
+@pytest.mark.parametrize("variant", [[], ["smoke"], ["two_auv"]], ids=["mbat", "smoke", "two_auv"])
 def test_generating_mbat_twice_is_byte_identical(monkeypatch, variant):
     monkeypatch.setenv("LAMSS_ROOT", str(ROOT))
     build = ROOT / "mit" / "missions" / "build" / INSTANCE
