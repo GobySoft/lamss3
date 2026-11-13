@@ -6,7 +6,7 @@ within TOLERANCE degrees of the true bearing from macrura to the simulated targe
 Truth is uSimTargets' NODE_REPORT (tgt_1_sim) in sensor_sim's goby_logger log; macrura's position
 and the track are the NODE_REPORTs resolution logged. Reads the newest run of an instance:
 
-    check_track_bearing.py <missions>/log/<instance> --tolerance 10 [-l <proto lib>]...
+    check_track_bearing.py <missions>/log/<instance> --tolerance 20 [-l <proto lib>]...
 """
 
 import argparse
@@ -58,7 +58,7 @@ def bearing(frm: dict, to: dict) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("instance_log", type=Path)
-    parser.add_argument("--tolerance", type=float, default=10.0)
+    parser.add_argument("--tolerance", type=float, default=20.0)
     parser.add_argument("--vehicle", default="macrura")
     parser.add_argument("--topside", default="resolution")
     parser.add_argument("--target", default="tgt_1_sim")

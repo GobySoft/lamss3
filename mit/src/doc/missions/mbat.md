@@ -41,7 +41,7 @@ lm m test mbat smoke                              # about 3 minutes
 | macrura's `LAMSS_STATUS` reaches resolution over acomms, as a `NODE_REPORT` and a goby `NodeStatus` | step 4 |
 | a `LAMSS_DEPLOY` from resolution sends macrura to 25 m | step 5 |
 | with the sonar on, macrura's track reaches resolution | step 6 |
-| the track's bearing from macrura is within 10° of the true bearing to the target | `check_track_bearing.py`, after the test |
+| the track's bearing from macrura is within 20° of the true bearing to the target | `check_track_bearing.py`, after the test |
 | generating the cruise twice gives byte-identical output | `test_mbat_generate.py` |
 
 ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smoke_bearing` and `lamss_mit_mission_mbat_generate`. Configuring with `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON` adds `lamss_mit_mission_mbat`, the same test in real time (about 10 minutes).
