@@ -8,7 +8,7 @@ if(NOT _in_tree)
   find_package(lamss_core REQUIRED)
   include(LamssToolbox)
 endif()
-lamss_toolbox(NAME mit REQUIRES core autonomy virtual_ocean)
+lamss_toolbox(NAME mit REQUIRES core autonomy virtual_ocean sonar)
 
 if(BUILD_TESTING)
   add_subdirectory(src/test)

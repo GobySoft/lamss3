@@ -84,6 +84,10 @@ flowchart LR
 
    Status: done over UDP rather than netsim. `core`'s `acomms` component runs `pAcommsHandler` with `DRIVER_UDP` and the cruise's MAC slots and messages (`lamss_status` from `core`, `lamss_deploy` from `autonomy`, ported from `missions-lamss`), and replaces `pInitializer` with Goby initializers. The test checks macrura's status reaches resolution (and its Liaison map) and that a `LAMSS_DEPLOY` from resolution sends macrura to 25 m. A netsim implementation of `acomms` is left for M2; `pViewMessage` drawing the op box is not checked yet.
 4. **Passive sonar**: `uSimTargets` + `uSimPassiveSonar` produce BTR, the chain produces a track, `pLamssTrackManager` publishes a contact report to topside.
+
+   *This section written by Claude*
+
+   Status: done with analytic ray tracing (`rap_acoustics`) instead of iBellhop. macrura gets a `sensor_sim` subsystem (`targets`, `passive_sonar_sim`, and `moos_link` to main) and the `sonar` `passive` chain on main; `lamss_track` carries `TRACK_REPORT` to the topside, where the track appears as a `NODE_REPORT` and on Liaison's map. The cruise's target is a broadband source at 500–1500 Hz, 1.8 km out: the `missions-lamss` target values (2–3 kHz tones, 5.4 km) were outside the DURIP chain's band and were not what the old topside ran (targets were created by an operator). uSimPassiveSonar crashed without `ray_acoustics` (contacts were only registered for Bellhop) and is fixed. iBellhop acoustics are a later item (below).
 5. **Smoke variant**: single AUV, flat-bottom synthetic environment, `warp=10`, 5 simulated minutes, assertions on supervisord state and on the `.goby` log (mission state reached `DEPLOY`, at least one `LAMSS_STATUS` received topside, at least one track). Runs in CI on every PR.
 
 ## Acceptance
@@ -108,6 +112,7 @@ Each variant is a `@variant` class and a CI `generate` check (not all run in CI)
 | `hycom` | `uSVP_OceanModel`, `uSimCTD_OceanModel`, `uSimADCP_OceanModel` with the HYCOM environment |
 | `two_auv` | adds `unicorn` (modem 3) to the fleet; MAC slot table grows |
 | `displays` | needs the `gui` toolbox active: LAMSS Display Center with `btr_plot`, `tloss_display`, `eeof_plot`, `small_uVis` fed from Goby3 groups |
+| `bellhop` | iBellhop (netsim) in `sensor_sim` answering uSimPassiveSonar's `BELLHOP_REQUEST`s with eigenray tables for the Mass Bay environment, with `passive_sonar_sim.bellhop` on; and in `topside/net_sim` for the acoustic link (from the old configs' `iBellhop` blocks) |
 | `hybrid_hydroman` | the combination of `hybrid` and `hydroman`, defined as its own variant file |
 | `runtime` (not a variant, `lm m run`) | `hw_modem` serial ports, `iFrontSeat_bluefin` against the real vehicle, `iDurip` |
 
