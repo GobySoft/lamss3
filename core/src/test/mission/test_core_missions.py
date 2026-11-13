@@ -88,5 +88,6 @@ def test_every_value_of_the_example_explains():
     for toolboxes in ((), ("gui",)):
         mission = resolve(registry(*toolboxes), "example")
         explained = {key: mission.explain(key)[1][-1] for key in mission.keys()}
+        assert [k for k, e in explained.items() if e.location is None] == ["mode", "variant"]
         assert explained["platform.topside.subsystem.main.ports.moosdb"].source == "cruise.port_base"
         assert explained["platform.topside.subsystem.main.component.interprocess.community"].kind == "derived"
