@@ -72,3 +72,9 @@ The template reads `cruise.op_box` (a list of `[x, y]` vertices) and `cruise.gat
 - [uMVS_Bluefin](../apps/uMVS_Bluefin.md) simulates the vehicle dynamics, starting at `launch` (`x`, `y`, `depth`, `heading`).
 - `pMarinePID` is the vehicle's autopilot.
 - [iBackSeatServer](../apps/iBackSeatServer.md) serves the Huxley protocol on the subsystem's `backseat` port.
+
+## Acomms messages
+
+*This section written by Claude*
+
+[`templates/acomms/lamss_deploy.pb.cfg.j2`](../../../missions/templates/acomms/lamss_deploy.pb.cfg.j2) adds `lamss_deploy` to the messages a cruise can name in `acomms.messages` (see the [`acomms`](../../../../core/src/doc/missions/components.md#acomms) component). It carries `lamss.autonomy.LAMSS_DEPLOY` from `LAMSS_DEPLOY_OUT` to the receiver's `LAMSS_DEPLOY_IN`, which `pLamssMissionManager` acts on. A topside queues it to send (`NO_MANIP`); a vehicle only loops its own back (`LOOPBACK`, `NO_QUEUE`), as in `missions-lamss`. `pLamssMissionManager` also sets the startup variables `pInitializer` used to set: `LAT_ORIGIN`, `LONG_ORIGIN`, `OP_BOX` and `SONAR_CONTROL`/`SONAR_PROCESS` `OFF`.

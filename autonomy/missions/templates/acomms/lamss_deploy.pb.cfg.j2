@@ -1,0 +1,38 @@
+{# Copyright 2026 GobySoft, LLC; SPDX-License-Identifier: GPL-3.0-or-later
+   LAMSS_DEPLOY: a deploy command from LAMSS_DEPLOY_OUT, posted as LAMSS_DEPLOY_IN where received.
+   Topsides send it; vehicles only loop their own back. -#}
+{% macro translator() %}
+  translator_entry {
+    protobuf_name: "lamss.autonomy.LAMSS_DEPLOY"
+    trigger {
+      type: TRIGGER_PUBLISH
+      moos_var: "LAMSS_DEPLOY_OUT"
+    }
+    create {
+      technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+      moos_var: "LAMSS_DEPLOY_OUT"
+    }
+    publish {
+      technique: TECHNIQUE_PREFIXED_PROTOBUF_TEXT_FORMAT
+      moos_var: "LAMSS_DEPLOY_IN"
+    }
+    use_short_enum: true
+  }
+{%- endmacro %}
+{% macro queue() %}
+    message_entry {
+      protobuf_name: "lamss.autonomy.LAMSS_DEPLOY"
+      ttl: 300
+      value_base: 1000
+      max_queue: 1
+      role { type: SOURCE_ID field: "_src_id" }
+      role { type: DESTINATION_ID field: "_rcv_id" }
+      role { type: TIMESTAMP field: "_time" }
+{%- if platform.type == "topside" %}
+      manipulator: NO_MANIP
+{%- else %}
+      manipulator: LOOPBACK
+      manipulator: NO_QUEUE
+{%- endif %}
+    }
+{%- endmacro %}

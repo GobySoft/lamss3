@@ -3,7 +3,16 @@
 {%- set deploy = mm.initial_deploy %}
 ProcessConfig = pLamssMissionManager
 {
-  common { app_tick: 4 comm_tick: 10 }
+  common {
+    app_tick: 4
+    comm_tick: 10
+    initializer { type: INI_DOUBLE global_cfg_var: "LatOrigin" moos_var: "LAT_ORIGIN" }
+    initializer { type: INI_DOUBLE global_cfg_var: "LongOrigin" moos_var: "LONG_ORIGIN" }
+    initializer { type: INI_STRING moos_var: "OP_BOX" sval: {{ cruise.op_box | map("join", ",") | join(":") | pb_string }} }
+    initializer { type: INI_STRING moos_var: "SONAR_CONTROL" sval: "OFF" }
+    initializer { type: INI_STRING moos_var: "SONAR_PROCESS" sval: "OFF" }
+    initializer { type: INI_DOUBLE moos_var: "STATUS_DESTINATION" dval: 0 }
+  }
   min_opbox_distance: {{ mm.min_opbox_distance }}
   operation_radius: {{ mm.operation_radius }}
   deploy_duration: {{ mm.deploy_duration }}
