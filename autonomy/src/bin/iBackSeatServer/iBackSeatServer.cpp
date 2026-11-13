@@ -1,4 +1,6 @@
-////////////////////////////////////////////////////////
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 //#Include <iostream>
 #include "iBackSeatServer.h"
 #include "MBUtils.h"

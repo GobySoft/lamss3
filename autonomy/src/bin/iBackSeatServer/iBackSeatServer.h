@@ -1,4 +1,5 @@
-////////////////////////////////////////////////
+// Copyright 2011-2026 Massachusetts Institute of Technology
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #ifndef __CiBackSeatServer_h__
 #define __CiBackSeatServer_h__
