@@ -8,6 +8,8 @@ else()
 endif()
 lamss_add_pytest(lamss_mit_mission_mbat_generate ${CMAKE_CURRENT_SOURCE_DIR}/test_mbat_generate.py
   PYTHONPATH ${_lamss_python})
+lamss_add_pytest(lamss_mit_mission_mbat_check_loiter_waypoints
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_check_loiter_waypoints.py)
 
 option(LAMSS_MIT_MBAT_REALTIME_TEST "Also run the mbat mission test at warp 1 (about 10 minutes)" OFF)
 
@@ -25,7 +27,13 @@ if(LAMSS_SUPERVISORD AND LAMSS_GOBYD AND LAMSS_MOOSDB)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_track_bearing.py
         ${PROJECT_SOURCE_DIR}/missions/log/lamss_mit_mission_mbat_smoke --tolerance 20
         -l ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/liblamss_core_protobuf.so)
-    set_tests_properties(lamss_mit_mission_mbat_smoke_bearing PROPERTIES FIXTURES_REQUIRED mbat_smoke_logs)
+    add_test(NAME lamss_mit_mission_mbat_smoke_waypoints
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/check_loiter_waypoints.py
+        ${PROJECT_SOURCE_DIR}/missions/log/lamss_mit_mission_mbat_smoke --clockwise
+        --center 0 0 --radius 200 --segments 6 --depth 15 --tolerance 2 --count 3
+        -l ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/liblamss_core_protobuf.so)
+    set_tests_properties(lamss_mit_mission_mbat_smoke_bearing lamss_mit_mission_mbat_smoke_waypoints
+      PROPERTIES FIXTURES_REQUIRED mbat_smoke_logs)
   endif()
   if(LAMSS_MIT_MBAT_REALTIME_TEST)
     lamss_add_mission_test(NAME lamss_mit_mission_mbat CRUISE mbat TIMEOUT 1200 TEST ${_test})

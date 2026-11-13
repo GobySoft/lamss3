@@ -42,9 +42,10 @@ lm m test mbat smoke                              # about 6 minutes
 | a `LAMSS_DEPLOY` from resolution sends macrura to 25 m | step 5 |
 | with the sonar on, macrura's track reaches resolution | step 6 |
 | the track's bearing from macrura is within 20° of the true bearing to the target | `check_track_bearing.py`, after the test |
+| macrura reaches at least 3 consecutive waypoints of its loiter clockwise, at 15 ± 2 m throughout | `check_loiter_waypoints.py`, after the test |
 | generating the cruise twice gives byte-identical output | `test_mbat_generate.py` |
 
-ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smoke_bearing` and `lamss_mit_mission_mbat_generate`. Configuring with `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON` adds `lamss_mit_mission_mbat`, the same test in real time (about 10 minutes).
+ctest runs these as `lamss_mit_mission_mbat_smoke`, `lamss_mit_mission_mbat_smoke_bearing`, `lamss_mit_mission_mbat_smoke_waypoints` and `lamss_mit_mission_mbat_generate`; `lamss_mit_mission_mbat_check_loiter_waypoints` tests the waypoint check itself. Configuring with `-DLAMSS_MIT_MBAT_REALTIME_TEST=ON` adds `lamss_mit_mission_mbat`, the same test in real time (about 10 minutes).
 
 ## What runs
 

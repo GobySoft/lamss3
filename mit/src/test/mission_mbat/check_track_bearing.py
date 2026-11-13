@@ -10,38 +10,11 @@ and the track are the NODE_REPORTs resolution logged. Reads the newest run of an
 """
 
 import argparse
-import datetime
 import math
-import re
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
-REPORT = re.compile(r"\| lamss::moos::NODE_REPORT \| lamss.core.LegacyNodeReport \| (.+?) \| (.*)$")
-
-
-def node_reports(goby_file: Path, libs: list[str]) -> list[dict]:
-    with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp) / "log.txt"
-        command = ["goby_log_tool", "-i", str(goby_file), "-o", str(out), "--format", "DEBUG_TEXT"]
-        for lib in libs:
-            command += ["--load_shared_library", lib]
-        subprocess.run(command, check=True, capture_output=True)
-        reports = []
-        for line in out.read_text(errors="replace").splitlines():
-            m = REPORT.search(line)
-            if not m:
-                continue
-            fields = dict(re.findall(r'(\w+): ("[^"]*"|[-0-9.e]+)', m.group(2)))
-            fields = {k: v.strip('"') for k, v in fields.items()}
-            if "x" in fields and "y" in fields:
-                # the logger's timestamp: report times come from different clocks when warped
-                logged = datetime.datetime.strptime(m.group(1), "%Y-%b-%d %H:%M:%S.%f")
-                reports.append({"name": fields.get("name"), "type": fields.get("type"),
-                                "x": float(fields["x"]), "y": float(fields["y"]),
-                                "time": logged.timestamp()})
-        return reports
+from mission_logs import goby_log, newest_run, node_reports
 
 
 def nearest(reports: list[dict], name: str, t: float) -> dict:
@@ -65,20 +38,10 @@ def main() -> int:
     parser.add_argument("-l", "--load_shared_library", action="append", default=[])
     args = parser.parse_args()
 
-    runs = sorted((d for d in args.instance_log.iterdir() if d.is_dir()), key=lambda d: d.stat().st_mtime)
-    if not runs:
-        sys.exit(f"no runs in {args.instance_log}")
-    run = runs[-1]
+    run = newest_run(args.instance_log)
 
-    def log(platform, subsystem):
-        files = sorted((run / platform / subsystem).glob(f"{platform}_*.goby"))
-        files = [f for f in files if not f.name.endswith("_latest.goby")]
-        if not files:
-            sys.exit(f"no goby_logger log in {run / platform / subsystem}")
-        return files[0]
-
-    topside = node_reports(log(args.topside, "main"), args.load_shared_library)
-    truth = node_reports(log(args.vehicle, "sensor_sim"), args.load_shared_library)
+    topside = node_reports(goby_log(run, args.topside, "main"), args.load_shared_library)
+    truth = node_reports(goby_log(run, args.vehicle, "sensor_sim"), args.load_shared_library)
     tracks = [r for r in topside if r["type"] == "track" and r["name"].startswith(f"{args.vehicle}_track")]
     if not tracks:
         sys.exit(f"{args.topside} received no track from {args.vehicle} in {run}")

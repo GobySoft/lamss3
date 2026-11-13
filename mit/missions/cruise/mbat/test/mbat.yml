@@ -102,7 +102,7 @@ test:
         - endpoint: resolution_main
           group: 'lamss::goby::pAcommsHandler_multiplex'
           type: PROTOBUF/lamss.autonomy.LAMSS_DEPLOY
-          value: '_rcv_id: 4 Deploy_Mode: DEPLOY_MODE_LOITER Depth_Mode: DEPTH_MODE_SINGLE Sonar_Control: SONAR_CONTROL_ON Sonar_Process: SONAR_PROCESS_ON Deploy_X: 0 Deploy_Y: 0 Deploy_Speed: 1.8 Deploy_Upper_Depth: 15 Loiter_Radius: 200 Loiter_Segments: 6'
+          value: '_rcv_id: 4 Deploy_Mode: DEPLOY_MODE_LOITER Depth_Mode: DEPTH_MODE_SINGLE Sonar_Control: SONAR_CONTROL_ON Sonar_Process: SONAR_PROCESS_ON Deploy_X: 0 Deploy_Y: 0 Deploy_Speed: 1.8 Deploy_Upper_Depth: 15 Loiter_Radius: 200 Loiter_Segments: 6 Clockwise: true'
       expect:
         - endpoint: resolution_main
           group: '^lamss::moos::NODE_REPORT$'
