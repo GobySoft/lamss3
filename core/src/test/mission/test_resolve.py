@@ -201,3 +201,38 @@ def test_to_dict_is_plain_data(tree):
     import yaml
     d = resolve(tree(), "trial").to_dict()
     assert yaml.safe_load(yaml.safe_dump(d)) == d
+
+
+WEB = {
+    "core/missions/component/web/web.py": """
+        class Web(Component):
+            ports = {"web": "http", "db": None}
+        """,
+    "core/missions/platform/auv/auv.py": """
+        from missions.component.interprocess import Interprocess
+        from missions.component.logging import Logging
+        from missions.component.web import Web
+        class Auv(Platform):
+            params = dict(type="auv", max_depth=100, speed=1.5)
+            components = [Interprocess, Logging, Web]
+        """,
+}
+
+
+def test_ports_from_named_ranges(tree):
+    """A port named with a range comes from cruise.port_ranges, the others from port_base, so web
+    pages stay clear of the MOOS ports."""
+    ports = resolve(tree(WEB), "trial").platform("glider").resolved_subsystems[0].allocated_ports
+    assert ports == {"db": 9000, "web": 50000}
+    moved = resolve(tree(WEB), "trial", sets=["port_ranges.http=60000"])
+    assert moved.platform("glider").resolved_subsystems[0].allocated_ports["web"] == 60000
+
+
+def test_port_range_must_exist(tree):
+    files = dict(WEB)
+    files["core/missions/component/web/web.py"] = """
+        class Web(Component):
+            ports = {"web": "nope"}
+        """
+    with pytest.raises(MissionError, match="range 'nope', which cruise.port_ranges does not define"):
+        resolve(tree(files), "trial")

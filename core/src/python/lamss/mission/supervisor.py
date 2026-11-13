@@ -80,8 +80,9 @@ def prepare(layout: Layout, subsystems: Sequence[tuple[str, str]]) -> Path:
     return log_dir
 
 
-def free_port(avoid: Sequence[int] = (), first: int = 9001, last: int = 9100) -> int:
-    """The first port from `first` (supervisord's usual 9001) free on localhost and not in `avoid`."""
+def free_port(first: int, avoid: Sequence[int] = (), count: int = 1000) -> int:
+    """The first port from `first` that is free on localhost and not in `avoid`."""
+    last = first + count - 1
     for port in range(first, last + 1):
         if port in avoid:
             continue
@@ -94,15 +95,16 @@ def free_port(avoid: Sequence[int] = (), first: int = 9001, last: int = 9100) ->
     raise MissionError(f"no free port for supervisord's web page in {first}-{last}")
 
 
-def prepare_http(layout: Layout, http_port: Optional[int], avoid: Sequence[int] = ()) -> str:
-    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port
-    (not one the mission allocated), and records the page's address for `status`."""
+def prepare_http(layout: Layout, http_port: Optional[int], first: int,
+                 avoid: Sequence[int] = ()) -> str:
+    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port from
+    `first` (not one the mission allocated), and records the page's address for `status`."""
     conf = layout.run / HTTP_CONF
     if http_port:
         conf.unlink(missing_ok=True)
         url = f"http://{socket.gethostname()}:{int(http_port)}/"
     else:
-        port = free_port(avoid)
+        port = free_port(first, avoid)
         conf.write_text(f"[inet_http_server]\nport=127.0.0.1:{port}\n")
         url = f"http://127.0.0.1:{port}/"
     (layout.run / HTTP_URL).write_text(url + "\n")
