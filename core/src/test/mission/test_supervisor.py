@@ -88,9 +88,11 @@ def test_launch_without_fixed_http_port_gets_a_local_web_page(tmp_path):
 
     layout = Layout(root=tmp_path, prefix=tmp_path, missions=tmp_path, instance="harbor")
     layout.run.mkdir(parents=True)
-    supervisor.prepare_http(layout, None)
-    url = supervisor.http_url(layout)
-    assert url.startswith("http://127.0.0.1:") and url.endswith("/")
+    url = supervisor.prepare_http(layout, None, avoid=range(9001, 9010))
+    port = int(url.rsplit(":", 1)[1].rstrip("/"))
+    assert url.startswith("http://127.0.0.1:") and port >= 9010
+    assert f"port=127.0.0.1:{port}" in (layout.run / "http.conf").read_text()
+    assert supervisor.http_url(layout) == url
     supervisor.prepare_http(layout, 9123)
     assert not (layout.run / "http.conf").exists()
-    assert supervisor.http_url(layout, 9123).endswith(":9123/")
+    assert supervisor.http_url(layout).endswith(":9123/")

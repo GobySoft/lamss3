@@ -17,7 +17,7 @@ from typing import Optional, Sequence
 
 from .. import style
 from .errors import MissionError
-from .render import HTTP_CONF, Layout
+from .render import HTTP_CONF, HTTP_URL, Layout
 
 GOOD = "RUNNING"
 STARTING = ("STARTING", "BACKOFF")
@@ -80,9 +80,11 @@ def prepare(layout: Layout, subsystems: Sequence[tuple[str, str]]) -> Path:
     return log_dir
 
 
-def free_port(first: int = 9001, last: int = 9100) -> int:
-    """The first port from `first` (supervisord's usual 9001) free on localhost."""
+def free_port(avoid: Sequence[int] = (), first: int = 9001, last: int = 9100) -> int:
+    """The first port from `first` (supervisord's usual 9001) free on localhost and not in `avoid`."""
     for port in range(first, last + 1):
+        if port in avoid:
+            continue
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
             try:
                 probe.bind(("127.0.0.1", port))
@@ -92,26 +94,25 @@ def free_port(first: int = 9001, last: int = 9100) -> int:
     raise MissionError(f"no free port for supervisord's web page in {first}-{last}")
 
 
-def prepare_http(layout: Layout, http_port: Optional[int]) -> None:
-    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port."""
+def prepare_http(layout: Layout, http_port: Optional[int], avoid: Sequence[int] = ()) -> str:
+    """Gives a launch without a fixed supervisor.http_port a web page on a free localhost port
+    (not one the mission allocated), and records the page's address for `status`."""
     conf = layout.run / HTTP_CONF
     if http_port:
         conf.unlink(missing_ok=True)
-        return
-    conf.write_text(f"[inet_http_server]\nport=127.0.0.1:{free_port()}\n")
+        url = f"http://{socket.gethostname()}:{int(http_port)}/"
+    else:
+        port = free_port(avoid)
+        conf.write_text(f"[inet_http_server]\nport=127.0.0.1:{port}\n")
+        url = f"http://127.0.0.1:{port}/"
+    (layout.run / HTTP_URL).write_text(url + "\n")
+    return url
 
 
-def http_url(layout: Layout, http_port: Optional[int] = None) -> Optional[str]:
-    """The address of supervisord's web page for this instance, if it has one."""
-    if http_port:
-        return f"http://{socket.gethostname()}:{int(http_port)}/"
-    conf = layout.run / HTTP_CONF
-    if not conf.is_file():
-        return None
-    for line in conf.read_text().splitlines():
-        if line.startswith("port="):
-            return f"http://{line[len('port='):]}/"
-    return None
+def http_url(layout: Layout) -> Optional[str]:
+    """The address of supervisord's web page for this instance, as its launch recorded it."""
+    path = layout.run / HTTP_URL
+    return path.read_text().strip() if path.is_file() else None
 
 
 def wait_running(layout: Layout, timeout: float, process: Optional[subprocess.Popen] = None) -> list[ProgramState]:
